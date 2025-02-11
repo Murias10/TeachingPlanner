@@ -1,4 +1,4 @@
-name: Deploy to Azure VM
+name: Deploy on release to Azure VM
 
 on:
   release:
@@ -46,6 +46,8 @@ jobs:
           tags: ghcr.io/${{ github.repository }}/webapp:latest
 
   deploy:
+    name: Deploy to Azure VM
+    needs: [docker-push-webapp]
     runs-on: ubuntu-latest
     steps:
       - name: 🔑 Configurar SSH

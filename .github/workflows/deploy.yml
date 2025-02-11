@@ -68,4 +68,4 @@ jobs:
             docker pull ghcr.io/${{ vars.REPOSITORY_NAME }}/webapp:latest
             docker stop webapp || true
             docker rm webapp || true
-            docker run -d --name webapp -p 80:80 ghcr.io/${{ github.repository }}/webapp:latest
+            docker run -d --name webapp -p 80:80 ghcr.io/${{ vars.REPOSITORY_NAME }}/webapp:latest

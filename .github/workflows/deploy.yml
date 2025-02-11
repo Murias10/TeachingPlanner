@@ -1,4 +1,4 @@
-name: Deploy on release to Azure VM
+name: Deploy on Release
 
 on:
   release:

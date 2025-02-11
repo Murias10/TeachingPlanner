@@ -24,6 +24,7 @@ jobs:
       contents: read
       packages: write
     steps:
+
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -50,6 +51,7 @@ jobs:
     needs: [docker-push-webapp]
     runs-on: ubuntu-latest
     steps:
+
       - name: 🔑 Configurar SSH
         uses: webfactory/ssh-agent@v0.5.3
         with:

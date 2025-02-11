@@ -43,7 +43,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ghcr.io/${{ variables.REPOSITORY_NAME }}/webapp:latest
+          tags: ghcr.io/${{ vars.REPOSITORY_NAME }}/webapp:latest
 
   deploy:
     name: Deploy to Azure VM
@@ -63,7 +63,7 @@ jobs:
           key: ${{ secrets.AZURE_SSH_PRIVATE_KEY }}
           script: |
             docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.PAT_TOKEN }}
-            docker pull ghcr.io/${{ variables.REPOSITORY_NAME }}/webapp:latest
+            docker pull ghcr.io/${{ vars.REPOSITORY_NAME }}/webapp:latest
             docker stop webapp || true
             docker rm webapp || true
             docker run -d --name webapp -p 80:80 ghcr.io/${{ github.repository }}/webapp:latest

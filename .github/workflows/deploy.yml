@@ -1,71 +1,71 @@
-name: Deploy on Release
+name: Deploy on Release  # Nombre del workflow
 
 on:
   release:
-    types: [published]
+    types: [published]  # Se ejecuta automáticamente cuando se publica un release en GitHub
 
 jobs:
-  unit-tests:
+  unit-tests:  # Job para ejecutar pruebas unitarias
+    runs-on: ubuntu-latest  # Usa la última versión de Ubuntu
+    steps:
+      - run: echo "Unit tests"  # Simulación de ejecución de tests unitarios
+
+  e2e-tests:  # Job para ejecutar pruebas end-to-end
+    needs: [unit-tests]  # Se ejecuta solo si los tests unitarios han pasado
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Unit tests"
+      - run: echo "E2E tests"  # Simulación de ejecución de tests E2E
 
-  e2e-tests:
-    needs: [unit-tests]
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "E2E tests"
-
-  docker-push-webapp:
+  docker-push-webapp:  # Job para construir y subir la imagen Docker de la webapp
     name: Push webapp Docker Image to GitHub Packages
-    needs: [e2e-tests]
+    needs: [e2e-tests]  # Se ejecuta solo si los tests E2E han pasado
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      packages: write
+      contents: read  # Permiso de lectura para acceder al código fuente
+      packages: write  # Permiso de escritura para publicar la imagen en GitHub Packages
     steps:
 
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: 📥 Clonar el código fuente
+        uses: actions/checkout@v4  # Descarga el código del repositorio
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: ⚙️ Configurar Docker Buildx
+        uses: docker/setup-buildx-action@v3  # Habilita la compilación avanzada con Docker Buildx
 
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+      - name: 🔑 Iniciar sesión en GitHub Container Registry
+        uses: docker/login-action@v3  # Autenticación en GitHub Container Registry
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: ghcr.io  # URL del registro de contenedores
+          username: ${{ github.actor }}  # Usuario de GitHub que ejecuta la acción
+          password: ${{ secrets.GITHUB_TOKEN }}  # Token de autenticación de GitHub
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v3
+      - name: 🏗️ Construir y subir imagen Docker
+        uses: docker/build-push-action@v3  # Compila y sube la imagen al registro de GitHub
         with:
-          context: ./webapp  # Set context to the webapp directory
-          file: ./webapp/Dockerfile
-          push: true
-          tags: ghcr.io/${{ vars.REPOSITORY_NAME }}/webapp:latest
+          context: ./webapp  # Define el contexto de construcción en la carpeta webapp
+          file: ./webapp/Dockerfile  # Especifica el Dockerfile a usar
+          push: true  # Indica que se debe subir la imagen al registro
+          tags: ghcr.io/${{ vars.REPOSITORY_NAME }}/webapp:latest  # Etiqueta la imagen con "latest"
 
-  deploy:
+  deploy:  # Job para desplegar la aplicación en Azure VM
     name: Deploy to Azure VM
-    needs: [docker-push-webapp]
+    needs: [docker-push-webapp]  # Se ejecuta solo si la imagen Docker ha sido subida correctamente
     runs-on: ubuntu-latest
     steps:
 
       - name: 🔑 Configurar SSH
-        uses: webfactory/ssh-agent@v0.9.0
+        uses: webfactory/ssh-agent@v0.9.0  # Configura una clave SSH para conectarse a la VM
         with:
-          ssh-private-key: ${{ secrets.AZURE_SSH_PRIVATE_KEY }}
+          ssh-private-key: ${{ secrets.AZURE_SSH_PRIVATE_KEY }}  # Clave privada almacenada en GitHub Secrets
 
       - name: 📤 Desplegar en Azure VM
-        uses: appleboy/ssh-action@v1.2.0
+        uses: appleboy/ssh-action@v1.2.0  # Ejecuta comandos SSH en la VM de Azure
         with:
-          host: ${{ secrets.AZURE_VM_IP }}
-          username: ${{ secrets.AZURE_VM_USER }}
-          key: ${{ secrets.AZURE_SSH_PRIVATE_KEY }}
-          script: |
-            docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
-            docker pull ghcr.io/${{ vars.REPOSITORY_NAME }}/webapp:latest
-            docker stop webapp || true
-            docker rm webapp || true
-            docker run -d --name webapp -p 80:80 ghcr.io/${{ vars.REPOSITORY_NAME }}/webapp:latest
+          host: ${{ secrets.AZURE_VM_IP }}  # Dirección IP de la VM
+          username: ${{ secrets.AZURE_VM_USER }}  # Usuario para conectarse a la VM
+          key: ${{ secrets.AZURE_SSH_PRIVATE_KEY }}  # Clave privada para autenticación SSH
+          script: |  # Comandos ejecutados en la VM para actualizar la aplicación
+            docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}  # Iniciar sesión en el registro de contenedores
+            docker pull ghcr.io/${{ vars.REPOSITORY_NAME }}/webapp:latest  # Descargar la última versión de la imagen
+            docker stop webapp || true  # Detener el contenedor actual si está en ejecución
+            docker rm webapp || true  # Eliminar el contenedor actual si existe
+            docker run -d --name webapp -p 80:80 ghcr.io/${{ vars.REPOSITORY_NAME }}/webapp:latest  # Ejecutar el nuevo contenedor en la VM

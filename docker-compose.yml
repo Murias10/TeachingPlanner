@@ -1,0 +1,53 @@
+version: '3.8' # Usa una versión reciente para mejoras en compatibilidad y rendimiento
+
+services:
+  webapp:
+    container_name: webapp_service # Nombre descriptivo del contenedor de la aplicación
+    build:
+      context: ./webapp # Ubicación del código fuente de la aplicación
+      dockerfile: Dockerfile # Archivo Dockerfile que define la construcción de la imagen
+    ports:
+      - "80:80" # Expone el puerto 80 en el host para acceder a la aplicación web
+    depends_on:
+      mariadb:
+        condition: service_healthy # Espera hasta que MariaDB esté listo antes de iniciar
+    restart: unless-stopped # Reinicia el servicio solo si falla, pero no si se detiene manualmente
+    environment:
+      DATABASE_HOST: mariadb # Nombre del servicio de la base de datos dentro de la red de Docker
+      DATABASE_USER: myuser # Usuario de la base de datos
+      DATABASE_PASSWORD: mypassword # Contraseña del usuario
+      DATABASE_NAME: mydatabase # Nombre de la base de datos
+    networks:
+      - app_network # Red interna para permitir la comunicación con MariaDB
+
+  mariadb:
+    container_name: mariadb_service # Nombre descriptivo del contenedor de MariaDB
+    build:
+      context: ./planner_database # Ubicación del Dockerfile de la base de datos
+      dockerfile: Dockerfile # Archivo Dockerfile para la imagen personalizada de MariaDB
+    restart: always # Asegura que el servicio siempre se reinicie si falla
+    environment:
+      MARIADB_ROOT_PASSWORD: rootpassword # Contraseña del usuario root de MariaDB
+      MARIADB_DATABASE: mydatabase # Base de datos que se creará al iniciar
+      MARIADB_USER: myuser # Usuario de la base de datos
+      MARIADB_PASSWORD: mypassword # Contraseña del usuario de la base de datos
+    volumes:
+      - mariadb_data:/var/lib/mysql # Persistencia de datos de la base de datos
+    ports:
+      - "3306:3306" # Permite acceso desde el host en desarrollo (quitar en producción)
+    expose:
+      - "3306" # Expone el puerto solo dentro de la red de Docker para comunicación interna
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ] # Verifica si el servicio está activo
+      interval: 10s # Revisión cada 10 segundos
+      retries: 5 # Número de intentos antes de considerar que el servicio está fallando
+    networks:
+      - app_network # Conecta MariaDB y la aplicación web
+
+volumes:
+  mariadb_data:
+    # Volumen para la persistencia de datos de MariaDB
+
+networks:
+  app_network:
+    driver: bridge # Red dedicada para mejorar la comunicación entre servicios

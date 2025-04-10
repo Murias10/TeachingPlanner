@@ -67,7 +67,7 @@ jobs:
           host: ${{ secrets.AZURE_VM_IP }}
           username: ${{ secrets.AZURE_VM_USER }}
           key: ${{ secrets.AZURE_SSH_PRIVATE_KEY }}
-          source: "./docker-compose.yml"
+          source: "./*"
           target: "~/TeachingPlanner/docker-compose.yml"
           port: 22  # Asegúrate de que el puerto sea correcto
       - name: Check contents of the source directory

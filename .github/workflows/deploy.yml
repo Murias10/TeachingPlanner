@@ -61,6 +61,9 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.AZURE_SSH_PRIVATE_KEY }}
 
+      - name: Listar archivos en el directorio de trabajo
+        run: ls -al  # Esto ayudará a verificar que los archivos están presentes en la raíz
+
       - name: 📤 Copiar docker-compose.yml al servidor
         uses: appleboy/scp-action@v0.1.7
         with:

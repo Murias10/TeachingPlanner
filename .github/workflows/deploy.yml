@@ -61,6 +61,9 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.AZURE_SSH_PRIVATE_KEY }}
 
+      - name: 📥 Clonar el código fuente
+        uses: actions/checkout@v4
+
       - name: Listar archivos en el directorio de trabajo
         run: ls -al  # Esto ayudará a verificar que los archivos están presentes en la raíz
 

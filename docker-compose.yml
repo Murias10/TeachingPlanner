@@ -3,14 +3,12 @@ version: '3.8' # Usa una versión reciente para mejoras en compatibilidad y rend
 services:
   webapp:
     container_name: webapp_service # Nombre descriptivo del contenedor de la aplicación
-    build:
-      context: ./webapp # Ubicación del código fuente de la aplicación
-      dockerfile: Dockerfile # Archivo Dockerfile que define la construcción de la imagen
+    image: ghcr.io/murias10/teachingplanner/webapp:latest
     ports:
       - "80:80" # Expone el puerto 80 en el host para acceder a la aplicación web
-    depends_on:
-      mariadb:
-        condition: service_healthy # Espera hasta que MariaDB esté listo antes de iniciar
+    # depends_on:
+    #   mariadb:
+    #     condition: service_healthy # Espera hasta que MariaDB esté listo antes de iniciar
     restart: unless-stopped # Reinicia el servicio solo si falla, pero no si se detiene manualmente
     environment:
       DATABASE_HOST: mariadb # Nombre del servicio de la base de datos dentro de la red de Docker
@@ -22,9 +20,7 @@ services:
 
   mariadb:
     container_name: mariadb_service # Nombre descriptivo del contenedor de MariaDB
-    build:
-      context: ./planner_database # Ubicación del Dockerfile de la base de datos
-      dockerfile: Dockerfile # Archivo Dockerfile para la imagen personalizada de MariaDB
+    image: ghcr.io/murias10/teachingplanner/mariadb:latest
     restart: always # Asegura que el servicio siempre se reinicie si falla
     environment:
       MARIADB_ROOT_PASSWORD: rootpassword # Contraseña del usuario root de MariaDB

@@ -1,28 +1,28 @@
-name: Build & Test
+name: Build & Test  # Nombre del workflow
 
 on:
   push:
     branches:
-      - master
+      - master  # Se ejecuta cuando se hace push a la rama master
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened]  # Se ejecuta cuando se abre, actualiza o reabre un PR
 
 jobs:
-  unit-tests:
-    runs-on: ubuntu-latest
+  unit-tests:  # Job para ejecutar los tests unitarios
+    runs-on: ubuntu-latest  # Usa la última versión de Ubuntu como sistema operativo
     steps:
       - name: 📥 Clonar el repositorio
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4  # Descarga el código del repositorio
         with:
-          fetch-depth: 0
+          fetch-depth: 0  # Clona todo el historial para un análisis más preciso
 
       - name: ⚙️ Configurar Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v4  # Configura el entorno con Node.js
         with:
-          node-version: 20
+          node-version: 20  # Usa la versión 20 de Node.js
 
       - name: 📦 Instalar dependencias
-        run: |
+        run: |  # Instala las dependencias en cada servicio
           npm --prefix users/utils ci
           npm --prefix users/authservice ci
           npm --prefix users/userservice ci
@@ -31,7 +31,7 @@ jobs:
           npm --prefix webapp ci
 
       - name: 🧪 Ejecutar Tests Unitarios
-        run: |
+        run: |  # Ejecuta los tests unitarios en cada servicio con cobertura
           npm --prefix users/utils test -- --coverage
           npm --prefix users/authservice test -- --coverage
           npm --prefix users/userservice test -- --coverage
@@ -40,25 +40,25 @@ jobs:
           npm --prefix webapp test -- --coverage
 
       - name: 📊 Analizar con SonarCloud
-        uses: sonarsource/sonarcloud-github-action@master
+        uses: sonarsource/sonarcloud-github-action@master  # Ejecuta análisis estático con SonarCloud
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Token de autenticación de GitHub
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}  # Token de autenticación de SonarCloud
 
-  e2e-tests:
-    needs: [unit-tests]
-    runs-on: ubuntu-latest
+  e2e-tests:  # Job para ejecutar tests end-to-end
+    needs: [unit-tests]  # Se ejecuta solo si los tests unitarios han pasado
+    runs-on: ubuntu-latest  # Usa la última versión de Ubuntu
     steps:
       - name: 📥 Clonar el repositorio
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4  # Descarga el código del repositorio
 
       - name: ⚙️ Configurar Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v4  # Configura Node.js
         with:
-          node-version: 20
+          node-version: 20  # Usa la versión 20 de Node.js
 
       - name: 📦 Instalar dependencias
-        run: |
+        run: |  # Instala las dependencias en cada servicio
           npm --prefix users/utils install
           npm --prefix users/authservice install
           npm --prefix users/userservice install
@@ -67,10 +67,10 @@ jobs:
           npm --prefix webapp install
 
       - name: 🚀 Construir la aplicación
-        run: npm --prefix webapp run build
+        run: npm --prefix webapp run build  # Genera los archivos de producción de la webapp
 
       - name: ⚙️ Permisos de red para Node.js
-        run: sudo setcap 'cap_net_bind_service=+ep' `which node`
+        run: sudo setcap 'cap_net_bind_service=+ep' `which node`  # Permite que Node.js use puertos restringidos
 
       - name: 🏁 Ejecutar Tests E2E
-        run: npm --prefix webapp run test:e2eci
+        run: npm --prefix webapp run test:e2eci  # Ejecuta los tests end-to-end en la webapp

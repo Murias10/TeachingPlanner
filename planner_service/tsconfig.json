@@ -6,16 +6,15 @@
         "rootDir": "src",
         "strict": true,
         "esModuleInterop": true,
-        "baseUrl": "./src",
+        "baseUrl": ".",
         "paths": {
             "@/*": [
-                "*"
+                "./src/*"
             ]
         }
     },
     "include": [
-        "src",
-        "app.ts"
+        "src"
     ],
     "exclude": [
         "node_modules",

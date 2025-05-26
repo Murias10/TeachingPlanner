@@ -13,6 +13,18 @@ services:
     networks:
       - app_network # Red interna para permitir la comunicación con MariaDB
 
+  planner_service:
+    container_name: planner_service # Nombre descriptivo del contenedor del servicio de la aplicación
+    image: ghcr.io/murias10/teachingplanner/planner_service:latest
+    restart: always # Asegura que el servicio siempre se reinicie si falla
+    environment:
+      DATABASE_URL: mysql://myuser:mypassword@planner_database/mydatabase # URL de conexión a la base de datos MariaDB
+    depends_on:
+      planner_database:
+        condition: service_healthy # Espera hasta que MariaDB esté listo antes de iniciar
+    networks:
+      - app_network # Conecta el servicio de la aplicación web y MariaDB
+
   planner_database:
     container_name: planner_database # Nombre descriptivo del contenedor de MariaDB
     image: ghcr.io/murias10/teachingplanner/planner_database:latest

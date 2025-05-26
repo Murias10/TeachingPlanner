@@ -1,5 +1,6 @@
 # Stage 1: Build con Node.js 22
 FROM node:23-alpine AS builder
+
 WORKDIR /app
 
 # Copiar archivos de dependencias
@@ -18,7 +19,7 @@ ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 RUN npm run build
 
 # Stage 2: Servir con Nginx
-FROM nginx:1.25-alpine
+FROM nginx:1.28.0-alpine
 
 # Eliminar configuración por defecto
 RUN rm /etc/nginx/conf.d/default.conf

@@ -8,8 +8,8 @@ services:
     #   mariadb:
     #     condition: service_healthy # Espera hasta que MariaDB esté listo antes de iniciar
     restart: unless-stopped # Reinicia el servicio solo si falla, pero no si se detiene manualmente
-    env_file:
-      - .env
+    #env_file:
+    #  - .env
     networks:
       - app_network # Red interna para permitir la comunicación con MariaDB
 

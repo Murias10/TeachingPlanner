@@ -4,7 +4,7 @@ FROM node:23-alpine AS builder
 WORKDIR /app
 
 # Copiar archivos de dependencias
-COPY package.json package-lock.json vite.config.js ./
+COPY package.json package-lock.json vite.config.ts ./
 
 # Instalar dependencias de producción
 RUN npm ci

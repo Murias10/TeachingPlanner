@@ -1,20 +1,30 @@
-# Imagen base ligera con Node.js
-FROM node:23-alpine
+# Etapa 1: Build
+FROM node:23-alpine AS builder
 
-# Establece el directorio de trabajo dentro del contenedor
 WORKDIR /app
 
-# Copiar archivos de dependencias
-COPY package.json package-lock.json 
-
-# Instala dependencias de producción
+# Copiar archivos necesarios para instalar dependencias
+COPY package.json package-lock.json ./
 RUN npm ci
 
-# Copia el resto de los archivos de la aplicación
+# Copiar el resto del código fuente
 COPY . .
 
-# Expone el puerto que usa la API (cambia si usas otro)
+# Compilar TypeScript
+RUN npm run build
+
+# Etapa 2: Producción
+FROM node:23-alpine
+
+WORKDIR /app
+
+# Copiar solo los archivos necesarios desde la etapa de build
+COPY --from=builder /app/package.json /app/package-lock.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+
+# Expone el puerto de la API
 EXPOSE 3000
 
-# Comando para ejecutar la aplicación
-CMD ["node", "index.js"]
+# Ejecuta la app compilada
+CMD ["node", "dist/index.js"]

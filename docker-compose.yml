@@ -1,5 +1,3 @@
-version: '3.8' # Usa una versión reciente para mejoras en compatibilidad y rendimiento
-
 services:
   webapp:
     container_name: webapp_service # Nombre descriptivo del contenedor de la aplicación
@@ -10,17 +8,14 @@ services:
     #   mariadb:
     #     condition: service_healthy # Espera hasta que MariaDB esté listo antes de iniciar
     restart: unless-stopped # Reinicia el servicio solo si falla, pero no si se detiene manualmente
-    environment:
-      DATABASE_HOST: mariadb # Nombre del servicio de la base de datos dentro de la red de Docker
-      DATABASE_USER: myuser # Usuario de la base de datos
-      DATABASE_PASSWORD: mypassword # Contraseña del usuario
-      DATABASE_NAME: mydatabase # Nombre de la base de datos
+    env_file:
+      - .env
     networks:
       - app_network # Red interna para permitir la comunicación con MariaDB
 
-  mariadb:
-    container_name: mariadb_service # Nombre descriptivo del contenedor de MariaDB
-    image: ghcr.io/murias10/teachingplanner/mariadb:latest
+  planner_database:
+    container_name: planner_database # Nombre descriptivo del contenedor de MariaDB
+    image: ghcr.io/murias10/teachingplanner/planner_database:latest
     restart: always # Asegura que el servicio siempre se reinicie si falla
     environment:
       MARIADB_ROOT_PASSWORD: rootpassword # Contraseña del usuario root de MariaDB
@@ -28,7 +23,7 @@ services:
       MARIADB_USER: myuser # Usuario de la base de datos
       MARIADB_PASSWORD: mypassword # Contraseña del usuario de la base de datos
     volumes:
-      - mariadb_data:/var/lib/mysql # Persistencia de datos de la base de datos
+      - planner_data:/var/lib/mysql # Persistencia de datos de la base de datos
     ports:
       - "3306:3306" # Permite acceso desde el host en desarrollo (quitar en producción)
     expose:
@@ -41,7 +36,7 @@ services:
       - app_network # Conecta MariaDB y la aplicación web
 
 volumes:
-  mariadb_data:
+  planner_data:
     # Volumen para la persistencia de datos de MariaDB
 
 networks:

@@ -44,13 +44,21 @@ jobs:
           push: true
           tags: ghcr.io/${{ vars.REPOSITORY_NAME }}/webapp:latest
 
-      - name: 🏗️ Construir y subir imagen mariadb
+      - name: 🏗️ Construir y subir imagen planner_database
         uses: docker/build-push-action@v3
         with:
           context: ./planner_database
           file: ./planner_database/Dockerfile
           push: true
-          tags: ghcr.io/${{ vars.REPOSITORY_NAME }}/mariadb:latest
+          tags: ghcr.io/${{ vars.REPOSITORY_NAME }}/planner_database:latest
+
+      - name: 🏗️ Construir y subir imagen planner_service
+        uses: docker/build-push-action@v3
+        with:
+          context: ./planner_service
+          file: ./planner_service/Dockerfile
+          push: true
+          tags: ghcr.io/${{ vars.REPOSITORY_NAME }}/planner_service:latest
 
   deploy:
     needs: [docker-push-images]  # Se ejecuta solo después de que las imágenes han sido subidas
@@ -90,9 +98,9 @@ jobs:
             echo "📁 Navegando al directorio del proyecto"
             cd ~/TeachingPlanner
 
-            echo "⬇️ Actualizando las imágenes desde GHCR"
+            echo "⬇️ Actualizando las imágenes de la máquina virtual desde GHCR"
             docker compose pull
 
-            echo "♻️ Reiniciando los contenedores con Docker Compose"
+            echo "♻️ Reiniciando los contenedores actualizados con Docker Compose"
             docker compose down
             docker compose up -d

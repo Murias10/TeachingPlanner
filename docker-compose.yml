@@ -24,6 +24,10 @@ services:
         condition: service_healthy # Espera hasta que MariaDB esté listo antes de iniciar
     networks:
       - app_network # Conecta el servicio de la aplicación web y MariaDB
+    ports:
+      - "3307:3307" # Permite acceso desde el host en desarrollo (quitar en producción)
+    expose:
+      - "3307" # Expone el puerto solo dentro de la red de Docker para comunicación interna
 
   planner_database:
     container_name: planner_database # Nombre descriptivo del contenedor de MariaDB

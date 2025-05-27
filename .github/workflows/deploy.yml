@@ -3,6 +3,9 @@ name: Deploy on Release  # Nombre del workflow
 on:
   release:
     types: [published]  # Se ejecuta automáticamente cuando se publica un release en GitHub
+  push:
+    branches:
+      - main  # También se ejecuta cuando hay un push a la rama main
 
 jobs:
   unit-tests:  # Job para ejecutar pruebas unitarias

@@ -4,7 +4,6 @@ import { Request, Response } from 'express'
 import userRouter from '@/routes/user.routes'
 import { AppDataSource } from '@/config/data-source'
 
-
 const port = 3007
 
 app.use(express.json())

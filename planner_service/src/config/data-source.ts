@@ -7,8 +7,8 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 export const AppDataSource = new DataSource({
-  type: 'mariadb',
-  host: "localhost",//process.env.DB_HOST,
+  type: "mariadb",
+  host: "planner_database",//process.env.DB_HOST,
   port: parseInt(process.env.DB_PORT || '3306'),
   username: "myuser", //process.env.DB_USER,
   password: "mypassword",//process.env.DB_PASSWORD,

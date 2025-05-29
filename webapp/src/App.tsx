@@ -4,7 +4,11 @@ import About from '@/pages/About';
 import Page from '@/app/dashboard/page';
 
 
+
 function App() {
+
+
+
   return (
     <div>
       <nav>
@@ -15,6 +19,7 @@ function App() {
         <Route path="/about" element={<About />} />
         <Route path="/page" element={<Page />} />
       </Routes>
+
     </div>
   );
 }

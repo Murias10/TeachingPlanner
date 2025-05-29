@@ -9,8 +9,10 @@ export const getAllUsers = async (_req: Request, res: Response) => {
 };
 
 export const createUser = async (req: Request, res: Response) => {
-    const { name, email } = req.body;
-    const user = AppDataSource.getRepository(User).create({ name, email });
+    const { name, email, gender } = req.body;
+
+    const user = AppDataSource.getRepository(User).create({ name, email, gender });
     const result = await AppDataSource.getRepository(User).save(user);
+
     res.status(201).json(result);
 };

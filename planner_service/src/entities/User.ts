@@ -1,7 +1,7 @@
 
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
-@Entity()
+@Entity("USERS")
 export class User {
   @PrimaryGeneratedColumn("uuid")
   id!: string;
@@ -12,6 +12,6 @@ export class User {
   @Column({ unique: true })
   email!: string;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ type: "varchar", nullable: true })
   gender?: string | null;
 }

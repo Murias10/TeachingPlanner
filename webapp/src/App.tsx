@@ -2,15 +2,12 @@ import { Link, Route, Routes } from 'react-router-dom';
 import Home from '@/pages/Home';
 import About from '@/pages/About';
 import Page from '@/app/dashboard/page';
-
-
+import { TitleUpdater } from '@/hooks/title-updater';
 
 function App() {
-
-
-
   return (
-    <div>
+    <>
+      <TitleUpdater />
       <nav>
         <Link to="/">Home</Link> | <Link to="/about">About</Link> | <Link to="/page">Page</Link>
       </nav>
@@ -20,7 +17,7 @@ function App() {
         <Route path="/page" element={<Page />} />
       </Routes>
 
-    </div>
+    </>
   );
 }
 

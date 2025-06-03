@@ -2,13 +2,16 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { useQuery } from "@tanstack/react-query";
+import Home from "@/pages/Home";
+import About from "@/pages/About";
+import { Route, Routes } from "react-router-dom";
 
 const fetchData = async () => {
     const res = await fetch("https://jsonplaceholder.typicode.com/posts/1");
     return res.json();
 };
 
-const MyComponent = () => {
+export const MyComponent = () => {
     const { data, isLoading, error } = useQuery({
         queryKey: ["post"],
         queryFn: fetchData,
@@ -26,7 +29,7 @@ const MyComponent = () => {
 };
 
 
-export default function Page() {
+export default function Main() {
     return (
         <div className="[--header-height:calc(theme(spacing.14))]">
             <SidebarProvider className="flex flex-col">
@@ -34,15 +37,12 @@ export default function Page() {
                 <div className="flex flex-1">
                     <AppSidebar />
                     <SidebarInset>
-                        <div className="flex flex-1 flex-col gap-4 p-4">
-                            <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-                                <div className="aspect-video rounded-xl bg-muted/50" />
-                                <div className="aspect-video rounded-xl bg-muted/50" />
-                                <div className="aspect-video rounded-xl bg-muted/50" >
-                                    <MyComponent />
-                                </div>
-                            </div>
-                            <div className="min-h-[100vh] flex-1 rounded-xl bg-muted/50 md:min-h-min" />
+                        <div className="flex-1 h-full rounded-xl bg-muted/50 flex items-center justify-center m-2">
+                            <Routes>
+                                <Route path="/" element={<Home />} />
+                                <Route path="/about" element={<About />} />
+                                <Route path="/page" element={<Main />} />
+                            </Routes>
                         </div>
                     </SidebarInset>
                 </div>

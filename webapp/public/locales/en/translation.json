@@ -1,5 +1,34 @@
 {
     "welcome": "Welcome",
     "login": "Log in",
-    "logout": "Log out"
+    "logout": "Log out",
+    "sidebar": {
+        "main": {
+            "title": "Academic Management",
+            "calendars": {
+                "title": "Calendars",
+                "list": "List All Calendars"
+            },
+            "classrooms": {
+                "title": "Classrooms",
+                "list": "List All Classrooms"
+            },
+            "subjects": {
+                "title": "Subjects",
+                "list": "List All Subjects"
+            }
+        },
+        "system": {
+            "title": "System",
+            "logs": {
+                "title": "System Logs"
+            },
+            "users": {
+                "title": "Users Management"
+            },
+            "reports": {
+                "title": "Usage Reports"
+            }
+        }
+    }
 }

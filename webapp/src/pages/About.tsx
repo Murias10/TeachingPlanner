@@ -3,7 +3,7 @@ const About = () => {
 
     return (
         <>
-            <h2>About Page</h2>;
+            <h2>ABOUT PAGE</h2>
         </>);
 };
 

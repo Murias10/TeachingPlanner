@@ -7,7 +7,7 @@ const Home = () => {
 
     return (
         <>
-            <h2>Home Page</h2>
+            <h2>HOME PAGE</h2>
             <MyComponent />
             <div>
                 <h1>{t('welcome')}</h1>

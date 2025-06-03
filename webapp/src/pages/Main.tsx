@@ -41,7 +41,6 @@ export default function Main() {
                             <Routes>
                                 <Route path="/" element={<Home />} />
                                 <Route path="/about" element={<About />} />
-                                <Route path="/page" element={<Main />} />
                             </Routes>
                         </div>
                     </SidebarInset>

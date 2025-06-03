@@ -1,5 +1,32 @@
 {
     "welcome": "Bienvenido",
-    "login": "Iniciar sesión",
-    "logout": "Cerrar sesión"
+    "sidebar": {
+        "main": {
+            "title": "Gestión Académica",
+            "calendars": {
+                "title": "Calendarios",
+                "list": "Listar todos los calendarios"
+            },
+            "classrooms": {
+                "title": "Aulas",
+                "list": "Listar todas las aulas"
+            },
+            "subjects": {
+                "title": "Asignaturas",
+                "list": "Listar todas las asignaturas"
+            }
+        },
+        "system": {
+            "title": "Sistema",
+            "logs": {
+                "title": "Registros del sistema"
+            },
+            "users": {
+                "title": "Gestión de usuarios"
+            },
+            "reports": {
+                "title": "Informes de uso"
+            }
+        }
+    }
 }

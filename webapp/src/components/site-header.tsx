@@ -8,10 +8,12 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
+
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { useSidebar } from "@/components/ui/sidebar"
 import { ModeToggle } from "@/components/mode-toggle"
+import { LanguageSelector } from "@/components/language-selector"
 
 export function SiteHeader() {
   const { toggleSidebar } = useSidebar()
@@ -42,6 +44,7 @@ export function SiteHeader() {
           </BreadcrumbList>
         </Breadcrumb>
         <div className="flex flex-1 items-center justify-end gap-2">
+          <LanguageSelector />
           <ModeToggle />
         </div>
       </div>

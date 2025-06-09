@@ -50,8 +50,8 @@ jobs:
       - name: 🏗️ Construir y subir imagen gateway_service
         uses: docker/build-push-action@v3
         with:
-          context: ./gatewqay_service
-          file: ./gatewqay_service/Dockerfile
+          context: ./gateway_service
+          file: ./gateway_service/Dockerfile
           push: true
           tags: ghcr.io/${{ vars.REPOSITORY_NAME }}/gatewqay_service:latest
 

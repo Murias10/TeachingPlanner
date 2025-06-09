@@ -96,16 +96,6 @@ jobs:
           target: "/home/${{ secrets.AZURE_VM_USER }}/TeachingPlanner"
           port: 22
 
-      - name: 📤 Copiar .env.template como .env al servidor
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.AZURE_VM_IP }}
-          username: ${{ secrets.AZURE_VM_USER }}
-          key: ${{ secrets.AZURE_SSH_PRIVATE_KEY }}
-          source: "./.env.template"
-          target: "/home/${{ secrets.AZURE_VM_USER }}/TeachingPlanner/.env"
-          port: 22
-
       - name: 📤 Desplegar en Azure VM
         uses: appleboy/ssh-action@v1.2.0
         with:
@@ -121,7 +111,7 @@ jobs:
 
             # Aqui creo que habria que copiar el .env.template y renombrarlo a .env
             echo "📄 Copiando el archivo .env.template a .env"
-            cp .env.template .env
+            # cp .env.template .env
             # De esta manera, el .env se crearia en el servidor y no en el repositorio
 
             echo "⬇️ Actualizando las imágenes de la máquina virtual desde GHCR"

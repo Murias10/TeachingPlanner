@@ -110,8 +110,8 @@ jobs:
             cd ~/TeachingPlanner
 
             # Aqui creo que habria que copiar el .env.template y renombrarlo a .env
-            # echo "📄 Copiando el archivo .env.template a .env"
-            # cp .env.template .env
+            echo "📄 Copiando el archivo .env.template a .env"
+            cp .env.template .env
             # De esta manera, el .env se crearia en el servidor y no en el repositorio
 
             echo "⬇️ Actualizando las imágenes de la máquina virtual desde GHCR"

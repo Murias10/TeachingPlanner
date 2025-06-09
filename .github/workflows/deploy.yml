@@ -47,6 +47,14 @@ jobs:
           push: true
           tags: ghcr.io/${{ vars.REPOSITORY_NAME }}/webapp:latest
 
+      - name: 🏗️ Construir y subir imagen gateway_service
+        uses: docker/build-push-action@v3
+        with:
+          context: ./gatewqay_service
+          file: ./gatewqay_service/Dockerfile
+          push: true
+          tags: ghcr.io/${{ vars.REPOSITORY_NAME }}/gatewqay_service:latest
+
       - name: 🏗️ Construir y subir imagen planner_database
         uses: docker/build-push-action@v3
         with:

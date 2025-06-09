@@ -53,7 +53,7 @@ jobs:
           context: ./gateway_service
           file: ./gateway_service/Dockerfile
           push: true
-          tags: ghcr.io/${{ vars.REPOSITORY_NAME }}/gatewqay_service:latest
+          tags: ghcr.io/${{ vars.REPOSITORY_NAME }}/gateway_service:latest
 
       - name: 🏗️ Construir y subir imagen planner_database
         uses: docker/build-push-action@v3

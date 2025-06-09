@@ -138,12 +138,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <a href="#">
-                <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                  <Command className="size-4" />
-                </div>
+                <img
+                  src="/favicon.svg"
+                  alt="Logo"
+                  className="aspect-square size-11 rounded-lg object-cover"
+                />
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">Acme Inc</span>
-                  <span className="truncate text-xs">Enterprise</span>
+                  {/* break-words whitespace-normal */}
+                  <span className="break-words whitespace-normal font-medium ">Escuela de Ingeniería Informática</span>
+                  <span className="truncate text-xs">Universidad de Oviedo</span>
                 </div>
               </a>
             </SidebarMenuButton>

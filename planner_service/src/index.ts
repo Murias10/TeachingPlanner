@@ -1,14 +1,9 @@
 import app from '@/app'
-import express from 'express'
 import { Request, Response } from 'express'
 import userRouter from '@/routes/user.routes'
 import { AppDataSource } from '@/config/data-source'
 
 const port = 3307
-
-app.use(express.json())
-
-app.use(express.urlencoded({ extended: true }))
 
 app.get('/', (_req: Request, res: Response) => {
     res.send('Hello World!')

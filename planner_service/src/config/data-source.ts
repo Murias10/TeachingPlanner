@@ -2,18 +2,15 @@ import "reflect-metadata";
 
 import { DataSource } from 'typeorm';
 import { User } from '@/entities/User';
-import * as dotenv from 'dotenv';
-
-dotenv.config();
 
 export const AppDataSource = new DataSource({
-  type: "mariadb",
-  host: "planner_database",//process.env.DB_HOST,
-  port: parseInt(process.env.DB_PORT || '3306'),
-  username: "myuser", //process.env.DB_USER,
-  password: "mypassword",//process.env.DB_PASSWORD,
-  database: "mydatabase",//process.env.DB_NAME,
+  type: 'mariadb',
+  host: process.env.PLANNER_DATABASE_HOST || 'localhost',
+  port: parseInt(process.env.PLANNER_DATABASE_PORT || '3306', 10),
+  username: process.env.PLANNER_DATABASE_USER || '',
+  password: process.env.PLANNER_DATABASE_PASSWORD || '',
+  database: process.env.PLANNER_DATABASE_DATABASE || '',
   entities: [User],
-  synchronize: true, // usar false en producción
-  logging: false,
+  synchronize: true,  // Habilita sincronización automática de entidades
+  logging: false,     // Desactiva logging de consultas
 });

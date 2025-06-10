@@ -18,8 +18,6 @@ services:
     env_file:
       - .env
     restart: unless-stopped
-    depends_on:
-      - planner_service
     networks:
       - app_network
 

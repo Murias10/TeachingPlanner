@@ -7,6 +7,8 @@ services:
     env_file:
       - .env
     restart: unless-stopped
+    depends_on:
+      - gateway_service
     networks:
       - app_network
 
@@ -18,6 +20,8 @@ services:
     env_file:
       - .env
     restart: unless-stopped
+    depends_on:
+      - planner_service
     networks:
       - app_network
 
@@ -52,8 +56,6 @@ services:
       retries: 5 # Número de intentos antes de considerar que el servicio está fallando
     volumes:
       - planner_database_volume:/var/lib/mysql # Persistencia de datos de la base de datos
-    ports:
-      - "${PLANNER_DATABASE_PORT}:${PLANNER_DATABASE_PORT}"
     expose: 
       - "${PLANNER_DATABASE_PORT}"
     networks:

@@ -109,5 +109,8 @@ jobs:
             echo "📁 Navegando al directorio del proyecto"
             cd ~/TeachingPlanner
 
-            echo "♻️ Deploy: pull, recreate y remove-orphans"
+            echo "♻️ Limpiando contenedores e imágenes antiguas"
+            docker compose down --rmi all --remove-orphans
+
+            echo "🚀 Descargando y levantando todo de nuevo"
             docker compose up -d --pull always --force-recreate --remove-orphans

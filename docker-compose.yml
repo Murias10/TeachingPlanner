@@ -38,6 +38,11 @@ services:
   planner_database:
     container_name: ${PLANNER_DATABASE_HOST}
     image: ghcr.io/murias10/teachingplanner/planner_database:latest
+    environment:
+      MARIADB_ROOT_PASSWORD: ${PLANNER_DATABASE_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${PLANNER_DATABASE_ROOT_DATABASE}
+      MARIADB_USER: ${PLANNER_DATABASE_USER}
+      MARIADB_PASSWORD: ${PLANNER_DATABASE_PASSWORD}
     env_file:
       - .env
     restart: unless-stopped
@@ -49,7 +54,7 @@ services:
       - planner_database_volume:/var/lib/mysql # Persistencia de datos de la base de datos
     ports:
       - "${PLANNER_DATABASE_PORT}:${PLANNER_DATABASE_PORT}"
-    expose:
+    expose: 
       - "${PLANNER_DATABASE_PORT}"
     networks:
       - app_network # Conecta MariaDB y la aplicación web

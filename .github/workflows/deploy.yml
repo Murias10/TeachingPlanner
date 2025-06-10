@@ -114,9 +114,11 @@ jobs:
             # cp .env.template .env
             # De esta manera, el .env se crearia en el servidor y no en el repositorio
 
+            echo "♻️ Reiniciando los contenedores actualizados con Docker Compose"
+            docker-compose up -d --force-recreate --remove-orphans
+
             echo "⬇️ Actualizando las imágenes de la máquina virtual desde GHCR"
             docker compose pull
 
-            echo "♻️ Reiniciando los contenedores actualizados con Docker Compose"
-            docker compose down --remove-orphans
+            echo "🚀 Iniciando los contenedores con Docker Compose"
             docker compose up -d

@@ -109,16 +109,5 @@ jobs:
             echo "📁 Navegando al directorio del proyecto"
             cd ~/TeachingPlanner
 
-            # Aqui creo que habria que copiar el .env.template y renombrarlo a .env
-            echo "📄 Copiando el archivo .env.template a .env"
-            # cp .env.template .env
-            # De esta manera, el .env se crearia en el servidor y no en el repositorio
-
-            echo "⬇️ Descargando las últimas imágenes"
-            docker compose pull
-
-            echo "♻️ Bajando contenedores antiguos y eliminando huérfanos"
-            docker compose down --remove-orphans
-
-            echo "🚀 Levantando todo de nuevo"
-            docker compose up -d --force-recreate
+            echo "♻️ Deploy: pull, recreate y remove-orphans"
+            docker compose up -d --pull always --force-recreate --remove-orphans

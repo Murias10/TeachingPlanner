@@ -7,9 +7,21 @@ import {
 } from "@/components/ui/select"
 
 import { useTranslation } from "react-i18next";
+import { useEffect } from "react";
 
 export function LanguageSelector() {
     const { i18n } = useTranslation();
+
+    // Idiomas soportados
+    useEffect(() => {
+        const supportedLanguages = ["en", "fr", "es", "de"];
+        // Solo cambiar si no hay idioma guardado
+        if (!localStorage.getItem("i18nextLng")) {
+            const systemLang = navigator.language.split("-")[0];
+            const langToSet = supportedLanguages.includes(systemLang) ? systemLang : "en";
+            handleLanguageChange(langToSet);
+        }
+    });
 
     const handleLanguageChange = (lang: string) => {
         i18n.changeLanguage(lang);

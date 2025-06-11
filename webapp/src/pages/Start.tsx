@@ -6,29 +6,29 @@ const Start = () => {
 
     return (
         <>
-            <LetterGlitch
-                glitchColors={["#bbbbbb"]}
-                glitchSpeed={300}
-                centerVignette={true}
-                outerVignette={true}
-                smooth={true}
-            >
-
-                <div className="flex flex-col items-center mt-8 space-y-4">
-                    <h1 className="text-6xl font-bold text-center">Planificador Docente</h1>
-                    <div className="flex flex-row items-center m-10 gap-10">
-                        <Button className="w-40 h-12  whitespace-normal overflow-hidden">
-                            <Link to="/home">Iniciar sesión</Link>
-                        </Button>
-
-                        <Button className="w-40 h-12  whitespace-normal overflow-hidden">
-                            <Link to="/about">Continuar como estudiante</Link>
-                        </Button>
+            <div className="h-[calc(100svh)]!">
+                <LetterGlitch
+                    glitchColors={["#bbbbbb"]}
+                    glitchSpeed={600}
+                    centerVignette={true}
+                    outerVignette={true}
+                    smooth={true}
+                >
+                    <div className=" flex flex-col items-center justify-center text-white">
+                        <h1 className="text-5xl font-bold text-center">Planificador Docente</h1>
+                        <div className="flex flex-row items-center m-10 gap-6">
+                            <Button className="w-38 h-12  whitespace-normal">
+                                <Link to="/home">Continuar como docente</Link>
+                            </Button>
+                            <Button className="w-38 h-12  whitespace-normal">
+                                <Link to="/about">Continuar como estudiante</Link>
+                            </Button>
+                        </div>
                     </div>
-
-                </div>
-            </LetterGlitch>
-        </>);
+                </LetterGlitch>
+            </div >
+        </>
+    );
 };
 
 export default Start;

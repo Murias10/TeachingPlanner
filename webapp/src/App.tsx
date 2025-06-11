@@ -28,9 +28,7 @@ function AppLayout() {
 export default function App() {
     return (
         <div
-            // spacing.14 en Tailwind = 3.5rem
-            style={{ "--header-height": "3.5rem" } as React.CSSProperties}
-            className="min-h-screen flex flex-col"
+            className="[--header-height:calc(theme(spacing.14))]"
         >
             <Routes>
                 {/* Página inicial sin sidebar */}

@@ -46,7 +46,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         items: [
           {
             title: t("sidebar.main.calendars.list"),
-            url: "/",
+            url: "/home",
           }
         ],
       },

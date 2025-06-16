@@ -2,16 +2,16 @@ import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 
 const titlesMap: Record<string, string> = {
-    '/': 'Planificador Docente | Home',
-    '/about': 'Planificador Docente | About',
-    '/page': 'Planificador Docente | Page',
+    '/': 'Planificador',
+    '/about': 'Planificador | About',
+    '/home': 'Planificador | Home',
 };
 
 export const TitleUpdater = () => {
     const location = useLocation();
 
     useEffect(() => {
-        document.title = titlesMap[location.pathname] || 'Mi App';
+        document.title = titlesMap[location.pathname] || 'Planificador';
     }, [location]);
 
     return null;

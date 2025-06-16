@@ -1,4 +1,4 @@
-import * as React from "react"
+import { Link } from "react-router-dom"
 import {
   CircleHelp,
   UserRoundCog,
@@ -136,18 +136,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <a href="#">
+              <Link to="/" className="flex items-center gap-3">
                 <img
                   src="/favicon.svg"
                   alt="Logo"
                   className="aspect-square size-11 rounded-lg object-cover"
                 />
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  {/* break-words whitespace-normal */}
-                  <span className="break-words whitespace-normal font-medium ">Escuela de Ingeniería Informática</span>
+                  <span className="break-words whitespace-normal font-medium">Escuela de Ingeniería Informática</span>
                   <span className="truncate text-xs">Universidad de Oviedo</span>
                 </div>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

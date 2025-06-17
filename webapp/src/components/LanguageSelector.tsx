@@ -45,7 +45,7 @@ export function LanguageSelector() {
     return (
         // 4) Usamos `value` para que el select sea controlado
         <Select value={lang} onValueChange={handleLanguageChange}>
-            <SelectTrigger className="w-auto">
+            <SelectTrigger>
                 <SelectValue placeholder="Select language" />
             </SelectTrigger>
             <SelectContent>

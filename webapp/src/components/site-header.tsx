@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { useSidebar } from "@/components/ui/sidebar"
 import { ModeToggle } from "@/components/mode-toggle"
-import { LanguageSelector } from "@/components/language-selector"
+import { LanguageSelector } from "@/components/LanguageSelector"
 
 export function SiteHeader() {
   const { toggleSidebar } = useSidebar()

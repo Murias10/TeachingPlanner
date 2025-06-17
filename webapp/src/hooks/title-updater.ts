@@ -5,6 +5,7 @@ const titlesMap: Record<string, string> = {
     '/': 'Planificador',
     '/about': 'Planificador | About',
     '/home': 'Planificador | Home',
+    '/calendars': 'Planificador | Calendars',
 };
 
 export const TitleUpdater = () => {

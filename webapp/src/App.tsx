@@ -5,8 +5,8 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import Home from "@/pages/Home";
 import About from "@/pages/About";
 import Start from "@/pages/Start";
+import CalendarPage from "@/pages/CalendarPage";
 import { Route, Routes, Outlet, Navigate } from "react-router-dom";
-
 
 function AppLayout() {
     return (
@@ -15,10 +15,8 @@ function AppLayout() {
             <div className="flex flex-1">
                 <AppSidebar />
                 <SidebarInset>
-                    <div className="flex-1 h-full rounded-xl bg-muted/50 flex items-center justify-center m-2">
-                        {/* Aquí renderizamos Home o About */}
-                        <Outlet />
-                    </div>
+                    {/* Aquí renderizamos Home o About */}
+                    <Outlet />
                 </SidebarInset>
             </div>
         </SidebarProvider>
@@ -38,6 +36,7 @@ export default function App() {
                 <Route element={<AppLayout />}>
                     <Route path="home" element={<Home />} />
                     <Route path="about" element={<About />} />
+                    <Route path="calendars" element={<CalendarPage />} />
                 </Route>
 
                 {/* Opcional: Ruta “catch-all” */}

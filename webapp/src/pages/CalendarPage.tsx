@@ -3,7 +3,7 @@
 
 import { useState } from "react"
 import { DegreeSelect, Degree } from "@/components/DegreeSelect"
-import { CourseTable, CourseRecord } from "@/components/CourseTable"
+import { CourseTable } from "@/components/CourseTable"
 
 export default function CalendarPage() {
     const degrees: Degree[] = [
@@ -13,18 +13,11 @@ export default function CalendarPage() {
     ]
     const [selectedDegree, setSelectedDegree] = useState<string>(degrees[0].value)
 
-    // Simula tu fetch según el grado seleccionado
-    const courses: CourseRecord[] = [
-        { course: "2021-2022", status: "Finished" },
-        { course: "2022-2023", status: "Finished" },
-        { course: "2023-2024", status: "Finished" },
-        { course: "2024-2025", status: "Ongoing" },
-    ]
 
-    function handleSemester(course: string, sem: 1 | 2) {
-        console.log("Ir a:", { selectedDegree, course, sem })
-        // router.push(`/calendar/${selectedDegree}/${course}/semester-${sem}`)
-    }
+    // function handleSemester(course: string, sem: 1 | 2) {
+    //     console.log("Ir a:", { selectedDegree, course, sem })
+    //     // router.push(`/calendar/${selectedDegree}/${course}/semester-${sem}`)
+    // }
 
     return (
         <>
@@ -38,10 +31,7 @@ export default function CalendarPage() {
 
             <section className=" h-full rounded-xl bg-muted/50 flex items-center justify-center m-2">
                 <div className="min-w-[400px] w-2/3">
-                    <CourseTable
-                        data={courses}
-                        onSemesterClick={handleSemester}
-                    />
+                    <CourseTable />
                 </div>
             </section >
         </>

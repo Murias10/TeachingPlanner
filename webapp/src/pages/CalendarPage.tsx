@@ -1,39 +1,18 @@
-// src/app/calendar/page.tsx
 "use client"
 
-import { useState } from "react"
-import { DegreeSelect, Degree } from "@/components/DegreeSelect"
+import { DegreeProvider } from "@/context/DegreeContext"
+import { ToolBar } from "@/components/ToolBar"
 import { CourseTable } from "@/components/CourseTable"
 
 export default function CalendarPage() {
-    const degrees: Degree[] = [
-        { value: "software", label: "Grado en Ingeniería Informática del Software" },
-        { value: "bioinfo", label: "Grado en Bioinformática" },
-        // …
-    ]
-    const [selectedDegree, setSelectedDegree] = useState<string>(degrees[0].value)
-
-
-    // function handleSemester(course: string, sem: 1 | 2) {
-    //     console.log("Ir a:", { selectedDegree, course, sem })
-    //     // router.push(`/calendar/${selectedDegree}/${course}/semester-${sem}`)
-    // }
-
     return (
-        <>
-            <section className="flex-1 h-14 rounded-xl bg-muted/50 flex items-center justify-start mt-2 mr-2 ml-2 p-3">
-                <DegreeSelect
-                    degrees={degrees}
-                    value={selectedDegree}
-                    onChange={setSelectedDegree}
-                />
-            </section>
-
-            <section className=" h-full rounded-xl bg-muted/50 flex items-center justify-center m-2">
+        <DegreeProvider>
+            <ToolBar />
+            <section className="h-full rounded-xl bg-muted/50 flex items-center justify-center m-2">
                 <div className="min-w-[400px] w-2/3">
                     <CourseTable />
                 </div>
-            </section >
-        </>
+            </section>
+        </DegreeProvider>
     )
 }

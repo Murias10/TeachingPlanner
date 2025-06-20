@@ -2,6 +2,7 @@ import "reflect-metadata";
 
 import { DataSource } from 'typeorm';
 import { User } from '@/entities/user.entity';
+import { Degree } from '@/entities/degree.entity';
 
 export const AppDataSource = new DataSource({
   type: 'mariadb',
@@ -10,7 +11,7 @@ export const AppDataSource = new DataSource({
   username: process.env.PLANNER_DATABASE_USER || '',
   password: process.env.PLANNER_DATABASE_PASSWORD || '',
   database: process.env.PLANNER_DATABASE_DATABASE || '',
-  entities: [User],
+  entities: [User, Degree],
   synchronize: true,  // Habilita sincronización automática de entidades
   logging: false,     // Desactiva logging de consultas
 });

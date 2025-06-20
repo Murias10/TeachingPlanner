@@ -32,7 +32,7 @@ export function DegreeProvider({ children }: { children: ReactNode }) {
     } = useQuery<Degree[], Error>({
         queryKey: ["degrees"],
         queryFn: () =>
-            fetch('/api/degrees').then(res => {
+            fetch('/localhost:5001/degrees').then(res => {
                 if (!res.ok) throw new Error(`Error ${res.status}`)
                 return res.json()
             }),

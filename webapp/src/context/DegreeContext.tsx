@@ -32,11 +32,17 @@ export function DegreeProvider({ children }: { children: ReactNode }) {
     } = useQuery<Degree[], Error>({
         queryKey: ["degrees"],
         queryFn: () =>
-            fetch('/localhost:5001/degrees').then(res => {
-                if (!res.ok) throw new Error(`Error ${res.status}`)
-                return res.json()
-            }),
-    })
+            fetch("http://localhost:8080/degrees")
+                .then(res => {
+                    if (!res.ok) throw new Error(`Network error: ${res.status}`);
+                    return res.json();
+                })
+                .then((body: { status: string; data: { degrees: Degree[] } }) => {
+                    return body.data.degrees;
+                }),
+        staleTime: 5 * 60_000,
+        retry: 1,
+    });
 
     // Initialize selection
     useEffect(() => {

@@ -1,7 +1,7 @@
 import app from '@/app';
 import { Request, Response } from 'express';
 
-const port = 3308;
+const port = 8080;
 
 app.get('/', (_req: Request, res: Response) => {
     res.send('NICO TOLAY');

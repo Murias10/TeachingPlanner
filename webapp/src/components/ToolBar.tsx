@@ -11,7 +11,7 @@ export function ToolBar() {
     if (error) return <div>Error al cargar grados: {error}</div>
 
     return (
-        <section className="flex items-center space-x-4 bg-muted/50 p-4 rounded-xl m-2">
+        <section className="flex items-center space-x-4 bg-muted/50 p-4 rounded-xl mt-2 ml-2 mr-2">
             <DegreeSelect
                 degrees={degrees}
                 value={selectedDegree}

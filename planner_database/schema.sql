@@ -1,12 +1,13 @@
 CREATE TABLE DEGREES (
     ID VARCHAR(36) NOT NULL,
     NAME VARCHAR(100) NOT NULL UNIQUE,
+    ACRONYM VARCHAR(20) NOT NULL UNIQUE,
     PRIMARY KEY (ID)
 );
 
-INSERT INTO DEGREES (ID, NAME) VALUES
-('bf589cf8-f6f9-464b-9af9-307bd8fa8dd9', 'Grado en Ingeniería Informática del Software'),
-('a0f2b8c4-3d1e-4b5c-8f7d-6a9e1f2b3c4d', 'Máster de Ingeniería Web');
+INSERT INTO DEGREES (ID, NAME, ACRONYM) VALUES
+('bf589cf8-f6f9-464b-9af9-307bd8fa8dd9', 'Grado en Ingeniería Informática del Software', 'GIIS'),
+('a0f2b8c4-3d1e-4b5c-8f7d-6a9e1f2b3c4d', 'Máster de Ingeniería Web', 'MIW');
 
 CREATE TABLE COURSES (
     ID VARCHAR(36) NOT NULL,

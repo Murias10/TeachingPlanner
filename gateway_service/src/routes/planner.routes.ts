@@ -1,8 +1,8 @@
 import express from 'express';
-import { getAllDegrees } from '@/controllers/planner.controller';
+import { getDegrees } from '@/controllers/planner.controller';
 
 const router = express.Router();
 
-router.get('/degrees', getAllDegrees);
+router.get('/degrees', getDegrees);
 
 export default router;

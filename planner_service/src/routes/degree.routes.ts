@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { getAllDegrees } from '@/controllers/degree.controller';
+import { getDegrees } from '@/controllers/degree.controller';
 
 
 const router = Router();
 
-router.get('/', getAllDegrees);
+router.get('/degrees', getDegrees);
 
 export default router;

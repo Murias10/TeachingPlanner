@@ -1,10 +1,13 @@
-import { Entity, PrimaryColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
-@Entity('DEGREE')
+@Entity('DEGREES')
 export class Degree {
-    @PrimaryColumn('varchar', { length: 36, name: 'ID' })
+    @PrimaryGeneratedColumn('uuid', { name: 'ID' })
     id!: string;
 
     @Column('varchar', { length: 100, name: 'NAME', unique: true })
     name!: string;
+
+    @Column('varchar', { length: 20, name: 'ACRONYM', unique: true })
+    acronym!: string;
 }

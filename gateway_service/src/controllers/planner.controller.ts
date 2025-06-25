@@ -1,16 +1,19 @@
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
+import axios, { AxiosError, AxiosResponse } from 'axios';
 
-const getAllDegrees = (_req: Request, res: Response) => {
-    res.json({
-        status: 'success',
-        data: {
-            degrees: [
-                { value: 'bachelor', label: 'Bachelor of Science' },
-                { value: 'master', label: 'Master of Science' },
-                { value: 'phd', label: 'Doctor of Philosophy' },
-            ],
-        },
-    });
+
+const getDegrees = (_req: Request, res: Response, next: NextFunction) => {
+    fetch('http://localhost:5001/degrees')
+        .then(async (response) => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            res.json(data);
+        })
+        .catch((error) => {
+            next(error);
+        });
 }
 
-export { getAllDegrees };
+export { getDegrees };

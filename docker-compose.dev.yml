@@ -37,8 +37,8 @@ services:
       context: ./planner_service
       dockerfile: Dockerfile
     image: teachingplanner_planner_service:dev
-    expose:
-      - "${PLANNER_SERVICE_PORT}"
+    ports:
+      - "${PLANNER_SERVICE_PORT}:${PLANNER_SERVICE_PORT}"
     env_file:
       - .env
     restart: unless-stopped

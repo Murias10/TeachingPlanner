@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 
-const health = (_req: Request, res: Response) => {
+const checkStatus = (_req: Request, res: Response) => {
     res.json({
         status: 'success',
         data: {
@@ -9,4 +9,4 @@ const health = (_req: Request, res: Response) => {
     });
 };
 
-export { health };
+export { checkStatus };

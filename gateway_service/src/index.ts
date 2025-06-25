@@ -1,11 +1,11 @@
 import app from '@/app';
-import { Request, Response } from 'express';
+import degreeRouter from '@/routes/planner.routes';
+import statusRouter from '@/routes/status.routes';
 
 const port = 8080;
 
-app.get('/', (_req: Request, res: Response) => {
-    res.send('NICO TOLAY');
-});
+app.use(degreeRouter);
+app.use(statusRouter);
 
 app.listen(port, () => {
     console.log(`Servidor escuchando en http://localhost:${port}`);

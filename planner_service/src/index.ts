@@ -1,21 +1,13 @@
 import app from '@/app'
-import { Request, Response } from 'express'
 import userRouter from '@/routes/user.routes'
+import degreeRouter from '@/routes/degree.routes'
 import { AppDataSource } from '@/config/data-source'
 
-const port = 3307
+const port = 5001
 
-app.get('/', (_req: Request, res: Response) => {
-    res.send('Hello World!')
-})
+app.use(userRouter)
 
-app.post('/api', (req: Request, res: Response) => {
-    const { name, email } = req.body
-    res.json({ name, email })
-}
-)
-
-app.use('/user', userRouter)
+app.use(degreeRouter)
 
 app.listen(port, () => {
     console.log(`Example app listening on port ${port}`)

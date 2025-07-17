@@ -1,15 +1,15 @@
 import { NextFunction, Request, Response } from 'express';
-import axios, { AxiosError, AxiosResponse } from 'axios';
-
 
 const getDegrees = (_req: Request, res: Response, next: NextFunction) => {
-    fetch('http://localhost:5001/degrees')
+    fetch('http://planner_service:5001/degrees')
         .then(async (response) => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const data = await response.json();
-            res.json(data);
+            // Copia los headers del planner service
+            response.headers.forEach((value, key) => {
+                res.setHeader(key, value);
+            });
+            // Obtén el body como JSON
+            const body = await response.json();
+            res.status(response.status).json(body);
         })
         .catch((error) => {
             next(error);

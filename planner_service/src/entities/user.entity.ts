@@ -6,7 +6,7 @@ import {
 } from 'typeorm';
 import { Log } from '@/entities/log.entity';
 
-@Entity('USER')
+@Entity('USERS')
 export class User {
   @PrimaryColumn('varchar', { length: 255, name: 'ID' })
   id!: string;
@@ -26,6 +26,6 @@ export class User {
   @Column('varchar', { length: 255, name: 'PASSWORD' })
   password!: string;
 
-  @OneToMany(() => Log, (log) => log.user)
-  logs!: Log[];
+  // @OneToMany(() => Log, (log) => log.user)
+  // logs!: Log[];
 }

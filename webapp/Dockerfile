@@ -12,9 +12,6 @@ RUN npm ci
 # Copiar todo el código fuente
 COPY . .
 
-# Variables de entorno para el build (personaliza según necesites)
-ARG VITE_API_BASE_URL="https://api.tudominio.com"
-ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 # Build de producción
 RUN npm run build
 

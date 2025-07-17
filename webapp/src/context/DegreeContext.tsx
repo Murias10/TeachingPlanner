@@ -5,8 +5,9 @@ import { useQuery } from "@tanstack/react-query"
 
 // Define the shape of each degree option
 export interface Degree {
-    value: string
-    label: string
+    id: string
+    name: string
+    acronym: string
 }
 
 // Define the shape of our context
@@ -47,7 +48,7 @@ export function DegreeProvider({ children }: { children: ReactNode }) {
     // Initialize selection
     useEffect(() => {
         if (!isLoading && degrees.length > 0 && !selectedDegree) {
-            setSelectedDegree(degrees[0].value)
+            setSelectedDegree(degrees[0].id);
         }
     }, [isLoading, degrees, selectedDegree])
 

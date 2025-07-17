@@ -9,10 +9,13 @@ export const getAllUsers = async (_req: Request, res: Response) => {
 };
 
 export const createUser = async (req: Request, res: Response) => {
-    const { name, firstSurname, secondSurname, role, password } = req.body;
-
-    const user = AppDataSource.getRepository(User).create({ name, firstSurname, secondSurname, role, password });
-    const result = await AppDataSource.getRepository(User).save(user);
-
-    res.status(201).json(result);
+    try {
+        const { name, firstSurname, secondSurname, role, password } = req.body;
+        const user = AppDataSource.getRepository(User).create({ name, firstSurname, secondSurname, role, password });
+        const result = await AppDataSource.getRepository(User).save(user);
+        res.status(201).json(result);
+    } catch (error) {
+        console.error('Error creating user:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
 };

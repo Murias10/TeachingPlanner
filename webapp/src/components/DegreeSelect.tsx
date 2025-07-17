@@ -28,8 +28,8 @@ export function DegreeSelect({ degrees, value, onChange }: DegreeSelectProps) {
                 </SelectTrigger>
                 <SelectContent>
                     {list.map((d) => (
-                        <SelectItem key={d.value} value={d.value}>
-                            {d.label}
+                        <SelectItem key={d.id} value={d.id}>
+                            {d.name} - {d.acronym}
                         </SelectItem>
                     ))}
                 </SelectContent>

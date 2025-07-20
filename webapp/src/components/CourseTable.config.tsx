@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
 import { ArrowUpDown, MoreHorizontal } from 'lucide-react'
 
-export interface CourseRecord {
+export interface Course {
     id: string
     idDegree: string
     startYear: number
@@ -13,7 +13,7 @@ export interface CourseRecord {
     email: string
 }
 
-export const data: CourseRecord[] = [
+export const data: Course[] = [
     { id: "1", idDegree: "1", startYear: 2023, endYear: 2024, state: "success", email: "murias101010@gmail.com" },
     { id: "2", idDegree: "1", startYear: 2024, endYear: 2025, state: "processing", email: "uo290009@uniovi.es" },
     { id: "3", idDegree: "1", startYear: 2022, endYear: 2023, state: "failed", email: "email@gmail.com" },
@@ -23,7 +23,7 @@ export const data: CourseRecord[] = [
     { id: "7", idDegree: "1", startYear: 2022, endYear: 2023, state: "failed", email: "email@gmail.com" },
 ]
 
-export const columns: ColumnDef<CourseRecord>[] = [
+export const columns: ColumnDef<Course>[] = [
     {
         id: 'select',
         header: ({ table }) => (

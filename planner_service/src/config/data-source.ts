@@ -1,6 +1,8 @@
 import { DataSource } from 'typeorm';
 import { User } from '@/entities/user.entity';
 import { Degree } from '@/entities/degree.entity';
+import { Course } from '@/entities/course.entity';
+import { Calendar } from '@/entities/calendar.entity';
 
 export function createAppDataSource() {
   return new DataSource({
@@ -10,7 +12,7 @@ export function createAppDataSource() {
     username: process.env.PLANNER_DATABASE_USER,
     password: process.env.PLANNER_DATABASE_PASSWORD,
     database: process.env.PLANNER_DATABASE_DATABASE,
-    entities: [User, Degree],
+    entities: [User, Degree, Course, Calendar],
     synchronize: true,
     logging: true,
   });

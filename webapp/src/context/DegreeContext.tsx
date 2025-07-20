@@ -1,6 +1,4 @@
-"use client"
-
-import { createContext, useContext, useState, useEffect, ReactNode } from "react"
+import { createContext, useState, useEffect, ReactNode } from "react"
 import { useQuery } from "@tanstack/react-query"
 
 // Define the shape of each degree option
@@ -20,7 +18,7 @@ interface DegreeContextType {
 }
 
 // Create context
-const DegreeContext = createContext<DegreeContextType | undefined>(undefined)
+export const DegreeContext = createContext<DegreeContextType | undefined>(undefined)
 
 // Provider that fetches degrees via React Query
 export function DegreeProvider({ children }: { children: ReactNode }) {
@@ -67,8 +65,3 @@ export function DegreeProvider({ children }: { children: ReactNode }) {
     )
 }
 
-export function useDegree() {
-    const context = useContext(DegreeContext)
-    if (!context) throw new Error('useDegree must be used within DegreeProvider')
-    return context
-}

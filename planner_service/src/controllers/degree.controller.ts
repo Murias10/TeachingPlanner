@@ -13,9 +13,10 @@ export const getDegrees = async (_req: Request, res: Response) => {
             }
         });
     } catch (error) {
-        console.error('Error fetching degrees:', error);
+
         res.status(500).json({
             status: 'error',
+            message: 'Error fetching degrees',
             data: null,
         });
     }

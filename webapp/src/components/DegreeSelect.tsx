@@ -17,8 +17,6 @@ export function DegreeSelect({ degrees, value, onChange }: DegreeSelectProps) {
     // Si no hay grados, deshabilitamos el trigger y cambiamos placeholder
     const isEmpty = list.length === 0;
 
-    console.log("Rendering DegreeSelect with degrees:", list);
-
     return (
         <div className="flex items-center space-x-2">
             <Label htmlFor="degree-select">Grado:</Label>

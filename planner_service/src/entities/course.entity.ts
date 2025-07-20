@@ -1,30 +1,34 @@
 import {
-    Entity,
-    PrimaryColumn,
-    Column,
-    OneToMany,
-    Unique,
-} from 'typeorm';
-import { Calendar } from '@/entities/calendar.entity';
+  Entity,
+  PrimaryColumn,
+  Column,
+  ManyToOne,
+  OneToMany,
+  JoinColumn,
+  Unique,
+} from 'typeorm'
+import { Calendar } from '@/entities/calendar.entity'
+import { Degree } from '@/entities/degree.entity'
 
-@Entity('COURSE')
-@Unique('UQ_COURSE_UNIQUE', ['ID_DEGREE', 'START_YEAR', 'END_YEAR'])
+@Entity('COURSES')
+@Unique('UQ_COURSE_UNIQUE', ['degree', 'startYear', 'endYear']) // usar nombre de propiedad, no columna
 export class Course {
-    @PrimaryColumn('varchar', { length: 36, name: 'ID' })
-    id!: string;
+  @PrimaryColumn('varchar', { length: 36, name: 'ID' })
+  id!: string
 
-    @Column('varchar', { length: 36, name: 'ID_DEGREE' })
-    idDegree!: string;
+  @Column('smallint', { name: 'START_YEAR' })
+  startYear!: number
 
-    @Column('smallint', { name: 'START_YEAR' })
-    startYear!: number;
+  @Column('smallint', { name: 'END_YEAR' })
+  endYear!: number
 
-    @Column('smallint', { name: 'END_YEAR' })
-    endYear!: number;
+  @Column('varchar', { length: 20, name: 'STATE' })
+  state!: string
 
-    @Column('varchar', { length: 20, name: 'STATE' })
-    state!: string;
+  @ManyToOne(() => Degree, degree => degree.courses)
+  @JoinColumn({ name: 'ID_DEGREE' })
+  degree!: Degree
 
-    @OneToMany(() => Calendar, (calendar) => calendar.course)
-    calendars!: Calendar[];
+  @OneToMany(() => Calendar, calendar => calendar.course)
+  calendars!: Calendar[]
 }

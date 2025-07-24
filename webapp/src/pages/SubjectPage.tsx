@@ -1,5 +1,6 @@
 import { DegreeProvider } from "@/context/DegreeContext"
 import { ToolBar } from "@/components/ToolBar"
+import { SubjectTable } from "@/components/SubjectTable"
 
 export default function SubjectPage() {
     return (
@@ -7,7 +8,7 @@ export default function SubjectPage() {
             <ToolBar />
             <section className="h-full rounded-xl bg-muted/50 flex items-center justify-center m-2">
                 <div className="min-w-[400px] w-2/3">
-                    <div>Hola mundo</div>
+                    <SubjectTable />
                 </div>
             </section>
         </DegreeProvider>

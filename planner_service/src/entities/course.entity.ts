@@ -1,6 +1,6 @@
 import {
   Entity,
-  PrimaryColumn,
+  PrimaryGeneratedColumn,
   Column,
   ManyToOne,
   OneToMany,
@@ -13,7 +13,7 @@ import { Degree } from '@/entities/degree.entity'
 @Entity('COURSES')
 @Unique('UQ_COURSE_UNIQUE', ['degree', 'startYear', 'endYear']) // usar nombre de propiedad, no columna
 export class Course {
-  @PrimaryColumn('varchar', { length: 36, name: 'ID' })
+  @PrimaryGeneratedColumn('uuid', { name: 'ID' })
   id!: string
 
   @Column('smallint', { name: 'START_YEAR' })

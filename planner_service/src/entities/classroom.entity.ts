@@ -1,29 +1,17 @@
 import {
     Entity,
-    PrimaryColumn,
-    Column,
-    OneToMany,
-    ManyToOne,
-    JoinColumn,
+    PrimaryGeneratedColumn,
+    Column
 } from 'typeorm';
-import { Event } from '@/entities/event.entity';
 
-@Entity('CLASSROOM')
+@Entity('CLASSROOMS')
 export class Classroom {
-    @PrimaryColumn('varchar', { length: 255, name: 'ID' })
+    @PrimaryGeneratedColumn('uuid', { name: 'ID' })
     id!: string;
 
-    @Column('bigint', { name: 'CODE', unique: true })
-    code!: number;
+    @Column('varchar', { name: 'CODE', length: 50, unique: true })
+    code!: string;
 
-    @Column('varchar', { length: 255, name: 'GIS_URL', unique: true })
+    @Column('varchar', { name: 'GIS_URL', length: 255, unique: true })
     gisUrl!: string;
-
-    @OneToMany(() => Event, (event) => event.classroom)
-    events!: Event[];
-
-    // Relación según ALTER TABLE CLASSROOM ADD FOREIGN KEY(ID) REFERENCES EVENT(ID_CLASSROOM)
-    @ManyToOne(() => Event, (event) => event.classroomsReverse)
-    @JoinColumn({ name: 'ID', referencedColumnName: 'ID_CLASSROOM' })
-    reverseEvent!: Event;
 }

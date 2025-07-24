@@ -52,7 +52,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       },
       {
         title: t("sidebar.main.classrooms.title"),
-        url: "/about",
+        url: "/classrooms",
         icon: Warehouse,
         items: [
           {
@@ -63,7 +63,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       },
       {
         title: t("sidebar.main.subjects.title"),
-        url: "#",
+        url: "/subjects",
         icon: BookMarked,
         items: [
           {

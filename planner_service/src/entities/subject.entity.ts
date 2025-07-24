@@ -1,58 +1,59 @@
 import {
     Entity,
-    PrimaryColumn,
+    PrimaryGeneratedColumn,
     Column,
-    OneToMany,
+    Check
 } from 'typeorm';
-import { Event } from '@/entities/event.entity';
+// import { Event } from '@/entities/event.entity';
 
-@Entity('SUBJECT')
+@Entity('SUBJECTS')
+@Check('CHK_SEMESTER', '"SEMESTER" IN (1, 2)')
 export class Subject {
-    @PrimaryColumn('varchar', { length: 255, name: 'ID' })
+    @PrimaryGeneratedColumn('uuid', { name: 'ID' })
     id!: string;
 
-    @Column('varchar', { length: 255, name: 'ACRONYM', unique: true })
-    acronym!: string;
+    @Column('varchar', { length: 20, name: 'ACRONYM', unique: true })
+    acronym!: string
 
-    @Column('bigint', { name: 'SEMESTER' })
+    @Column('smallint', { name: 'SEMESTER' })
     semester!: number;
 
-    @Column('varchar', { length: 255, name: 'COURSE' })
-    course!: string;
+    // @Column('varchar', { length: 255, name: 'COURSE' })
+    // course!: string;
 
     @Column('bigint', { name: 'YEAR' })
     year!: number;
 
-    @Column('varchar', { length: 255, name: 'NAME', unique: true })
+    @Column('varchar', { length: 100, name: 'NAME', unique: true })
     name!: string;
 
-    @Column('bigint', { name: 'ES_THEORY_GROUPS' })
-    esTheoryGroups!: number;
-
-    @Column('bigint', { name: 'ES_SEMINAR_GROUPS' })
-    esSeminarGroups!: number;
-
-    @Column('bigint', { name: 'ES_LAB_GROUPS' })
-    esLabGroups!: number;
-
-    @Column('bigint', { name: 'ES_TG_GROUPS' })
-    esTgGroups!: number;
-
-    @Column('bigint', { name: 'EN_THEORY_GROUPS' })
-    enTheoryGroups!: number;
-
-    @Column('bigint', { name: 'EN_SEMINAR_GROUPS' })
-    enSeminarGroups!: number;
-
-    @Column('bigint', { name: 'EN_LAB_GROUPS' })
-    enLabGroups!: number;
-
-    @Column('bigint', { name: 'EN_TG_GROUPS' })
-    enTgGroups!: number;
-
-    @Column('varchar', { length: 255, name: 'SIES_CODE' })
+    @Column('varchar', { length: 20, name: 'SIES_CODE' })
     siesCode!: string;
 
-    @OneToMany(() => Event, (event) => event.subject)
-    events!: Event[];
+    // @Column('bigint', { name: 'ES_THEORY_GROUPS' })
+    // esTheoryGroups!: number;
+
+    // @Column('bigint', { name: 'ES_SEMINAR_GROUPS' })
+    // esSeminarGroups!: number;
+
+    // @Column('bigint', { name: 'ES_LAB_GROUPS' })
+    // esLabGroups!: number;
+
+    // @Column('bigint', { name: 'ES_TG_GROUPS' })
+    // esTgGroups!: number;
+
+    // @Column('bigint', { name: 'EN_THEORY_GROUPS' })
+    // enTheoryGroups!: number;
+
+    // @Column('bigint', { name: 'EN_SEMINAR_GROUPS' })
+    // enSeminarGroups!: number;
+
+    // @Column('bigint', { name: 'EN_LAB_GROUPS' })
+    // enLabGroups!: number;
+
+    // @Column('bigint', { name: 'EN_TG_GROUPS' })
+    // enTgGroups!: number;
+
+    // @OneToMany(() => Event, (event) => event.subject)
+    // events!: Event[];
 }

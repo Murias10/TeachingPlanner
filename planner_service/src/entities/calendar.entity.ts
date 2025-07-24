@@ -1,6 +1,6 @@
 import {
     Entity,
-    PrimaryColumn,
+    PrimaryGeneratedColumn,
     Column,
     ManyToOne,
     JoinColumn,
@@ -13,8 +13,8 @@ import { Course } from '@/entities/course.entity';
 @Unique('UQ_CALENDAR_UNIQUE', ['course', 'semester'])
 @Check('CHK_SEMESTER', '"SEMESTER" IN (1, 2)')
 export class Calendar {
-    @PrimaryColumn('varchar', { length: 36, name: 'ID' })
-    id!: string;
+    @PrimaryGeneratedColumn('uuid', { name: 'ID' })
+    id!: string
 
     @Column('timestamp', { name: 'START' })
     start!: Date;

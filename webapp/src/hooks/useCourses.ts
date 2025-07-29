@@ -1,4 +1,3 @@
-// hooks/useCourses.ts
 import { useQuery } from "@tanstack/react-query"
 import { useDegree } from "@/hooks/useDegree"
 
@@ -14,11 +13,17 @@ export interface Course {
 export function useCourses() {
     const { selectedDegree } = useDegree()
 
+    const isFiltered = selectedDegree && selectedDegree !== "all"
+
     return useQuery<Course[], Error>({
         queryKey: ["courses", selectedDegree],
-        enabled: !!selectedDegree, // solo ejecutar si hay un grado seleccionado
+        enabled: selectedDegree !== undefined, // solo desactiva si es undefined
         queryFn: async () => {
-            const res = await fetch(`http://localhost:8080/courses/degree/${selectedDegree}`)
+            const url = isFiltered
+                ? `http://localhost:8080/courses/degree/${selectedDegree}`
+                : `http://localhost:8080/courses` // sin filtro
+
+            const res = await fetch(url)
             if (!res.ok) throw new Error(`Error ${res.status}`)
             const body = await res.json()
             return body.data.courses

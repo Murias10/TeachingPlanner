@@ -22,7 +22,7 @@ export const DegreeContext = createContext<DegreeContextType | undefined>(undefi
 
 // Provider that fetches degrees via React Query
 export function DegreeProvider({ children }: { children: ReactNode }) {
-    const [selectedDegree, setSelectedDegree] = useState<string>("")
+    const [selectedDegree, setSelectedDegree] = useState<string>("all")
 
     const {
         data: degrees = [],
@@ -46,9 +46,10 @@ export function DegreeProvider({ children }: { children: ReactNode }) {
     // Initialize selection
     useEffect(() => {
         if (!isLoading && degrees.length > 0 && !selectedDegree) {
-            setSelectedDegree(degrees[0].id);
+            setSelectedDegree(degrees[0].id)
         }
     }, [isLoading, degrees, selectedDegree])
+
 
     return (
         <DegreeContext.Provider

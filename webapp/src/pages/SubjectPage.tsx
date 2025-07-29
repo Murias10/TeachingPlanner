@@ -7,7 +7,6 @@ export default function SubjectPage() {
     const { setItems } = useBreadcrumb()
 
     useEffect(() => {
-        console.log("Setting breadcrumb items for SubjectPage")
         setItems([
             { label: "Inicio", href: "/home" },
             { label: "Asignaturas", href: "/subjects" },

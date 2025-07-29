@@ -1,7 +1,19 @@
 import { Toolbar } from "@/components/Toolbar"
 import { ClassroomTable } from "@/components/ClassroomTable"
+import { useEffect } from "react"
+import { useBreadcrumb } from "@/context/BreadcrumbContext"
 
 export default function ClassroomPage() {
+
+    const { setItems } = useBreadcrumb()
+
+    useEffect(() => {
+        setItems([
+            { label: "Inicio", href: "/home" },
+            { label: "Aulas", href: "/classrooms" },
+        ])
+    }, [setItems])
+
     return (
         <>
             <Toolbar addButtonLabel="Añadir aula" onAdd={() => { }} />

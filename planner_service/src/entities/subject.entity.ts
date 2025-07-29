@@ -1,12 +1,16 @@
 import {
     Entity,
+    Unique,
     PrimaryGeneratedColumn,
     Column,
-    Check
+    Check,
+    ManyToOne,
+    JoinColumn
 } from 'typeorm';
-// import { Event } from '@/entities/event.entity';
+import { Degree } from '@/entities/degree.entity'
 
 @Entity('SUBJECTS')
+@Unique('UQ_SUBJECT_UNIQUE', ['acronym', 'semester', 'year', 'degree'])
 @Check('CHK_SEMESTER', '"SEMESTER" IN (1, 2)')
 export class Subject {
     @PrimaryGeneratedColumn('uuid', { name: 'ID' })
@@ -18,9 +22,6 @@ export class Subject {
     @Column('smallint', { name: 'SEMESTER' })
     semester!: number;
 
-    // @Column('varchar', { length: 255, name: 'COURSE' })
-    // course!: string;
-
     @Column('bigint', { name: 'YEAR' })
     year!: number;
 
@@ -30,30 +31,8 @@ export class Subject {
     @Column('varchar', { length: 20, name: 'SIES_CODE' })
     siesCode!: string;
 
-    // @Column('bigint', { name: 'ES_THEORY_GROUPS' })
-    // esTheoryGroups!: number;
+    @ManyToOne(() => Degree, degree => degree.courses)
+    @JoinColumn({ name: 'ID_DEGREE' })
+    degree!: Degree
 
-    // @Column('bigint', { name: 'ES_SEMINAR_GROUPS' })
-    // esSeminarGroups!: number;
-
-    // @Column('bigint', { name: 'ES_LAB_GROUPS' })
-    // esLabGroups!: number;
-
-    // @Column('bigint', { name: 'ES_TG_GROUPS' })
-    // esTgGroups!: number;
-
-    // @Column('bigint', { name: 'EN_THEORY_GROUPS' })
-    // enTheoryGroups!: number;
-
-    // @Column('bigint', { name: 'EN_SEMINAR_GROUPS' })
-    // enSeminarGroups!: number;
-
-    // @Column('bigint', { name: 'EN_LAB_GROUPS' })
-    // enLabGroups!: number;
-
-    // @Column('bigint', { name: 'EN_TG_GROUPS' })
-    // enTgGroups!: number;
-
-    // @OneToMany(() => Event, (event) => event.subject)
-    // events!: Event[];
 }

@@ -1,5 +1,4 @@
 import { SidebarIcon } from "lucide-react"
-
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -8,15 +7,17 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
-
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { useSidebar } from "@/components/ui/sidebar"
 import { ModeToggle } from "@/components/mode-toggle"
 import { LanguageSelector } from "@/components/LanguageSelector"
+import { useBreadcrumb } from "@/context/BreadcrumbContext"
+import { Link } from "react-router-dom"
 
 export function SiteHeader() {
   const { toggleSidebar } = useSidebar()
+  const { items } = useBreadcrumb()
 
   return (
     <header className="bg-background sticky top-0 z-50 flex w-full items-center border-b">
@@ -29,20 +30,34 @@ export function SiteHeader() {
         >
           <SidebarIcon />
         </Button>
+
         <Separator orientation="vertical" className="mr-2 h-4" />
-        <Breadcrumb className="hidden sm:block">
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink href="#">
-                Building Your Application
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>Data Fetching</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
+
+        {items.length > 0 && (
+          <Breadcrumb className="hidden sm:block">
+            <BreadcrumbList>
+              {items.map((item, index) => {
+                const isLast = index === items.length - 1
+
+                return (
+                  <BreadcrumbItem key={index}>
+                    {isLast ? (
+                      <BreadcrumbPage>{item.label}</BreadcrumbPage>
+                    ) : (
+                      <>
+                        <BreadcrumbLink asChild>
+                          <Link to={item.href}>{item.label}</Link>
+                        </BreadcrumbLink>
+                        <BreadcrumbSeparator />
+                      </>
+                    )}
+                  </BreadcrumbItem>
+                )
+              })}
+            </BreadcrumbList>
+          </Breadcrumb>
+        )}
+
         <div className="flex flex-1 items-center justify-end gap-2">
           <LanguageSelector />
           <ModeToggle />

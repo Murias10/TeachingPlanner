@@ -5,6 +5,7 @@ import Start from "@/pages/Start";
 import CalendarPage from "@/pages/CalendarPage";
 import ClassroomPage from "@/pages/ClassroomPage";
 import SubjectPage from "@/pages/SubjectPage";
+import SettingsPage from "@/pages/SettingsPage";
 import AppLayout from "@/components/AppLayout";
 
 import { Route, Routes, Navigate } from "react-router-dom";
@@ -25,6 +26,7 @@ export default function App() {
                     {/* <Route path="calendars/:calendarId" element={<CalendarPage />} /> */}
                     <Route path="classrooms" element={<ClassroomPage />} />
                     < Route path="subjects" element={<SubjectPage />} />
+                    <Route path="settings" element={<SettingsPage />} />
                 </Route>
 
                 {/* Opcional: Ruta “catch-all” */}

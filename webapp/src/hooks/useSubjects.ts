@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
+import { useDegree } from "@/hooks/useDegree"
 
 export interface Subject {
     id: string
@@ -10,10 +11,17 @@ export interface Subject {
 }
 
 export function useSubjects() {
+    const { selectedDegree } = useDegree()
+    const isFiltered = selectedDegree && selectedDegree !== "all"
     return useQuery<Subject[], Error>({
-        queryKey: ["subjects"],
+        queryKey: ["subjects", selectedDegree],
+        enabled: selectedDegree !== undefined, // solo desactiva si es undefined
         queryFn: async () => {
-            const res = await fetch(`http://localhost:8080/subjects`)
+            const url = isFiltered
+                ? `http://localhost:8080/subjects/degree/${selectedDegree}`
+                : `http://localhost:8080/subjects` // sin filtro
+
+            const res = await fetch(url)
             if (!res.ok) throw new Error(`Error ${res.status}`)
             const body = await res.json()
             return body.data.subjects

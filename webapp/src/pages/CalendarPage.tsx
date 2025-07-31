@@ -1,8 +1,20 @@
 
 import { Toolbar } from "@/components/Toolbar"
 import { CourseTable } from "@/components/CourseTable"
+import { useBreadcrumb } from "@/context/BreadcrumbContext"
+import { useEffect } from "react"
 
 export default function CalendarPage() {
+
+    const { setItems } = useBreadcrumb()
+
+    useEffect(() => {
+        setItems([
+            { label: "Inicio", href: "/home" },
+            { label: "Cursos", href: "/courses" },
+        ])
+    }, [setItems])
+
     return (
         <>
             <Toolbar showDegreeSelector addButtonLabel="Añadir curso" onAdd={() => { }} />

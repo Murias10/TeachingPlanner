@@ -1,4 +1,3 @@
-// components/CourseTable.tsx
 import * as React from "react"
 import {
     useReactTable,

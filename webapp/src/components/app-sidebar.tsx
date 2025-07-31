@@ -99,17 +99,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     system: [
       {
         name: t("sidebar.system.logs.title"),
-        url: "#",
+        url: "/logs",
         icon: ScrollText,
       },
       {
         name: t("sidebar.system.users.title"),
-        url: "#",
+        url: "/users",
         icon: UserRoundCog,
       },
       {
         name: t("sidebar.system.reports.title"),
-        url: "#",
+        url: "/reports",
         icon: PieChart,
       },
     ],

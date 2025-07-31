@@ -10,25 +10,8 @@ import {
     DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { ArrowUpDown, MoreHorizontal } from "lucide-react"
+import { Classroom } from "@/hooks/useClassrooms"
 
-export interface Classroom {
-    id: string
-    code: string
-    gisUrl: string
-}
-
-export const data: Classroom[] = [
-    {
-        id: "1",
-        code: "L1.01",
-        gisUrl: "https://maps.uniovi.es/L1.01"
-    },
-    {
-        id: "2",
-        code: "L2.02",
-        gisUrl: "https://maps.uniovi.es/L2.02"
-    }
-]
 
 export const columns: ColumnDef<Classroom>[] = [
     {

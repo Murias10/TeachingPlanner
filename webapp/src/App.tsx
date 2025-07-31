@@ -6,6 +6,9 @@ import CalendarPage from "@/pages/CalendarPage";
 import ClassroomPage from "@/pages/ClassroomPage";
 import SubjectPage from "@/pages/SubjectPage";
 import SettingsPage from "@/pages/SettingsPage";
+import LogsPage from "@/pages/LogsPage";
+import UserPage from "@/pages/UserPage";
+import ReportPage from "@/pages/ReportPage";
 import AppLayout from "@/components/AppLayout";
 
 import { Route, Routes, Navigate } from "react-router-dom";
@@ -25,8 +28,11 @@ export default function App() {
                     <Route path="calendars" element={<CalendarPage />} />
                     {/* <Route path="calendars/:calendarId" element={<CalendarPage />} /> */}
                     <Route path="classrooms" element={<ClassroomPage />} />
-                    < Route path="subjects" element={<SubjectPage />} />
+                    <Route path="subjects" element={<SubjectPage />} />
                     <Route path="settings" element={<SettingsPage />} />
+                    <Route path="logs" element={<LogsPage />} />
+                    <Route path="users" element={<UserPage />} />
+                    <Route path="reports" element={<ReportPage />} />
                 </Route>
 
                 {/* Opcional: Ruta “catch-all” */}

@@ -4,7 +4,7 @@ import { CourseTable } from "@/components/CourseTable"
 import { useBreadcrumb } from "@/context/BreadcrumbContext"
 import { useEffect } from "react"
 
-export default function CalendarPage() {
+export default function CoursePage() {
 
     const { setItems } = useBreadcrumb()
 

@@ -1,8 +1,7 @@
 // src/App.tsx
 import HomePage from "@/pages/HomePage";
-import About from "@/pages/About";
 import Start from "@/pages/Start";
-import CalendarPage from "@/pages/CalendarPage";
+import CoursePage from "@/pages/CoursePage";
 import ClassroomPage from "@/pages/ClassroomPage";
 import SubjectPage from "@/pages/SubjectPage";
 import SettingsPage from "@/pages/SettingsPage";
@@ -24,8 +23,7 @@ export default function App() {
                 {/* Layout con header + sidebar */}
                 <Route element={<AppLayout />}>
                     <Route path="home" element={<HomePage />} />
-                    <Route path="about" element={<About />} />
-                    <Route path="courses" element={<CalendarPage />} />
+                    <Route path="courses" element={<CoursePage />} />
                     <Route path="classrooms" element={<ClassroomPage />} />
                     <Route path="subjects" element={<SubjectPage />} />
                     <Route path="settings" element={<SettingsPage />} />

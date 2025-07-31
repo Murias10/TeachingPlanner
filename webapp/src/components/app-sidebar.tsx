@@ -47,7 +47,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       },
       {
         title: t("sidebar.main.calendars.title"),
-        url: "/calendars",
+        url: "/courses",
         icon: CalendarDays,
         isActive: true,
         items: [],

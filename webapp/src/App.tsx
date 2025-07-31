@@ -25,8 +25,7 @@ export default function App() {
                 <Route element={<AppLayout />}>
                     <Route path="home" element={<HomePage />} />
                     <Route path="about" element={<About />} />
-                    <Route path="calendars" element={<CalendarPage />} />
-                    {/* <Route path="calendars/:calendarId" element={<CalendarPage />} /> */}
+                    <Route path="courses" element={<CalendarPage />} />
                     <Route path="classrooms" element={<ClassroomPage />} />
                     <Route path="subjects" element={<SubjectPage />} />
                     <Route path="settings" element={<SettingsPage />} />

@@ -3,9 +3,14 @@ import { useLocation } from 'react-router-dom';
 
 const titlesMap: Record<string, string> = {
     '/': 'Planificador',
-    '/about': 'Planificador | About',
-    '/home': 'Planificador | Home',
-    '/calendars': 'Planificador | Calendars',
+    '/home': 'Planificador | Inicio',
+    '/subjects': 'Planificador | Asignaturas',
+    '/classrooms': 'Planificador | Aulas',
+    '/settings': 'Planificador | Configuración',
+    '/courses': 'Planificador | Cursos',
+    '/logs': 'Planificador | Registros',
+    '/users': 'Planificador | Usuarios',
+    '/reports': 'Planificador | Informes',
 };
 
 export const TitleUpdater = () => {

@@ -4,11 +4,11 @@ import {
   UserRoundCog,
   ScrollText,
   PieChart,
-  Send,
   Settings2,
   Warehouse,
   CalendarDays,
-  BookMarked
+  BookMarked,
+  Home
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -39,61 +39,36 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     },
     main: [
       {
+        title: t("sidebar.main.home.title"),
+        url: "/home",
+        icon: Home,
+        isActive: true,
+        items: [],
+      },
+      {
         title: t("sidebar.main.calendars.title"),
         url: "/calendars",
         icon: CalendarDays,
         isActive: true,
-        items: [
-          {
-            title: t("sidebar.main.calendars.list"),
-            url: "/home",
-          }
-        ],
+        items: [],
       },
       {
         title: t("sidebar.main.classrooms.title"),
         url: "/classrooms",
         icon: Warehouse,
-        items: [
-          {
-            title: t("sidebar.main.classrooms.list"),
-            url: "#",
-          }
-        ],
+        items: [],
       },
       {
         title: t("sidebar.main.subjects.title"),
         url: "/subjects",
         icon: BookMarked,
-        items: [
-          {
-            title: t("sidebar.main.subjects.list"),
-            url: "#",
-          }
-        ],
+        items: [],
       },
       {
-        title: "Settings",
+        title: t("sidebar.main.settings.title"),
         url: "/settings",
         icon: Settings2,
-        items: [
-          {
-            title: "General",
-            url: "#",
-          },
-          {
-            title: "Team",
-            url: "#",
-          },
-          {
-            title: "Billing",
-            url: "#",
-          },
-          {
-            title: "Limits",
-            url: "#",
-          },
-        ],
+        items: [],
       },
     ],
     system: [
@@ -115,15 +90,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     ],
     extra: [
       {
-        title: "FAQs",
+        title: t("sidebar.extra.faq.title"),
         url: "#",
         icon: CircleHelp,
-      },
-      {
-        title: "Feedback",
-        url: "#",
-        icon: Send,
-      },
+      }
     ],
   }
 

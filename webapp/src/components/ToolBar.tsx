@@ -24,10 +24,9 @@ export function Toolbar({
     } = useDegree()
 
     return (
-        <section className="flex items-center space-x-4 bg-muted/50 p-4 rounded-xl mt-2 ml-2 mr-2">
-
+        <section className="flex items-center justify-between bg-muted/50 p-4 rounded-xl mt-2 mx-2 gap-4">
             {showDegreeSelector && (
-                <>
+                <div>
                     {loading && (
                         <Skeleton className="h-10 w-[250px] rounded-md" />
                     )}
@@ -39,15 +38,16 @@ export function Toolbar({
                             onChange={setSelectedDegree}
                         />
                     )}
-                </>
+                </div>
             )}
 
-
-            {onAdd && (
-                <Button onClick={onAdd} variant="outline" size="sm">
-                    {addButtonLabel} +
-                </Button>
-            )}
+            <div className="flex-1 flex justify-end">
+                {onAdd && (
+                    <Button onClick={onAdd} variant="outline" size="sm">
+                        {addButtonLabel} +
+                    </Button>
+                )}
+            </div>
         </section>
     )
 }

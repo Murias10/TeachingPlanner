@@ -2,17 +2,20 @@
     "sidebar": {
         "main": {
             "title": "Gestión Académica",
+            "home": {
+                "title": "Inicio"
+            },
             "calendars": {
-                "title": "Calendarios",
-                "list": "Listar todos los calendarios"
+                "title": "Calendarios"
             },
             "classrooms": {
-                "title": "Aulas",
-                "list": "Listar todas las aulas"
+                "title": "Aulas"
             },
             "subjects": {
-                "title": "Asignaturas",
-                "list": "Listar todas las asignaturas"
+                "title": "Asignaturas"
+            },
+            "settings": {
+                "title": "Configuración"
             }
         },
         "system": {
@@ -25,6 +28,11 @@
             },
             "reports": {
                 "title": "Informes de uso"
+            }
+        },
+        "extra": {
+            "faq": {
+                "title": "Preguntas frecuentes"
             }
         }
     }

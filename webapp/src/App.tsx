@@ -1,5 +1,5 @@
 // src/App.tsx
-import Home from "@/pages/Home";
+import HomePage from "@/pages/HomePage";
 import About from "@/pages/About";
 import Start from "@/pages/Start";
 import CalendarPage from "@/pages/CalendarPage";
@@ -23,7 +23,7 @@ export default function App() {
 
                 {/* Layout con header + sidebar */}
                 <Route element={<AppLayout />}>
-                    <Route path="home" element={<Home />} />
+                    <Route path="home" element={<HomePage />} />
                     <Route path="about" element={<About />} />
                     <Route path="calendars" element={<CalendarPage />} />
                     {/* <Route path="calendars/:calendarId" element={<CalendarPage />} /> */}

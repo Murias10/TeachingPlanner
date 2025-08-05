@@ -15,7 +15,7 @@ export const createUser = async (req: Request, res: Response) => {
         const result = await AppDataSource.getRepository(User).save(user);
         res.status(201).json(result);
     } catch (error) {
-        console.error('Error creating user:', error);
+
         res.status(500).json({ message: 'Internal server error' });
     }
 };

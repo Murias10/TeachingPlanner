@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { AppDataSource } from '@/config/data-source';
 import { Course } from '@/entities/course.entity';
 
-export const getCourses = async (req: Request, res: Response) => {
+export const getCourses = async (_req: Request, res: Response) => {
     try {
         const courses = await AppDataSource.getRepository(Course).find({
             relations: ['calendars'], // 👈 Incluye la relación
@@ -27,7 +27,7 @@ export const getCoursesByDegreeId = async (req: Request, res: Response) => {
     const degreeId = req.params.id
 
     if (!degreeId || typeof degreeId !== 'string') {
-        return res.status(400).json({
+        res.status(400).json({
             status: 'error',
             message: 'Invalid degree ID',
             data: null,

@@ -12,7 +12,7 @@ app.use(express.urlencoded({ extended: true }))
 // Dominios que permites
 const whitelist = [
     `http://localhost:${process.env.WEBAPP_PORT}`,
-    `http://localhost`,
+    `http://localhost:5173`,
     "https://app-produccion.com",
 ];
 

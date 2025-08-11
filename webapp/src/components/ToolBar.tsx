@@ -15,6 +15,7 @@ export function Toolbar({
     addButtonLabel = "Añadir",
     onAdd,
 }: ToolbarProps) {
+
     const {
         selectedDegree,
         setSelectedDegree,

@@ -1,22 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { useDegree } from "@/hooks/useDegree"
-
-export interface Calendar {
-    id: string
-    start: string
-    end: string
-    semester: 1 | 2
-}
-
-export interface Course {
-    id: string
-    idDegree: string
-    startYear: number
-    endYear: number
-    state: "success" | "processing" | "failed"
-    email: string
-    calendars: Calendar[]
-}
+import { Course } from "@/types/Course"
 
 export function useCourses() {
     const { selectedDegree } = useDegree()

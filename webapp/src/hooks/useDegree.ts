@@ -1,6 +1,5 @@
 import { useContext } from "react";
-import { DegreeContext } from "@/context/DegreeContext";
-
+import { DegreeContext } from "@/context/DegreeContextInstance";
 
 export function useDegree() {
     const context = useContext(DegreeContext);

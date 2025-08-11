@@ -1,14 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { useDegree } from "@/hooks/useDegree"
-
-export interface Subject {
-    id: string
-    acronym: string
-    semester: number
-    year: number
-    name: string
-    siesCode: string
-}
+import { Subject } from "@/types/Subject"
 
 export function useSubjects() {
     const { selectedDegree } = useDegree()

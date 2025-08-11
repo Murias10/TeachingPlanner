@@ -10,7 +10,7 @@ import {
     DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { ArrowUpDown, MoreHorizontal } from "lucide-react"
-import { Classroom } from "@/hooks/useClassrooms"
+import { Classroom } from "@/types/Classroom"
 
 
 export const columns: ColumnDef<Classroom>[] = [

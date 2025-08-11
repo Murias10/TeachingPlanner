@@ -3,7 +3,9 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
 import { ArrowUpDown, MoreHorizontal } from 'lucide-react'
-import { Course } from '@/hooks/useCourses'
+import { Course } from "@/types/Course"
+import { Link } from 'react-router-dom'
+
 
 export const columns: ColumnDef<Course>[] = [
     {
@@ -42,25 +44,28 @@ export const columns: ColumnDef<Course>[] = [
         id: 'actions',
         enableSorting: false,
         cell: ({ row }) => {
-            const record = row.original
+
+            const course = row.original
+
             return (
                 <div className="flex justify-end space-x-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={!record.calendars?.some(c => c.semester === 1)}
-                        onClick={() => console.log('Sem 1')}
-                    >
-                        Semester 1
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={!record.calendars?.some(c => c.semester === 2)}
-                        onClick={() => console.log('Sem 2')}
-                    >
-                        Semester 2
-                    </Button>
+
+                    {course.calendars?.some(calendar => calendar.semester === 1) ? (
+                        <Link to={`/courses/degree/${course.id}/${course.startYear}/${course.endYear}/semester/1/groups`}>
+                            <Button variant="outline" size="sm">Semester 1</Button>
+                        </Link>
+                    ) : (
+                        <Button variant="outline" size="sm" disabled>Semester 1</Button>
+                    )}
+
+                    {course.calendars?.some(c => c.semester === 2) ? (
+                        <Link to={`/courses/degree/${course.id}/${course.startYear}/${course.endYear}/semester/2/groups`}>
+                            <Button variant="outline" size="sm">Semester 2</Button>
+                        </Link>
+                    ) : (
+                        <Button variant="outline" size="sm" disabled>Semester 2</Button>
+                    )}
+
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="h-8 w-8 p-0">
@@ -70,7 +75,7 @@ export const columns: ColumnDef<Course>[] = [
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => navigator.clipboard.writeText(record.id)}>Copy ID</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => navigator.clipboard.writeText(course.id)}>Copy ID</DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem>View details</DropdownMenuItem>
                         </DropdownMenuContent>
@@ -80,3 +85,4 @@ export const columns: ColumnDef<Course>[] = [
         },
     },
 ]
+

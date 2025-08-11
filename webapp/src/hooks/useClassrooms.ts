@@ -1,10 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
-
-export interface Classroom {
-    id: string
-    code: string
-    gisUrl: string
-}
+import { Classroom } from "@/types/Classroom"
 
 export function useClassrooms() {
     return useQuery<Classroom[], Error>({

@@ -1,24 +1,7 @@
-import { createContext, useState, useEffect, ReactNode } from "react"
+import { useState, useEffect, ReactNode } from "react"
 import { useQuery } from "@tanstack/react-query"
-
-// Define the shape of each degree option
-export interface Degree {
-    id: string
-    name: string
-    acronym: string
-}
-
-// Define the shape of our context
-interface DegreeContextType {
-    degrees: Degree[]
-    loading: boolean
-    error: string | null
-    selectedDegree: string
-    setSelectedDegree: (value: string) => void
-}
-
-// Create context
-export const DegreeContext = createContext<DegreeContextType | undefined>(undefined)
+import { Degree } from "@/types/Degree"
+import { DegreeContext } from "@/context/DegreeContextInstance"
 
 // Provider that fetches degrees via React Query
 export function DegreeProvider({ children }: { children: ReactNode }) {

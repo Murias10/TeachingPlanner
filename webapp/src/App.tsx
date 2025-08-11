@@ -8,6 +8,9 @@ import SettingsPage from "@/pages/SettingsPage";
 import LogsPage from "@/pages/LogsPage";
 import UserPage from "@/pages/UserPage";
 import ReportPage from "@/pages/ReportPage";
+import GroupPage from "@/pages/GroupPage";
+import LoginPage from "@/pages/LoginPage";
+import RegisterPage from "@/pages/RegisterPage";
 import AppLayout from "@/components/AppLayout";
 
 import { Route, Routes, Navigate } from "react-router-dom";
@@ -19,11 +22,14 @@ export default function App() {
             <Routes>
                 {/* Página inicial sin sidebar */}
                 <Route path="/" element={<Start />} />
+                <Route path="login" element={<LoginPage />} />
+                <Route path="register" element={<RegisterPage />} />
 
                 {/* Layout con header + sidebar */}
                 <Route element={<AppLayout />}>
                     <Route path="home" element={<HomePage />} />
                     <Route path="courses" element={<CoursePage />} />
+                    <Route path="courses/degree/:degreeAcronym/:startYearCourse/:endYearCourse/semester/:semesterNumber/groups" element={<GroupPage />} />
                     <Route path="classrooms" element={<ClassroomPage />} />
                     <Route path="subjects" element={<SubjectPage />} />
                     <Route path="settings" element={<SettingsPage />} />

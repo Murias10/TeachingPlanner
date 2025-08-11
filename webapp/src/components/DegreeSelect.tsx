@@ -6,7 +6,7 @@ import {
     SelectItem,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Degree } from "@/context/DegreeContext";
+import { Degree } from "@/types/Degree";
 
 interface DegreeSelectProps {
     degrees: Degree[];

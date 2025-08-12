@@ -1,7 +1,6 @@
 // src/App.tsx
 import HomePage from "@/pages/HomePage";
 import Start from "@/pages/Start";
-import CoursePage from "@/pages/CoursePage";
 import ClassroomPage from "@/pages/ClassroomPage";
 import SubjectPage from "@/pages/SubjectPage";
 import SettingsPage from "@/pages/SettingsPage";
@@ -11,9 +10,12 @@ import ReportPage from "@/pages/ReportPage";
 import GroupPage from "@/pages/GroupPage";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
+import DegreePage from "@/pages/DegreePage";
 import AppLayout from "@/components/AppLayout";
+import CoursePage from "@/pages/CoursePage";
 
 import { Route, Routes, Navigate } from "react-router-dom";
+
 
 export default function App() {
     return (
@@ -28,8 +30,9 @@ export default function App() {
                 {/* Layout con header + sidebar */}
                 <Route element={<AppLayout />}>
                     <Route path="home" element={<HomePage />} />
-                    <Route path="courses" element={<CoursePage />} />
-                    <Route path="courses/degree/:degreeAcronym/:startYearCourse/:endYearCourse/semester/:semesterNumber/groups" element={<GroupPage />} />
+                    <Route path="degrees" element={<DegreePage />} />
+                    <Route path="degrees/:degreeAcronym/courses" element={<CoursePage />} />
+                    <Route path="degrees/:degreeAcronym/courses/:startYearCourse/:endYearCourse/semester/:semesterNumber/groups" element={<GroupPage />} />
                     <Route path="classrooms" element={<ClassroomPage />} />
                     <Route path="subjects" element={<SubjectPage />} />
                     <Route path="settings" element={<SettingsPage />} />

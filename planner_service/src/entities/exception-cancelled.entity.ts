@@ -5,7 +5,7 @@ import {
     ManyToOne,
     JoinColumn,
 } from 'typeorm';
-import { DateEntity } from '@/entities/date.entity';
+import { DayEntity } from '@/entities/day.entity';
 
 @Entity('EXCEPTION_CANCELLED')
 export class ExceptionCancelled {
@@ -18,7 +18,7 @@ export class ExceptionCancelled {
     @Column('varchar', { length: 255, name: 'COMMENT' })
     comment!: string;
 
-    @ManyToOne(() => DateEntity, (date) => date.exceptionsCancelled)
+    @ManyToOne(() => DayEntity, (date) => date.exceptionsCancelled)
     @JoinColumn({ name: 'ID_DATE' })
-    date!: DateEntity;
+    date!: DayEntity;
 }

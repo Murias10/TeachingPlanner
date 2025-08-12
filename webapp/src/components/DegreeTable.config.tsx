@@ -1,4 +1,3 @@
-// components/SubjectTable.config.ts
 import { ColumnDef } from "@tanstack/react-table"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
@@ -11,16 +10,18 @@ import {
     DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { ArrowUpDown, MoreHorizontal } from "lucide-react"
+import { Link } from "react-router-dom"
+import { Degree } from "@/types/Degree"
 
-import { Subject } from "@/types/Subject"
-
-
-export const columns: ColumnDef<Subject>[] = [
+export const columns: ColumnDef<Degree>[] = [
     {
         id: "select",
         header: ({ table }) => (
             <Checkbox
-                checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate")}
+                checked={
+                    table.getIsAllPageRowsSelected() ||
+                    (table.getIsSomePageRowsSelected() && "indeterminate")
+                }
                 onCheckedChange={(v) => table.toggleAllPageRowsSelected(!!v)}
             />
         ),
@@ -34,11 +35,28 @@ export const columns: ColumnDef<Subject>[] = [
         enableHiding: false,
     },
     {
+        accessorKey: "name",
+        header: ({ column }) => (
+            <Button
+                variant="ghost"
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === "asc")
+                }
+                className="flex items-center gap-1"
+            >
+                Name <ArrowUpDown className="h-4 w-4" />
+            </Button>
+        ),
+        cell: ({ getValue }) => <span>{getValue<string>()}</span>,
+    },
+    {
         accessorKey: "acronym",
         header: ({ column }) => (
             <Button
                 variant="ghost"
-                onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === "asc")
+                }
                 className="flex items-center gap-1"
             >
                 Acronym <ArrowUpDown className="h-4 w-4" />
@@ -47,32 +65,19 @@ export const columns: ColumnDef<Subject>[] = [
         cell: ({ getValue }) => <span>{getValue<string>()}</span>,
     },
     {
-        accessorKey: "name",
-        header: "Name",
-        cell: ({ getValue }) => <span>{getValue<string>()}</span>,
-    },
-    {
-        accessorKey: "semester",
-        header: "Semester",
-        cell: ({ getValue }) => <span>{getValue<number>()}</span>,
-    },
-    {
-        accessorKey: "year",
-        header: "Year",
-        cell: ({ getValue }) => <span>{getValue<number>()}</span>,
-    },
-    {
-        accessorKey: "siesCode",
-        header: "SIES Code",
-        cell: ({ getValue }) => <span>{getValue<string>()}</span>,
-    },
-    {
         id: "actions",
         enableSorting: false,
         cell: ({ row }) => {
-            const subject = row.original
+
+            const degree = row.original
+
             return (
                 <div className="flex justify-end space-x-2">
+
+                    <Link to={`/degrees/${degree.acronym.toLowerCase()}/courses`}>
+                        <Button variant="outline" size="sm">Show courses</Button>
+                    </Link>
+
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="h-8 w-8 p-0">
@@ -82,7 +87,13 @@ export const columns: ColumnDef<Subject>[] = [
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => navigator.clipboard.writeText(subject.id)}>Copy ID</DropdownMenuItem>
+                            <DropdownMenuItem
+                                onClick={() =>
+                                    navigator.clipboard.writeText(degree.id)
+                                }
+                            >
+                                Copy ID
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem>View details</DropdownMenuItem>
                         </DropdownMenuContent>

@@ -1,21 +1,12 @@
 import { useQuery } from "@tanstack/react-query"
-import { useDegree } from "@/hooks/useDegree"
 import { Course } from "@/types/Course"
 
-export function useCourses() {
-    const { selectedDegree } = useDegree()
-
-    const isFiltered = selectedDegree && selectedDegree !== "all"
+export function useCourses(degreeAcronym: string) {
 
     return useQuery<Course[], Error>({
-        queryKey: ["courses", selectedDegree],
-        enabled: selectedDegree !== undefined, // solo desactiva si es undefined
+        queryKey: ["courses", degreeAcronym],
         queryFn: async () => {
-            const url = isFiltered
-                ? `http://localhost:8080/courses/degree/${selectedDegree}`
-                : `http://localhost:8080/courses` // sin filtro
-
-            const res = await fetch(url)
+            const res = await fetch(`http://localhost:8080/courses/degree/${degreeAcronym}`)
             if (!res.ok) throw new Error(`Error ${res.status}`)
             const body = await res.json()
             return body.data.courses

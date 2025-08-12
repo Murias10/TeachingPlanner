@@ -1,8 +1,8 @@
 
-import { Toolbar } from "@/components/Toolbar"
+import { GroupToolbar } from "@/components/GroupToolbar"
 import { useBreadcrumb } from "@/context/BreadcrumbContext"
 import { useEffect } from "react"
-
+import { GroupTable } from "@/components/GroupTable"
 
 export default function GroupPage() {
 
@@ -11,17 +11,20 @@ export default function GroupPage() {
     useEffect(() => {
         setItems([
             { label: "Inicio", href: "/home" },
+            { label: "Títulos", href: "/degrees" },
             { label: "Cursos", href: "/courses" },
             { label: "Grupos", href: "/groups" }
         ])
     }, [setItems])
 
+
+
     return (
         <>
-            <Toolbar showDegreeSelector addButtonLabel="Añadir curso" onAdd={() => { }} />
+            <GroupToolbar />
             <section className="h-full rounded-xl bg-muted/50 flex items-center justify-center m-2">
-                <div className="text-center">
-                    <h1 className="text-2xl font-bold mb-4">Página de Grupos</h1>
+                <div className="min-w-[400px] w-2/3">
+                    <GroupTable />
                 </div>
             </section>
         </>

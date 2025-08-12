@@ -7,8 +7,8 @@ import {
 import { Event } from '@/entities/event.entity';
 import { ExceptionCancelled } from '@/entities/exception-cancelled.entity';
 
-@Entity('DATE')
-export class DateEntity {
+@Entity('DAY')
+export class DayEntity {
     @PrimaryColumn('varchar', { length: 255, name: 'ID' })
     id!: string;
 
@@ -24,7 +24,7 @@ export class DateEntity {
     @Column('boolean', { name: 'LECTIVE' })
     lective!: boolean;
 
-    @OneToMany(() => Event, (event) => event.date)
+    @OneToMany(() => Event, (event) => event.day)
     events!: Event[];
 
     @OneToMany(

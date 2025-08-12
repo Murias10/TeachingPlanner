@@ -3,12 +3,11 @@ import {
     PrimaryColumn,
     Column,
     ManyToOne,
-    OneToMany,
+    ManyToMany,
+    JoinTable,
     JoinColumn,
 } from 'typeorm';
-import { DateEntity } from '@/entities/date.entity';
-import { Subject } from '@/entities/subject.entity';
-import { Classroom } from '@/entities/classroom.entity';
+import { DayEntity } from '@/entities/day.entity';
 import { Group } from '@/entities/group.entity';
 
 @Entity('EVENT')
@@ -16,17 +15,9 @@ export class Event {
     @PrimaryColumn('varchar', { length: 255, name: 'ID' })
     id!: string;
 
-    @Column('varchar', { length: 255, name: 'ID_DATE' })
-    idDate!: string;
-
-    @Column('varchar', { length: 255, name: 'ID_SUBJECT' })
-    idSubject!: string;
-
-    @Column('varchar', { length: 255, name: 'ID_CLASSROOM' })
-    idClassroom!: string;
-
-    @Column('bigint', { name: 'ID_GROUP' })
-    idGroup!: number;
+    @ManyToOne(() => DayEntity, (day) => day.events)
+    @JoinColumn({ name: 'ID_DAY' })
+    day!: DayEntity;
 
     @Column('time', { name: 'START_TIME' })
     startTime!: string;
@@ -34,26 +25,24 @@ export class Event {
     @Column('time', { name: 'END_TIME' })
     endTime!: string;
 
-    @Column('boolean', { name: 'EVENTUAL' })
-    eventual!: boolean;
+    @Column('varchar', { length: 50, name: 'TYPE' })
+    type!: string;
 
-    @ManyToOne(() => DateEntity, (date) => date.events)
-    @JoinColumn({ name: 'ID_DATE' })
-    date!: DateEntity;
+    @Column('boolean', { name: 'CANCELLED' })
+    cancelled!: boolean;
 
-    @ManyToOne(() => Subject, (subject) => subject.events)
-    @JoinColumn({ name: 'ID_SUBJECT' })
-    subject!: Subject;
+    @Column('varchar', { length: 255, name: 'COMMENT' })
+    comment!: string;
 
-    @ManyToOne(() => Classroom, (classroom) => classroom.events)
-    @JoinColumn({ name: 'ID_CLASSROOM' })
-    classroom!: Classroom;
+    @Column('varchar', { length: 50, name: 'EVENT_CHARACTER' })
+    eventCharacter!: string;
 
-    @ManyToOne(() => Group, (group) => group.events)
-    @JoinColumn({ name: 'ID_GROUP' })
-    group!: Group;
+    @ManyToMany(() => Group, (group) => group.events)
+    @JoinTable({
+        name: 'GROUP_EVENT', // nombre de la tabla de unión
+        joinColumn: { name: 'EVENT_ID', referencedColumnName: 'id' },
+        inverseJoinColumn: { name: 'GROUP_ID', referencedColumnName: 'id' },
+    })
+    groups!: Group[];
 
-    // Relación inversa extra para la FK circular (CLASSROOM.ID → EVENT.ID_CLASSROOM)
-    @OneToMany(() => Classroom, (cls) => cls.reverseEvent)
-    classroomsReverse!: Classroom[];
 }

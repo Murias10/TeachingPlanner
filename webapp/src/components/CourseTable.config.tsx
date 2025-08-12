@@ -1,10 +1,9 @@
 import { ColumnDef } from '@tanstack/react-table'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
-import { ArrowUpDown, MoreHorizontal } from 'lucide-react'
+import { ArrowUpDown } from 'lucide-react'
 import { Course } from "@/types/Course"
-import { Link } from 'react-router-dom'
+import { CourseTableButtons } from "@/components/CourseTableButtons"
 
 
 export const columns: ColumnDef<Course>[] = [
@@ -48,39 +47,7 @@ export const columns: ColumnDef<Course>[] = [
             const course = row.original
 
             return (
-                <div className="flex justify-end space-x-2">
-
-                    {course.calendars?.some(calendar => calendar.semester === 1) ? (
-                        <Link to={`/courses/degree/${course.id}/${course.startYear}/${course.endYear}/semester/1/groups`}>
-                            <Button variant="outline" size="sm">Semester 1</Button>
-                        </Link>
-                    ) : (
-                        <Button variant="outline" size="sm" disabled>Semester 1</Button>
-                    )}
-
-                    {course.calendars?.some(c => c.semester === 2) ? (
-                        <Link to={`/courses/degree/${course.id}/${course.startYear}/${course.endYear}/semester/2/groups`}>
-                            <Button variant="outline" size="sm">Semester 2</Button>
-                        </Link>
-                    ) : (
-                        <Button variant="outline" size="sm" disabled>Semester 2</Button>
-                    )}
-
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Open menu</span>
-                                <MoreHorizontal />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => navigator.clipboard.writeText(course.id)}>Copy ID</DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem>View details</DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>
+                <CourseTableButtons course={course} />
             )
         },
     },

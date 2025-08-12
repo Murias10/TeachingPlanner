@@ -8,10 +8,10 @@ import {
     flexRender,
     SortingState,
     ColumnFiltersState,
-    VisibilityState
+    VisibilityState,
 } from "@tanstack/react-table"
 
-import { columns as defaultColumns } from "@/components/CourseTable.config"
+import { columns as defaultColumns } from "@/components/DegreeTable.config"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { ChevronDown } from "lucide-react"
@@ -19,7 +19,7 @@ import {
     DropdownMenu,
     DropdownMenuTrigger,
     DropdownMenuContent,
-    DropdownMenuCheckboxItem
+    DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu"
 import {
     Table,
@@ -27,20 +27,13 @@ import {
     TableHead,
     TableBody,
     TableRow,
-    TableCell
+    TableCell,
 } from "@/components/ui/table"
 
-import { useCourses } from "@/hooks/useCourses"
+import { useDegrees } from "@/hooks/useDegrees"
 
-import { useParams } from "react-router-dom"
-
-
-
-export function CourseTable() {
-
-    const params = useParams();
-
-    const { data: courses = [], isLoading, error } = useCourses(params.degreeAcronym || "")
+export function DegreeTable() {
+    const { data: degrees = [], isLoading, error } = useDegrees()
 
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -49,13 +42,13 @@ export function CourseTable() {
     const [filterValue, setFilterValue] = React.useState("")
 
     const table = useReactTable({
-        data: courses,
+        data: degrees,
         columns: defaultColumns,
         state: {
             sorting,
             columnFilters,
             columnVisibility,
-            rowSelection
+            rowSelection,
         },
         onSortingChange: setSorting,
         onColumnFiltersChange: setColumnFilters,
@@ -65,18 +58,18 @@ export function CourseTable() {
         getSortedRowModel: getSortedRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
-        initialState: { pagination: { pageSize: 10 } }
+        initialState: { pagination: { pageSize: 10 } },
     })
 
     return (
         <div className="w-full">
             <div className="flex items-center py-4">
                 <Input
-                    placeholder="Filter state..."
+                    placeholder="Filter name..."
                     value={filterValue}
-                    onChange={e => {
+                    onChange={(e) => {
                         setFilterValue(e.target.value)
-                        table.getColumn("state")?.setFilterValue(e.target.value)
+                        table.getColumn("name")?.setFilterValue(e.target.value)
                     }}
                     className="max-w-sm"
                 />
@@ -88,13 +81,14 @@ export function CourseTable() {
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                        {table.getAllColumns()
-                            .filter(c => c.getCanHide())
-                            .map(c => (
+                        {table
+                            .getAllColumns()
+                            .filter((c) => c.getCanHide())
+                            .map((c) => (
                                 <DropdownMenuCheckboxItem
                                     key={c.id}
                                     checked={c.getIsVisible()}
-                                    onCheckedChange={v => c.toggleVisibility(!!v)}
+                                    onCheckedChange={(v) => c.toggleVisibility(!!v)}
                                 >
                                     {c.id}
                                 </DropdownMenuCheckboxItem>
@@ -104,18 +98,22 @@ export function CourseTable() {
             </div>
 
             {isLoading && (
-                <div className="text-sm text-muted-foreground py-4">Loading courses...</div>
+                <div className="text-sm text-muted-foreground py-4">
+                    Loading degrees...
+                </div>
             )}
             {error && (
-                <div className="text-sm text-red-500 py-4">Error: {error.message}</div>
+                <div className="text-sm text-red-500 py-4">
+                    Error: {error.message}
+                </div>
             )}
 
             <div className="rounded-lg border">
                 <Table>
                     <TableHeader>
-                        {table.getHeaderGroups().map(headerGroup => (
+                        {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
-                                {headerGroup.headers.map(header => (
+                                {headerGroup.headers.map((header) => (
                                     <TableHead key={header.id}>
                                         {header.isPlaceholder
                                             ? null
@@ -130,9 +128,9 @@ export function CourseTable() {
                     </TableHeader>
                     <TableBody>
                         {table.getRowModel().rows.length ? (
-                            table.getRowModel().rows.map(row => (
+                            table.getRowModel().rows.map((row) => (
                                 <TableRow key={row.id}>
-                                    {row.getVisibleCells().map(cell => (
+                                    {row.getVisibleCells().map((cell) => (
                                         <TableCell key={cell.id}>
                                             {flexRender(
                                                 cell.column.columnDef.cell,

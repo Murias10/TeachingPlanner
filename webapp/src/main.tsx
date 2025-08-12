@@ -10,6 +10,7 @@ import { CourseProvider } from '@/context/CourseContext';
 
 import '@/i18n'
 import '@/index.css'
+
 import App from '@/App'
 
 createRoot(document.getElementById('root')!).render(

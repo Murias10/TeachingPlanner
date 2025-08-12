@@ -1,4 +1,3 @@
-// src/App.tsx
 import HomePage from "@/pages/HomePage";
 import Start from "@/pages/Start";
 import ClassroomPage from "@/pages/ClassroomPage";
@@ -13,6 +12,7 @@ import RegisterPage from "@/pages/RegisterPage";
 import DegreePage from "@/pages/DegreePage";
 import AppLayout from "@/components/AppLayout";
 import CoursePage from "@/pages/CoursePage";
+import CalendarPage from "@/pages/CalendarPage";
 
 import { Route, Routes, Navigate } from "react-router-dom";
 
@@ -33,6 +33,7 @@ export default function App() {
                     <Route path="degrees" element={<DegreePage />} />
                     <Route path="degrees/:degreeAcronym/courses" element={<CoursePage />} />
                     <Route path="degrees/:degreeAcronym/courses/:startYearCourse/:endYearCourse/semester/:semesterNumber/groups" element={<GroupPage />} />
+                    <Route path="degrees/:degreeAcronym/courses/:startYearCourse/:endYearCourse/semester/:semesterNumber/groups/calendar" element={<CalendarPage />} />
                     <Route path="classrooms" element={<ClassroomPage />} />
                     <Route path="subjects" element={<SubjectPage />} />
                     <Route path="settings" element={<SettingsPage />} />

@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 
-const getDegrees = (_req: Request, res: Response, next: NextFunction) => {
+export const getDegrees = (_req: Request, res: Response, next: NextFunction) => {
     fetch('http://planner_service:5001/degrees')
         .then(async (response) => {
             // Copia los headers del planner service
@@ -16,7 +16,7 @@ const getDegrees = (_req: Request, res: Response, next: NextFunction) => {
         });
 }
 
-const getSubjects = (_req: Request, res: Response, next: NextFunction) => {
+export const getSubjects = (_req: Request, res: Response, next: NextFunction) => {
     fetch('http://planner_service:5001/subjects')
         .then(async (response) => {
             // Copia los headers del planner service
@@ -32,7 +32,7 @@ const getSubjects = (_req: Request, res: Response, next: NextFunction) => {
         });
 }
 
-const getSubjectsByDegreeId = (req: Request, res: Response, next: NextFunction) => {
+export const getSubjectsByDegreeId = (req: Request, res: Response, next: NextFunction) => {
     const degreeId = req.params.id;
     fetch(`http://planner_service:5001/subjects/degree/${degreeId}`)
         .then(async (response) => {
@@ -50,7 +50,7 @@ const getSubjectsByDegreeId = (req: Request, res: Response, next: NextFunction) 
 }
 
 
-const getSubjectsWithEventsAndGroupsByCourseAndSemester = (req: Request, res: Response, next: NextFunction) => {
+export const getSubjectsWithEventsAndGroupsByCourseAndSemester = (req: Request, res: Response, next: NextFunction) => {
     const { courseId, semester } = req.params;
     fetch(`http://planner_service:5001/subjects/with-events/groups/by-course/${courseId}/semester/${semester}`)
         .then(async (response) => {
@@ -68,7 +68,7 @@ const getSubjectsWithEventsAndGroupsByCourseAndSemester = (req: Request, res: Re
 }
 
 
-const getClassrooms = (_req: Request, res: Response, next: NextFunction) => {
+export const getClassrooms = (_req: Request, res: Response, next: NextFunction) => {
     fetch('http://planner_service:5001/classrooms')
         .then(async (response) => {
             // Copia los headers del planner service
@@ -85,7 +85,7 @@ const getClassrooms = (_req: Request, res: Response, next: NextFunction) => {
 }
 
 
-const getCourses = (_req: Request, res: Response, next: NextFunction) => {
+export const getCourses = (_req: Request, res: Response, next: NextFunction) => {
     fetch('http://planner_service:5001/courses')
         .then(async (response) => {
             // Copia los headers del planner service
@@ -102,7 +102,7 @@ const getCourses = (_req: Request, res: Response, next: NextFunction) => {
 }
 
 
-const getCoursesByDegreeId = (req: Request, res: Response, next: NextFunction) => {
+export const getCoursesByDegreeId = (req: Request, res: Response, next: NextFunction) => {
     const degreeId = req.params.id;
     fetch(`http://planner_service:5001/courses/degree/${degreeId}`)
         .then(async (response) => {
@@ -119,7 +119,7 @@ const getCoursesByDegreeId = (req: Request, res: Response, next: NextFunction) =
         });
 }
 
-const getCoursesByDegreeAcronym = (req: Request, res: Response, next: NextFunction) => {
+export const getCoursesByDegreeAcronym = (req: Request, res: Response, next: NextFunction) => {
     const degreeAcronym = req.params.acronym.toLowerCase();
     fetch(`http://planner_service:5001/courses/degree/${degreeAcronym}`)
         .then(async (response) => {
@@ -136,4 +136,42 @@ const getCoursesByDegreeAcronym = (req: Request, res: Response, next: NextFuncti
         });
 }
 
-export { getDegrees, getClassrooms, getSubjects, getSubjectsByDegreeId, getSubjectsWithEventsAndGroupsByCourseAndSemester, getCourses, getCoursesByDegreeId, getCoursesByDegreeAcronym };
+export const createClassroom = async (req: Request, res: Response, next: NextFunction) => {
+
+    const { code, gisUrl } = req.body; // ✅ se recibe desde body
+
+    fetch("http://planner_service:5001/classroom", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, gisUrl }) // ✅ reenviamos datos
+    })
+        .then(async (response) => {
+            response.headers.forEach((value, key) => {
+                res.setHeader(key, value);
+            });
+            const body = await response.json();
+            res.status(response.status).json(body);
+        })
+        .catch((error) => {
+            next(error);
+        });
+};
+
+
+export const deleteClassroom = async (req: Request, res: Response, next: NextFunction) => {
+    const { id } = req.params;
+
+    fetch(`http://planner_service:5001/classroom/${id}`, {
+        method: "DELETE"
+    })
+        .then(async (response) => {
+            response.headers.forEach((value, key) => {
+                res.setHeader(key, value);
+            });
+            const body = await response.json();
+            res.status(response.status).json(body);
+        })
+        .catch((error) => {
+            next(error);
+        });
+};

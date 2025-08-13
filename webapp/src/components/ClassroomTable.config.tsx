@@ -9,8 +9,14 @@ import {
     DropdownMenuItem,
     DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
-import { ArrowUpDown, MoreHorizontal } from "lucide-react"
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { ArrowUpDown, MoreHorizontal, Trash2, Pencil, ExternalLink, Eye } from "lucide-react"
 import { Classroom } from "@/types/Classroom"
+import { Link } from "react-router-dom"
 
 
 export const columns: ColumnDef<Classroom>[] = [
@@ -48,14 +54,15 @@ export const columns: ColumnDef<Classroom>[] = [
         accessorKey: "gisUrl",
         header: "GIS URL",
         cell: ({ getValue }) => (
-            <a
-                href={getValue<string>()}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-500 underline"
-            >
-                Link
-            </a>
+            // <a
+            //     href={getValue<string>()}
+            //     target="_blank"
+            //     rel="noopener noreferrer"
+            //     className="text-blue-500 underline"
+            // >
+            //     Link
+            // </a>
+            <span>{getValue<string>()}</span>
         ),
     },
     {
@@ -65,7 +72,61 @@ export const columns: ColumnDef<Classroom>[] = [
             const classroom = row.original
             return (
                 <div className="flex justify-end space-x-2">
-                    <DropdownMenu>
+                    <Link to={classroom.gisUrl} target="_blank" rel="noopener noreferrer">
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="outline" size="icon" className="size-8">
+                                    <ExternalLink />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Go to {classroom.gisUrl}</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </Link>
+
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button variant="outline" size="icon" className="size-8">
+                                <Eye />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Show details</p>
+                        </TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button variant="outline" size="icon" className="size-8">
+                                <Pencil />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Edit classroom</p>
+                        </TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button variant="destructive" size="icon" className="size-8">
+                                <Trash2 />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Delete classroom</p>
+                        </TooltipContent>
+                    </Tooltip>
+
+                    {/* <Button variant="outline" size="sm">
+                        <Pencil /> Edit
+                    </Button>
+                    
+                    <Button variant="destructive" size="sm">
+                        <Trash2 /> Delete
+                    </Button> */}
+
+                    {/* <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="h-8 w-8 p-0">
                                 <span className="sr-only">Open menu</span>
@@ -76,9 +137,10 @@ export const columns: ColumnDef<Classroom>[] = [
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
                             <DropdownMenuItem onClick={() => navigator.clipboard.writeText(classroom.id)}>Copy ID</DropdownMenuItem>
                             <DropdownMenuSeparator />
+                            <DropdownMenuItem>Delete classroom</DropdownMenuItem>
                             <DropdownMenuItem>View details</DropdownMenuItem>
                         </DropdownMenuContent>
-                    </DropdownMenu>
+                    </DropdownMenu> */}
                 </div>
             )
         },

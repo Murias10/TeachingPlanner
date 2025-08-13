@@ -30,10 +30,15 @@ import {
     TableCell,
 } from "@/components/ui/table"
 
-import { useClassrooms } from "@/hooks/useClassrooms"
 
-export function ClassroomTable() {
-    const { data: classrooms = [], isLoading, error } = useClassrooms()
+import { Classroom } from "@/types/Classroom"
+
+interface ClassroomTableProps {
+    classrooms: Classroom[];
+}
+
+export function ClassroomTable({ classrooms }: ClassroomTableProps) {
+
 
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -95,13 +100,6 @@ export function ClassroomTable() {
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
-
-            {isLoading && (
-                <div className="text-sm text-muted-foreground py-4">Loading classrooms...</div>
-            )}
-            {error && (
-                <div className="text-sm text-red-500 py-4">Error: {error.message}</div>
-            )}
 
             <div className="rounded-lg border">
                 <Table>

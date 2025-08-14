@@ -2,19 +2,11 @@ import { ColumnDef } from "@tanstack/react-table"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
 import {
-    DropdownMenu,
-    DropdownMenuTrigger,
-    DropdownMenuContent,
-    DropdownMenuLabel,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu"
-import {
     Tooltip,
     TooltipContent,
     TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { ArrowUpDown, MoreHorizontal, Trash2, Pencil, ExternalLink, Eye } from "lucide-react"
+import { ArrowUpDown, Trash2, Pencil, ExternalLink, Eye } from "lucide-react"
 import { Classroom } from "@/types/Classroom"
 import { Link } from "react-router-dom"
 
@@ -54,14 +46,6 @@ export const columns: ColumnDef<Classroom>[] = [
         accessorKey: "gisUrl",
         header: "GIS URL",
         cell: ({ getValue }) => (
-            // <a
-            //     href={getValue<string>()}
-            //     target="_blank"
-            //     rel="noopener noreferrer"
-            //     className="text-blue-500 underline"
-            // >
-            //     Link
-            // </a>
             <span>{getValue<string>()}</span>
         ),
     },
@@ -70,9 +54,11 @@ export const columns: ColumnDef<Classroom>[] = [
         enableSorting: false,
         cell: ({ row }) => {
             const classroom = row.original
+
+
             return (
                 <div className="flex justify-end space-x-2">
-                    <Link to={classroom.gisUrl} target="_blank" rel="noopener noreferrer">
+                    <Link to={`https://${classroom.gisUrl}`} target="_blank" className="flex items-center">
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button variant="outline" size="icon" className="size-8">
@@ -80,7 +66,7 @@ export const columns: ColumnDef<Classroom>[] = [
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                                <p>Go to {classroom.gisUrl}</p>
+                                <p>Go to https://{classroom.gisUrl}</p>
                             </TooltipContent>
                         </Tooltip>
                     </Link>

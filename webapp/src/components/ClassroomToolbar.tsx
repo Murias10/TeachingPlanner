@@ -8,20 +8,17 @@ import {
     DrawerClose,
     DrawerDescription
 } from "@/components/ui/drawer";
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger,
-} from "@/components/ui/tooltip"
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CirclePlus } from "lucide-react";
+import { CirclePlus, Trash2 } from "lucide-react";
 
 interface ClassroomToolbarProps {
-    onClassroomAdded?: () => void; // <- añadida aquí
+    onClassroomAdded?: () => void;
 }
 
 export function ClassroomToolbar({ onClassroomAdded }: ClassroomToolbarProps) {
+
     const [open, setOpen] = useState(false);
     const [code, setCode] = useState("");
     const [gisUrl, setGisUrl] = useState("");
@@ -57,6 +54,9 @@ export function ClassroomToolbar({ onClassroomAdded }: ClassroomToolbarProps) {
     return (
         <section className="flex items-center justify-between bg-muted/50 p-4 rounded-xl mt-2 mx-2 gap-4">
             <div className="flex-1 flex justify-end">
+                <Button variant="destructive" size="sm" className="mr-2">
+                    <Trash2 /> Delete selected classrooms
+                </Button>
                 <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
                     <CirclePlus /> Add classroom
                 </Button>

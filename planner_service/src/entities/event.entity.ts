@@ -1,23 +1,24 @@
 import {
     Entity,
-    PrimaryColumn,
     Column,
     ManyToOne,
     ManyToMany,
     JoinTable,
     JoinColumn,
+    PrimaryGeneratedColumn,
 } from 'typeorm';
-import { DayEntity } from '@/entities/day.entity';
+import { Day } from '@/entities/day.entity';
 import { Group } from '@/entities/group.entity';
+import { Classroom } from '@/entities/classroom.entity';
 
 @Entity('EVENT')
 export class Event {
-    @PrimaryColumn('varchar', { length: 255, name: 'ID' })
+    @PrimaryGeneratedColumn('uuid', { name: 'ID' })
     id!: string;
 
-    @ManyToOne(() => DayEntity, (day) => day.events)
+    @ManyToOne(() => Day, (day) => day.events)
     @JoinColumn({ name: 'ID_DAY' })
-    day!: DayEntity;
+    day!: Day;
 
     @Column('time', { name: 'START_TIME' })
     startTime!: string;
@@ -44,5 +45,13 @@ export class Event {
         inverseJoinColumn: { name: 'GROUP_ID', referencedColumnName: 'id' },
     })
     groups!: Group[];
+
+    @ManyToMany(() => Classroom, (classroom) => classroom.events)
+    @JoinTable({
+        name: 'EVENT_CLASSROOMS', // nombre de la tabla de unión
+        joinColumn: { name: 'ID_CLASSROOM', referencedColumnName: 'id' },
+        inverseJoinColumn: { name: 'ID_EVENT', referencedColumnName: 'id' },
+    })
+    classrooms!: Classroom[];
 
 }

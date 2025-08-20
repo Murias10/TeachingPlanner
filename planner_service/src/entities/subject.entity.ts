@@ -5,9 +5,11 @@ import {
     Column,
     Check,
     ManyToOne,
-    JoinColumn
+    JoinColumn,
+    OneToMany
 } from 'typeorm';
 import { Degree } from '@/entities/degree.entity'
+import { Group } from '@/entities/group.entity';
 
 @Entity('SUBJECTS')
 @Unique('UQ_SUBJECT_UNIQUE', ['acronym', 'semester', 'year', 'degree'])
@@ -31,7 +33,10 @@ export class Subject {
     @Column('varchar', { length: 20, name: 'SIES_CODE' })
     siesCode!: string;
 
-    @ManyToOne(() => Degree, degree => degree.courses)
+    @OneToMany(() => Group, (group) => group.subject)
+    groups!: Group[];
+
+    @ManyToOne(() => Degree, degree => degree.subjects)
     @JoinColumn({ name: 'ID_DEGREE' })
     degree!: Degree
 

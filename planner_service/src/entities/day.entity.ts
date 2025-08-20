@@ -1,35 +1,35 @@
 import {
     Entity,
-    PrimaryColumn,
+    PrimaryGeneratedColumn,
+    JoinColumn,
     Column,
     OneToMany,
+    ManyToOne,
 } from 'typeorm';
 import { Event } from '@/entities/event.entity';
-import { ExceptionCancelled } from '@/entities/exception-cancelled.entity';
+import { Calendar } from '@/entities/calendar.entity';
 
 @Entity('DAY')
-export class DayEntity {
-    @PrimaryColumn('varchar', { length: 255, name: 'ID' })
+export class Day {
+    @PrimaryGeneratedColumn('uuid', { name: 'ID' })
     id!: string;
-
-    @Column('varchar', { length: 255, name: 'ID_CALENDAR' })
-    idCalendar!: string;
 
     @Column('varchar', { length: 255, name: 'COMMENT' })
     comment!: string;
 
-    @Column('timestamptz', { name: 'DATE' })
+    @Column('timestamp', { name: 'DATE' })
     date!: Date;
 
     @Column('boolean', { name: 'LECTIVE' })
     lective!: boolean;
 
+    @Column('varchar', { length: 100, name: 'DAY_CHARACTER' })
+    dayCharacter!: string;
+
     @OneToMany(() => Event, (event) => event.day)
     events!: Event[];
 
-    @OneToMany(
-        () => ExceptionCancelled,
-        (exception) => exception.date
-    )
-    exceptionsCancelled!: ExceptionCancelled[];
+    @ManyToOne(() => Calendar, (calendar) => calendar.days)
+    @JoinColumn({ name: 'ID_CALENDAR' })
+    calendar!: Calendar;
 }

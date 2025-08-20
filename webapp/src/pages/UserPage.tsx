@@ -1,9 +1,9 @@
 import { useEffect } from "react"
-import { useBreadcrumb } from "@/context/BreadcrumbContext"
+import { useBreadcrumbContext } from "@/context/useBreadcrumbContext";
 
 const UserPage = () => {
 
-    const { setItems } = useBreadcrumb()
+    const { setItems } = useBreadcrumbContext()
 
     useEffect(() => {
         setItems([

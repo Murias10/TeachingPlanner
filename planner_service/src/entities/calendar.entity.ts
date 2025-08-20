@@ -3,11 +3,13 @@ import {
     PrimaryGeneratedColumn,
     Column,
     ManyToOne,
+    OneToMany,
     JoinColumn,
     Unique,
     Check,
 } from 'typeorm';
 import { Course } from '@/entities/course.entity';
+import { Day } from '@/entities/day.entity';
 
 @Entity('CALENDARS')
 @Unique('UQ_CALENDAR_UNIQUE', ['course', 'semester'])
@@ -24,6 +26,9 @@ export class Calendar {
 
     @Column('smallint', { name: 'SEMESTER' })
     semester!: number;
+
+    @OneToMany(() => Day, (day) => day.calendar)
+    days!: Day[];
 
     @ManyToOne(() => Course, (course) => course.calendars)
     @JoinColumn({ name: 'ID_COURSE' })

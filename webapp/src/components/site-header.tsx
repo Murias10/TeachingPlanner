@@ -12,12 +12,12 @@ import { Separator } from "@/components/ui/separator"
 import { useSidebar } from "@/components/ui/sidebar"
 import { ModeToggle } from "@/components/mode-toggle"
 import { LanguageSelector } from "@/components/LanguageSelector"
-import { useBreadcrumb } from "@/context/BreadcrumbContext"
+import { useBreadcrumbContext } from "@/context/useBreadcrumbContext"
 import { Link } from "react-router-dom"
 
 export function SiteHeader() {
   const { toggleSidebar } = useSidebar()
-  const { items } = useBreadcrumb()
+  const { items } = useBreadcrumbContext()
 
   return (
     <header className="bg-background sticky top-0 z-50 flex w-full items-center border-b">

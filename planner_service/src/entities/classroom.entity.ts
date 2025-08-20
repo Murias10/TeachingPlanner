@@ -1,8 +1,11 @@
 import {
     Entity,
     PrimaryGeneratedColumn,
-    Column
+    Column,
+    ManyToMany,
+    JoinTable,
 } from 'typeorm';
+import { Event } from '@/entities/event.entity';
 
 @Entity('CLASSROOMS')
 export class Classroom {
@@ -14,4 +17,12 @@ export class Classroom {
 
     @Column('varchar', { name: 'GIS_URL', length: 255, unique: true })
     gisUrl!: string;
+
+    @ManyToMany(() => Event, (event) => event.classrooms)
+    @JoinTable({
+        name: 'EVENT_CLASSROOMS',
+        joinColumn: { name: 'ID_CLASSROOM', referencedColumnName: 'id' },
+        inverseJoinColumn: { name: 'ID_EVENT', referencedColumnName: 'id' },
+    })
+    events!: Event[];
 }

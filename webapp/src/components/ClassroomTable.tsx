@@ -29,16 +29,19 @@ import {
     TableRow,
     TableCell,
 } from "@/components/ui/table"
-
-
 import { Classroom } from "@/types/Classroom"
+import { useEffect } from "react"
+import { useTranslation } from "react-i18next"
 
 interface ClassroomTableProps {
     classrooms: Classroom[];
+    refetchData?: () => void;
+    setSelectedIds: (ids: string[]) => void;
 }
 
-export function ClassroomTable({ classrooms }: ClassroomTableProps) {
+export function ClassroomTable({ classrooms, refetchData: onClassroomDeleted, setSelectedIds }: ClassroomTableProps) {
 
+    const { t } = useTranslation();
 
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -46,9 +49,14 @@ export function ClassroomTable({ classrooms }: ClassroomTableProps) {
     const [rowSelection, setRowSelection] = React.useState({})
     const [filterValue, setFilterValue] = React.useState("")
 
+    useEffect(() => {
+        const ids = Object.keys(rowSelection).map(idx => classrooms[Number(idx)]?.id).filter(Boolean)
+        setSelectedIds(ids)
+    }, [rowSelection, classrooms, setSelectedIds])
+
     const table = useReactTable({
         data: classrooms,
-        columns: defaultColumns,
+        columns: defaultColumns({ onClassroomDeleted }, t),
         state: {
             sorting,
             columnFilters,
@@ -70,7 +78,7 @@ export function ClassroomTable({ classrooms }: ClassroomTableProps) {
         <div className="w-full">
             <div className="flex items-center py-4">
                 <Input
-                    placeholder="Filter code..."
+                    placeholder={t("table.classrooms.filter.placeholder")}
                     value={filterValue}
                     onChange={(e) => {
                         setFilterValue(e.target.value)
@@ -82,7 +90,7 @@ export function ClassroomTable({ classrooms }: ClassroomTableProps) {
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="outline" className="ml-auto">
-                            Columns <ChevronDown className="ml-2 h-4 w-4" />
+                            {t("table.classrooms.columns.title")} <ChevronDown className="ml-2 h-4 w-4" />
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
@@ -133,7 +141,7 @@ export function ClassroomTable({ classrooms }: ClassroomTableProps) {
                         ) : (
                             <TableRow>
                                 <TableCell colSpan={defaultColumns.length} className="h-24 text-center">
-                                    No results for this classroom.
+                                    {t("table.classrooms.no.results")}
                                 </TableCell>
                             </TableRow>
                         )}
@@ -148,7 +156,7 @@ export function ClassroomTable({ classrooms }: ClassroomTableProps) {
                     onClick={() => table.previousPage()}
                     disabled={!table.getCanPreviousPage()}
                 >
-                    Previous
+                    {t("table.pagination.previous")}
                 </Button>
                 <Button
                     variant="outline"
@@ -156,7 +164,7 @@ export function ClassroomTable({ classrooms }: ClassroomTableProps) {
                     onClick={() => table.nextPage()}
                     disabled={!table.getCanNextPage()}
                 >
-                    Next
+                    {t("table.pagination.next")}
                 </Button>
             </div>
         </div>

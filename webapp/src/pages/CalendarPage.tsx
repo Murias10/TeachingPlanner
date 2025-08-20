@@ -1,10 +1,10 @@
 import MyCalendar from "@/components/MyCalendar";
-import { useBreadcrumb } from "@/context/BreadcrumbContext"
+import { useBreadcrumbContext } from "@/context/useBreadcrumbContext";
 import { useEffect } from "react"
 
 export default function CoursePage() {
 
-    const { setItems } = useBreadcrumb()
+    const { setItems } = useBreadcrumbContext()
 
     useEffect(() => {
         setItems([

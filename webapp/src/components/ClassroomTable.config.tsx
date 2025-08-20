@@ -9,9 +9,13 @@ import {
 import { ArrowUpDown, Trash2, Pencil, ExternalLink, Eye } from "lucide-react"
 import { Classroom } from "@/types/Classroom"
 import { Link } from "react-router-dom"
+import { TFunction } from "i18next"
 
+interface ColumnExtraProps {
+    onClassroomDeleted?: () => void;
+}
 
-export const columns: ColumnDef<Classroom>[] = [
+export const columns = ({ onClassroomDeleted }: ColumnExtraProps, t: TFunction): ColumnDef<Classroom>[] => [
     {
         id: "select",
         header: ({ table }) => (
@@ -37,14 +41,18 @@ export const columns: ColumnDef<Classroom>[] = [
                 onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
                 className="flex items-center gap-1"
             >
-                Code <ArrowUpDown className="h-4 w-4" />
+                {t("table.classrooms.columns.code")}
+                <ArrowUpDown className="h-4 w-4" />
             </Button>
         ),
         cell: ({ getValue }) => <span>{getValue<string>()}</span>,
+        meta: {
+            label: t("table.classrooms.columns.code")
+        }
     },
     {
         accessorKey: "gisUrl",
-        header: "GIS URL",
+        header: t("table.classrooms.columns.gisUrl"),
         cell: ({ getValue }) => (
             <span>{getValue<string>()}</span>
         ),
@@ -55,78 +63,70 @@ export const columns: ColumnDef<Classroom>[] = [
         cell: ({ row }) => {
             const classroom = row.original
 
+            const handleDelete = async () => {
+                try {
+                    const res = await fetch(`http://localhost:8080/classroom/${classroom.id}`, {
+                        method: "DELETE"
+                    });
+                    if (!res.ok) {
+                        console.error("Error al eliminar aula", await res.text());
+                        return;
+                    }
+                    if (onClassroomDeleted) onClassroomDeleted();
+                } catch (err) {
+                    console.error("Error de red:", err);
+                }
+            };
 
             return (
                 <div className="flex justify-end space-x-2">
                     <Link to={`https://${classroom.gisUrl}`} target="_blank" className="flex items-center">
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <Button variant="outline" size="icon" className="size-8">
+                                <Button variant="outline" size="icon" className="size-10">
                                     <ExternalLink />
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                                <p>Go to https://{classroom.gisUrl}</p>
+                                <p>{t("table.classrooms.actions.gisUrl", { url: classroom.gisUrl })}</p>
                             </TooltipContent>
                         </Tooltip>
                     </Link>
 
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <Button variant="outline" size="icon" className="size-8">
+                            <Button variant="outline" size="icon" className="size-10">
                                 <Eye />
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                            <p>Show details</p>
+                            <p>{t("table.classrooms.actions.view")}</p>
                         </TooltipContent>
                     </Tooltip>
 
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <Button variant="outline" size="icon" className="size-8">
+                            <Button variant="outline" size="icon" className="size-10">
                                 <Pencil />
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                            <p>Edit classroom</p>
+                            <p>{t("table.classrooms.actions.edit")}</p>
                         </TooltipContent>
                     </Tooltip>
 
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <Button variant="destructive" size="icon" className="size-8">
+                            <Button variant="destructive" size="icon" className="size-10" onClick={handleDelete}>
                                 <Trash2 />
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                            <p>Delete classroom</p>
+                            <p>{t("table.classrooms.actions.delete")}</p>
                         </TooltipContent>
                     </Tooltip>
 
-                    {/* <Button variant="outline" size="sm">
-                        <Pencil /> Edit
-                    </Button>
-                    
-                    <Button variant="destructive" size="sm">
-                        <Trash2 /> Delete
-                    </Button> */}
 
-                    {/* <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Open menu</span>
-                                <MoreHorizontal />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => navigator.clipboard.writeText(classroom.id)}>Copy ID</DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem>Delete classroom</DropdownMenuItem>
-                            <DropdownMenuItem>View details</DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu> */}
                 </div>
             )
         },

@@ -1,6 +1,6 @@
 // src/components/SubjectSemesterButtons.tsx
 import { Button } from "@/components/ui/button"
-import { useCourseContext } from "@/context/CourseContext"
+import { useCourseContext } from "@/context/useCourseContext"
 import { useNavigate } from "react-router-dom"
 import { Course } from "@/types/Course"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'

@@ -35,5 +35,74 @@
                 "title": "Preguntas frecuentes"
             }
         }
+    },
+    "breadcrumb": {
+        "home": "Inicio",
+        "calendars": "Calendarios",
+        "classrooms": "Aulas",
+        "subjects": "Asignaturas",
+        "settings": "Configuración",
+        "system": "Sistema",
+        "logs": "Registros del sistema",
+        "users": "Gestión de usuarios",
+        "reports": "Informes de uso",
+        "faq": "Preguntas frecuentes"
+    },
+    "alerts": {
+        "classroom": {
+            "success": {
+                "title": "Éxito",
+                "create": "Aula creada correctamente",
+                "update": "Aula actualizada correctamente",
+                "delete": "Aula eliminada correctamente"
+            },
+            "error": {
+                "title": "Error",
+                "create": "Error al crear el aula, Intenténtalo de nuevo más tarde",
+                "read": "Error al cargar las aulas, Intenténtalo de nuevo más tarde",
+                "update": "Error al actualizar el aula, Intenténtalo de nuevo más tarde",
+                "delete": "Error al eliminar un aula, Intenténtalo de nuevo más tarde"
+            }
+        }
+    },
+    "toolbar": {
+        "classrooms": {
+            "create": "Crear aula",
+            "delete.selected": "Eliminar aulas seleccionadas"
+        }
+    },
+    "drawer": {
+        "classrooms": {
+            "create": {
+                "title": "Crear aula",
+                "description": "Completa los campos para crear un nuevo aula.",
+                "code": "Código del aula",
+                "gisUrl": "URL GIS del aula",
+                "save": "Guardar aula",
+                "cancel": "Cancelar"
+            }
+        }
+    },
+    "table": {
+        "classrooms": {
+            "filter.placeholder": "Filtrar por código...",
+            "columns": {
+                "title": "Columnas",
+                "code": "Código",
+                "gisUrl": "URL GIS",
+                "actions": "Acciones"
+            },
+            "no.results": "No se encontraron aulas.",
+            "actions": {
+                "edit": "Editar aula",
+                "delete": "Eliminar aula",
+                "view": "Ver aula",
+                "gisUrl": "Ir a https://{{url}}"
+            }
+        },
+        "pagination": {
+            "next": "Siguiente",
+            "previous": "Anterior"
+        }
     }
 }

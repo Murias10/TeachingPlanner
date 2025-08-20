@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm'
 import { Course } from '@/entities/course.entity'
+import { Subject } from '@/entities/subject.entity'
 
 @Entity('DEGREES')
 export class Degree {
@@ -14,4 +15,7 @@ export class Degree {
 
     @OneToMany(() => Course, (course) => course.degree)
     courses!: Course[]
+
+    @OneToMany(() => Subject, (subject) => subject.degree)
+    subjects!: Subject[]
 }

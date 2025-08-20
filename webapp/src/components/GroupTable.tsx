@@ -32,7 +32,7 @@ import {
 
 import { useSubjectsWithEventsAndGroupsByCourseAndSemester } from "@/hooks/useSubjectsWithEventsAndGroupsByCourseIdAndSemester"
 
-import { useCourseContext } from "@/context/CourseContext"
+import { useCourseContext } from "@/context/useCourseContext"
 
 import { useEffect } from "react"
 

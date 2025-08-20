@@ -5,8 +5,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from '@/queryClient';
 import { ThemeProvider } from "@/components/theme-provider"
 import { TitleUpdater } from '@/hooks/title-updater';
-import { DegreeProvider } from "@/context/DegreeContext"
 import { CourseProvider } from '@/context/CourseContext';
+import { FloatingAlertProvider } from "@/context/FloatingAlertContext"
 
 import '@/i18n'
 import '@/index.css'
@@ -19,13 +19,13 @@ createRoot(document.getElementById('root')!).render(
       <QueryClientProvider client={queryClient}>
         <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
           <TitleUpdater />
-          <DegreeProvider>
-            <CourseProvider>
+          <CourseProvider>
+            <FloatingAlertProvider>
               <App />
-            </CourseProvider>
-          </DegreeProvider>
+            </FloatingAlertProvider>
+          </CourseProvider>
         </ThemeProvider>
       </QueryClientProvider>
     </BrowserRouter>
-  </StrictMode>,
+  </StrictMode >,
 )

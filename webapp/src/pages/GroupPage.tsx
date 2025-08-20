@@ -1,12 +1,12 @@
 
 import { GroupToolbar } from "@/components/GroupToolbar"
-import { useBreadcrumb } from "@/context/BreadcrumbContext"
+import { useBreadcrumbContext } from "@/context/useBreadcrumbContext"
 import { useEffect } from "react"
 import { GroupTable } from "@/components/GroupTable"
 
 export default function GroupPage() {
 
-    const { setItems } = useBreadcrumb()
+    const { setItems } = useBreadcrumbContext()
 
     useEffect(() => {
         setItems([

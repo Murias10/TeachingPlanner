@@ -1,13 +1,13 @@
 
 import { DegreeToolbar } from "@/components/DegreeToolbar"
 import { DegreeTable } from "@/components/DegreeTable"
-import { useBreadcrumb } from "@/context/BreadcrumbContext"
+import { useBreadcrumbContext } from "@/context/useBreadcrumbContext"
 import { useEffect } from "react"
 
 
 export default function DegreePage() {
 
-    const { setItems } = useBreadcrumb()
+    const { setItems } = useBreadcrumbContext()
 
     useEffect(() => {
         setItems([

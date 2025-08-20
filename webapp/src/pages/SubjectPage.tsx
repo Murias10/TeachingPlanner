@@ -1,10 +1,10 @@
 import { useEffect } from "react"
-import { useBreadcrumb } from "@/context/BreadcrumbContext"
+import { useBreadcrumbContext } from "@/context/useBreadcrumbContext"
 import { Toolbar } from "@/components/Toolbar"
 import { SubjectTable } from "@/components/SubjectTable"
 
 export default function SubjectPage() {
-    const { setItems } = useBreadcrumb()
+    const { setItems } = useBreadcrumbContext()
 
     useEffect(() => {
         setItems([

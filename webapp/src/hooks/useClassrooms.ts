@@ -6,6 +6,7 @@ export function useClassrooms() {
         queryKey: ["classrooms"],
         queryFn: async () => {
             const res = await fetch(`http://localhost:8080/classrooms`)
+
             if (!res.ok) throw new Error(`Error ${res.status}`)
             const body = await res.json()
             return body.data.classrooms

@@ -1,6 +1,127 @@
 import { Request, Response } from 'express';
 import { AppDataSource } from '@/config/data-source';
 import { Subject } from '@/entities/subject.entity';
+import { Degree } from '@/entities/degree.entity';
+
+export const createSubject = async (req: Request, res: Response) => {
+    try {
+        const { acronym, year, name, siesCode, semester, degree } = req.body;
+
+        // Validación de campos obligatorios
+        const missingFields = [];
+        if (!acronym) missingFields.push("acronym");
+        if (!year) missingFields.push("year");
+        if (!name) missingFields.push("name");
+        if (!siesCode) missingFields.push("siesCode");
+        if (!semester) missingFields.push("semester");
+        if (!degree || typeof degree !== "object") missingFields.push("degree");
+        else {
+            if (!degree.id) missingFields.push("degree.id");
+        }
+
+        if (missingFields.length > 0) {
+            res.status(400).json({
+                status: "error",
+                message: `Faltan los siguientes campos obligatorios: ${missingFields.join(", ")}`,
+                data: null
+            });
+        }
+
+        // Verificar que el degree exista en la base de datos
+        const degreeRepo = AppDataSource.getRepository(Degree);
+        const existingDegree = await degreeRepo.findOne({ where: { id: degree.id } });
+
+        if (!existingDegree) {
+            res.status(404).json({
+                status: "error",
+                message: `No se encontró ningún degree con el id '${degree.id}'`,
+                data: null
+            });
+        }
+
+        const subjectRepo = AppDataSource.getRepository(Subject);
+
+        // Verificar si ya existe una asignatura con los mismos valores
+        const existingSubject = await subjectRepo.findOne({
+            where: {
+                name,
+                acronym,
+                degree
+            }
+        });
+
+        if (existingSubject) {
+            res.status(409).json({
+                status: "error",
+                fields: ["name", "acronym"],
+                message: "Ya existe una asignatura con esos valores para esa titulación",
+                data: null
+            });
+        }
+
+        // Crear y guardar la nueva asignatura
+        const subject = subjectRepo.create({
+            acronym,
+            year,
+            name,
+            siesCode,
+            semester,
+            degree
+        });
+
+        await subjectRepo.save(subject);
+
+        res.status(201).json({
+            status: "success",
+            message: "Asignatura creada exitosamente",
+            data: { subject }
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: "error",
+            message: "Error al crear la asignatura",
+            data: error
+        });
+    }
+};
+
+export const deleteSubject = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+
+        if (!id || typeof id !== "string") {
+            res.status(400).json({
+                status: "error",
+                message: "El parámetro 'id' es obligatorio y debe ser un UUID válido",
+                data: null
+            });
+        }
+
+        const subjectRepo = AppDataSource.getRepository(Subject);
+        const deleteResult = await subjectRepo.delete(id);
+
+        if (deleteResult.affected === 0) {
+            res.status(404).json({
+                status: "error",
+                message: `No se encontró ninguna asignatura con el id '${id}'`,
+                data: null
+            });
+        }
+
+        res.status(200).json({
+            status: "success",
+            message: "Asignatura eliminada correctamente",
+            data: { id }
+        });
+    } catch (error) {
+        console.error("Error al eliminar la asignatura:", error);
+        res.status(500).json({
+            status: "error",
+            message: "Error inesperado al eliminar la asignatura",
+            data: error instanceof Error ? error.message : error
+        });
+    }
+};
 
 export const getSubjects = async (_req: Request, res: Response) => {
     try {
@@ -155,7 +276,7 @@ export const getSubjectsWithEventsAndGroupsByCourseAndSemester = async (req: Req
         res.status(500).json({
             status: 'error',
             message: 'Error fetching subjects with events and groups',
-            data: null,
+            data: error,
         });
     }
 };

@@ -39,8 +39,13 @@ export function NavMain({
   }[]
 }) {
 
-
   const { t } = useTranslation()
+
+  const viewMap = {
+    [t("sidebar.main.subjects.title")]: "subjects",
+    [t("sidebar.main.calendars.title")]: "calendars",
+    [t("sidebar.main.degrees.title")]: "degrees",
+  };
 
   return (
     <SidebarGroup>
@@ -50,10 +55,14 @@ export function NavMain({
           <Collapsible key={item.title} asChild defaultOpen={item.isActive}>
             <SidebarMenuItem>
               <SidebarMenuButton asChild tooltip={item.title}>
-                <Link to={item.url}>
+                <Link
+                  to={item.url}
+                  state={{ view: viewMap[item.title] }}
+                >
                   <item.icon />
                   <span>{item.title}</span>
                 </Link>
+
               </SidebarMenuButton>
               {item.items?.length ? (
                 <>

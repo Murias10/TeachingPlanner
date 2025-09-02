@@ -2,6 +2,9 @@
     "sidebar": {
         "main": {
             "title": "Gestión Académica",
+            "degrees": {
+                "title": "Titulaciones"
+            },
             "home": {
                 "title": "Inicio"
             },
@@ -38,7 +41,10 @@
     },
     "breadcrumb": {
         "home": "Inicio",
+        "degrees": "Titulaciones",
         "calendars": "Calendarios",
+        "courses": "Cursos",
+        "groups": "Grupos",
         "classrooms": "Aulas",
         "subjects": "Asignaturas",
         "settings": "Configuración",
@@ -50,25 +56,63 @@
     },
     "alerts": {
         "classroom": {
-            "success": {
-                "title": "Éxito",
-                "create": "Aula creada correctamente",
-                "update": "Aula actualizada correctamente",
-                "delete": "Aula eliminada correctamente"
-            },
             "error": {
                 "title": "Error",
-                "create": "Error al crear el aula, Intenténtalo de nuevo más tarde",
-                "read": "Error al cargar las aulas, Intenténtalo de nuevo más tarde",
-                "update": "Error al actualizar el aula, Intenténtalo de nuevo más tarde",
-                "delete": "Error al eliminar un aula, Intenténtalo de nuevo más tarde"
+                "notFound": "El aula no existe.",
+                "hasEvents": "No se puede eliminar el aula porque tiene eventos asociados.",
+                "default": "No se pudo eliminar el aula.",
+                "network": "Error de red al intentar eliminar el aula."
+            },
+            "success": {
+                "delete": {
+                    "title": "Aula eliminada",
+                    "description": "El aula fue eliminada correctamente."
+                },
+                "delete.multiple": {
+                    "title": "Aulas eliminadas",
+                    "description": "Las aulas fueron eliminadas correctamente."
+                },
+                "create": {
+                    "title": "Aula creada",
+                    "description": "Aula {{name}} creada correctamente."
+                }
+            }
+        },
+        "calendar": {
+            "error": {
+                "title": "Error",
+                "notFound": "El calendario no existe.",
+                "default": "No se pudo eliminar el calendario.",
+                "network": "Error de red al intentar eliminar el calendario."
+            },
+            "warning": {
+                "title": "Calendario con eventos",
+                "hasEvents": "Este calendario tiene {{count}} eventos asignados. ¿Deseas continuar?"
+            },
+            "success": {
+                "delete": {
+                    "title": "Calendario eliminado",
+                    "description": "El calendario y sus datos asociados fueron eliminados correctamente."
+                }
             }
         }
     },
     "toolbar": {
         "classrooms": {
             "create": "Crear aula",
-            "delete.selected": "Eliminar aulas seleccionadas"
+            "delete.selected": "Eliminar filas seleccionadas"
+        },
+        "degrees": {
+            "create": "Crear titulación",
+            "delete.selected": "Eliminar filas seleccionadas"
+        },
+        "subjects": {
+            "create": "Crear asignatura",
+            "delete.selected": "Eliminar filas seleccionadas"
+        },
+        "courses": {
+            "create": "Crear curso",
+            "delete.selected": "Eliminar filas seleccionadas"
         }
     },
     "drawer": {
@@ -81,9 +125,49 @@
                 "save": "Guardar aula",
                 "cancel": "Cancelar"
             }
+        },
+        "degrees": {
+            "create": {
+                "title": "Crear titulación",
+                "description": "Completa los campos para crear una nueva titulación.",
+                "name": "Nombre de la titulación",
+                "acronym": "Acrónimo de la titulación",
+                "save": "Guardar titulación",
+                "cancel": "Cancelar"
+            }
+        },
+        "courses": {
+            "create": {
+                "title": "Crear curso",
+                "description": "Completa los campos para crear un nuevo curso.",
+                "start.end.year": "Año académico del curso",
+                "state": "Estado del curso",
+                "save": "Guardar curso",
+                "cancel": "Cancelar"
+            }
+        },
+        "subjects": {
+            "create": {
+                "title": "Crear asignatura",
+                "description": "Completa los campos para crear una nueva asignatura.",
+                "name": "Nombre de la asignatura",
+                "acronym": "Acrónimo de la asignatura",
+                "year": "Año de la asignatura",
+                "semester": "Semestre de la asignatura",
+                "siesCode": "Sies Code de la asignatura",
+                "save": "Guardar asigantura",
+                "cancel": "Cancelar"
+            }
         }
     },
     "table": {
+        "courses": {
+            "filter.placeholder": "Filtrar por estado...",
+            "columns": {
+                "title": "Columnas",
+                "course": "Curso"
+            }
+        },
         "classrooms": {
             "filter.placeholder": "Filtrar por código...",
             "columns": {
@@ -98,6 +182,33 @@
                 "delete": "Eliminar aula",
                 "view": "Ver aula",
                 "gisUrl": "Ir a https://{{url}}"
+            }
+        },
+        "subjects": {
+            "filter.placeholder": "Filtrar por nombre...",
+            "columns": {
+                "title": "Columnas",
+                "acronym": "Acrónimo",
+                "name": "Nombre",
+                "semester": "Semestre",
+                "year": "Año",
+                "actions": "Acciones"
+            },
+            "year": {
+                "1": "1º Año",
+                "2": "2º Año",
+                "3": "3º Año",
+                "4": "4º Año"
+            },
+            "semester": {
+                "1": "Semestre 1",
+                "2": "Semestre 2"
+            },
+            "no.results": "No se encontraron asignaturas.",
+            "actions": {
+                "edit": "Editar asignatura",
+                "delete": "Eliminar asignatura",
+                "view": "Ver asignatura"
             }
         },
         "pagination": {

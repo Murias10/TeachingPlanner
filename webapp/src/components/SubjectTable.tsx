@@ -30,11 +30,19 @@ import {
     TableRow,
     TableCell,
 } from "@/components/ui/table"
+import { Subject } from "@/types/Subject"
+import { useTranslation } from "react-i18next"
+import { useEffect } from "react"
 
-import { useSubjects } from "@/hooks/useSubjects"
+interface SubjectTableProps {
+    subjects: Subject[];
+    refetchData?: () => void;
+    setSelectedIds: (ids: string[]) => void;
+}
 
-export function SubjectTable() {
-    const { data: subjects = [], isLoading, error } = useSubjects()
+export function SubjectTable({ subjects, refetchData: onSubjectDeleted, setSelectedIds }: SubjectTableProps) {
+
+    const { t } = useTranslation();
 
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -42,9 +50,14 @@ export function SubjectTable() {
     const [rowSelection, setRowSelection] = React.useState({})
     const [filterValue, setFilterValue] = React.useState("")
 
+    useEffect(() => {
+        const ids = Object.keys(rowSelection).map(idx => subjects[Number(idx)]?.id).filter(Boolean)
+        setSelectedIds(ids)
+    }, [rowSelection, subjects, setSelectedIds])
+
     const table = useReactTable({
         data: subjects,
-        columns: defaultColumns,
+        columns: defaultColumns({ onSubjectDeleted }, t),
         state: {
             sorting,
             columnFilters,
@@ -66,7 +79,7 @@ export function SubjectTable() {
         <div className="w-full">
             <div className="flex items-center py-4">
                 <Input
-                    placeholder="Filter name..."
+                    placeholder={t("table.subjects.filter.placeholder")}
                     value={filterValue}
                     onChange={(e) => {
                         setFilterValue(e.target.value)
@@ -78,7 +91,7 @@ export function SubjectTable() {
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="outline" className="ml-auto">
-                            Columns <ChevronDown className="ml-2 h-4 w-4" />
+                            {t("table.subjects.columns.title")} <ChevronDown className="ml-2 h-4 w-4" />
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
@@ -96,14 +109,6 @@ export function SubjectTable() {
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
-
-            {isLoading && (
-                <div className="text-sm text-muted-foreground py-4">Loading subjects...</div>
-            )}
-            {error && (
-                <div className="text-sm text-red-500 py-4">Error: {error.message}</div>
-            )}
-
             <div className="rounded-lg border">
                 <Table>
                     <TableHeader>
@@ -136,7 +141,7 @@ export function SubjectTable() {
                         ) : (
                             <TableRow>
                                 <TableCell colSpan={defaultColumns.length} className="h-24 text-center">
-                                    No results for this subject.
+                                    {t("table.subjects.no.results")}
                                 </TableCell>
                             </TableRow>
                         )}
@@ -151,7 +156,7 @@ export function SubjectTable() {
                     onClick={() => table.previousPage()}
                     disabled={!table.getCanPreviousPage()}
                 >
-                    Previous
+                    {t("table.pagination.previous")}
                 </Button>
                 <Button
                     variant="outline"
@@ -159,7 +164,7 @@ export function SubjectTable() {
                     onClick={() => table.nextPage()}
                     disabled={!table.getCanNextPage()}
                 >
-                    Next
+                    {t("table.pagination.next")}
                 </Button>
             </div>
         </div>

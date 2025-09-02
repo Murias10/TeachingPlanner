@@ -13,27 +13,30 @@ interface MyEvent {
 const MyCalendar = () => {
     const events: MyEvent[] = [
         {
-            title: "Evento de ejemplo",
-            start: new Date(2025, 7, 12, 10, 0),
-            end: new Date(2025, 7, 12, 12, 0),
+            title: "HOLA",
+            start: moment('2025-08-24T10:00:00').toDate(),
+            end: moment('2025-08-24T11:00:00').toDate()
         },
         {
-            title: "Otro evento",
-            start: new Date(2025, 7, 13, 14, 0),
-            end: new Date(2025, 7, 13, 16, 0),
+            title: "HOLA",
+            start: moment('2025-08-24T12:00:00').toDate(),
+            end: moment('2025-08-24T13:00:00').toDate()
         },
     ];
 
     return (
-        <div style={{ height: 500 }}>
-            <Calendar
-                localizer={localizer}  // Localizador obligatorio
-                events={events}
-                startAccessor="start"
-                endAccessor="end"
-                style={{ height: "100%", width: '100%' }}
-            />
-        </div>
+
+        <Calendar
+            defaultView="week"
+            localizer={localizer}
+            events={events}
+            max={moment('2025-08-30T21:00:00').toDate()}
+            min={moment('2025-08-24T08:00:00').toDate()}
+            startAccessor="start"
+            endAccessor="end"
+            style={{ height: '100%', width: '100%' }}
+        />
+
     );
 };
 

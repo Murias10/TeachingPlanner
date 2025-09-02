@@ -5,6 +5,7 @@ import degreeRouter from '@/routes/degree.routes';
 import courseRouter from '@/routes/course.routes';
 import classroomRouter from '@/routes/classrooms.routes';
 import subjectRouter from '@/routes/subject.routes';
+import calendarRouter from '@/routes/calendar.routes'
 
 const port = process.env.PLANNER_SERVICE_PORT;
 
@@ -16,6 +17,7 @@ const startServer = async () => {
     app.use(courseRouter);
     app.use(classroomRouter);
     app.use(subjectRouter);
+    app.use(calendarRouter);
 
     app.listen(port, () => {
         console.log(`🚀 App listening on port ${port}`);

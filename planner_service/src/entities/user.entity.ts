@@ -1,6 +1,6 @@
 import {
   Entity,
-  PrimaryColumn,
+  PrimaryGeneratedColumn,
   Column,
   OneToMany,
 } from 'typeorm';
@@ -8,7 +8,7 @@ import { Log } from '@/entities/log.entity';
 
 @Entity('USERS')
 export class User {
-  @PrimaryColumn('varchar', { length: 255, name: 'ID' })
+  @PrimaryGeneratedColumn('uuid', { name: 'ID' })
   id!: string;
 
   @Column('varchar', { length: 255, name: 'NAME' })
@@ -26,6 +26,6 @@ export class User {
   @Column('varchar', { length: 255, name: 'PASSWORD' })
   password!: string;
 
-  // @OneToMany(() => Log, (log) => log.user)
-  // logs!: Log[];
+  @OneToMany(() => Log, (log) => log.user)
+  logs!: Log[];
 }

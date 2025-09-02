@@ -29,11 +29,19 @@ import {
     TableRow,
     TableCell,
 } from "@/components/ui/table"
+import { Degree } from "@/types/Degree"
+// import { useTranslation } from "react-i18next"
+import { useEffect } from "react"
 
-import { useDegrees } from "@/hooks/useDegrees"
+interface DegreeTableProps {
+    degrees: Degree[];
+    refetchData?: () => void;
+    setSelectedIds: (ids: string[]) => void;
+}
 
-export function DegreeTable() {
-    const { data: degrees = [], isLoading, error } = useDegrees()
+export function DegreeTable({ degrees, refetchData: onDegreeDeleted, setSelectedIds }: DegreeTableProps) {
+
+    // const { t } = useTranslation();
 
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -41,9 +49,14 @@ export function DegreeTable() {
     const [rowSelection, setRowSelection] = React.useState({})
     const [filterValue, setFilterValue] = React.useState("")
 
+    useEffect(() => {
+        const ids = Object.keys(rowSelection).map(idx => degrees[Number(idx)]?.id).filter(Boolean)
+        setSelectedIds(ids)
+    }, [rowSelection, degrees, setSelectedIds])
+
     const table = useReactTable({
         data: degrees,
-        columns: defaultColumns,
+        columns: defaultColumns({ onDegreeDeleted }),
         state: {
             sorting,
             columnFilters,
@@ -96,17 +109,6 @@ export function DegreeTable() {
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
-
-            {isLoading && (
-                <div className="text-sm text-muted-foreground py-4">
-                    Loading degrees...
-                </div>
-            )}
-            {error && (
-                <div className="text-sm text-red-500 py-4">
-                    Error: {error.message}
-                </div>
-            )}
 
             <div className="rounded-lg border">
                 <Table>

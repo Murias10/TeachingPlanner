@@ -6,7 +6,7 @@ export function GroupToolbar() {
         <section className="flex items-center justify-between bg-muted/50 p-4 rounded-xl mt-2 mx-2 gap-4" >
             <div className="flex-1 flex justify-end">
                 <Link to="calendar">
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="lg">
                         Ver Calendario +
                     </Button>
                 </Link>

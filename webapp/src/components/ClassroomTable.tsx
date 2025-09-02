@@ -35,11 +35,11 @@ import { useTranslation } from "react-i18next"
 
 interface ClassroomTableProps {
     classrooms: Classroom[];
-    refetchData?: () => void;
+    deleteClassroom: (classroomId: string) => void,
     setSelectedIds: (ids: string[]) => void;
 }
 
-export function ClassroomTable({ classrooms, refetchData: onClassroomDeleted, setSelectedIds }: ClassroomTableProps) {
+export function ClassroomTable({ classrooms, deleteClassroom, setSelectedIds }: ClassroomTableProps) {
 
     const { t } = useTranslation();
 
@@ -54,9 +54,10 @@ export function ClassroomTable({ classrooms, refetchData: onClassroomDeleted, se
         setSelectedIds(ids)
     }, [rowSelection, classrooms, setSelectedIds])
 
+
     const table = useReactTable({
         data: classrooms,
-        columns: defaultColumns({ onClassroomDeleted }, t),
+        columns: defaultColumns({ deleteClassroom }, t),
         state: {
             sorting,
             columnFilters,
@@ -71,10 +72,11 @@ export function ClassroomTable({ classrooms, refetchData: onClassroomDeleted, se
         getSortedRowModel: getSortedRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
-        initialState: { pagination: { pageSize: 10 } },
+        initialState: { pagination: { pageSize: 6 } },
     })
 
     return (
+
         <div className="w-full">
             <div className="flex items-center py-4">
                 <Input

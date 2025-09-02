@@ -16,6 +16,45 @@ export const getDegrees = (_req: Request, res: Response, next: NextFunction) => 
         });
 }
 
+export const createDegree = async (req: Request, res: Response, next: NextFunction) => {
+
+    const { name, acronym } = req.body;
+
+    fetch("http://planner_service:5001/degree", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, acronym })
+    })
+        .then(async (response) => {
+            response.headers.forEach((value, key) => {
+                res.setHeader(key, value);
+            });
+            const body = await response.json();
+            res.status(response.status).json(body);
+        })
+        .catch((error) => {
+            next(error);
+        });
+};
+
+export const deleteDegree = async (req: Request, res: Response, next: NextFunction) => {
+    const { id } = req.params;
+
+    fetch(`http://planner_service:5001/degree/${id}`, {
+        method: "DELETE"
+    })
+        .then(async (response) => {
+            response.headers.forEach((value, key) => {
+                res.setHeader(key, value);
+            });
+            const body = await response.json();
+            res.status(response.status).json(body);
+        })
+        .catch((error) => {
+            next(error);
+        });
+};
+
 export const getSubjects = (_req: Request, res: Response, next: NextFunction) => {
     fetch('http://planner_service:5001/subjects')
         .then(async (response) => {
@@ -67,22 +106,44 @@ export const getSubjectsWithEventsAndGroupsByCourseAndSemester = (req: Request, 
         });
 }
 
+export const deleteSubject = async (req: Request, res: Response, next: NextFunction) => {
+    const { id } = req.params;
 
-export const getClassrooms = (_req: Request, res: Response, next: NextFunction) => {
-    fetch('http://planner_service:5001/classrooms')
+    fetch(`http://planner_service:5001/subject/${id}`, {
+        method: "DELETE"
+    })
         .then(async (response) => {
-            // Copia los headers del planner service
             response.headers.forEach((value, key) => {
                 res.setHeader(key, value);
             });
-            // Obtén el body como JSON
             const body = await response.json();
             res.status(response.status).json(body);
         })
         .catch((error) => {
             next(error);
         });
-}
+};
+
+export const createSubject = async (req: Request, res: Response, next: NextFunction) => {
+
+    const { acronym, year, name, siesCode, semester, degree } = req.body; // ✅ se recibe desde body
+
+    fetch("http://planner_service:5001/subject", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ acronym, year, name, siesCode, semester, degree }) // ✅ reenviamos datos
+    })
+        .then(async (response) => {
+            response.headers.forEach((value, key) => {
+                res.setHeader(key, value);
+            });
+            const body = await response.json();
+            res.status(response.status).json(body);
+        })
+        .catch((error) => {
+            next(error);
+        });
+};
 
 
 export const getCourses = (_req: Request, res: Response, next: NextFunction) => {
@@ -136,6 +197,40 @@ export const getCoursesByDegreeAcronym = (req: Request, res: Response, next: Nex
         });
 }
 
+export const deleteCourse = async (req: Request, res: Response, next: NextFunction) => {
+    const { id } = req.params;
+
+    fetch(`http://planner_service:5001/course/${id}`, {
+        method: "DELETE"
+    })
+        .then(async (response) => {
+            response.headers.forEach((value, key) => {
+                res.setHeader(key, value);
+            });
+            const body = await response.json();
+            res.status(response.status).json(body);
+        })
+        .catch((error) => {
+            next(error);
+        });
+};
+
+export const getClassrooms = (_req: Request, res: Response, next: NextFunction) => {
+    fetch('http://planner_service:5001/classrooms')
+        .then(async (response) => {
+            // Copia los headers del planner service
+            response.headers.forEach((value, key) => {
+                res.setHeader(key, value);
+            });
+            // Obtén el body como JSON
+            const body = await response.json();
+            res.status(response.status).json(body);
+        })
+        .catch((error) => {
+            next(error);
+        });
+}
+
 export const createClassroom = async (req: Request, res: Response, next: NextFunction) => {
 
     const { code, gisUrl } = req.body; // ✅ se recibe desde body
@@ -162,6 +257,25 @@ export const deleteClassroom = async (req: Request, res: Response, next: NextFun
     const { id } = req.params;
 
     fetch(`http://planner_service:5001/classroom/${id}`, {
+        method: "DELETE"
+    })
+        .then(async (response) => {
+            response.headers.forEach((value, key) => {
+                res.setHeader(key, value);
+            });
+            const body = await response.json();
+            res.status(response.status).json(body);
+        })
+        .catch((error) => {
+            next(error);
+        });
+};
+
+
+export const deleteCalendar = async (req: Request, res: Response, next: NextFunction) => {
+    const { id } = req.params;
+
+    fetch(`http://planner_service:5001/calendar/${id}`, {
         method: "DELETE"
     })
         .then(async (response) => {

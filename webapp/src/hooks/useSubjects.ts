@@ -1,23 +1,19 @@
-import { useQuery } from "@tanstack/react-query"
-import { useDegree } from "@/hooks/useDegree"
-import { Subject } from "@/types/Subject"
+import { useQuery } from "@tanstack/react-query";
+import { useDegreeContext } from "@/context/useDegreeContext";
+import { Subject } from "@/types/Subject";
 
 export function useSubjects() {
-    const { selectedDegree } = useDegree()
-    const isFiltered = selectedDegree && selectedDegree !== "all"
-    return useQuery<Subject[], Error>({
-        queryKey: ["subjects", selectedDegree],
-        enabled: selectedDegree !== undefined, // solo desactiva si es undefined
-        queryFn: async () => {
-            const url = isFiltered
-                ? `http://localhost:8080/subjects/degree/${selectedDegree}`
-                : `http://localhost:8080/subjects` // sin filtro
+    const { degreeId } = useDegreeContext();
 
-            const res = await fetch(url)
-            if (!res.ok) throw new Error(`Error ${res.status}`)
-            const body = await res.json()
-            return body.data.subjects
+    return useQuery<Subject[], Error>({
+        queryKey: ["subjects", degreeId],
+        enabled: degreeId !== null, // solo se activa si hay degree seleccionado
+        queryFn: async () => {
+            const res = await fetch(`http://localhost:8080/subjects/degree/${degreeId}`);
+            if (!res.ok) throw new Error(`Error ${res.status}`);
+            const body = await res.json();
+            return body.data.subjects;
         },
         staleTime: 5 * 60_000, // 5 minutos
-    })
+    });
 }

@@ -11,7 +11,7 @@ import { Day } from '@/entities/day.entity';
 import { Group } from '@/entities/group.entity';
 import { Classroom } from '@/entities/classroom.entity';
 
-@Entity('EVENT')
+@Entity('EVENTS')
 export class Event {
     @PrimaryGeneratedColumn('uuid', { name: 'ID' })
     id!: string;
@@ -40,15 +40,15 @@ export class Event {
 
     @ManyToMany(() => Group, (group) => group.events)
     @JoinTable({
-        name: 'GROUP_EVENT', // nombre de la tabla de unión
-        joinColumn: { name: 'EVENT_ID', referencedColumnName: 'id' },
-        inverseJoinColumn: { name: 'GROUP_ID', referencedColumnName: 'id' },
+        name: 'EVENT_GROUPS',
+        joinColumn: { name: 'ID_EVENT', referencedColumnName: 'id' },
+        inverseJoinColumn: { name: 'ID_GROUP', referencedColumnName: 'id' },
     })
     groups!: Group[];
 
     @ManyToMany(() => Classroom, (classroom) => classroom.events)
     @JoinTable({
-        name: 'EVENT_CLASSROOMS', // nombre de la tabla de unión
+        name: 'EVENT_CLASSROOMS',
         joinColumn: { name: 'ID_CLASSROOM', referencedColumnName: 'id' },
         inverseJoinColumn: { name: 'ID_EVENT', referencedColumnName: 'id' },
     })

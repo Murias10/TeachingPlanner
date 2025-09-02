@@ -1,19 +1,15 @@
 import { ColumnDef } from "@tanstack/react-table"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
-import {
-    DropdownMenu,
-    DropdownMenuTrigger,
-    DropdownMenuContent,
-    DropdownMenuLabel,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu"
-import { ArrowUpDown, MoreHorizontal } from "lucide-react"
-import { Link } from "react-router-dom"
+import { ArrowUpDown } from "lucide-react"
+import { DegreeTableButtons } from "@/components/DegreeTableButtons"
 import { Degree } from "@/types/Degree"
 
-export const columns: ColumnDef<Degree>[] = [
+interface ColumnExtraProps {
+    onDegreeDeleted?: () => void;
+}
+
+export const columns = ({ onDegreeDeleted }: ColumnExtraProps): ColumnDef<Degree>[] => [
     {
         id: "select",
         header: ({ table }) => (
@@ -72,33 +68,7 @@ export const columns: ColumnDef<Degree>[] = [
             const degree = row.original
 
             return (
-                <div className="flex justify-end space-x-2">
-
-                    <Link to={`/degrees/${degree.acronym.toLowerCase()}/courses`}>
-                        <Button variant="outline" size="sm">Show courses</Button>
-                    </Link>
-
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Open menu</span>
-                                <MoreHorizontal />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem
-                                onClick={() =>
-                                    navigator.clipboard.writeText(degree.id)
-                                }
-                            >
-                                Copy ID
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem>View details</DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>
+                <DegreeTableButtons degree={degree} onDegreeDeleted={onDegreeDeleted} />
             )
         },
     },

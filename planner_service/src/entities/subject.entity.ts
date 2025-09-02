@@ -12,13 +12,14 @@ import { Degree } from '@/entities/degree.entity'
 import { Group } from '@/entities/group.entity';
 
 @Entity('SUBJECTS')
-@Unique('UQ_SUBJECT_UNIQUE', ['acronym', 'semester', 'year', 'degree'])
+@Unique('UQ_SUBJECT_UNIQUE', ['name', 'acronym', 'degree'])
 @Check('CHK_SEMESTER', '"SEMESTER" IN (1, 2)')
+@Check('CHK_YEAR', '"YEAR" IN (1, 2, 3, 4)')
 export class Subject {
     @PrimaryGeneratedColumn('uuid', { name: 'ID' })
     id!: string;
 
-    @Column('varchar', { length: 20, name: 'ACRONYM', unique: true })
+    @Column('varchar', { length: 20, name: 'ACRONYM' })
     acronym!: string
 
     @Column('smallint', { name: 'SEMESTER' })
@@ -27,7 +28,7 @@ export class Subject {
     @Column('bigint', { name: 'YEAR' })
     year!: number;
 
-    @Column('varchar', { length: 100, name: 'NAME', unique: true })
+    @Column('varchar', { length: 100, name: 'NAME' })
     name!: string;
 
     @Column('varchar', { length: 20, name: 'SIES_CODE' })

@@ -1,18 +1,18 @@
 import {
     Entity,
-    PrimaryColumn,
+    PrimaryGeneratedColumn,
     Column,
     ManyToOne,
     JoinColumn,
 } from 'typeorm';
 import { User } from '@/entities/user.entity';
 
-@Entity('LOG')
+@Entity('LOGS')
 export class Log {
-    @PrimaryColumn('varchar', { length: 255, name: 'ID' })
+    @PrimaryGeneratedColumn('uuid', { name: 'ID' })
     id!: string;
 
-    @Column('timestamptz', { name: 'DATE' })
+    @Column('timestamp', { name: 'DATE' })
     date!: Date;
 
     @Column('varchar', { length: 255, name: 'DESCRIPTION' })

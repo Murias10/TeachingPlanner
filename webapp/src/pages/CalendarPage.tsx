@@ -18,10 +18,8 @@ export default function CoursePage() {
     return (
         <>
 
-            <section className="h-full rounded-xl bg-muted/50 flex items-center justify-center m-2">
-                <div className="min-w-[400px] w-2/3">
-                    <MyCalendar />
-                </div>
+            <section className="h-full rounded-xl bg-muted/50 flex items-center justify-center m-2 p-10">
+                <MyCalendar />
             </section>
         </>
     )

@@ -1,51 +1,32 @@
-import { useState, useEffect, ReactNode } from "react"
-import { useQuery } from "@tanstack/react-query"
-import { Degree } from "@/types/Degree"
-import { DegreeContext } from "@/context/DegreeContextInstance"
+import React, { useState } from "react";
+import { DegreeContext } from "@/context/DegreeContextInstace";
 
-// Provider that fetches degrees via React Query
-export function DegreeProvider({ children }: { children: ReactNode }) {
-    const [selectedDegree, setSelectedDegree] = useState<string>("all")
+export type DegreeContextType = {
+    degreeId: string | null;
+    degreeName: string | null;
+    degreeAcronym: string | null;
+    setDegreeId: (id: string) => void;
+    setDegreeName: (name: string) => void;
+    setDegreeAcronym: (acronym: string) => void;
+};
 
-    const {
-        data: degrees = [],
-        isLoading,
-        error: queryError,
-    } = useQuery<Degree[], Error>({
-        queryKey: ["degrees"],
-        queryFn: () =>
-            fetch("http://localhost:8080/degrees")
-                .then(res => {
-                    if (!res.ok) throw new Error(`Network error: ${res.status}`);
-                    return res.json();
-                })
-                .then((body: { status: string; data: { degrees: Degree[] } }) => {
-                    return body.data.degrees;
-                }),
-        staleTime: 5 * 60_000,
-        retry: 1,
-    });
-
-    // Initialize selection
-    useEffect(() => {
-        if (!isLoading && degrees.length > 0 && !selectedDegree) {
-            setSelectedDegree(degrees[0].id)
-        }
-    }, [isLoading, degrees, selectedDegree])
-
+export function DegreeProvider({ children }: { children: React.ReactNode }) {
+    const [degreeId, setDegreeId] = useState<string | null>(null);
+    const [degreeName, setDegreeName] = useState<string | null>(null);
+    const [degreeAcronym, setDegreeAcronym] = useState<string | null>(null);
 
     return (
         <DegreeContext.Provider
             value={{
-                degrees,
-                loading: isLoading,
-                error: queryError ? queryError.message : null,
-                selectedDegree,
-                setSelectedDegree,
+                degreeId,
+                degreeName,
+                degreeAcronym,
+                setDegreeId,
+                setDegreeName,
+                setDegreeAcronym,
             }}
         >
             {children}
         </DegreeContext.Provider>
-    )
+    );
 }
-

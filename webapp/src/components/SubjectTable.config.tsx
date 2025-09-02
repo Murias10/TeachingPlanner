@@ -3,19 +3,19 @@ import { ColumnDef } from "@tanstack/react-table"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
 import {
-    DropdownMenu,
-    DropdownMenuTrigger,
-    DropdownMenuContent,
-    DropdownMenuLabel,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu"
-import { ArrowUpDown, MoreHorizontal } from "lucide-react"
-
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { ArrowUpDown, Trash2, Pencil, Eye } from "lucide-react"
+import { TFunction } from "i18next"
 import { Subject } from "@/types/Subject"
 
+interface ColumnExtraProps {
+    onSubjectDeleted?: () => void;
+}
 
-export const columns: ColumnDef<Subject>[] = [
+export const columns = ({ onSubjectDeleted }: ColumnExtraProps, t: TFunction): ColumnDef<Subject>[] => [
     {
         id: "select",
         header: ({ table }) => (
@@ -41,52 +41,119 @@ export const columns: ColumnDef<Subject>[] = [
                 onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
                 className="flex items-center gap-1"
             >
-                Acronym <ArrowUpDown className="h-4 w-4" />
+                {t("table.subjects.columns.acronym")} <ArrowUpDown className="h-4 w-4" />
             </Button>
         ),
         cell: ({ getValue }) => <span>{getValue<string>()}</span>,
     },
     {
         accessorKey: "name",
-        header: "Name",
+        header: ({ column }) => (
+            <Button
+                variant="ghost"
+                onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+                className="flex items-center gap-1"
+            >
+                {t("table.subjects.columns.name")} <ArrowUpDown className="h-4 w-4" />
+            </Button>
+        ),
         cell: ({ getValue }) => <span>{getValue<string>()}</span>,
     },
     {
         accessorKey: "semester",
-        header: "Semester",
-        cell: ({ getValue }) => <span>{getValue<number>()}</span>,
+        header: ({ column }) => (
+            <Button
+                variant="ghost"
+                onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+                className="flex items-center gap-1"
+            >
+                {t("table.subjects.columns.semester")} <ArrowUpDown className="h-4 w-4" />
+            </Button>
+        ),
+        cell: ({ getValue }) => {
+            const semester = getValue<number>();
+            const label = semester === 1 ? t("table.subjects.semester.1") : semester === 2 ? t("table.subjects.semester.2") : "—";
+            return <span>{label}</span>;
+        }
     },
     {
         accessorKey: "year",
-        header: "Year",
-        cell: ({ getValue }) => <span>{getValue<number>()}</span>,
-    },
-    {
-        accessorKey: "siesCode",
-        header: "SIES Code",
-        cell: ({ getValue }) => <span>{getValue<string>()}</span>,
+        header: ({ column }) => (
+            <Button
+                variant="ghost"
+                onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+                className="flex items-center gap-1"
+            >
+                {t("table.subjects.columns.year")} <ArrowUpDown className="h-4 w-4" />
+            </Button>
+        ),
+        cell: ({ getValue }) => {
+            const year = getValue<number>();
+            const label =
+                year === 1 ? t("table.subjects.year.1") :
+                    year === 2 ? t("table.subjects.year.2") :
+                        year === 3 ? t("table.subjects.year.3") :
+                            year === 4 ? t("table.subjects.year.4") :
+                                "—";
+            return <span>{label}</span>;
+        },
     },
     {
         id: "actions",
         enableSorting: false,
         cell: ({ row }) => {
             const subject = row.original
+
+            const handleDelete = async () => {
+
+                try {
+                    const res = await fetch(`http://localhost:8080/subject/${subject.id}`, {
+                        method: "DELETE"
+                    });
+                    if (!res.ok) {
+                        console.error("Error al eliminar la asignatura", await res.text());
+                        return;
+                    }
+                    if (onSubjectDeleted) onSubjectDeleted()
+                } catch (err) {
+                    console.error("Error de red:", err)
+                }
+            }
+
             return (
                 <div className="flex justify-end space-x-2">
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Open menu</span>
-                                <MoreHorizontal />
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button variant="outline" size="icon" className="size-10">
+                                <Eye />
                             </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => navigator.clipboard.writeText(subject.id)}>Copy ID</DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem>View details</DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>{t("table.subjects.actions.view")}</p>
+                        </TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button variant="outline" size="icon" className="size-10">
+                                <Pencil />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>{t("table.subjects.actions.edit")}</p>
+                        </TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button variant="destructive" size="icon" className="size-10" onClick={handleDelete}>
+                                <Trash2 />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>{t("table.subjects.actions.delete")}</p>
+                        </TooltipContent>
+                    </Tooltip>
                 </div>
             )
         },

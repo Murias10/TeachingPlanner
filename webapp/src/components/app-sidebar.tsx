@@ -8,7 +8,8 @@ import {
   Warehouse,
   CalendarDays,
   BookMarked,
-  Home
+  Home,
+  GraduationCap
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -46,6 +47,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         items: [],
       },
       {
+        title: t("sidebar.main.degrees.title"),
+        url: "/degrees",
+        icon: GraduationCap,
+        isActive: true,
+        items: [],
+      },
+      {
         title: t("sidebar.main.calendars.title"),
         url: "/degrees",
         icon: CalendarDays,
@@ -60,7 +68,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       },
       {
         title: t("sidebar.main.subjects.title"),
-        url: "/subjects",
+        url: "/degrees",
         icon: BookMarked,
         items: [],
       },

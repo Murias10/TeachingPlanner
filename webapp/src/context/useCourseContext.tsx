@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { CourseContext } from "./CourseContextInstance";
+import { CourseContext } from "@/context/CourseContextInstance";
 
 
 export function useCourseContext() {

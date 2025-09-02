@@ -9,7 +9,7 @@ import {
 import { Event } from '@/entities/event.entity';
 import { Calendar } from '@/entities/calendar.entity';
 
-@Entity('DAY')
+@Entity('DAYS')
 export class Day {
     @PrimaryGeneratedColumn('uuid', { name: 'ID' })
     id!: string;

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { AppDataSource } from '@/config/data-source';
 import { Classroom } from '@/entities/classroom.entity';
+import { Event } from '@/entities/event.entity';
 
 export const getClassrooms = async (_req: Request, res: Response) => {
 
@@ -9,9 +10,7 @@ export const getClassrooms = async (_req: Request, res: Response) => {
         res.status(200).json({
             status: 'success',
             message: 'Classrooms fetched successfully',
-            data: {
-                classrooms
-            }
+            data: { classrooms }
         });
     }
     catch (error) {
@@ -42,7 +41,8 @@ export const createClassroom = async (req: Request, res: Response) => {
         if (existing) {
             res.status(409).json({
                 status: "error",
-                message: "El aula ya existe",
+                field: "code",
+                message: "Ya hay un aula con el valor de 'code' proporcionado",
                 data: null
             });
         }
@@ -71,28 +71,45 @@ export const deleteClassroom = async (req: Request, res: Response) => {
         const { id } = req.params;
 
         const classroomRepo = AppDataSource.getRepository(Classroom);
+        const eventRepo = AppDataSource.getRepository(Event);
 
-        const result = await classroomRepo.delete(id);
+        const classroom = await classroomRepo.findOne({ where: { id } });
 
-        if (result.affected === 0) {
+        if (!classroom) {
             res.status(404).json({
                 status: "error",
-                message: "Classroom not found",
-                data: null
+                message: "No se encontró el aula",
+                data: null,
             });
         }
 
+        const relatedEvents = await eventRepo
+            .createQueryBuilder("event")
+            .innerJoin("event.classrooms", "classroom")
+            .where("classroom.id = :id", { id })
+            .getCount();
+
+        if (relatedEvents > 0) {
+            res.status(409).json({
+                status: "error",
+                message: "No se puede eliminar el aula porque tiene eventos asociados",
+                data: { relatedEvents },
+            });
+        }
+
+        await classroomRepo.delete(id);
+
         res.status(200).json({
             status: "success",
-            message: "Classroom deleted successfully",
-            data: null
+            message: "Aula eliminada correctamente",
+            data: { id },
         });
-    }
-    catch (error) {
+    } catch (error) {
+        console.error("Error al eliminar el aula:", error);
         res.status(500).json({
             status: "error",
-            message: "Error deleting classroom",
-            data: error
+            message: "Error inesperado al eliminar el aula",
+            data: error instanceof Error ? error.message : error,
         });
     }
 };

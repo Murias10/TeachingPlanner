@@ -12,10 +12,10 @@ import { Link } from "react-router-dom"
 import { TFunction } from "i18next"
 
 interface ColumnExtraProps {
-    onClassroomDeleted?: () => void;
+    deleteClassroom: (classroomId: string) => void;
 }
 
-export const columns = ({ onClassroomDeleted }: ColumnExtraProps, t: TFunction): ColumnDef<Classroom>[] => [
+export const columns = ({ deleteClassroom }: ColumnExtraProps, t: TFunction): ColumnDef<Classroom>[] => [
     {
         id: "select",
         header: ({ table }) => (
@@ -63,21 +63,6 @@ export const columns = ({ onClassroomDeleted }: ColumnExtraProps, t: TFunction):
         cell: ({ row }) => {
             const classroom = row.original
 
-            const handleDelete = async () => {
-                try {
-                    const res = await fetch(`http://localhost:8080/classroom/${classroom.id}`, {
-                        method: "DELETE"
-                    });
-                    if (!res.ok) {
-                        console.error("Error al eliminar aula", await res.text());
-                        return;
-                    }
-                    if (onClassroomDeleted) onClassroomDeleted();
-                } catch (err) {
-                    console.error("Error de red:", err);
-                }
-            };
-
             return (
                 <div className="flex justify-end space-x-2">
                     <Link to={`https://${classroom.gisUrl}`} target="_blank" className="flex items-center">
@@ -117,7 +102,7 @@ export const columns = ({ onClassroomDeleted }: ColumnExtraProps, t: TFunction):
 
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <Button variant="destructive" size="icon" className="size-10" onClick={handleDelete}>
+                            <Button variant="destructive" size="icon" className="size-10" onClick={() => deleteClassroom(classroom.id)}>
                                 <Trash2 />
                             </Button>
                         </TooltipTrigger>

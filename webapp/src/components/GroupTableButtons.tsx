@@ -58,7 +58,7 @@ export function GroupTableButtons({ subject }: Props) {
 
     return (
         <div className="flex justify-end space-x-2">
-            <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+            <Button variant="outline" size="lg" onClick={() => setOpen(true)}>
                 Select Groups
             </Button>
 

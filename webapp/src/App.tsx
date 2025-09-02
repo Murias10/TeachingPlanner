@@ -34,8 +34,8 @@ export default function App() {
                     <Route path="degrees/:degreeAcronym/courses" element={<CoursePage />} />
                     <Route path="degrees/:degreeAcronym/courses/:startYearCourse/:endYearCourse/semester/:semesterNumber/groups" element={<GroupPage />} />
                     <Route path="degrees/:degreeAcronym/courses/:startYearCourse/:endYearCourse/semester/:semesterNumber/groups/calendar" element={<CalendarPage />} />
+                    <Route path="degrees/:degreeAcronym/subjects" element={<SubjectPage />} />
                     <Route path="classrooms" element={<ClassroomPage />} />
-                    <Route path="subjects" element={<SubjectPage />} />
                     <Route path="settings" element={<SettingsPage />} />
                     <Route path="logs" element={<LogsPage />} />
                     <Route path="users" element={<UserPage />} />

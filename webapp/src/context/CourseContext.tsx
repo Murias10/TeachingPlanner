@@ -1,4 +1,3 @@
-// src/context/CourseContext.tsx
 import React, { useState } from "react"
 import { CourseContext } from "@/context/CourseContextInstance"
 

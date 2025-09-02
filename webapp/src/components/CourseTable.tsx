@@ -29,18 +29,20 @@ import {
     TableRow,
     TableCell
 } from "@/components/ui/table"
+import { Course } from "@/types/Course"
+import { useTranslation } from "react-i18next"
+import { useEffect } from "react"
 
-import { useCourses } from "@/hooks/useCourses"
+interface CourseTableProps {
+    courses: Course[];
+    deleteCourse: (courseId: string) => void,
+    deleteCalendar: (calendarId: string, force: boolean) => void
+    setSelectedIds: (ids: string[]) => void;
+}
 
-import { useParams } from "react-router-dom"
+export function CourseTable({ courses, deleteCourse, deleteCalendar, setSelectedIds }: CourseTableProps) {
 
-
-
-export function CourseTable() {
-
-    const params = useParams();
-
-    const { data: courses = [], isLoading, error } = useCourses(params.degreeAcronym || "")
+    const { t } = useTranslation();
 
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -48,9 +50,14 @@ export function CourseTable() {
     const [rowSelection, setRowSelection] = React.useState({})
     const [filterValue, setFilterValue] = React.useState("")
 
+    useEffect(() => {
+        const ids = Object.keys(rowSelection).map(idx => courses[Number(idx)]?.id).filter(Boolean)
+        setSelectedIds(ids)
+    }, [rowSelection, courses, setSelectedIds])
+
     const table = useReactTable({
         data: courses,
-        columns: defaultColumns,
+        columns: defaultColumns({ deleteCourse, deleteCalendar }, t),
         state: {
             sorting,
             columnFilters,
@@ -102,13 +109,6 @@ export function CourseTable() {
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
-
-            {isLoading && (
-                <div className="text-sm text-muted-foreground py-4">Loading courses...</div>
-            )}
-            {error && (
-                <div className="text-sm text-red-500 py-4">Error: {error.message}</div>
-            )}
 
             <div className="rounded-lg border">
                 <Table>

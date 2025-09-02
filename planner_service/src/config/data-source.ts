@@ -8,6 +8,7 @@ import { Classroom } from '@/entities/classroom.entity';
 import { Group } from '@/entities/group.entity';
 import { Event } from '@/entities/event.entity';
 import { Day } from '@/entities/day.entity';
+import { Log } from '@/entities/log.entity';
 
 export function createAppDataSource() {
   return new DataSource({
@@ -17,8 +18,8 @@ export function createAppDataSource() {
     username: process.env.PLANNER_DATABASE_USER,
     password: process.env.PLANNER_DATABASE_PASSWORD,
     database: process.env.PLANNER_DATABASE_DATABASE,
-    entities: [User, Degree, Course, Calendar, Classroom, Subject, Group, Event, Day],
-    synchronize: false,
+    entities: [Log, User, Degree, Course, Calendar, Classroom, Subject, Group, Event, Day],
+    synchronize: true,
     logging: true,
   });
 }

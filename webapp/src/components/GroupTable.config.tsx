@@ -4,8 +4,9 @@ import { ArrowUpDown } from "lucide-react"
 import { Subject } from "@/types/Subject"
 import { Checkbox } from "@/components/ui/checkbox"
 import { GroupTableButtons } from "@/components/GroupTableButtons"
+import { TFunction } from "i18next"
 
-export const columns: ColumnDef<Subject>[] = [
+export const columns = (t: TFunction): ColumnDef<Subject>[] => [
     {
         id: "select",
         header: ({ table }) => (
@@ -33,7 +34,7 @@ export const columns: ColumnDef<Subject>[] = [
                 }
                 className="flex items-center gap-1"
             >
-                Name <ArrowUpDown className="h-4 w-4" />
+                {t("table.groups.columns.name")} <ArrowUpDown className="h-4 w-4" />
             </Button>
         ),
         cell: ({ getValue }) => <span>{getValue<string>()}</span>,
@@ -48,7 +49,7 @@ export const columns: ColumnDef<Subject>[] = [
                 }
                 className="flex items-center gap-1"
             >
-                Year <ArrowUpDown className="h-4 w-4" />
+                {t("table.groups.columns.year")}<ArrowUpDown className="h-4 w-4" />
             </Button>
         ),
         cell: ({ getValue }) => <span>{getValue<number>()}</span>,

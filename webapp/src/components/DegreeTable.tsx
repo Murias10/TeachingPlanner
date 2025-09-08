@@ -32,16 +32,17 @@ import {
 import { Degree } from "@/types/Degree"
 // import { useTranslation } from "react-i18next"
 import { useEffect } from "react"
+import { useTranslation } from "react-i18next"
 
 interface DegreeTableProps {
     degrees: Degree[];
-    refetchData?: () => void;
+    deleteDegree: (degreeId: string) => void,
     setSelectedIds: (ids: string[]) => void;
 }
 
-export function DegreeTable({ degrees, refetchData: onDegreeDeleted, setSelectedIds }: DegreeTableProps) {
+export function DegreeTable({ degrees, deleteDegree, setSelectedIds }: DegreeTableProps) {
 
-    // const { t } = useTranslation();
+    const { t } = useTranslation();
 
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -56,7 +57,7 @@ export function DegreeTable({ degrees, refetchData: onDegreeDeleted, setSelected
 
     const table = useReactTable({
         data: degrees,
-        columns: defaultColumns({ onDegreeDeleted }),
+        columns: defaultColumns({ deleteDegree }, t),
         state: {
             sorting,
             columnFilters,
@@ -78,7 +79,7 @@ export function DegreeTable({ degrees, refetchData: onDegreeDeleted, setSelected
         <div className="w-full">
             <div className="flex items-center py-4">
                 <Input
-                    placeholder="Filter name..."
+                    placeholder={t("table.degrees.filter.placeholder")}
                     value={filterValue}
                     onChange={(e) => {
                         setFilterValue(e.target.value)
@@ -90,7 +91,7 @@ export function DegreeTable({ degrees, refetchData: onDegreeDeleted, setSelected
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="outline" className="ml-auto">
-                            Columns <ChevronDown className="ml-2 h-4 w-4" />
+                            {t("table.degrees.columns.title")} <ChevronDown className="ml-2 h-4 w-4" />
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
@@ -148,7 +149,7 @@ export function DegreeTable({ degrees, refetchData: onDegreeDeleted, setSelected
                                     colSpan={defaultColumns.length}
                                     className="h-24 text-center"
                                 >
-                                    No results for this degree.
+                                    {t("table.degrees.no.results")}
                                 </TableCell>
                             </TableRow>
                         )}
@@ -163,7 +164,7 @@ export function DegreeTable({ degrees, refetchData: onDegreeDeleted, setSelected
                     onClick={() => table.previousPage()}
                     disabled={!table.getCanPreviousPage()}
                 >
-                    Previous
+                    {t("table.pagination.previous")}
                 </Button>
                 <Button
                     variant="outline"
@@ -171,7 +172,7 @@ export function DegreeTable({ degrees, refetchData: onDegreeDeleted, setSelected
                     onClick={() => table.nextPage()}
                     disabled={!table.getCanNextPage()}
                 >
-                    Next
+                    {t("table.pagination.next")}
                 </Button>
             </div>
         </div>

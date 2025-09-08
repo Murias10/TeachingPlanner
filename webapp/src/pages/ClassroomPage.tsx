@@ -1,22 +1,12 @@
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { ClassroomToolbar } from "@/components/ClassroomToolbar"
 import { ClassroomTable } from "@/components/ClassroomTable"
 import { useBreadcrumbContext } from "@/context/useBreadcrumbContext"
 import { useClassrooms } from "@/hooks/useClassrooms"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
 import { useTranslation } from "react-i18next"
-import {
-    Drawer,
-    DrawerContent,
-    DrawerHeader,
-    DrawerTitle,
-    DrawerClose,
-    DrawerDescription
-} from "@/components/ui/drawer";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
 import { useFloatingAlertContext } from "@/context/useFloatingAlertContext"
+import { CreateClassroomDrawer } from "@/components/CreateClassroomDrawer"
 
 export default function ClassroomPage() {
 
@@ -147,9 +137,9 @@ export default function ClassroomPage() {
         }
     };
 
-    const refetchData = () => {
+    const refetchData = useCallback(() => {
         refetch()
-    }
+    }, [refetch])
 
     useEffect(() => {
         if (error) {
@@ -159,7 +149,8 @@ export default function ClassroomPage() {
                 variant: "destructive"
             })
         }
-    }, [error, t, triggerAlert])
+        refetchData();
+    }, [error, t, triggerAlert, refetchData])
 
     return (
         <>
@@ -170,51 +161,15 @@ export default function ClassroomPage() {
                     {isLoading && <LoadingSpinner />}
                 </div>
             </section>
-            <Drawer open={openDrawer} onOpenChange={setOpenDrawer}>
-                <DrawerContent className="flex flex-col max-h-screen">
-                    <DrawerHeader>
-                        <DrawerTitle>{t("drawer.classrooms.create.title")}</DrawerTitle>
-                        <DrawerDescription>
-                            {t("drawer.classrooms.create.description")}
-                        </DrawerDescription>
-                    </DrawerHeader>
-
-                    {/* Contenido desplazable */}
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                        <div className="space-y-2 max-w-sm mx-auto">
-                            <Label htmlFor="classroom-code">{t("drawer.classrooms.create.code")}</Label>
-                            <Input
-                                id="classroom-code"
-                                name="classroom-code"
-                                value={code}
-                                onChange={(e) => setCode(e.target.value)}
-                                placeholder="Ej: A-2-01"
-                            />
-                        </div>
-                        <div className="space-y-2 max-w-sm mx-auto">
-                            <Label htmlFor="classroom-gis-url">{t("drawer.classrooms.create.gisUrl")}</Label>
-                            <Input
-                                id="classroom-gis-url"
-                                name="classroom-gis-url"
-                                value={gisUrl}
-                                onChange={(e) => setGisUrl(e.target.value)}
-                                placeholder="Ej: gis.uniovi.es/GISUniovi/GeoLoc.do?codEspacio=..."
-                            />
-                        </div>
-                    </div>
-
-                    {/* Botones */}
-                    <div className="p-4 flex justify-end space-x-2 border-t">
-                        <DrawerClose asChild>
-                            <Button variant="outline" onClick={() => {
-                                setCode("")
-                                setGisUrl("")
-                            }}>{t("drawer.classrooms.create.cancel")}</Button>
-                        </DrawerClose>
-                        <Button onClick={handleSaveClassroom} disabled={!code || !gisUrl}>  {t("drawer.classrooms.create.save")}</Button>
-                    </div>
-                </DrawerContent>
-            </Drawer>
+            <CreateClassroomDrawer
+                open={openDrawer}
+                onOpenChange={setOpenDrawer}
+                code={code}
+                setCode={setCode}
+                gisUrl={gisUrl}
+                setGisUrl={setGisUrl}
+                onSave={handleSaveClassroom}
+            />
         </>
     )
 }

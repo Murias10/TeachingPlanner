@@ -4,15 +4,19 @@ import { Button } from "@/components/ui/button"
 import { ArrowUpDown } from "lucide-react"
 import { DegreeTableButtons } from "@/components/DegreeTableButtons"
 import { Degree } from "@/types/Degree"
+import { TFunction } from "i18next"
 
 interface ColumnExtraProps {
-    onDegreeDeleted?: () => void;
+    deleteDegree: (degreeId: string) => void;
 }
 
-export const columns = ({ onDegreeDeleted }: ColumnExtraProps): ColumnDef<Degree>[] => [
+
+
+export const columns = ({ deleteDegree }: ColumnExtraProps, t: TFunction): ColumnDef<Degree>[] => [
     {
         id: "select",
         header: ({ table }) => (
+
             <Checkbox
                 checked={
                     table.getIsAllPageRowsSelected() ||
@@ -40,7 +44,7 @@ export const columns = ({ onDegreeDeleted }: ColumnExtraProps): ColumnDef<Degree
                 }
                 className="flex items-center gap-1"
             >
-                Name <ArrowUpDown className="h-4 w-4" />
+                {t("table.degrees.columns.name")}<ArrowUpDown className="h-4 w-4" />
             </Button>
         ),
         cell: ({ getValue }) => <span>{getValue<string>()}</span>,
@@ -55,7 +59,7 @@ export const columns = ({ onDegreeDeleted }: ColumnExtraProps): ColumnDef<Degree
                 }
                 className="flex items-center gap-1"
             >
-                Acronym <ArrowUpDown className="h-4 w-4" />
+                {t("table.degrees.columns.acronym")}<ArrowUpDown className="h-4 w-4" />
             </Button>
         ),
         cell: ({ getValue }) => <span>{getValue<string>()}</span>,
@@ -68,7 +72,7 @@ export const columns = ({ onDegreeDeleted }: ColumnExtraProps): ColumnDef<Degree
             const degree = row.original
 
             return (
-                <DegreeTableButtons degree={degree} onDegreeDeleted={onDegreeDeleted} />
+                <DegreeTableButtons degree={degree} deleteDegree={deleteDegree} />
             )
         },
     },

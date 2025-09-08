@@ -79,7 +79,7 @@ export function CourseTable({ courses, deleteCourse, deleteCalendar, setSelected
         <div className="w-full">
             <div className="flex items-center py-4">
                 <Input
-                    placeholder="Filter state..."
+                    placeholder={t("table.courses.filter.placeholder")}
                     value={filterValue}
                     onChange={e => {
                         setFilterValue(e.target.value)
@@ -91,7 +91,7 @@ export function CourseTable({ courses, deleteCourse, deleteCalendar, setSelected
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="outline" className="ml-auto">
-                            Columns <ChevronDown className="ml-2 h-4 w-4" />
+                            {t("table.courses.columns.title")}<ChevronDown className="ml-2 h-4 w-4" />
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
@@ -148,7 +148,7 @@ export function CourseTable({ courses, deleteCourse, deleteCalendar, setSelected
                                     colSpan={defaultColumns.length}
                                     className="h-24 text-center"
                                 >
-                                    No results for this degree.
+                                    {t("table.courses.no.results")}
                                 </TableCell>
                             </TableRow>
                         )}
@@ -163,7 +163,7 @@ export function CourseTable({ courses, deleteCourse, deleteCalendar, setSelected
                     onClick={() => table.previousPage()}
                     disabled={!table.getCanPreviousPage()}
                 >
-                    Previous
+                    {t("table.pagination.previous")}
                 </Button>
                 <Button
                     variant="outline"
@@ -171,7 +171,7 @@ export function CourseTable({ courses, deleteCourse, deleteCalendar, setSelected
                     onClick={() => table.nextPage()}
                     disabled={!table.getCanNextPage()}
                 >
-                    Next
+                    {t("table.pagination.next")}
                 </Button>
             </div>
         </div>

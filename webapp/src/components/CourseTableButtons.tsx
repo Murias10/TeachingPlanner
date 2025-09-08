@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button"
-import { useCourseContext } from "@/context/useCourseContext"
+import { useAppContext } from "@/context/useAppContext"
 import { useNavigate } from "react-router-dom"
 import { Course } from "@/types/Course"
 import {
@@ -17,6 +17,7 @@ import {
     DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu"
 import { MoreHorizontal, Trash2, ChevronsRight, Plus } from "lucide-react"
+import { useTranslation } from "react-i18next"
 
 type Props = {
     course: Course
@@ -26,7 +27,9 @@ type Props = {
 
 export function CourseTableButtons({ course, deleteCourse, deleteCalendar }: Props) {
 
-    const { setCourseId, setSemester } = useCourseContext()
+    const { t } = useTranslation()
+
+    const { setCourseId, setSemester } = useAppContext()
     const navigate = useNavigate()
 
     const goToGroups = (semester: number) => {
@@ -42,11 +45,11 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar }: Pro
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button variant="outline" size="lg" onClick={() => goToGroups(1)}>
-                                <ChevronsRight /> Semestre 1
+                                {t("table.courses.actions.show.semester.1")}<ChevronsRight />
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                            <p>dwadwa</p>
+                            <p> {t("table.courses.actions.show.semester.1")}</p>
                         </TooltipContent>
                     </Tooltip>
                     <Tooltip>
@@ -56,7 +59,7 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar }: Pro
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                            <p>dwadwa</p>
+                            <p>{t("table.courses.actions.delete.semester.1")}</p>
                         </TooltipContent>
                     </Tooltip>
                 </>
@@ -65,11 +68,11 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar }: Pro
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button variant="outline" size="lg" disabled>
-                                <ChevronsRight /> Semestre 1
+                                {t("table.courses.actions.show.semester.1")}<ChevronsRight />
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                            <p>dwadwa</p>
+                            <p>{t("table.courses.actions.show.semester.1")}</p>
                         </TooltipContent>
                     </Tooltip>
                     <Tooltip>
@@ -79,7 +82,7 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar }: Pro
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                            <p>dwadwa</p>
+                            <p>{t("table.courses.actions.create.semester.1")}</p>
                         </TooltipContent>
                     </Tooltip>
                 </>
@@ -91,11 +94,11 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar }: Pro
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button variant="outline" size="lg" onClick={() => goToGroups(2)}>
-                                <ChevronsRight /> Semestre 2
+                                {t("table.courses.actions.show.semester.2")}<ChevronsRight />
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                            <p>HOLA MUNDO</p>
+                            <p> {t("table.courses.actions.show.semester.2")}</p>
                         </TooltipContent>
                     </Tooltip>
                     <Tooltip>
@@ -105,7 +108,7 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar }: Pro
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                            <p>HOLA MUNDO</p>
+                            <p>{t("table.courses.actions.delete.semester.2")}</p>
                         </TooltipContent>
                     </Tooltip>
                 </>
@@ -115,11 +118,11 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar }: Pro
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button variant="outline" size="lg" disabled>
-                                <ChevronsRight /> Semestre 2
+                                {t("table.courses.actions.show.semester.2")}<ChevronsRight />
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                            <p>HOLA MUNDO</p>
+                            <p>{t("table.courses.actions.show.semester.2")}</p>
                         </TooltipContent>
                     </Tooltip>
                     <Tooltip>
@@ -129,7 +132,7 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar }: Pro
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                            <p>dwadwa</p>
+                            <p>{t("table.courses.actions.create.semester.2")}</p>
                         </TooltipContent>
                     </Tooltip>
                 </>
@@ -143,10 +146,11 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar }: Pro
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => navigator.clipboard.writeText(course.id)}>Copy ID</DropdownMenuItem>
+                    <DropdownMenuLabel>{t("table.courses.actions.title")}</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => deleteCourse(course.id)}>Eliminar curso</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => console.log("View")}>{t("table.courses.actions.view")}</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => console.log("Edit")}>{t("table.courses.actions.edit")}</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => deleteCourse(course.id)}>{t("table.courses.actions.delete")}</DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
         </div>

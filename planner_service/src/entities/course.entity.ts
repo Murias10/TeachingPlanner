@@ -25,7 +25,9 @@ export class Course {
   @Column('varchar', { length: 20, name: 'STATE' })
   state!: string
 
-  @ManyToOne(() => Degree, degree => degree.courses)
+  @ManyToOne(() => Degree, degree => degree.courses, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'ID_DEGREE' })
   degree!: Degree
 

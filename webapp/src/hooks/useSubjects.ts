@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { useDegreeContext } from "@/context/useDegreeContext";
+import { useAppContext } from "@/context/useAppContext";
 import { Subject } from "@/types/Subject";
 
 export function useSubjects() {
-    const { degreeId } = useDegreeContext();
+    const { degreeId } = useAppContext();
 
     return useQuery<Subject[], Error>({
         queryKey: ["subjects", degreeId],

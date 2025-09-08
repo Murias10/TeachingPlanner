@@ -1,4 +1,10 @@
 {
+    "common": {
+        "and": "y",
+        "success": "Éxito",
+        "error": "Error",
+        "warning": "Advertencia"
+    },
     "sidebar": {
         "main": {
             "title": "Gestión Académica",
@@ -55,6 +61,45 @@
         "faq": "Preguntas frecuentes"
     },
     "alerts": {
+        "degree": {
+            "error": {
+                "create": {
+                    "title": "Error al crear la titulación",
+                    "description": "No se pudo crear la titulación. Por favor, inténtalo de nuevo mas tarde.",
+                    "name": "nombre",
+                    "acronym": "acrónimo",
+                    "conflict.description": "Ya existe una titulación con el mismo '{{fields}}'."
+                },
+                "delete": {
+                    "individual": {
+                        "title": "Error al eliminar la titulación"
+                    },
+                    "multiple": {
+                        "title": "Error al eliminar las titulaciones"
+                    }
+                },
+                "read": {
+                    "title": "Error al cargar las titulaciones",
+                    "description": "No se pudieron cargar las titulaciones. Por favor, inténtalo de nuevo mas tarde."
+                }
+            },
+            "success": {
+                "create": {
+                    "title": "Titulación creada",
+                    "description": "La titulación '{{name}}' fue creada correctamente."
+                },
+                "delete": {
+                    "individual": {
+                        "title": "Titulación eliminada",
+                        "description": "La titulación '{{name}}' fue eliminada correctamente."
+                    },
+                    "multiple": {
+                        "title": "Titulaciones eliminadas",
+                        "description": "Las titulaciones fueron eliminadas correctamente."
+                    }
+                }
+            }
+        },
         "classroom": {
             "error": {
                 "title": "Error",
@@ -160,14 +205,25 @@
             }
         }
     },
-    "table": {
-        "courses": {
-            "filter.placeholder": "Filtrar por estado...",
-            "columns": {
-                "title": "Columnas",
-                "course": "Curso"
-            }
+    "dialog": {
+        "button": {
+            "confirm": "Confirmar",
+            "cancel": "Cancelar"
         },
+        "degrees": {
+            "delete": {
+                "single": {
+                    "title": "Confirmar eliminación",
+                    "description": "Esta acción eliminará la titulación '{{name}}' y toda la información relacionada (cursos, asignaturas, etc.). Esta acción no se puede deshacer."
+                },
+                "multiple": {
+                    "title": "Confirmar eliminación múltiple",
+                    "description": "Esta acción eliminará {{count}} titulación(es) y toda su información relacionada (cursos, asignaturas, etc.). Esta acción no se puede deshacer."
+                }
+            }
+        }
+    },
+    "table": {
         "classrooms": {
             "filter.placeholder": "Filtrar por código...",
             "columns": {
@@ -209,6 +265,56 @@
                 "edit": "Editar asignatura",
                 "delete": "Eliminar asignatura",
                 "view": "Ver asignatura"
+            }
+        },
+        "courses": {
+            "filter.placeholder": "Filtrar por estado...",
+            "columns": {
+                "title": "Columnas",
+                "course": "Curso",
+                "state": "Estado"
+            },
+            "no.results": "No se encontraron cursos.",
+            "actions": {
+                "title": "Acciones",
+                "delete.semester.1": "Eliminar semestre 1",
+                "delete.semester.2": "Eliminar semestre 2",
+                "show.semester.1": "Ver semestre 1",
+                "show.semester.2": "Ver semestre 2",
+                "create.semester.1": "Crear semestre 1",
+                "create.semester.2": "Crear semestre 2",
+                "edit": "Editar curso",
+                "delete": "Eliminar curso",
+                "view": "Ver curso"
+            }
+        },
+        "groups": {
+            "filter.placeholder": "Filtrar por nombre...",
+            "columns": {
+                "title": "Columnas",
+                "year": "Año",
+                "name": "Nombre"
+            },
+            "no.results": "No se encontraron grupos.",
+            "actions": {
+                "select.groups": "Seleccionar grupos",
+                "select.groups.tooltip": "Selecciona grupos para visaulizar en el calendario"
+            }
+        },
+        "degrees": {
+            "filter.placeholder": "Filtrar por nombre...",
+            "columns": {
+                "title": "Columnas",
+                "acronym": "Acrónimo",
+                "name": "Nombre"
+            },
+            "no.results": "No se encontraron titulaciones.",
+            "actions": {
+                "edit": "Editar titulación",
+                "delete": "Eliminar titulación",
+                "view": "Ver titulación",
+                "show.courses": "Ver cursos",
+                "show.subjects": "Ver asignaturas"
             }
         },
         "pagination": {

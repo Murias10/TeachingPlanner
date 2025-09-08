@@ -1,13 +1,18 @@
 
 import { GroupToolbar } from "@/components/GroupToolbar"
 import { useBreadcrumbContext } from "@/context/useBreadcrumbContext"
-import { useEffect } from "react"
+import { useCallback, useEffect } from "react"
 import { GroupTable } from "@/components/GroupTable"
 import { useTranslation } from "react-i18next"
+import { useSubjectsWithEventsAndGroupsByCourseAndSemester } from "@/hooks/useSubjectsWithEventsAndGroupsByCourseIdAndSemester"
+import { LoadingSpinner } from "@/components/LoadingSpinner"
+import { useFloatingAlertContext } from "@/context/useFloatingAlertContext"
 
 export default function GroupPage() {
 
     const { t } = useTranslation()
+
+    const { triggerAlert } = useFloatingAlertContext()
 
     const { setItems } = useBreadcrumbContext()
 
@@ -20,15 +25,30 @@ export default function GroupPage() {
         ])
     }, [setItems, t])
 
+    const { data: subjects = [], isLoading, error, refetch } = useSubjectsWithEventsAndGroupsByCourseAndSemester()
 
+    const refetchData = useCallback(() => {
+        refetch()
+    }, [refetch])
+
+    useEffect(() => {
+        if (error) {
+            triggerAlert({
+                title: t("alerts.classroom.error.title"),
+                description: t("alerts.classroom.error.read"),
+                variant: "destructive"
+            })
+        }
+        refetchData()
+    }, [error, t, triggerAlert, refetchData])
 
     return (
         <>
             <GroupToolbar />
             <section className="h-full rounded-xl bg-muted/50 flex items-center justify-center m-2">
                 <div className="min-w-[400px] w-2/3">
-                    <GroupTable />
-
+                    {!isLoading && <GroupTable subjects={subjects} />}
+                    {isLoading && <LoadingSpinner />}
                 </div>
             </section>
         </>

@@ -16,7 +16,9 @@ export class Event {
     @PrimaryGeneratedColumn('uuid', { name: 'ID' })
     id!: string;
 
-    @ManyToOne(() => Day, (day) => day.events)
+    @ManyToOne(() => Day, (day) => day.events, {
+        onDelete: 'CASCADE',
+    })
     @JoinColumn({ name: 'ID_DAY' })
     day!: Day;
 

@@ -1,7 +1,11 @@
 import { useQuery } from "@tanstack/react-query"
 import { Subject } from "@/types/Subject"
+import { useAppContext } from "@/context/useAppContext"
 
-export function useSubjectsWithEventsAndGroupsByCourseAndSemester(courseId: string, semester: number) {
+export function useSubjectsWithEventsAndGroupsByCourseAndSemester() {
+
+    const { courseId, semester } = useAppContext();
+
     return useQuery<Subject[], Error>({
         queryKey: ["subjects"],
         queryFn: async () => {

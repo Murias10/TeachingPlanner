@@ -2,9 +2,7 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  OneToMany,
 } from 'typeorm';
-import { Log } from '@/entities/log.entity';
 
 @Entity('USERS')
 export class User {
@@ -23,9 +21,9 @@ export class User {
   @Column('varchar', { length: 255, name: 'ROLE' })
   role!: string;
 
+  @Column('varchar', { length: 255, name: 'EMAIL', unique: true })
+  email!: string;
+
   @Column('varchar', { length: 255, name: 'PASSWORD' })
   password!: string;
-
-  @OneToMany(() => Log, (log) => log.user)
-  logs!: Log[];
 }

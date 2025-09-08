@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { AppDataSource } from '@/config/data-source';
 import { Degree } from '@/entities/degree.entity';
+import { Course } from '@/entities/course.entity';
+import { Subject } from '@/entities/subject.entity';
 
 export const getDegrees = async (_req: Request, res: Response) => {
     try {
@@ -25,84 +27,121 @@ export const getDegrees = async (_req: Request, res: Response) => {
 export const createDegree = async (req: Request, res: Response) => {
     const { name, acronym } = req.body;
 
-    if (!name)
+    // Validaciones
+    if (!name) {
         res.status(400).json({
-            status: 'error',
-            message: 'Name is required',
+            status: "error",
+            message: "Name is required",
             data: null,
         });
+        return;
+    }
 
-    if (!acronym)
+    if (!acronym) {
         res.status(400).json({
-            status: 'error',
-            message: 'Acronym is required',
+            status: "error",
+            message: "Acronym is required",
             data: null,
         });
+        return;
+    }
 
     try {
-        const existingDegree = await AppDataSource.getRepository(Degree).findOneBy([
-            { name },
-            { acronym }
-        ]);
+        const degreeRepo = AppDataSource.getRepository(Degree);
 
-        if (existingDegree) {
+        const conflicts: string[] = [];
+
+        const nameExists = await degreeRepo.findOneBy({ name });
+        if (nameExists) conflicts.push("name");
+
+        const acronymExists = await degreeRepo.findOneBy({ acronym });
+        if (acronymExists) conflicts.push("acronym");
+
+        if (conflicts.length > 0) {
             res.status(409).json({
-                status: 'error',
-                message: 'Degree with the same name or acronym already exists',
-                data: null,
+                status: "error",
+                message: "Degree already exists with conflicting fields",
+                data: {
+                    fields: conflicts,
+                },
             });
+            return;
         }
 
-        const degree = new Degree();
-        degree.name = name;
-        degree.acronym = acronym;
-
-        const savedDegree = await AppDataSource.getRepository(Degree).save(degree);
+        const degree = degreeRepo.create({ name, acronym });
+        const savedDegree = await degreeRepo.save(degree);
 
         res.status(201).json({
-            status: 'success',
-            message: 'Degree created successfully',
+            status: "success",
+            message: "Degree created successfully",
             data: {
-                degree: savedDegree
-            }
+                degree: savedDegree,
+            },
         });
     } catch (error) {
+        console.error("Error creating degree:", error);
         res.status(500).json({
-            status: 'error',
-            message: 'Error creating degree',
-            data: null,
+            status: "error",
+            message: "Unexpected error while creating degree",
+            data: error instanceof Error ? error.message : error,
         });
     }
-}
-
+};
 
 export const deleteDegree = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
 
+        // Validar que el ID esté presente
+        if (!id) {
+            res.status(400).json({
+                status: "error",
+                message: "Degree ID is required",
+                data: null
+            });
+            return;
+        }
+
         const degreeRepo = AppDataSource.getRepository(Degree);
 
-        const result = await degreeRepo.delete(id);
-
-        if (result.affected === 0) {
+        // Verificar que la titulación existe
+        const degree = await degreeRepo.findOneBy({ id });
+        if (!degree) {
             res.status(404).json({
                 status: "error",
                 message: "Degree not found",
                 data: null
             });
+            return;
         }
 
+        // Proceder directamente con la eliminación
+        const result = await degreeRepo.delete(id);
+
+        if (result.affected === 0) {
+            res.status(404).json({
+                status: "error",
+                message: "Degree not found or already deleted",
+                data: null
+            });
+            return;
+        }
+
+        // Respuesta exitosa
         res.status(200).json({
             status: "success",
             message: "Degree deleted successfully",
-            data: null
+            data: {
+                deletedId: id
+            }
         });
-    }
-    catch (error) {
+
+    } catch (error) {
+        console.error("Error deleting degree:", error);
         res.status(500).json({
             status: "error",
-            message: "Error deleting degree",
-            data: error
+            message: "Unexpected error while deleting degree",
+            data: error instanceof Error ? error.message : error
         });
     }
 };

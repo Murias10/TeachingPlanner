@@ -29,24 +29,16 @@ import {
     TableRow,
     TableCell,
 } from "@/components/ui/table"
+import { Subject } from "@/types/Subject"
+import { useTranslation } from "react-i18next"
 
-import { useSubjectsWithEventsAndGroupsByCourseAndSemester } from "@/hooks/useSubjectsWithEventsAndGroupsByCourseIdAndSemester"
+interface GroupTableProps {
+    subjects: Subject[];
+}
 
-import { useCourseContext } from "@/context/useCourseContext"
+export function GroupTable({ subjects }: GroupTableProps) {
 
-import { useEffect } from "react"
-
-export function GroupTable() {
-
-
-    const { courseId, semester } = useCourseContext()
-
-    const { data: subjects = [], isLoading, error, refetch } =
-        useSubjectsWithEventsAndGroupsByCourseAndSemester(courseId ?? "", semester)
-
-    useEffect(() => {
-        refetch();
-    }, [courseId, semester, refetch]);
+    const { t } = useTranslation();
 
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -56,7 +48,7 @@ export function GroupTable() {
 
     const table = useReactTable({
         data: subjects,
-        columns: defaultColumns,
+        columns: defaultColumns(t),
         state: {
             sorting,
             columnFilters,
@@ -109,18 +101,6 @@ export function GroupTable() {
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
-
-            {isLoading && (
-                <div className="text-sm text-muted-foreground py-4">
-                    Loading subjects...
-                </div>
-            )}
-            {error && (
-                <div className="text-sm text-red-500 py-4">
-                    Error: {error.message}
-                </div>
-            )}
-
             <div className="rounded-lg border">
                 <Table>
                     <TableHeader>

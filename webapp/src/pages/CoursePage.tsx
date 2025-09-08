@@ -92,11 +92,11 @@ export default function CoursePage() {
 
                     case 409: {
                         const json = await res.json();
-                        const eventCount = json.data?.eventCount ?? 0;
+                        const relatedEvents = json.data?.relatedEvents ?? 0;
 
                         triggerAlert({
                             title: t("alerts.calendar.warning.title"),
-                            description: t("alerts.calendar.warning.hasEvents", { count: eventCount }),
+                            description: t("alerts.calendar.warning.hasEvents", { count: relatedEvents }),
                             variant: "warning"
                         });
 

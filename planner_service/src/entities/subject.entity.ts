@@ -37,7 +37,9 @@ export class Subject {
     @OneToMany(() => Group, (group) => group.subject)
     groups!: Group[];
 
-    @ManyToOne(() => Degree, degree => degree.subjects)
+    @ManyToOne(() => Degree, degree => degree.subjects, {
+        onDelete: 'CASCADE',
+    })
     @JoinColumn({ name: 'ID_DEGREE' })
     degree!: Degree
 

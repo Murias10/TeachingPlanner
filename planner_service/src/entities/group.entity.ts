@@ -22,7 +22,9 @@ export class Group {
 
     @Column('varchar', { length: 2, name: 'LANGUAGE' })
 
-    @ManyToOne(() => Subject, (subject) => subject.groups)
+    @ManyToOne(() => Subject, (subject) => subject.groups, {
+        onDelete: 'CASCADE',
+    })
     @JoinColumn({ name: 'ID_SUBJECT' })
     subject!: Subject;
 

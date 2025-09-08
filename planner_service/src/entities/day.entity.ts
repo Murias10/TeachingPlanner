@@ -29,7 +29,9 @@ export class Day {
     @OneToMany(() => Event, (event) => event.day)
     events!: Event[];
 
-    @ManyToOne(() => Calendar, (calendar) => calendar.days)
+    @ManyToOne(() => Calendar, (calendar) => calendar.days, {
+        onDelete: 'CASCADE',
+    })
     @JoinColumn({ name: 'ID_CALENDAR' })
     calendar!: Calendar;
 }

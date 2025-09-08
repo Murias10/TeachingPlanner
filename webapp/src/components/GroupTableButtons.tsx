@@ -9,7 +9,7 @@ import {
     DropdownMenuItem,
     DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu'
-import { MoreHorizontal } from "lucide-react"
+import { ChevronsRight, MoreHorizontal } from "lucide-react"
 import {
     Drawer,
     DrawerContent,
@@ -22,17 +22,20 @@ import { Group } from "@/types/Group"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
     Command,
-    CommandInput,
     CommandList,
     CommandGroup,
     CommandItem
 } from "@/components/ui/command"
+import { useTranslation } from "react-i18next"
 
 type Props = {
     subject: Subject
 }
 
 export function GroupTableButtons({ subject }: Props) {
+
+    const { t } = useTranslation()
+
     const [open, setOpen] = useState(false)
     const [selectedGroups, setSelectedGroups] = useState<string[]>([])
 
@@ -59,7 +62,7 @@ export function GroupTableButtons({ subject }: Props) {
     return (
         <div className="flex justify-end space-x-2">
             <Button variant="outline" size="lg" onClick={() => setOpen(true)}>
-                Select Groups
+                {t("table.groups.actions.select.groups")}<ChevronsRight />
             </Button>
 
             <DropdownMenu>
@@ -103,7 +106,7 @@ export function GroupTableButtons({ subject }: Props) {
                                     {/* Command centrado horizontal y verticalmente */}
                                     <div className="flex justify-center items-center">
                                         <Command className="border rounded-md w-64">
-                                            <CommandInput placeholder={`Search ${type} groups...`} />
+                                            {/* <CommandInput placeholder={`Search ${type} groups...`} /> */}
                                             <CommandList>
                                                 <CommandGroup>
                                                     {groups.map((group: Group) => (

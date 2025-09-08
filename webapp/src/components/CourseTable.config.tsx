@@ -41,7 +41,11 @@ export const columns = ({ deleteCourse, deleteCalendar }: ColumnExtraProps, t: T
     },
     {
         accessorKey: 'state',
-        header: 'State',
+        header: ({ column }) => (
+            <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')} className="flex items-center gap-1">
+                {t("table.courses.columns.state")}<ArrowUpDown className="h-4 w-4" />
+            </Button>
+        ),
         cell: ({ row }) => <div className="capitalize">{row.getValue('state')}</div>,
     },
     {

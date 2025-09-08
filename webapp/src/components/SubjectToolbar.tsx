@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/tooltip"
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useDegreeContext } from "@/context/useDegreeContext";
+import { useAppContext } from "@/context/useAppContext";
 
 interface SubjectToolbarProps {
     refetchData?: () => void;
@@ -37,7 +37,7 @@ export function SubjectToolbar({ refetchData, deleteSelectedSubjects, selectedId
 
     const { t } = useTranslation()
 
-    const { degreeId } = useDegreeContext();
+    const { degreeId } = useAppContext();
 
     const [open, setOpen] = useState<boolean>(false);
     const [acronym, setAcronym] = useState<string>();

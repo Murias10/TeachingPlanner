@@ -1,11 +1,12 @@
 import { useFloatingAlert } from "@/hooks/useFloatingAlert"
-import { FloatingAlert, AlertVariant } from "@/components/FloatingAlert"
+import { FloatingAlertContainer } from "@/components/FloatingAlertContainer"
 import { FloatingAlertContext } from "@/context/FloatingAlertContextInstance"
+import { useEffect } from "react"
 
 interface TriggerAlertArgs {
     title: string
     description: string
-    variant: AlertVariant
+    variant: "default" | "destructive" | "success" | "warning"
 }
 
 export interface FloatingAlertContextType {
@@ -13,19 +14,17 @@ export interface FloatingAlertContextType {
 }
 
 export function FloatingAlertProvider({ children }: { children: React.ReactNode }) {
-    const { show, alertState, triggerAlert } = useFloatingAlert()
+    const { alerts, triggerAlert, cleanup } = useFloatingAlert()
+
+    // Cleanup al desmontar el provider
+    useEffect(() => {
+        return () => cleanup()
+    }, [cleanup])
 
     return (
         <FloatingAlertContext.Provider value={{ triggerAlert }}>
             {children}
-            <FloatingAlert
-                show={show}
-                title={alertState.title}
-                description={alertState.description}
-                variant={alertState.variant}
-            />
+            <FloatingAlertContainer alerts={alerts} />
         </FloatingAlertContext.Provider>
     )
 }
-
-

@@ -1,29 +1,88 @@
-import { useState } from "react"
-import { AlertVariant } from "@/components/FloatingAlert"
+import { useState, useCallback, useRef } from "react"
 
-interface AlertState {
+export type AlertVariant = "default" | "destructive" | "success" | "warning"
+
+export interface AlertItem {
+    id: string
+    title: string
+    description: string
+    variant: AlertVariant
+    show: boolean
+}
+
+interface TriggerAlertArgs {
     title: string
     description: string
     variant: AlertVariant
 }
 
-export function useFloatingAlert(timeout = 5000) {
-    const [show, setShow] = useState(false)
-    const [alertState, setAlertState] = useState<AlertState>({
-        title: "",
-        description: "",
-        variant: "default",
-    })
+export const useFloatingAlert = () => {
+    const [alerts, setAlerts] = useState<AlertItem[]>([])
+    const timeoutRefs = useRef<Map<string, NodeJS.Timeout>>(new Map())
 
-    const triggerAlert = (state: AlertState) => {
-        setAlertState(state)
-        setShow(true)
-        setTimeout(() => setShow(false), timeout)
-    }
+    const removeAlert = useCallback((id: string) => {
+        // Limpiar el timeout si existe
+        const timeout = timeoutRefs.current.get(id)
+        if (timeout) {
+            clearTimeout(timeout)
+            timeoutRefs.current.delete(id)
+        }
+
+        // Remover la alerta del estado
+        setAlerts(prev => prev.filter(alert => alert.id !== id))
+    }, [])
+
+    const hideAlert = useCallback((id: string) => {
+        // Cambiar show a false para activar la animación de salida
+        setAlerts(prev =>
+            prev.map(alert =>
+                alert.id === id ? { ...alert, show: false } : alert
+            )
+        )
+
+        // Remover completamente después de la animación (1 segundo)
+        setTimeout(() => removeAlert(id), 1000)
+    }, [removeAlert])
+
+    const triggerAlert = useCallback(({ title, description, variant }: TriggerAlertArgs) => {
+        const id = `alert-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+
+        // Agregar nueva alerta (inicialmente oculta)
+        setAlerts(prev => [...prev, {
+            id,
+            title,
+            description,
+            variant,
+            show: false
+        }])
+
+        // Mostrar la alerta inmediatamente (para activar animación de entrada)
+        setTimeout(() => {
+            setAlerts(prev =>
+                prev.map(alert =>
+                    alert.id === id ? { ...alert, show: true } : alert
+                )
+            )
+        }, 50)
+
+        // Programar ocultamiento después de 3 segundos
+        const hideTimeout = setTimeout(() => {
+            hideAlert(id)
+        }, 3000)
+
+        timeoutRefs.current.set(id, hideTimeout)
+    }, [hideAlert])
+
+    // Cleanup al desmontar
+    const cleanup = useCallback(() => {
+        timeoutRefs.current.forEach(timeout => clearTimeout(timeout))
+        timeoutRefs.current.clear()
+    }, [])
 
     return {
-        show,
-        alertState,
+        alerts,
         triggerAlert,
+        removeAlert,
+        cleanup
     }
 }

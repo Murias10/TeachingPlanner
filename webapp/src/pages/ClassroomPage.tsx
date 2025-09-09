@@ -1,146 +1,45 @@
-import { useCallback, useEffect, useState } from "react"
 import { ClassroomToolbar } from "@/components/ClassroomToolbar"
 import { ClassroomTable } from "@/components/ClassroomTable"
+import { CreateClassroomDrawer } from "@/components/CreateClassroomDrawer"
+import { DeleteConfirmationDialog } from "@/components/DeleteConfirmationDialog"
 import { useBreadcrumbContext } from "@/context/useBreadcrumbContext"
+import { useCallback, useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { useClassrooms } from "@/hooks/useClassrooms"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
-import { useTranslation } from "react-i18next"
+import { useDeleteClassroom } from "@/hooks/classroom/useDeleteClassroom"
+import { useCreateClassroom } from "@/hooks/classroom/useCreateClassroom"
 import { useFloatingAlertContext } from "@/context/useFloatingAlertContext"
-import { CreateClassroomDrawer } from "@/components/CreateClassroomDrawer"
+
+interface DeleteState {
+    type: 'single' | 'bulk' | null;
+    classroomId?: string;
+    selectedIds?: string[];
+}
 
 export default function ClassroomPage() {
-
     const { t } = useTranslation()
 
     const { triggerAlert } = useFloatingAlertContext()
-
+    const { deleteClassroom } = useDeleteClassroom()
+    const { createClassroom } = useCreateClassroom()
     const { setItems } = useBreadcrumbContext()
 
+    // Estados principales
+    const { data: classrooms = [], isLoading, error, refetch } = useClassrooms()
+    const [selectedIds, setSelectedIds] = useState<string[]>([])
+    const [drawerOpen, setDrawerOpen] = useState(false)
+    const [deleteState, setDeleteState] = useState<DeleteState>({ type: null })
+
+    // Configurar breadcrumb
     useEffect(() => {
         setItems([
             { label: t("breadcrumb.home"), href: "/home" },
-            { label: t("breadcrumb.classrooms"), href: "/classrooms" },
+            { label: t("breadcrumb.classrooms"), href: "/classrooms" }
         ])
     }, [setItems, t])
 
-    const { data: classrooms = [], isLoading, error, refetch } = useClassrooms()
-
-    const [selectedIds, setSelectedIds] = useState<string[]>([]);
-
-    const [openDrawer, setOpenDrawer] = useState(false);
-    const [code, setCode] = useState("");
-    const [gisUrl, setGisUrl] = useState("");
-
-    const handleDeleteSelectedClassrooms = async () => {
-        if (selectedIds.length === 0) return;
-
-        for (const id of selectedIds) {
-            await handleDelete(id);
-        }
-
-        refetchData();
-        setSelectedIds([]);
-    };
-
-    const handleDelete = async (classroomId: string) => {
-        try {
-            const res = await fetch(`http://localhost:8080/classroom/${classroomId}`, {
-                method: "DELETE"
-            });
-
-            if (!res.ok) {
-
-                switch (res.status) {
-                    case 404:
-                        triggerAlert({
-                            title: t("alerts.classroom.error.title"),
-                            description: t("alerts.classroom.error.notFound"),
-                            variant: "destructive"
-                        });
-                        break;
-
-                    case 409:
-                        triggerAlert({
-                            title: t("alerts.classroom.error.title"),
-                            description: t("alerts.classroom.error.hasEvents"),
-                            variant: "destructive"
-                        });
-                        break;
-
-                    default:
-                        triggerAlert({
-                            title: t("alerts.classroom.error.title"),
-                            description: t("alerts.classroom.error.default"),
-                            variant: "destructive"
-                        });
-                        break;
-                }
-
-                return;
-            }
-
-            triggerAlert({
-                title: t("alerts.classroom.success.delete.title"),
-                description: t("alerts.classroom.success.delete.description"),
-                variant: "success"
-            });
-
-            refetchData();
-
-        } catch {
-            triggerAlert({
-                title: t("alerts.classroom.error.title"),
-                description: t("alerts.classroom.error.network"),
-                variant: "destructive"
-            });
-        }
-    };
-
-    const handleSaveClassroom = async () => {
-        try {
-            const response = await fetch("http://localhost:8080/classroom", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ code, gisUrl })
-            });
-
-            if (!response.ok) {
-                const errorBody = await response.json();
-                console.error("Error al guardar aula:", errorBody);
-
-                if (response.status === 409) {
-                    triggerAlert({
-                        title: "Error",
-                        description: "Ya existe un aula con ese código.",
-                        variant: "destructive"
-                    });
-                }
-                return;
-            }
-
-            if (refetchData) {
-                refetchData();
-            }
-
-            setCode("");
-            setGisUrl("");
-            setOpenDrawer(false);
-
-            triggerAlert({
-                title: "Aula creada",
-                description: `Aula ${code} creada correctamente.`,
-                variant: "success"
-            });
-
-        } catch (error) {
-            console.error("Error de red:", error);
-        }
-    };
-
-    const refetchData = useCallback(() => {
-        refetch()
-    }, [refetch])
-
+    // Manejo de errores de carga
     useEffect(() => {
         if (error) {
             triggerAlert({
@@ -149,27 +48,199 @@ export default function ClassroomPage() {
                 variant: "destructive"
             })
         }
-        refetchData();
-    }, [error, t, triggerAlert, refetchData])
+    }, [error, t, triggerAlert])
+
+    // Función principal de eliminación
+    const performDelete = useCallback(async (classroomId: string) => {
+        const result = await deleteClassroom(classroomId, refetch);
+
+        if (result.success) {
+            triggerAlert({
+                title: t("alerts.classroom.success.delete.title"),
+                description: t("alerts.classroom.success.delete.description", {
+                    code: classrooms.find(c => c.id === classroomId)?.code
+                }),
+                variant: "success",
+            });
+        } else {
+            // Manejo específico de errores
+            let errorMessage = result.message;
+
+            switch (result.status) {
+                case 404:
+                    errorMessage = t("alerts.classroom.error.notFound");
+                    break;
+                case 409:
+                    errorMessage = t("alerts.classroom.error.hasEvents");
+                    break;
+                default:
+                    errorMessage = result.message || t("alerts.classroom.error.default");
+            }
+
+            triggerAlert({
+                title: t("alerts.classroom.error.title"),
+                description: errorMessage,
+                variant: "destructive",
+            });
+        }
+
+        return result.success;
+    }, [deleteClassroom, refetch, triggerAlert, t, classrooms]);
+
+    // Iniciar eliminación individual - solo abre el diálogo
+    const handleDeleteClick = useCallback((classroomId: string) => {
+        setDeleteState({
+            type: 'single',
+            classroomId
+        });
+    }, []);
+
+    // Iniciar eliminación múltiple - solo abre el diálogo
+    const handleDeleteSelectedClassrooms = useCallback(() => {
+        if (selectedIds.length === 0) return;
+
+        setDeleteState({
+            type: 'bulk',
+            selectedIds: [...selectedIds]
+        });
+    }, [selectedIds]);
+
+    // Confirmar eliminación - aquí se ejecuta la eliminación real
+    const handleConfirmDelete = useCallback(async () => {
+        if (deleteState.type === 'single' && deleteState.classroomId) {
+            await performDelete(deleteState.classroomId);
+            setDeleteState({ type: null });
+
+        } else if (deleteState.type === 'bulk' && deleteState.selectedIds) {
+            let deletedCount = 0;
+
+            for (const id of deleteState.selectedIds) {
+                const success = await performDelete(id);
+                if (success) deletedCount++;
+            }
+
+            if (deletedCount > 0) {
+                triggerAlert({
+                    title: t("alerts.classroom.success.delete.multiple.title"),
+                    description: t("alerts.classroom.success.delete.multiple.description", { count: deletedCount }),
+                    variant: "success",
+                });
+            }
+
+            setSelectedIds([]);
+            setDeleteState({ type: null });
+        }
+    }, [deleteState, performDelete, triggerAlert, t]);
+
+    // Cerrar diálogo de eliminación
+    const handleCloseDeleteDialog = useCallback(() => {
+        setDeleteState({ type: null });
+    }, []);
+
+    // Función para formatear campos en conflicto (para creación)
+    const formatConflictFields = useCallback((fields: string[]): string => {
+        const translated = fields.map(field => t(`alerts.classroom.error.create.${field}`));
+
+        if (translated.length === 1) return translated[0];
+        if (translated.length === 2) return translated.join(` ${t("common.and")} `);
+
+        const last = translated.pop()!;
+        return `${translated.join(", ")} ${t("common.and")} ${last}`;
+    }, [t]);
+
+    // Guardar nueva aula
+    const handleSave = useCallback(async (code: string, gisUrl: string) => {
+        const result = await createClassroom(code, gisUrl, refetch);
+
+        if (result.success) {
+            setDrawerOpen(false);
+            triggerAlert({
+                title: t("alerts.classroom.success.create.title"),
+                description: t("alerts.classroom.success.create.description", { code }),
+                variant: "success"
+            });
+            return;
+        }
+
+        // Manejo de errores de creación
+        let errorMessage = result.message || t("alerts.classroom.error.create.description");
+
+        if (result.status === 409) {
+            const conflictData = result.data as { fields?: string[] } | undefined;
+
+            if (conflictData?.fields?.length) {
+                const fieldText = formatConflictFields(conflictData.fields);
+                errorMessage = t("alerts.classroom.error.create.conflict.description", { fields: fieldText });
+            }
+        }
+
+        triggerAlert({
+            title: t("alerts.classroom.error.create.title"),
+            description: errorMessage,
+            variant: "destructive",
+        });
+    }, [createClassroom, refetch, triggerAlert, t, formatConflictFields]);
+
+    // Generar props para el diálogo de eliminación
+    const getDeleteDialogProps = useCallback(() => {
+        if (!deleteState.type) {
+            return {
+                open: false,
+                onOpenChange: handleCloseDeleteDialog,
+                onConfirm: () => { },
+                title: "",
+                description: "",
+            };
+        }
+
+        const isSingle = deleteState.type === 'single';
+
+        return {
+            open: true,
+            onOpenChange: handleCloseDeleteDialog,
+            onConfirm: handleConfirmDelete,
+            title: isSingle
+                ? t("dialog.classrooms.delete.single.title")
+                : t("dialog.classrooms.delete.multiple.title"),
+            description: isSingle
+                ? t("dialog.classrooms.delete.single.description", {
+                    code: classrooms.find(c => c.id === deleteState.classroomId)?.code
+                })
+                : t("dialog.classrooms.delete.multiple.description", {
+                    count: deleteState.selectedIds?.length || 0
+                }),
+        };
+    }, [deleteState, handleCloseDeleteDialog, handleConfirmDelete, t, classrooms]);
 
     return (
         <>
-            <ClassroomToolbar setOpenDrawer={setOpenDrawer} deleteSelectedClassrooms={handleDeleteSelectedClassrooms} selectedIds={selectedIds} />
+            <ClassroomToolbar
+                deleteSelectedClassrooms={handleDeleteSelectedClassrooms}
+                selectedIds={selectedIds}
+                onCreateClick={() => setDrawerOpen(true)}
+            />
+
             <section className="h-full rounded-xl bg-muted/50 flex items-center justify-center m-2">
                 <div className="min-w-[400px] w-2/3">
-                    {!isLoading && <ClassroomTable classrooms={classrooms} deleteClassroom={handleDelete} setSelectedIds={setSelectedIds} />}
-                    {isLoading && <LoadingSpinner />}
+                    {isLoading ? (
+                        <LoadingSpinner />
+                    ) : (
+                        <ClassroomTable
+                            classrooms={classrooms}
+                            deleteClassroom={handleDeleteClick}
+                            setSelectedIds={setSelectedIds}
+                        />
+                    )}
                 </div>
             </section>
+
             <CreateClassroomDrawer
-                open={openDrawer}
-                onOpenChange={setOpenDrawer}
-                code={code}
-                setCode={setCode}
-                gisUrl={gisUrl}
-                setGisUrl={setGisUrl}
-                onSave={handleSaveClassroom}
+                open={drawerOpen}
+                onOpenChange={setDrawerOpen}
+                onSave={handleSave}
             />
+
+            <DeleteConfirmationDialog {...getDeleteDialogProps()} />
         </>
     )
 }

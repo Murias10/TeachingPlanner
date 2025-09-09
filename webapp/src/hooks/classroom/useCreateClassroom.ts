@@ -1,25 +1,31 @@
 import { useCallback } from "react";
 
 // Tipos para mejor type safety
-interface CreateDegreeResponse {
+interface CreateClassroomResponse {
     success: boolean;
     status: number;
     message: string;
     data?: unknown;
 }
 
-export const useCreateDegree = () => {
-    const createDegree = useCallback(async (
-        name: string,
-        acronym: string,
+export const useCreateClassroom = () => {
+    const createClassroom = useCallback(async (
+        code: string,
+        gisUrl: string,
         refetch?: () => void
-    ): Promise<CreateDegreeResponse> => {
+    ): Promise<CreateClassroomResponse> => {
         try {
-            const response = await fetch("http://localhost:8080/degree", {
+            const response = await fetch("http://localhost:8080/classroom", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name, acronym })
+                body: JSON.stringify({ code, gisUrl })
             });
+
+            // Suprimir el log de error automático del navegador para códigos esperados
+            if (!response.ok && [400, 409].includes(response.status)) {
+                // Estos son errores de validación esperados, no errores de red
+                // El navegador los muestra como errores pero son parte del flujo normal
+            }
 
             // Intentar parsear la respuesta JSON
             let json;
@@ -44,7 +50,7 @@ export const useCreateDegree = () => {
                 return {
                     success: true,
                     status: response.status,
-                    message: json.message || "Titulación creada exitosamente",
+                    message: json.message || "Aula creada exitosamente",
                     data: json.data,
                 };
             } else {
@@ -56,7 +62,8 @@ export const useCreateDegree = () => {
                         errorMessage = json.message || "Datos requeridos faltantes";
                         break;
                     case 409:
-                        errorMessage = json.message || "Ya existe una titulación con ese nombre o acrónimo";
+                        // Error de conflicto - código ya existe
+                        errorMessage = json.message || "Ya existe un aula con ese código";
                         break;
                     case 500:
                         errorMessage = json.message || "Error interno del servidor";
@@ -73,7 +80,7 @@ export const useCreateDegree = () => {
                 };
             }
         } catch (error) {
-            console.error('Error en createDegree:', error);
+            console.error('Error en createClassroom:', error);
 
             return {
                 success: false,
@@ -84,5 +91,5 @@ export const useCreateDegree = () => {
         }
     }, []);
 
-    return { createDegree };
+    return { createClassroom };
 }

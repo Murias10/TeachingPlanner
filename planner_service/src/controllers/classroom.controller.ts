@@ -24,43 +24,65 @@ export const getClassrooms = async (_req: Request, res: Response) => {
 
 
 export const createClassroom = async (req: Request, res: Response) => {
+    const { code, gisUrl } = req.body;
+
+    // Validaciones
+    if (!code) {
+        res.status(400).json({
+            status: "error",
+            message: "Code is required",
+            data: null,
+        });
+        return;
+    }
+
+    if (!gisUrl) {
+        res.status(400).json({
+            status: "error",
+            message: "GIS URL is required",
+            data: null,
+        });
+        return;
+    }
+
     try {
-        const { code, gisUrl } = req.body;
-
-        if (!code) {
-            res.status(400).json({
-                status: "error",
-                message: "El campo 'code' es obligatorio",
-                data: null
-            });
-        }
-
         const classroomRepo = AppDataSource.getRepository(Classroom);
 
-        const existing = await classroomRepo.findOne({ where: { code } });
-        if (existing) {
+        const conflicts: string[] = [];
+
+        const codeExists = await classroomRepo.findOneBy({ code });
+        if (codeExists) conflicts.push("code");
+
+        const gisUrlExists = await classroomRepo.findOneBy({ gisUrl });
+        if (gisUrlExists) conflicts.push("gisUrl");
+
+        if (conflicts.length > 0) {
             res.status(409).json({
                 status: "error",
-                field: "code",
-                message: "Ya hay un aula con el valor de 'code' proporcionado",
-                data: null
+                message: "Classroom already exists with conflicting fields",
+                data: {
+                    fields: conflicts,
+                },
             });
+            return;
         }
 
         const classroom = classroomRepo.create({ code, gisUrl });
-        await classroomRepo.save(classroom);
+        const savedClassroom = await classroomRepo.save(classroom);
 
         res.status(201).json({
             status: "success",
             message: "Classroom created successfully",
-            data: { classroom }
+            data: {
+                classroom: savedClassroom,
+            },
         });
-    }
-    catch (error) {
+    } catch (error) {
+        console.error("Error creating classroom:", error);
         res.status(500).json({
             status: "error",
-            message: "Error creating classroom",
-            data: error
+            message: "Unexpected error while creating classroom",
+            data: error instanceof Error ? error.message : error,
         });
     }
 };

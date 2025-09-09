@@ -15,7 +15,7 @@ export class Classroom {
     @Column('varchar', { name: 'CODE', length: 50, unique: true })
     code!: string;
 
-    @Column('varchar', { name: 'GIS_URL', length: 255 })
+    @Column('varchar', { name: 'GIS_URL', length: 255, unique: true })
     gisUrl!: string;
 
     @ManyToMany(() => Event, (event) => event.classrooms)

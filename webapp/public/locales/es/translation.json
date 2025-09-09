@@ -66,16 +66,18 @@
                 "create": {
                     "title": "Error al crear la titulación",
                     "description": "No se pudo crear la titulación. Por favor, inténtalo de nuevo mas tarde.",
-                    "name": "nombre",
-                    "acronym": "acrónimo",
+                    "name": "Nombre",
+                    "acronym": "Acrónimo",
                     "conflict.description": "Ya existe una titulación con el mismo '{{fields}}'."
                 },
                 "delete": {
                     "individual": {
-                        "title": "Error al eliminar la titulación"
+                        "title": "Error al eliminar la titulación",
+                        "description": "No se pudo eliminar la titulación '{{name}}'. Por favor, inténtalo de nuevo mas tarde."
                     },
                     "multiple": {
-                        "title": "Error al eliminar las titulaciones"
+                        "title": "Error al eliminar las titulaciones",
+                        "description": "No se pudieron eliminar las titulaciones. Por favor, inténtalo de nuevo mas tarde."
                     }
                 },
                 "read": {
@@ -102,24 +104,39 @@
         },
         "classroom": {
             "error": {
-                "title": "Error",
-                "notFound": "El aula no existe.",
+                "create": {
+                    "title": "Error al crear el aula",
+                    "description": "No se pudo crear el aula. Por favor, inténtalo de nuevo mas tarde.",
+                    "code": "Código",
+                    "gisUrl": "URL GIS",
+                    "conflict.description": "Ya existe un aula con el mismo '{{fields}}'."
+                },
+                "delete": {
+                    "individual": {
+                        "title": "Error al eliminar el aula",
+                        "description": "No se pudo eliminar el aula '{{code}}'. Por favor, inténtalo de nuevo mas tarde."
+                    },
+                    "multiple": {
+                        "title": "Error al eliminar las aulas",
+                        "description": "No se pudieron eliminar las aulas. Por favor, inténtalo de nuevo mas tarde."
+                    }
+                },
                 "hasEvents": "No se puede eliminar el aula porque tiene eventos asociados.",
                 "default": "No se pudo eliminar el aula.",
                 "network": "Error de red al intentar eliminar el aula."
             },
             "success": {
+                "create": {
+                    "title": "Aula creada",
+                    "description": "El aula '{{code}}' fue creada correctamente."
+                },
                 "delete": {
                     "title": "Aula eliminada",
-                    "description": "El aula fue eliminada correctamente."
+                    "description": "El aula '{{code}}' fue eliminada correctamente."
                 },
                 "delete.multiple": {
                     "title": "Aulas eliminadas",
                     "description": "Las aulas fueron eliminadas correctamente."
-                },
-                "create": {
-                    "title": "Aula creada",
-                    "description": "Aula {{name}} creada correctamente."
                 }
             }
         },
@@ -219,6 +236,18 @@
                 "multiple": {
                     "title": "Confirmar eliminación múltiple",
                     "description": "Esta acción eliminará {{count}} titulación(es) y toda su información relacionada (cursos, asignaturas, etc.). Esta acción no se puede deshacer."
+                }
+            }
+        },
+        "classrooms": {
+            "delete": {
+                "single": {
+                    "title": "Confirmar eliminación",
+                    "description": "Esta acción eliminará el aula '{{code}}' y todos los eventos realizados en dicha aula. Esta acción no se puede deshacer."
+                },
+                "multiple": {
+                    "title": "Confirmar eliminación múltiple",
+                    "description": "Esta acción eliminará {{count}} aula(s) y todos los eventos realizados en dichas aulas. Esta acción no se puede deshacer."
                 }
             }
         }

@@ -18,6 +18,8 @@ export class Classroom {
     @Column('varchar', { name: 'GIS_URL', length: 255, unique: true })
     gisUrl!: string;
 
-    @ManyToMany(() => Event, (event) => event.classrooms)
+    @ManyToMany(() => Event, (event) => event.classrooms, {
+        cascade: true
+    })
     events!: Event[];
 }

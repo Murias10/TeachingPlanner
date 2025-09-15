@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { AppDataSource } from '@/config/data-source';
 import { Subject } from '@/entities/subject.entity';
 import { Degree } from '@/entities/degree.entity';
+import { validate as isValidUUID } from 'uuid';
 
 export const createSubject = async (req: Request, res: Response) => {
     try {
@@ -10,10 +11,16 @@ export const createSubject = async (req: Request, res: Response) => {
         // Validación de campos obligatorios
         const missingFields = [];
         if (!acronym) missingFields.push("acronym");
-        if (!year) missingFields.push("year");
+        // Cambio: validar que year sea un número válido, no solo truthy
+        if (year === undefined || year === null || !Number.isInteger(Number(year))) {
+            missingFields.push("year");
+        }
         if (!name) missingFields.push("name");
         if (!siesCode) missingFields.push("siesCode");
-        if (!semester) missingFields.push("semester");
+        // Cambio: validar que semester sea un número válido, no solo truthy
+        if (semester === undefined || semester === null || !Number.isInteger(Number(semester))) {
+            missingFields.push("semester");
+        }
         if (!degree || typeof degree !== "object") missingFields.push("degree");
         else {
             if (!degree.id) missingFields.push("degree.id");
@@ -25,6 +32,29 @@ export const createSubject = async (req: Request, res: Response) => {
                 message: `Faltan los siguientes campos obligatorios: ${missingFields.join(", ")}`,
                 data: null
             });
+            return
+        }
+
+        // Validación adicional de rangos
+        const yearNum = Number(year);
+        const semesterNum = Number(semester);
+
+        if (yearNum < 1 || yearNum > 4) {
+            res.status(400).json({
+                status: "error",
+                message: "El año debe estar entre 1 y 4",
+                data: null
+            });
+            return
+        }
+
+        if (semesterNum < 1 || semesterNum > 2) {
+            res.status(400).json({
+                status: "error",
+                message: "El semestre debe ser 1 o 2",
+                data: null
+            });
+            return
         }
 
         // Verificar que el degree exista en la base de datos
@@ -37,6 +67,7 @@ export const createSubject = async (req: Request, res: Response) => {
                 message: `No se encontró ningún degree con el id '${degree.id}'`,
                 data: null
             });
+            return
         }
 
         const subjectRepo = AppDataSource.getRepository(Subject);
@@ -46,7 +77,7 @@ export const createSubject = async (req: Request, res: Response) => {
             where: {
                 name,
                 acronym,
-                degree
+                degree: { id: degree.id }
             }
         });
 
@@ -57,16 +88,17 @@ export const createSubject = async (req: Request, res: Response) => {
                 message: "Ya existe una asignatura con esos valores para esa titulación",
                 data: null
             });
+            return
         }
 
-        // Crear y guardar la nueva asignatura
+        // Crear y guardar la nueva asignatura - asegurar conversión a números
         const subject = subjectRepo.create({
             acronym,
-            year,
+            year: yearNum,     // Asegurar que se guarde como número
             name,
             siesCode,
-            semester,
-            degree
+            semester: semesterNum, // Asegurar que se guarde como número
+            degree: existingDegree // Usar la entidad completa encontrada
         });
 
         await subjectRepo.save(subject);
@@ -77,10 +109,11 @@ export const createSubject = async (req: Request, res: Response) => {
             data: { subject }
         });
     } catch (error) {
+        console.error("Error al crear la asignatura:", error);
         res.status(500).json({
             status: "error",
             message: "Error al crear la asignatura",
-            data: error
+            data: error instanceof Error ? error.message : error
         });
     }
 };
@@ -95,6 +128,7 @@ export const deleteSubject = async (req: Request, res: Response) => {
                 message: "El parámetro 'id' es obligatorio y debe ser un UUID válido",
                 data: null
             });
+            return
         }
 
         const subjectRepo = AppDataSource.getRepository(Subject);
@@ -106,6 +140,7 @@ export const deleteSubject = async (req: Request, res: Response) => {
                 message: `No se encontró ninguna asignatura con el id '${id}'`,
                 data: null
             });
+            return
         }
 
         res.status(200).json({
@@ -144,35 +179,78 @@ export const getSubjects = async (_req: Request, res: Response) => {
 
 
 export const getSubjectsByDegreeId = async (req: Request, res: Response) => {
-    // 🧠 Capturar UUID desde la URL (ej: /subjects/degree/45fa2a5b-... )
     const degreeId = req.params.id;
 
-    // ⚠️ Validación básica
+    // Validación de tipo y formato
     if (!degreeId || typeof degreeId !== 'string') {
         res.status(400).json({
             status: 'error',
-            message: 'Invalid degree ID',
+            message: 'Invalid degree ID format',
             data: null,
         });
-        return;
+        return
+    }
+
+    // Validación de UUID
+    if (!isValidUUID(degreeId)) {
+        res.status(400).json({
+            status: 'error',
+            message: 'Degree ID must be a valid UUID',
+            data: null,
+        });
+        return
     }
 
     try {
-        // 🔍 Buscar asignaturas por ID de grado
-        const subjects = await AppDataSource.getRepository(Subject).findBy({
-            degree: { id: degreeId },
+        const degreeRepository = AppDataSource.getRepository(Degree);
+        const subjectRepository = AppDataSource.getRepository(Subject);
+
+        // Verificar que el degree existe
+        const degreeExists = await degreeRepository.findOne({
+            where: { id: degreeId }
         });
 
-        // 🚀 Enviar respuesta
+        if (!degreeExists) {
+            res.status(404).json({
+                status: 'error',
+                message: 'Degree not found',
+                data: null,
+            });
+
+            return
+        }
+
+        // Buscar asignaturas por ID de grado
+        const subjects = await subjectRepository.find({
+            where: {
+                degree: { id: degreeId }
+            },
+            relations: ['degree'],
+            order: {
+                year: 'ASC',
+                semester: 'ASC',
+                name: 'ASC'
+            }
+        });
+
         res.status(200).json({
             status: 'success',
             message: 'Subjects fetched successfully',
-            data: { subjects },
+            data: {
+                subjects,
+                degreeInfo: {
+                    id: degreeExists.id,
+                    name: degreeExists.name,
+                    acronym: degreeExists.acronym
+                }
+            },
         });
+
     } catch (error) {
+        console.error('Error fetching subjects by degree ID:', error);
         res.status(500).json({
             status: 'error',
-            message: 'Error fetching subjects',
+            message: 'Internal server error while fetching subjects',
             data: null,
         });
     }
@@ -188,6 +266,7 @@ export const getSubjectsWithEventsAndGroupsByCourseAndSemester = async (req: Req
             message: 'Missing courseId or semester in parameters',
             data: null,
         });
+        return
     }
 
     try {
@@ -272,11 +351,11 @@ export const getSubjectsWithEventsAndGroupsByCourseAndSemester = async (req: Req
         });
 
     } catch (error) {
-
+        console.error('Error fetching subjects with events and groups:', error);
         res.status(500).json({
             status: 'error',
             message: 'Error fetching subjects with events and groups',
-            data: error,
+            data: error instanceof Error ? error.message : error,
         });
     }
 };

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button"
 import { ArrowUpDown } from "lucide-react"
 import { Subject } from "@/types/Subject"
 import { Checkbox } from "@/components/ui/checkbox"
-import { GroupTableButtons } from "@/components/GroupTableButtons"
+import { GroupTableButtons } from "@/components/group/GroupTableButtons"
 import { TFunction } from "i18next"
 
 export const columns = (t: TFunction): ColumnDef<Subject>[] => [

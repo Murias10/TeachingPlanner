@@ -1,14 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
-import { useAppContext } from "@/context/useAppContext";
 import { Subject } from "@/types/Subject";
 
-export function useSubjects() {
-    const { degreeId } = useAppContext();
-
+export function useSubjectsByDegreeId(degreeId: string | null) {
     return useQuery<Subject[], Error>({
         queryKey: ["subjects", degreeId],
-        enabled: degreeId !== null, // solo se activa si hay degree seleccionado
+        enabled: !!degreeId, // solo se activa si hay degreeId válido
         queryFn: async () => {
+            if (!degreeId) {
+                throw new Error("degreeId is required");
+            }
+
             const res = await fetch(`http://localhost:8080/subjects/degree/${degreeId}`);
             if (!res.ok) throw new Error(`Error ${res.status}`);
             const body = await res.json();

@@ -1,228 +1,362 @@
-
-import { CourseToolbar } from "@/components/CourseToolbar"
-import { CourseTable } from "@/components/CourseTable"
+import { CourseToolbar } from "@/components/course/CourseToolbar"
+import { CourseTable } from "@/components/course/CourseTable"
+import { DeleteConfirmationDialog } from "@/components/DeleteConfirmationDialog"
 import { useBreadcrumbContext } from "@/context/useBreadcrumbContext"
-import { useEffect, useState } from "react"
-import { useCourses } from "@/hooks/useCourses"
+import { useCallback, useEffect, useState } from "react"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
 import { useTranslation } from "react-i18next"
 import { useFloatingAlertContext } from "@/context/useFloatingAlertContext"
-import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label";
-import {
-    Drawer,
-    DrawerContent,
-    DrawerHeader,
-    DrawerTitle,
-    DrawerClose,
-    DrawerDescription
-} from "@/components/ui/drawer";
-import {
-    Select,
-    SelectTrigger,
-    SelectValue,
-    SelectContent,
-    SelectItem,
-} from "@/components/ui/select";
+import { useParams } from "react-router-dom"
+import { useCoursesByDegreeAcronym } from "@/hooks/course/useCoursesByDegreeAcronym"
+import { useDeleteCourse } from "@/hooks/course/useDeleteCourse"
+import { useCreateCourse } from "@/hooks/course/useCreateCourse"
+import { useDegreeByAcronym } from "@/hooks/degree/useDegreeByAcronym"
+import { CreateCourseDrawer } from "@/components/course/CreateCourseDrawer"
+
+interface DeleteState {
+    type: 'single' | 'bulk' | 'calendar' | null;
+    courseId?: string;
+    calendarId?: string;
+    selectedIds?: string[];
+}
+
+interface CourseFormData {
+    startYear: string;
+    endYear: string;
+    state: string;
+}
 
 export default function CoursePage() {
-
-    const STATES = ["active", "inactive", "archived"];
-    const CURRENT_YEAR = new Date().getFullYear();
-    const YEAR_OPTIONS = Array.from({ length: 10 }, (_, i) => {
-        const start = CURRENT_YEAR + i;
-        return `${start}-${start + 1}`;
-    });
-
     const { t } = useTranslation()
 
-    const { triggerAlert } = useFloatingAlertContext()
+    // Extraer el acrónimo de la URL
+    const { acronym } = useParams<{ acronym: string }>()
 
+    const { triggerAlert } = useFloatingAlertContext()
+    const { deleteCourse } = useDeleteCourse()
+    const { createCourse } = useCreateCourse()
     const { setItems } = useBreadcrumbContext()
 
+    // Obtener degree desde el acrónimo de la URL
+    const {
+        data: degree,
+        isLoading: isDegreeLoading,
+        error: degreeError
+    } = useDegreeByAcronym(acronym || null)
+
+    // Obtener courses usando el acrónimo
+    const {
+        data: courses = [],
+        isLoading: isCoursesLoading,
+        error: coursesError,
+        refetch
+    } = useCoursesByDegreeAcronym(acronym || null)
+
+    const [selectedIds, setSelectedIds] = useState<string[]>([])
+    const [openDrawer, setOpenDrawer] = useState(false)
+    const [deleteState, setDeleteState] = useState<DeleteState>({ type: null })
+
+    // Configurar breadcrumb
     useEffect(() => {
-        setItems([
+        const items = [
             { label: t("breadcrumb.home"), href: "/home" },
             { label: t("breadcrumb.degrees"), href: "/degrees" },
-            { label: t("breadcrumb.courses"), href: "/courses" },
-        ])
-    }, [setItems, t])
+            { label: t("breadcrumb.courses"), href: "" },
+        ];
 
-    const { data: courses = [], isLoading, error, refetch } = useCourses()
+        setItems(items);
+    }, [setItems, t, degree, acronym])
 
-    const [selectedIds, setSelectedIds] = useState<string[]>([]);
-
-    const handleDeleteCourse = async (courseId: string) => {
-        refetchData();
-        console.log("HANDLE DELETE", courseId)
-    };
-
-    const handleDeleteSelectedCourses = async () => {
-
-        if (selectedIds.length === 0) return;
-
-        for (const id of selectedIds) {
-            await handleDeleteCourse(id);
-        }
-
-        refetchData();
-        setSelectedIds([]);
-    }
-
-    const handleDeleteCalendar = async (calendarId: string, force = false) => {
-        try {
-            const res = await fetch(`http://localhost:8080/calendar/${calendarId}`, {
-                method: "DELETE",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ force })
-            });
-
-            if (!res.ok) {
-                switch (res.status) {
-                    case 404: {
-                        triggerAlert({
-                            title: t("alerts.calendar.error.title"),
-                            description: t("alerts.calendar.error.notFound"),
-                            variant: "destructive"
-                        });
-                        break;
-                    }
-
-                    case 409: {
-                        const json = await res.json();
-                        const relatedEvents = json.data?.relatedEvents ?? 0;
-
-                        triggerAlert({
-                            title: t("alerts.calendar.warning.title"),
-                            description: t("alerts.calendar.warning.hasEvents", { count: relatedEvents }),
-                            variant: "warning"
-                        });
-
-                        // Aquí puedes abrir un diálogo de confirmación en el frontend
-                        break;
-                    }
-
-                    default: {
-                        triggerAlert({
-                            title: t("alerts.calendar.error.title"),
-                            description: t("alerts.calendar.error.default"),
-                            variant: "destructive"
-                        });
-                        break;
-                    }
-                }
-
-                return;
-            }
-
-            triggerAlert({
-                title: t("alerts.calendar.success.delete.title"),
-                description: t("alerts.calendar.success.delete.description"),
-                variant: "success"
-            });
-
-            refetchData();
-        } catch {
-            triggerAlert({
-                title: t("alerts.calendar.error.title"),
-                description: t("alerts.calendar.error.network"),
-                variant: "destructive"
-            });
-        }
-    };
-
-    const [openDrawer, setOpenDrawer] = useState(false);
-    const [year, setYear] = useState("");
-    const [state, setState] = useState("");
-
-    const handleSaveCourse = async () => {
-        refetchData();
-        console.log("HANDLE SAVE")
-    }
-
+    // Manejo de errores de carga
     useEffect(() => {
-        if (error) {
+        if (coursesError) {
             triggerAlert({
                 title: t("alerts.course.error.title"),
                 description: t("alerts.course.error.read"),
                 variant: "destructive"
             })
         }
-    }, [error, t, triggerAlert])
+    }, [coursesError, t, triggerAlert])
 
-    const refetchData = () => {
-        refetch()
+    // Función principal de eliminación de curso
+    const performDeleteCourse = useCallback(async (courseId: string, showAlert = true) => {
+        const result = await deleteCourse(courseId, refetch);
+
+        if (result.success && showAlert) {
+            triggerAlert({
+                title: t("alerts.course.success.delete.individual.title"),
+                description: t("alerts.course.success.delete.individual.description", {
+                    startYear: courses.find(c => c.id === courseId)?.startYear,
+                    endYear: courses.find(c => c.id === courseId)?.endYear
+                }),
+                variant: "success",
+            });
+        } else if (!result.success && showAlert) {
+            triggerAlert({
+                title: t("alerts.course.error.delete.individual.title"),
+                description: t("alerts.course.error.delete.individual.description"),
+                variant: "destructive",
+            });
+        }
+
+        return result.success;
+    }, [deleteCourse, refetch, triggerAlert, t, courses]);
+
+    // Iniciar eliminación individual de curso
+    const handleDeleteCourse = useCallback((courseId: string) => {
+        setDeleteState({
+            type: 'single',
+            courseId
+        });
+    }, []);
+
+    // Iniciar eliminación múltiple de cursos
+    const handleDeleteSelectedCourses = useCallback(() => {
+        if (selectedIds.length === 0) return;
+
+        setDeleteState({
+            type: 'bulk',
+            selectedIds: [...selectedIds]
+        });
+    }, [selectedIds]);
+
+    // Manejar eliminación de calendario con confirmación
+    const handleDeleteCalendar = useCallback(async (calendarId: string, force = false) => {
+        if (!force) {
+            // Primer intento - verificar si hay eventos relacionados
+            try {
+                const res = await fetch(`http://localhost:8080/calendar/${calendarId}`, {
+                    method: "DELETE",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ force: false })
+                });
+
+                if (res.status === 409) {
+                    // Mostrar diálogo de confirmación
+                    setDeleteState({
+                        type: 'calendar',
+                        calendarId
+                    });
+                    return;
+                }
+
+                if (!res.ok) {
+                    throw new Error('Delete failed');
+                }
+
+                // Eliminación exitosa
+                triggerAlert({
+                    title: t("alerts.calendar.success.delete.title"),
+                    description: t("alerts.calendar.success.delete.description"),
+                    variant: "success"
+                });
+
+                refetch();
+            } catch {
+                triggerAlert({
+                    title: t("alerts.calendar.error.title"),
+                    description: t("alerts.calendar.error.network"),
+                    variant: "destructive"
+                });
+            }
+        } else {
+            // Eliminación forzada
+            try {
+                const res = await fetch(`http://localhost:8080/calendar/${calendarId}`, {
+                    method: "DELETE",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ force: true })
+                });
+
+                if (!res.ok) throw new Error('Forced delete failed');
+
+                triggerAlert({
+                    title: t("alerts.calendar.success.delete.title"),
+                    description: t("alerts.calendar.success.delete.description"),
+                    variant: "success"
+                });
+
+                refetch();
+            } catch {
+                triggerAlert({
+                    title: t("alerts.calendar.error.title"),
+                    description: t("alerts.calendar.error.default"),
+                    variant: "destructive"
+                });
+            }
+        }
+    }, [triggerAlert, t, refetch]);
+
+    // Confirmar eliminación
+    const handleConfirmDelete = useCallback(async () => {
+        if (deleteState.type === 'single' && deleteState.courseId) {
+            await performDeleteCourse(deleteState.courseId, true); // showAlert = true para borrado individual
+            setDeleteState({ type: null });
+
+        } else if (deleteState.type === 'bulk' && deleteState.selectedIds) {
+            let deletedCount = 0;
+
+            for (const id of deleteState.selectedIds) {
+                const success = await performDeleteCourse(id, false); // showAlert = false para borrado múltiple
+                if (success) deletedCount++;
+            }
+
+            if (deletedCount > 0) {
+                triggerAlert({
+                    title: t("alerts.course.success.delete.multiple.title"),
+                    description: t("alerts.course.success.delete.multiple.description", { count: deletedCount }),
+                    variant: "success",
+                });
+            }
+
+            setSelectedIds([]);
+            setDeleteState({ type: null });
+
+        } else if (deleteState.type === 'calendar' && deleteState.calendarId) {
+            await handleDeleteCalendar(deleteState.calendarId, true);
+            setDeleteState({ type: null });
+        }
+    }, [deleteState, performDeleteCourse, handleDeleteCalendar, triggerAlert, t]);
+
+    // Cerrar diálogo de eliminación
+    const handleCloseDeleteDialog = useCallback(() => {
+        setDeleteState({ type: null });
+    }, []);
+
+    // Guardar nuevo curso
+    const handleSaveCourse = useCallback(async (formData: CourseFormData) => {
+        if (!degree?.id) return;
+
+        const result = await createCourse(formData, degree.id, refetch);
+
+        if (result.success) {
+            setOpenDrawer(false);
+            triggerAlert({
+                title: t("alerts.course.success.create.title"),
+                description: t("alerts.course.success.create.description", {
+                    startYear: formData.startYear,
+                    endYear: formData.endYear
+                }),
+                variant: "success"
+            });
+            return;
+        }
+
+        // Manejo de errores de creación
+        let errorMessage = result.message || t("alerts.course.error.create.description");
+
+        if (result.status === 409) {
+            errorMessage = t("alerts.course.error.create.conflict.description");
+        }
+
+        triggerAlert({
+            title: t("alerts.course.error.create.title"),
+            description: errorMessage,
+            variant: "destructive",
+        });
+    }, [degree?.id, createCourse, refetch, triggerAlert, t]);
+
+    // Generar props para el diálogo de eliminación
+    const getDeleteDialogProps = useCallback(() => {
+        if (!deleteState.type) {
+            return {
+                open: false,
+                onOpenChange: handleCloseDeleteDialog,
+                onConfirm: () => { },
+                title: "",
+                description: "",
+            };
+        }
+
+        switch (deleteState.type) {
+            case 'single':
+                return {
+                    open: true,
+                    onOpenChange: handleCloseDeleteDialog,
+                    onConfirm: handleConfirmDelete,
+                    title: t("dialog.courses.delete.single.title"),
+                    description: t("dialog.courses.delete.single.description", { startYear: courses.find(c => c.id === deleteState.courseId)?.startYear, endYear: courses.find(c => c.id === deleteState.courseId)?.endYear }),
+                };
+
+            case 'bulk':
+                return {
+                    open: true,
+                    onOpenChange: handleCloseDeleteDialog,
+                    onConfirm: handleConfirmDelete,
+                    title: t("dialog.courses.delete.multiple.title"),
+                    description: t("dialog.courses.delete.multiple.description", {
+                        count: deleteState.selectedIds?.length || 0
+                    }),
+                };
+
+            case 'calendar':
+                return {
+                    open: true,
+                    onOpenChange: handleCloseDeleteDialog,
+                    onConfirm: handleConfirmDelete,
+                    title: t("dialog.calendar.delete.title"),
+                    description: t("dialog.calendar.delete.description"),
+                };
+
+            default:
+                return {
+                    open: false,
+                    onOpenChange: handleCloseDeleteDialog,
+                    onConfirm: () => { },
+                    title: "",
+                    description: "",
+                };
+        }
+    }, [deleteState, handleCloseDeleteDialog, handleConfirmDelete, t, courses]);
+
+    // Mostrar error si no se encuentra el degree
+    if (degreeError) {
+        return (
+            <div className="h-full flex items-center justify-center">
+                <div className="text-center">
+                    <h2 className="text-2xl font-bold text-destructive mb-2">
+                        {t("alerts.degree.error.title")}
+                    </h2>
+                    <p className="text-muted-foreground">{degreeError.message}</p>
+                </div>
+            </div>
+        )
     }
 
     return (
         <>
-            <CourseToolbar setOpenDrawer={setOpenDrawer} deleteSelectedCourses={handleDeleteSelectedCourses} selectedIds={selectedIds} />
+            <CourseToolbar
+                setOpenDrawer={setOpenDrawer}
+                deleteSelectedCourses={handleDeleteSelectedCourses}
+                selectedIds={selectedIds}
+            />
+
             <section className="h-full rounded-xl bg-muted/50 flex items-center justify-center m-2">
                 <div className="min-w-[400px] w-2/3">
-                    {!isLoading && <CourseTable courses={courses} deleteCourse={handleDeleteCourse} deleteCalendar={handleDeleteCalendar} setSelectedIds={setSelectedIds} />}
-                    {isLoading && <LoadingSpinner />}
+                    {isCoursesLoading || isDegreeLoading ? (
+                        <LoadingSpinner />
+                    ) : (
+                        <CourseTable
+                            courses={courses}
+                            deleteCourse={handleDeleteCourse}
+                            deleteCalendar={handleDeleteCalendar}
+                            setSelectedIds={setSelectedIds}
+                        />
+                    )}
                 </div>
             </section>
-            <Drawer open={openDrawer} onOpenChange={setOpenDrawer}>
-                <DrawerContent className="flex flex-col max-h-screen">
-                    <DrawerHeader>
-                        <DrawerTitle>{t("drawer.courses.create.title")}</DrawerTitle>
-                        <DrawerDescription>
-                            {t("drawer.courses.create.description")}
-                        </DrawerDescription>
-                    </DrawerHeader>
 
-                    {/* Contenido desplazable */}
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                        {/* Select de estado */}
-                        <div className="space-y-2 max-w-sm mx-auto">
-                            <Label htmlFor="course-start-end-year">{t("drawer.courses.create.start.end.year")}</Label>
-                            <Select value={state} onValueChange={setState}>
-                                <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Selecciona un estado" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {STATES.map((state) => (
-                                        <SelectItem key={state} value={state}>
-                                            {state.charAt(0).toUpperCase() + state.slice(1)}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        {/* Select de año académico */}
-                        <div className="space-y-2 max-w-sm mx-auto">
-                            <Label htmlFor="course-state">{t("drawer.courses.create.state")}</Label>
-                            <Select value={year} onValueChange={setYear}>
-                                <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Selecciona un año académico" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {YEAR_OPTIONS.map((year) => (
-                                        <SelectItem key={year} value={year}>
-                                            {year}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
+            <CreateCourseDrawer
+                open={openDrawer && !!degree?.id}
+                onOpenChange={setOpenDrawer}
+                onSave={handleSaveCourse}
+            />
 
-                    {/* Botones */}
-                    <div className="p-4 flex justify-end space-x-2 border-t">
-                        <DrawerClose asChild>
-                            <Button variant="outline" onClick={() => {
-                                setOpenDrawer(false);
-                                setYear("");
-                                setState("");
-                            }}>{t("drawer.courses.create.cancel")}</Button>
-                        </DrawerClose>
-                        <Button disabled={!state || !year} onClick={handleSaveCourse}>{t("drawer.courses.create.save")}</Button>
-                    </div>
-                </DrawerContent>
-            </Drawer>
+            <DeleteConfirmationDialog {...getDeleteDialogProps()} />
         </>
     )
 }

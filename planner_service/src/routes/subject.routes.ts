@@ -4,10 +4,9 @@ import { createSubject, deleteSubject, getSubjects, getSubjectsByDegreeId, getSu
 const router = Router();
 
 router.get('/subjects', getSubjects);
-router.post('/subject', createSubject)
-router.delete('/subject/:id', deleteSubject)
 router.get('/subjects/degree/:id', getSubjectsByDegreeId);
 router.get('/subjects/with-events/groups/by-course/:courseId/semester/:semester', getSubjectsWithEventsAndGroupsByCourseAndSemester);
-
+router.post('/subject', createSubject)
+router.delete('/subject/:id', deleteSubject)
 
 export default router;

@@ -31,10 +31,10 @@ export default function App() {
                 <Route element={<AppLayout />}>
                     <Route path="home" element={<HomePage />} />
                     <Route path="degrees" element={<DegreePage />} />
-                    <Route path="degrees/:degreeAcronym/courses" element={<CoursePage />} />
-                    <Route path="degrees/:degreeAcronym/courses/:startYearCourse/:endYearCourse/semester/:semesterNumber/groups" element={<GroupPage />} />
-                    <Route path="degrees/:degreeAcronym/courses/:startYearCourse/:endYearCourse/semester/:semesterNumber/groups/calendar" element={<CalendarPage />} />
-                    <Route path="degrees/:degreeAcronym/subjects" element={<SubjectPage />} />
+                    <Route path="degrees/:acronym/courses" element={<CoursePage />} />
+                    <Route path="degrees/:acronym/courses/:startYearCourse/:endYearCourse/semester/:semesterNumber/groups" element={<GroupPage />} />
+                    <Route path="degrees/:acronym/courses/:startYearCourse/:endYearCourse/semester/:semesterNumber/groups/calendar" element={<CalendarPage />} />
+                    <Route path="degrees/:acronym/subjects" element={<SubjectPage />} />
                     <Route path="classrooms" element={<ClassroomPage />} />
                     <Route path="settings" element={<SettingsPage />} />
                     <Route path="logs" element={<LogsPage />} />

@@ -2,7 +2,7 @@ import { ColumnDef } from "@tanstack/react-table"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
 import { ArrowUpDown } from "lucide-react"
-import { DegreeTableButtons } from "@/components/DegreeTableButtons"
+import { DegreeTableButtons } from "@/components/degree/DegreeTableButtons"
 import { Degree } from "@/types/Degree"
 import { TFunction } from "i18next"
 
@@ -36,6 +36,7 @@ export const columns = ({ deleteDegree }: ColumnExtraProps, t: TFunction): Colum
     },
     {
         accessorKey: "name",
+        enableHiding: false,
         header: ({ column }) => (
             <Button
                 variant="ghost"

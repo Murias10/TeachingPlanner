@@ -1,79 +1,286 @@
-import { useEffect, useState } from "react"
+import { SubjectToolbar } from "@/components/subject/SubjectToolbar"
+import { SubjectTable } from "@/components/subject/SubjectTable"
+import { CreateSubjectDrawer } from "@/components/subject/CreateSubjectDrawer"
+import { DeleteConfirmationDialog } from "@/components/DeleteConfirmationDialog"
 import { useBreadcrumbContext } from "@/context/useBreadcrumbContext"
-import { SubjectTable } from "@/components/SubjectTable"
-import { SubjectToolbar } from "@/components/SubjectToolbar"
+import { useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { useFloatingAlert } from "@/hooks/useFloatingAlert"
-import { useSubjects } from "@/hooks/useSubjects"
+import { useParams } from "react-router-dom"
+import { useSubjectsByDegreeId } from "@/hooks/subject/useSubjectsByDegreeId"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
+import { useDeleteSubject } from "@/hooks/subject/useDeleteSubject"
+import { useCreateSubject } from "@/hooks/subject/useCreateSubject"
+import { useDegreeByAcronym } from "@/hooks/degree/useDegreeByAcronym"
+import { useFloatingAlertContext } from "@/context/useFloatingAlertContext"
+
+interface DeleteState {
+    type: 'single' | 'bulk' | null;
+    subjectId?: string;
+    selectedIds?: string[];
+}
+
+interface SubjectFormData {
+    acronym: string;
+    year: number;
+    name: string;
+    siesCode: string;
+    semester: number;
+}
 
 export default function SubjectPage() {
-
     const { t } = useTranslation()
 
-    const { triggerAlert } = useFloatingAlert()
+    // AQUÍ ES DONDE HAY QUE USAR useParams - se extrae el acrónimo de la URL
+    const { acronym } = useParams<{ acronym: string }>()
 
+    const { triggerAlert } = useFloatingAlertContext()
+    const { deleteSubject } = useDeleteSubject()
+    const { createSubject } = useCreateSubject()
     const { setItems } = useBreadcrumbContext()
 
+    // Obtener degree desde el acrónimo de la URL usando React Query
+    const {
+        data: degree,
+        isLoading: isDegreeLoading,
+        error: degreeError
+    } = useDegreeByAcronym(acronym || null)
+
+
+    // Obtener subjects usando el degreeId
+    const {
+        data: subjects = [],
+        isLoading: isSubjectsLoading,
+        error: subjectsError,
+        refetch
+    } = useSubjectsByDegreeId(degree?.id || null)
+
+    const [selectedIds, setSelectedIds] = useState<string[]>([])
+    const [drawerOpen, setDrawerOpen] = useState(false)
+    const [deleteState, setDeleteState] = useState<DeleteState>({ type: null })
+
+    // Configurar breadcrumb - incluye el nombre del degree si está disponible
     useEffect(() => {
-        setItems([
+        const items = [
             { label: t("breadcrumb.home"), href: "/home" },
-            { label: t("breadcrumb.subjects"), href: "/subjects" },
-        ])
-    }, [setItems, t])
+            { label: t("breadcrumb.degrees"), href: "/degrees" },
+            { label: t("breadcrumb.subjects"), href: "" },
+        ];
 
-    const { data: subjects = [], isLoading, error, refetch } = useSubjects()
 
-    const [selectedIds, setSelectedIds] = useState<string[]>([]);
+        setItems(items);
+    }, [setItems, t, degree, acronym])
 
-    const deleteSelectedSubjects = async () => {
-        if (selectedIds.length === 0) return;
-
-        try {
-            await Promise.all(
-                selectedIds.map(async (id) => {
-                    const response = await fetch(`http://localhost:8080/subject/${id}`, {
-                        method: "DELETE",
-                    });
-
-                    if (!response.ok) {
-                        throw new Error(`Error al eliminar asignatura con ID ${id}`);
-                    }
-                })
-            );
-
-            refetchData();
-            setSelectedIds([]);
-
-        } catch (err) {
-            console.error("Error al eliminar asignatura:", err);
-
-        }
-    };
-
+    // Manejo de errores de carga
     useEffect(() => {
-        if (error) {
+
+        if (subjectsError) {
             triggerAlert({
-                title: t("alerts.subject.error.title"),
-                description: t("alerts.subject.error.read"),
+                title: t("alerts.subject.error.read.title"),
+                description: t("alerts.subject.error.read.description"),
                 variant: "destructive"
             })
         }
-    }, [error, t, triggerAlert])
+    }, [subjectsError, t, triggerAlert])
 
-    const refetchData = () => {
-        refetch()
+    // Función principal de eliminación
+    const performDelete = useCallback(async (subjectId: string) => {
+        const result = await deleteSubject(subjectId, refetch);
+
+        if (result.success) {
+            triggerAlert({
+                title: t("alerts.subject.success.delete.individual.title"),
+                description: t("alerts.subject.success.delete.individual.description", {
+                    name: subjects.find(s => s.id === subjectId)?.name
+                }),
+                variant: "success",
+            });
+        } else {
+            triggerAlert({
+                title: t("alerts.subject.error.delete.individual.title"),
+                description: t("alerts.subject.error.delete.individual.description"),
+                variant: "destructive",
+            });
+        }
+
+        return result.success;
+    }, [deleteSubject, refetch, triggerAlert, t, subjects]);
+
+    // Iniciar eliminación individual - solo abre el diálogo
+    const handleDeleteClick = useCallback((subjectId: string) => {
+        setDeleteState({
+            type: 'single',
+            subjectId
+        });
+    }, []);
+
+    // Iniciar eliminación múltiple - solo abre el diálogo
+    const handleDeleteSelectedSubjects = useCallback(() => {
+        if (selectedIds.length === 0) return;
+
+        setDeleteState({
+            type: 'bulk',
+            selectedIds: [...selectedIds]
+        });
+    }, [selectedIds]);
+
+    // Confirmar eliminación - aquí se ejecuta la eliminación real
+    const handleConfirmDelete = useCallback(async () => {
+        if (deleteState.type === 'single' && deleteState.subjectId) {
+            await performDelete(deleteState.subjectId);
+            setDeleteState({ type: null });
+
+        } else if (deleteState.type === 'bulk' && deleteState.selectedIds) {
+            let deletedCount = 0;
+
+            for (const id of deleteState.selectedIds) {
+                const success = await performDelete(id);
+                if (success) deletedCount++;
+            }
+
+            if (deletedCount > 0) {
+                triggerAlert({
+                    title: t("alerts.subject.success.delete.multiple.title"),
+                    description: t("alerts.subject.success.delete.multiple.description", { count: deletedCount }),
+                    variant: "success",
+                });
+            }
+
+            setSelectedIds([]);
+            setDeleteState({ type: null });
+        }
+    }, [deleteState, performDelete, triggerAlert, t]);
+
+    // Cerrar diálogo de eliminación
+    const handleCloseDeleteDialog = useCallback(() => {
+        setDeleteState({ type: null });
+    }, []);
+
+    // Función para formatear campos en conflicto (para creación)
+    const formatConflictFields = useCallback((fields: string[]): string => {
+        const translated = fields.map(field => t(`alerts.subject.error.create.${field}`));
+
+        if (translated.length === 1) return translated[0];
+        if (translated.length === 2) return translated.join(` ${t("common.and")} `);
+
+        const last = translated.pop()!;
+        return `${translated.join(", ")} ${t("common.and")} ${last}`;
+    }, [t]);
+
+    // Guardar nueva asignatura
+    const handleSave = useCallback(async (formData: SubjectFormData) => {
+
+        if (!degree?.id) return;
+
+        const result = await createSubject(formData, degree?.id, refetch);
+
+        if (result.success) {
+            setDrawerOpen(false);
+            triggerAlert({
+                title: t("alerts.subject.success.create.title"),
+                description: t("alerts.subject.success.create.description", { name: formData.name }),
+                variant: "success"
+            });
+            return;
+        }
+
+        // Manejo de errores de creación
+        let errorMessage = result.message || t("alerts.subject.error.create.description");
+
+        if (result.status === 409) {
+            const conflictData = result.data as { fields?: string[] } | undefined;
+
+            if (conflictData?.fields?.length) {
+                const fieldText = formatConflictFields(conflictData.fields);
+                errorMessage = t("alerts.subject.error.create.conflict.description", { fields: fieldText });
+            }
+        }
+
+        triggerAlert({
+            title: t("alerts.subject.error.create.title"),
+            description: errorMessage,
+            variant: "destructive",
+        });
+    }, [createSubject, degree, refetch, triggerAlert, t, formatConflictFields]);
+
+    // Generar props para el diálogo de eliminación
+    const getDeleteDialogProps = useCallback(() => {
+        if (!deleteState.type) {
+            return {
+                open: false,
+                onOpenChange: handleCloseDeleteDialog,
+                onConfirm: () => { },
+                title: "",
+                description: "",
+            };
+        }
+
+        const isSingle = deleteState.type === 'single';
+
+        return {
+            open: true,
+            onOpenChange: handleCloseDeleteDialog,
+            onConfirm: handleConfirmDelete,
+            title: isSingle
+                ? t("dialog.subjects.delete.single.title")
+                : t("dialog.subjects.delete.multiple.title"),
+            description: isSingle
+                ? t("dialog.subjects.delete.single.description", {
+                    name: subjects.find(s => s.id === deleteState.subjectId)?.name
+                })
+                : t("dialog.subjects.delete.multiple.description", {
+                    count: deleteState.selectedIds?.length || 0
+                }),
+        };
+    }, [deleteState, handleCloseDeleteDialog, handleConfirmDelete, t, subjects]);
+
+    // Mostrar loading mientras se obtiene el degree
+    if (isDegreeLoading) {
+        return <LoadingSpinner />
+    }
+
+    // Mostrar error si no se encuentra el degree
+    if (degreeError) {
+        return (
+            <div className="h-full flex items-center justify-center">
+                <div className="text-center">
+                    <h2 className="text-2xl font-bold text-destructive mb-2">
+                        {t("alerts.degree.error.title")}
+                    </h2>
+                    <p className="text-muted-foreground">{degreeError.message}</p>
+                </div>
+            </div>
+        )
     }
 
     return (
         <>
-            <SubjectToolbar refetchData={refetchData} deleteSelectedSubjects={deleteSelectedSubjects} selectedIds={selectedIds} />
+            <SubjectToolbar
+                deleteSelectedSubjects={handleDeleteSelectedSubjects}
+                selectedIds={selectedIds}
+                onCreateClick={() => setDrawerOpen(true)}
+            />
+
             <section className="h-full rounded-xl bg-muted/50 flex items-center justify-center m-2">
                 <div className="min-w-[400px] w-2/3">
-                    {!isLoading && <SubjectTable subjects={subjects} refetchData={refetchData} setSelectedIds={setSelectedIds} />}
-                    {isLoading && <LoadingSpinner />}
+                    {isSubjectsLoading ? (
+                        <LoadingSpinner />
+                    ) : (
+                        <SubjectTable
+                            subjects={subjects}
+                            deleteSubject={handleDeleteClick}
+                            setSelectedIds={setSelectedIds}
+                        />
+                    )}
                 </div>
             </section>
+
+            <CreateSubjectDrawer
+                open={drawerOpen && !!degree}
+                onOpenChange={setDrawerOpen}
+                onSave={handleSave}
+            />
+
+            <DeleteConfirmationDialog {...getDeleteDialogProps()} />
         </>
     )
 }

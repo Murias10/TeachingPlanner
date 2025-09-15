@@ -11,7 +11,7 @@ import {
     VisibilityState,
 } from "@tanstack/react-table"
 
-import { columns as defaultColumns } from "@/components/DegreeTable.config"
+import { columns as defaultColumns } from "@/components/group/GroupTable.config"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { ChevronDown } from "lucide-react"
@@ -29,18 +29,14 @@ import {
     TableRow,
     TableCell,
 } from "@/components/ui/table"
-import { Degree } from "@/types/Degree"
-// import { useTranslation } from "react-i18next"
-import { useEffect } from "react"
+import { Subject } from "@/types/Subject"
 import { useTranslation } from "react-i18next"
 
-interface DegreeTableProps {
-    degrees: Degree[];
-    deleteDegree: (degreeId: string) => void,
-    setSelectedIds: (ids: string[]) => void;
+interface GroupTableProps {
+    subjects: Subject[];
 }
 
-export function DegreeTable({ degrees, deleteDegree, setSelectedIds }: DegreeTableProps) {
+export function GroupTable({ subjects }: GroupTableProps) {
 
     const { t } = useTranslation();
 
@@ -50,14 +46,9 @@ export function DegreeTable({ degrees, deleteDegree, setSelectedIds }: DegreeTab
     const [rowSelection, setRowSelection] = React.useState({})
     const [filterValue, setFilterValue] = React.useState("")
 
-    useEffect(() => {
-        const ids = Object.keys(rowSelection).map(idx => degrees[Number(idx)]?.id).filter(Boolean)
-        setSelectedIds(ids)
-    }, [rowSelection, degrees, setSelectedIds])
-
     const table = useReactTable({
-        data: degrees,
-        columns: defaultColumns({ deleteDegree }, t),
+        data: subjects,
+        columns: defaultColumns(t),
         state: {
             sorting,
             columnFilters,
@@ -79,7 +70,7 @@ export function DegreeTable({ degrees, deleteDegree, setSelectedIds }: DegreeTab
         <div className="w-full">
             <div className="flex items-center py-4">
                 <Input
-                    placeholder={t("table.degrees.filter.placeholder")}
+                    placeholder="Filter subject..."
                     value={filterValue}
                     onChange={(e) => {
                         setFilterValue(e.target.value)
@@ -91,7 +82,7 @@ export function DegreeTable({ degrees, deleteDegree, setSelectedIds }: DegreeTab
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="outline" className="ml-auto">
-                            {t("table.degrees.columns.title")} <ChevronDown className="ml-2 h-4 w-4" />
+                            Columns <ChevronDown className="ml-2 h-4 w-4" />
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
@@ -110,7 +101,6 @@ export function DegreeTable({ degrees, deleteDegree, setSelectedIds }: DegreeTab
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
-
             <div className="rounded-lg border">
                 <Table>
                     <TableHeader>
@@ -149,7 +139,7 @@ export function DegreeTable({ degrees, deleteDegree, setSelectedIds }: DegreeTab
                                     colSpan={defaultColumns.length}
                                     className="h-24 text-center"
                                 >
-                                    {t("table.degrees.no.results")}
+                                    No subjects found.
                                 </TableCell>
                             </TableRow>
                         )}
@@ -164,7 +154,7 @@ export function DegreeTable({ degrees, deleteDegree, setSelectedIds }: DegreeTab
                     onClick={() => table.previousPage()}
                     disabled={!table.getCanPreviousPage()}
                 >
-                    {t("table.pagination.previous")}
+                    Previous
                 </Button>
                 <Button
                     variant="outline"
@@ -172,7 +162,7 @@ export function DegreeTable({ degrees, deleteDegree, setSelectedIds }: DegreeTab
                     onClick={() => table.nextPage()}
                     disabled={!table.getCanNextPage()}
                 >
-                    {t("table.pagination.next")}
+                    Next
                 </Button>
             </div>
         </div>

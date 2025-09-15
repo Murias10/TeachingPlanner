@@ -12,7 +12,8 @@ import { Degree } from '@/entities/degree.entity'
 import { Group } from '@/entities/group.entity';
 
 @Entity('SUBJECTS')
-@Unique('UQ_SUBJECT_UNIQUE', ['name', 'acronym', 'degree'])
+@Unique('UQ_SUBJECT_NAME_DEGREE', ['name', 'degree'])
+@Unique('UQ_SUBJECT_ACRONYM_DEGREE', ['acronym', 'degree'])
 @Check('CHK_SEMESTER', '"SEMESTER" IN (1, 2)')
 @Check('CHK_YEAR', '"YEAR" IN (1, 2, 3, 4)')
 export class Subject {
@@ -22,10 +23,12 @@ export class Subject {
     @Column('varchar', { length: 20, name: 'ACRONYM' })
     acronym!: string
 
-    @Column('smallint', { name: 'SEMESTER' })
+    // Cambio de 'bigint' a 'int' - más eficiente para valores pequeños
+    @Column('int', { name: 'SEMESTER' })
     semester!: number;
 
-    @Column('bigint', { name: 'YEAR' })
+    // Cambio de 'bigint' a 'int' - más eficiente para valores pequeños
+    @Column('int', { name: 'YEAR' })
     year!: number;
 
     @Column('varchar', { length: 100, name: 'NAME' })
@@ -42,5 +45,4 @@ export class Subject {
     })
     @JoinColumn({ name: 'ID_DEGREE' })
     degree!: Degree
-
 }

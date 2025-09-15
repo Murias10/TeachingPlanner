@@ -11,7 +11,7 @@ import {
     VisibilityState,
 } from "@tanstack/react-table"
 
-import { columns as defaultColumns } from "@/components/GroupTable.config"
+import { columns as defaultColumns } from "@/components/subject/SubjectTable.config"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { ChevronDown } from "lucide-react"
@@ -30,13 +30,16 @@ import {
     TableCell,
 } from "@/components/ui/table"
 import { Subject } from "@/types/Subject"
+import { useEffect } from "react"
 import { useTranslation } from "react-i18next"
 
-interface GroupTableProps {
+interface SubjectTableProps {
     subjects: Subject[];
+    deleteSubject: (subjectId: string) => void;
+    setSelectedIds: (ids: string[]) => void;
 }
 
-export function GroupTable({ subjects }: GroupTableProps) {
+export function SubjectTable({ subjects, deleteSubject, setSelectedIds }: SubjectTableProps) {
 
     const { t } = useTranslation();
 
@@ -46,9 +49,14 @@ export function GroupTable({ subjects }: GroupTableProps) {
     const [rowSelection, setRowSelection] = React.useState({})
     const [filterValue, setFilterValue] = React.useState("")
 
+    useEffect(() => {
+        const ids = Object.keys(rowSelection).map(idx => subjects[Number(idx)]?.id).filter(Boolean)
+        setSelectedIds(ids)
+    }, [rowSelection, subjects, setSelectedIds])
+
     const table = useReactTable({
         data: subjects,
-        columns: defaultColumns(t),
+        columns: defaultColumns({ deleteSubject }, t),
         state: {
             sorting,
             columnFilters,
@@ -70,7 +78,7 @@ export function GroupTable({ subjects }: GroupTableProps) {
         <div className="w-full">
             <div className="flex items-center py-4">
                 <Input
-                    placeholder="Filter subject..."
+                    placeholder={t("table.subjects.filter.placeholder")}
                     value={filterValue}
                     onChange={(e) => {
                         setFilterValue(e.target.value)
@@ -82,12 +90,11 @@ export function GroupTable({ subjects }: GroupTableProps) {
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="outline" className="ml-auto">
-                            Columns <ChevronDown className="ml-2 h-4 w-4" />
+                            {t("table.subjects.columns.title")} <ChevronDown className="ml-2 h-4 w-4" />
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                        {table
-                            .getAllColumns()
+                        {table.getAllColumns()
                             .filter((c) => c.getCanHide())
                             .map((c) => (
                                 <DropdownMenuCheckboxItem
@@ -101,6 +108,7 @@ export function GroupTable({ subjects }: GroupTableProps) {
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
+
             <div className="rounded-lg border">
                 <Table>
                     <TableHeader>
@@ -125,21 +133,15 @@ export function GroupTable({ subjects }: GroupTableProps) {
                                 <TableRow key={row.id}>
                                     {row.getVisibleCells().map((cell) => (
                                         <TableCell key={cell.id}>
-                                            {flexRender(
-                                                cell.column.columnDef.cell,
-                                                cell.getContext()
-                                            )}
+                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                         </TableCell>
                                     ))}
                                 </TableRow>
                             ))
                         ) : (
                             <TableRow>
-                                <TableCell
-                                    colSpan={defaultColumns.length}
-                                    className="h-24 text-center"
-                                >
-                                    No subjects found.
+                                <TableCell colSpan={defaultColumns.length} className="h-24 text-center">
+                                    {t("table.subjects.no.results")}
                                 </TableCell>
                             </TableRow>
                         )}
@@ -154,7 +156,7 @@ export function GroupTable({ subjects }: GroupTableProps) {
                     onClick={() => table.previousPage()}
                     disabled={!table.getCanPreviousPage()}
                 >
-                    Previous
+                    {t("table.pagination.previous")}
                 </Button>
                 <Button
                     variant="outline"
@@ -162,7 +164,7 @@ export function GroupTable({ subjects }: GroupTableProps) {
                     onClick={() => table.nextPage()}
                     disabled={!table.getCanNextPage()}
                 >
-                    Next
+                    {t("table.pagination.next")}
                 </Button>
             </div>
         </div>

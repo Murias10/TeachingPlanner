@@ -3,7 +3,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import { ArrowUpDown } from 'lucide-react'
 import { Course } from "@/types/Course"
-import { CourseTableButtons } from "@/components/CourseTableButtons"
+import { CourseTableButtons } from "@/components/course/CourseTableButtons"
 import { TFunction } from 'i18next'
 
 interface ColumnExtraProps {

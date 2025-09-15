@@ -28,6 +28,8 @@ export class Group {
     @JoinColumn({ name: 'ID_SUBJECT' })
     subject!: Subject;
 
-    @ManyToMany(() => Event, (event) => event.groups)
+    @ManyToMany(() => Event, (event) => event.groups, {
+        cascade: true,
+    })
     events!: Event[];
 }

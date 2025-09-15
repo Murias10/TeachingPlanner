@@ -1,8 +1,8 @@
 
-import { GroupToolbar } from "@/components/GroupToolbar"
+import { GroupToolbar } from "@/components/group/GroupToolbar"
 import { useBreadcrumbContext } from "@/context/useBreadcrumbContext"
 import { useCallback, useEffect } from "react"
-import { GroupTable } from "@/components/GroupTable"
+import { GroupTable } from "@/components/group/GroupTable"
 import { useTranslation } from "react-i18next"
 import { useSubjectsWithEventsAndGroupsByCourseAndSemester } from "@/hooks/useSubjectsWithEventsAndGroupsByCourseIdAndSemester"
 import { LoadingSpinner } from "@/components/LoadingSpinner"

@@ -1,4 +1,3 @@
-// components/SubjectTable.tsx
 import * as React from "react"
 import {
     useReactTable,
@@ -12,7 +11,7 @@ import {
     VisibilityState,
 } from "@tanstack/react-table"
 
-import { columns as defaultColumns } from "@/components/SubjectTable.config"
+import { columns as defaultColumns } from "@/components/classroom/ClassroomTable.config"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { ChevronDown } from "lucide-react"
@@ -30,17 +29,17 @@ import {
     TableRow,
     TableCell,
 } from "@/components/ui/table"
-import { Subject } from "@/types/Subject"
-import { useTranslation } from "react-i18next"
+import { Classroom } from "@/types/Classroom"
 import { useEffect } from "react"
+import { useTranslation } from "react-i18next"
 
-interface SubjectTableProps {
-    subjects: Subject[];
-    refetchData?: () => void;
+interface ClassroomTableProps {
+    classrooms: Classroom[];
+    deleteClassroom: (classroomId: string) => void,
     setSelectedIds: (ids: string[]) => void;
 }
 
-export function SubjectTable({ subjects, refetchData: onSubjectDeleted, setSelectedIds }: SubjectTableProps) {
+export function ClassroomTable({ classrooms, deleteClassroom, setSelectedIds }: ClassroomTableProps) {
 
     const { t } = useTranslation();
 
@@ -51,13 +50,14 @@ export function SubjectTable({ subjects, refetchData: onSubjectDeleted, setSelec
     const [filterValue, setFilterValue] = React.useState("")
 
     useEffect(() => {
-        const ids = Object.keys(rowSelection).map(idx => subjects[Number(idx)]?.id).filter(Boolean)
+        const ids = Object.keys(rowSelection).map(idx => classrooms[Number(idx)]?.id).filter(Boolean)
         setSelectedIds(ids)
-    }, [rowSelection, subjects, setSelectedIds])
+    }, [rowSelection, classrooms, setSelectedIds])
+
 
     const table = useReactTable({
-        data: subjects,
-        columns: defaultColumns({ onSubjectDeleted }, t),
+        data: classrooms,
+        columns: defaultColumns({ deleteClassroom }, t),
         state: {
             sorting,
             columnFilters,
@@ -72,18 +72,19 @@ export function SubjectTable({ subjects, refetchData: onSubjectDeleted, setSelec
         getSortedRowModel: getSortedRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
-        initialState: { pagination: { pageSize: 10 } },
+        initialState: { pagination: { pageSize: 6 } },
     })
 
     return (
+
         <div className="w-full">
             <div className="flex items-center py-4">
                 <Input
-                    placeholder={t("table.subjects.filter.placeholder")}
+                    placeholder={t("table.classrooms.filter.placeholder")}
                     value={filterValue}
                     onChange={(e) => {
                         setFilterValue(e.target.value)
-                        table.getColumn("name")?.setFilterValue(e.target.value)
+                        table.getColumn("code")?.setFilterValue(e.target.value)
                     }}
                     className="max-w-sm"
                 />
@@ -91,7 +92,7 @@ export function SubjectTable({ subjects, refetchData: onSubjectDeleted, setSelec
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="outline" className="ml-auto">
-                            {t("table.subjects.columns.title")} <ChevronDown className="ml-2 h-4 w-4" />
+                            {t("table.classrooms.columns.title")} <ChevronDown className="ml-2 h-4 w-4" />
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
@@ -109,6 +110,7 @@ export function SubjectTable({ subjects, refetchData: onSubjectDeleted, setSelec
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
+
             <div className="rounded-lg border">
                 <Table>
                     <TableHeader>
@@ -141,7 +143,7 @@ export function SubjectTable({ subjects, refetchData: onSubjectDeleted, setSelec
                         ) : (
                             <TableRow>
                                 <TableCell colSpan={defaultColumns.length} className="h-24 text-center">
-                                    {t("table.subjects.no.results")}
+                                    {t("table.classrooms.no.results")}
                                 </TableCell>
                             </TableRow>
                         )}

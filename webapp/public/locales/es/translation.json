@@ -120,10 +120,7 @@
                         "title": "Error al eliminar las aulas",
                         "description": "No se pudieron eliminar las aulas. Por favor, inténtalo de nuevo mas tarde."
                     }
-                },
-                "hasEvents": "No se puede eliminar el aula porque tiene eventos asociados.",
-                "default": "No se pudo eliminar el aula.",
-                "network": "Error de red al intentar eliminar el aula."
+                }
             },
             "success": {
                 "create": {
@@ -131,30 +128,62 @@
                     "description": "El aula '{{code}}' fue creada correctamente."
                 },
                 "delete": {
-                    "title": "Aula eliminada",
-                    "description": "El aula '{{code}}' fue eliminada correctamente."
-                },
-                "delete.multiple": {
-                    "title": "Aulas eliminadas",
-                    "description": "Las aulas fueron eliminadas correctamente."
+                    "individual": {
+                        "title": "Aula eliminada",
+                        "description": "El aula '{{code}}' fue eliminada correctamente."
+                    },
+                    "multiple": {
+                        "title": "Aulas eliminadas",
+                        "description": "Las aulas fueron eliminadas correctamente."
+                    }
                 }
             }
         },
-        "calendar": {
+        "subject": {
             "error": {
-                "title": "Error",
-                "notFound": "El calendario no existe.",
-                "default": "No se pudo eliminar el calendario.",
-                "network": "Error de red al intentar eliminar el calendario."
-            },
-            "warning": {
-                "title": "Calendario con eventos",
-                "hasEvents": "Este calendario tiene {{count}} eventos asignados. ¿Deseas continuar?"
+                "read": {
+                    "title": "Error al cargar las asignaturas",
+                    "description": "No se pudieron cargar las asignaturas. Por favor, inténtalo de nuevo mas tarde."
+                }
             },
             "success": {
+                "create": {
+                    "title": "Asignatura creada",
+                    "description": "La asignatura '{{name}}' fue creada correctamente."
+                },
                 "delete": {
-                    "title": "Calendario eliminado",
-                    "description": "El calendario y sus datos asociados fueron eliminados correctamente."
+                    "individual": {
+                        "title": "Asignatura eliminada",
+                        "description": "La asignatura '{{name}}' fue eliminada correctamente."
+                    },
+                    "multiple": {
+                        "title": "Asignaturas eliminadas",
+                        "description": "Las asignaturas fueron eliminadas correctamente."
+                    }
+                }
+            }
+        },
+        "course": {
+            "error": {
+                "create": {
+                    "title": "Error al crear el curso",
+                    "description": "No se pudo crear el curso. Por favor, inténtalo de nuevo mas tarde."
+                }
+            },
+            "success": {
+                "create": {
+                    "title": "Curso creado",
+                    "description": "El curso '{{startYear}}-{{endYear}}' fue creado correctamente."
+                },
+                "delete": {
+                    "individual": {
+                        "title": "Curso eliminado",
+                        "description": "El curso '{{startYear}}-{{endYear}}' fue eliminado correctamente."
+                    },
+                    "multiple": {
+                        "title": "Cursos eliminados",
+                        "description": "Los cursos fueron eliminados correctamente."
+                    }
                 }
             }
         }
@@ -203,7 +232,14 @@
                 "title": "Crear curso",
                 "description": "Completa los campos para crear un nuevo curso.",
                 "start.end.year": "Año académico del curso",
+                "start.end.year.placeholder": "Selecciona un año académico",
                 "state": "Estado del curso",
+                "state.placeholder": "Selecciona un estado",
+                "states": {
+                    "active": "Activo",
+                    "inactive": "Inactivo",
+                    "archived": "Archivado"
+                },
                 "save": "Guardar curso",
                 "cancel": "Cancelar"
             }
@@ -248,6 +284,30 @@
                 "multiple": {
                     "title": "Confirmar eliminación múltiple",
                     "description": "Esta acción eliminará {{count}} aula(s) y todos los eventos realizados en dichas aulas. Esta acción no se puede deshacer."
+                }
+            }
+        },
+        "subjects": {
+            "delete": {
+                "single": {
+                    "title": "Confirmar eliminación",
+                    "description": "Esta acción eliminará la asignatura '{{name}}' y toda la información relacionada (grupos, eventos, etc.). Esta acción no se puede deshacer."
+                },
+                "multiple": {
+                    "title": "Confirmar eliminación múltiple",
+                    "description": "Esta acción eliminará {{count}} asignatura(s) y toda su información relacionada (grupos, eventos, etc.). Esta acción no se puede deshacer."
+                }
+            }
+        },
+        "courses": {
+            "delete": {
+                "single": {
+                    "title": "Confirmar eliminación",
+                    "description": "Esta acción eliminará el curso '{{startYear}}-{{endYear}}' y toda la información relacionada (grupos, asignaturas, eventos, etc.). Esta acción no se puede deshacer."
+                },
+                "multiple": {
+                    "title": "Confirmar eliminación múltiple",
+                    "description": "Esta acción eliminará {{count}} curso(s) y toda su información relacionada (grupos, asignaturas, eventos, etc.). Esta acción no se puede deshacer."
                 }
             }
         }

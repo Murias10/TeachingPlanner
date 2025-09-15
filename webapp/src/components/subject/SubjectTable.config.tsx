@@ -12,10 +12,10 @@ import { TFunction } from "i18next"
 import { Subject } from "@/types/Subject"
 
 interface ColumnExtraProps {
-    onSubjectDeleted?: () => void;
+    deleteSubject: (subjectId: string) => void;
 }
 
-export const columns = ({ onSubjectDeleted }: ColumnExtraProps, t: TFunction): ColumnDef<Subject>[] => [
+export const columns = ({ deleteSubject }: ColumnExtraProps, t: TFunction): ColumnDef<Subject>[] => [
     {
         id: "select",
         header: ({ table }) => (
@@ -104,22 +104,6 @@ export const columns = ({ onSubjectDeleted }: ColumnExtraProps, t: TFunction): C
         cell: ({ row }) => {
             const subject = row.original
 
-            const handleDelete = async () => {
-
-                try {
-                    const res = await fetch(`http://localhost:8080/subject/${subject.id}`, {
-                        method: "DELETE"
-                    });
-                    if (!res.ok) {
-                        console.error("Error al eliminar la asignatura", await res.text());
-                        return;
-                    }
-                    if (onSubjectDeleted) onSubjectDeleted()
-                } catch (err) {
-                    console.error("Error de red:", err)
-                }
-            }
-
             return (
                 <div className="flex justify-end space-x-2">
                     <Tooltip>
@@ -146,7 +130,7 @@ export const columns = ({ onSubjectDeleted }: ColumnExtraProps, t: TFunction): C
 
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <Button variant="destructive" size="icon" className="size-10" onClick={handleDelete}>
+                            <Button variant="destructive" size="icon" className="size-10" onClick={() => deleteSubject(subject.id)}>
                                 <Trash2 />
                             </Button>
                         </TooltipTrigger>

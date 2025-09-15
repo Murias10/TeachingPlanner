@@ -8,10 +8,10 @@ import {
     flexRender,
     SortingState,
     ColumnFiltersState,
-    VisibilityState,
+    VisibilityState
 } from "@tanstack/react-table"
 
-import { columns as defaultColumns } from "@/components/ClassroomTable.config"
+import { columns as defaultColumns } from "@/components/course/CourseTable.config"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { ChevronDown } from "lucide-react"
@@ -19,7 +19,7 @@ import {
     DropdownMenu,
     DropdownMenuTrigger,
     DropdownMenuContent,
-    DropdownMenuCheckboxItem,
+    DropdownMenuCheckboxItem
 } from "@/components/ui/dropdown-menu"
 import {
     Table,
@@ -27,19 +27,20 @@ import {
     TableHead,
     TableBody,
     TableRow,
-    TableCell,
+    TableCell
 } from "@/components/ui/table"
-import { Classroom } from "@/types/Classroom"
-import { useEffect } from "react"
+import { Course } from "@/types/Course"
 import { useTranslation } from "react-i18next"
+import { useEffect } from "react"
 
-interface ClassroomTableProps {
-    classrooms: Classroom[];
-    deleteClassroom: (classroomId: string) => void,
+interface CourseTableProps {
+    courses: Course[];
+    deleteCourse: (courseId: string) => void,
+    deleteCalendar: (calendarId: string, force: boolean) => void
     setSelectedIds: (ids: string[]) => void;
 }
 
-export function ClassroomTable({ classrooms, deleteClassroom, setSelectedIds }: ClassroomTableProps) {
+export function CourseTable({ courses, deleteCourse, deleteCalendar, setSelectedIds }: CourseTableProps) {
 
     const { t } = useTranslation();
 
@@ -50,19 +51,18 @@ export function ClassroomTable({ classrooms, deleteClassroom, setSelectedIds }: 
     const [filterValue, setFilterValue] = React.useState("")
 
     useEffect(() => {
-        const ids = Object.keys(rowSelection).map(idx => classrooms[Number(idx)]?.id).filter(Boolean)
+        const ids = Object.keys(rowSelection).map(idx => courses[Number(idx)]?.id).filter(Boolean)
         setSelectedIds(ids)
-    }, [rowSelection, classrooms, setSelectedIds])
-
+    }, [rowSelection, courses, setSelectedIds])
 
     const table = useReactTable({
-        data: classrooms,
-        columns: defaultColumns({ deleteClassroom }, t),
+        data: courses,
+        columns: defaultColumns({ deleteCourse, deleteCalendar }, t),
         state: {
             sorting,
             columnFilters,
             columnVisibility,
-            rowSelection,
+            rowSelection
         },
         onSortingChange: setSorting,
         onColumnFiltersChange: setColumnFilters,
@@ -72,19 +72,18 @@ export function ClassroomTable({ classrooms, deleteClassroom, setSelectedIds }: 
         getSortedRowModel: getSortedRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
-        initialState: { pagination: { pageSize: 6 } },
+        initialState: { pagination: { pageSize: 10 } }
     })
 
     return (
-
         <div className="w-full">
             <div className="flex items-center py-4">
                 <Input
-                    placeholder={t("table.classrooms.filter.placeholder")}
+                    placeholder={t("table.courses.filter.placeholder")}
                     value={filterValue}
-                    onChange={(e) => {
+                    onChange={e => {
                         setFilterValue(e.target.value)
-                        table.getColumn("code")?.setFilterValue(e.target.value)
+                        table.getColumn("state")?.setFilterValue(e.target.value)
                     }}
                     className="max-w-sm"
                 />
@@ -92,17 +91,17 @@ export function ClassroomTable({ classrooms, deleteClassroom, setSelectedIds }: 
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="outline" className="ml-auto">
-                            {t("table.classrooms.columns.title")} <ChevronDown className="ml-2 h-4 w-4" />
+                            {t("table.courses.columns.title")}<ChevronDown className="ml-2 h-4 w-4" />
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                         {table.getAllColumns()
-                            .filter((c) => c.getCanHide())
-                            .map((c) => (
+                            .filter(c => c.getCanHide())
+                            .map(c => (
                                 <DropdownMenuCheckboxItem
                                     key={c.id}
                                     checked={c.getIsVisible()}
-                                    onCheckedChange={(v) => c.toggleVisibility(!!v)}
+                                    onCheckedChange={v => c.toggleVisibility(!!v)}
                                 >
                                     {c.id}
                                 </DropdownMenuCheckboxItem>
@@ -114,9 +113,9 @@ export function ClassroomTable({ classrooms, deleteClassroom, setSelectedIds }: 
             <div className="rounded-lg border">
                 <Table>
                     <TableHeader>
-                        {table.getHeaderGroups().map((headerGroup) => (
+                        {table.getHeaderGroups().map(headerGroup => (
                             <TableRow key={headerGroup.id}>
-                                {headerGroup.headers.map((header) => (
+                                {headerGroup.headers.map(header => (
                                     <TableHead key={header.id}>
                                         {header.isPlaceholder
                                             ? null
@@ -131,19 +130,25 @@ export function ClassroomTable({ classrooms, deleteClassroom, setSelectedIds }: 
                     </TableHeader>
                     <TableBody>
                         {table.getRowModel().rows.length ? (
-                            table.getRowModel().rows.map((row) => (
+                            table.getRowModel().rows.map(row => (
                                 <TableRow key={row.id}>
-                                    {row.getVisibleCells().map((cell) => (
+                                    {row.getVisibleCells().map(cell => (
                                         <TableCell key={cell.id}>
-                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                            {flexRender(
+                                                cell.column.columnDef.cell,
+                                                cell.getContext()
+                                            )}
                                         </TableCell>
                                     ))}
                                 </TableRow>
                             ))
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={defaultColumns.length} className="h-24 text-center">
-                                    {t("table.classrooms.no.results")}
+                                <TableCell
+                                    colSpan={defaultColumns.length}
+                                    className="h-24 text-center"
+                                >
+                                    {t("table.courses.no.results")}
                                 </TableCell>
                             </TableRow>
                         )}

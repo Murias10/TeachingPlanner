@@ -1,6 +1,6 @@
-import { DegreeToolbar } from "@/components/DegreeToolbar"
-import { DegreeTable } from "@/components/DegreeTable"
-import { CreateDegreeDrawer } from "@/components/CreateDegreeDrawer"
+import { DegreeToolbar } from "@/components/degree/DegreeToolbar"
+import { DegreeTable } from "@/components/degree/DegreeTable"
+import { CreateDegreeDrawer } from "@/components/degree/CreateDegreeDrawer"
 import { DeleteConfirmationDialog } from "@/components/DeleteConfirmationDialog"
 import { useBreadcrumbContext } from "@/context/useBreadcrumbContext"
 import { useCallback, useEffect, useState } from "react"
@@ -65,8 +65,8 @@ export default function DegreePage() {
             });
         } else {
             triggerAlert({
-                title: t("common.error"),
-                description: result.message,
+                title: t("alerts.degree.error.delete.individual.title"),
+                description: t("alerts.degree.error.delete.individual.description"),
                 variant: "destructive",
             });
         }

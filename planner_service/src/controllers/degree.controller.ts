@@ -1,12 +1,11 @@
 import { Request, Response } from 'express';
 import { AppDataSource } from '@/config/data-source';
 import { Degree } from '@/entities/degree.entity';
-import { Course } from '@/entities/course.entity';
-import { Subject } from '@/entities/subject.entity';
 
 export const getDegrees = async (_req: Request, res: Response) => {
     try {
         const degrees = await AppDataSource.getRepository(Degree).find();
+
         res.status(200).json({
             status: 'success',
             message: 'Degrees fetched successfully',
@@ -23,6 +22,35 @@ export const getDegrees = async (_req: Request, res: Response) => {
         });
     }
 };
+
+export const getDegreeByAcronym = async (req: Request, res: Response) => {
+    const { acronym } = req.params;
+    try {
+        const degree = await AppDataSource.getRepository(Degree).findOneBy({ acronym });
+
+        if (!degree) {
+            res.status(404).json({
+                status: 'error',
+                message: 'Degree not found',
+                data: null,
+            });
+            return;
+        }
+        res.status(200).json({
+            status: 'success',
+            message: 'Degree fetched successfully',
+            data: degree,
+        });
+
+    } catch (error) {
+
+        res.status(500).json({
+            status: 'error',
+            message: 'Error fetching degree',
+            data: null,
+        });
+    }
+}
 
 export const createDegree = async (req: Request, res: Response) => {
     const { name, acronym } = req.body;

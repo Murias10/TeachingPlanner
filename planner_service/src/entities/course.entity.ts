@@ -10,8 +10,15 @@ import {
 import { Calendar } from '@/entities/calendar.entity'
 import { Degree } from '@/entities/degree.entity'
 
+// Enum con los estados posibles para un curso
+export enum CourseState {
+  PLANIFICADO = 'PLANIFICADO',     // Curso planificado pero aún no iniciado
+  ACTIVO = 'ACTIVO',               // Curso actualmente en desarrollo
+  FINALIZADO = 'FINALIZADO'        // Curso completado exitosamente
+}
+
 @Entity('COURSES')
-@Unique('UQ_COURSE_UNIQUE', ['degree', 'startYear', 'endYear']) // usar nombre de propiedad, no columna
+@Unique('UQ_COURSE_UNIQUE', ['degree', 'startYear', 'endYear'])
 export class Course {
   @PrimaryGeneratedColumn('uuid', { name: 'ID' })
   id!: string
@@ -22,8 +29,13 @@ export class Course {
   @Column('smallint', { name: 'END_YEAR' })
   endYear!: number
 
-  @Column('varchar', { length: 20, name: 'STATE' })
-  state!: string
+  @Column({
+    type: 'enum',
+    enum: CourseState,
+    default: CourseState.PLANIFICADO,
+    name: 'STATE'
+  })
+  state!: CourseState
 
   @ManyToOne(() => Degree, degree => degree.courses, {
     onDelete: 'CASCADE',

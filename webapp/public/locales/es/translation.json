@@ -256,6 +256,14 @@
                 "save": "Guardar asigantura",
                 "cancel": "Cancelar"
             }
+        },
+        "calendar": {
+            "create": {
+                "title": "Crear calendario",
+                "description": "Completa los campos para crear un nuevo calendario.",
+                "save": "Guardar calendario",
+                "cancel": "Cancelar"
+            }
         }
     },
     "dialog": {

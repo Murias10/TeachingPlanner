@@ -1,5 +1,5 @@
 import express from 'express';
-import { getDegrees, getCourses, getCoursesByDegreeId, getCoursesByDegreeAcronym, getSubjects, getSubjectsByDegreeId, getSubjectsWithEventsAndGroupsByCourseAndSemester, getClassrooms, createClassroom, deleteClassroom, createDegree, deleteDegree, deleteSubject, createSubject, deleteCourse, deleteCalendar, getDegreeByAcronym, createCourse } from '@/controllers/planner.controller';
+import { getDegrees, getCourses, getCoursesByDegreeId, getCoursesByDegreeAcronym, getSubjects, getSubjectsByDegreeId, getSubjectsWithEventsAndGroupsByCourseAndSemester, getClassrooms, createClassroom, deleteClassroom, createDegree, deleteDegree, deleteSubject, createSubject, deleteCourse, deleteCalendar, getDegreeByAcronym, createCourse, createCalendar, getCalendarById } from '@/controllers/planner.controller';
 
 const router = express.Router();
 
@@ -44,6 +44,10 @@ router.post('/course', createCourse);
 router.delete('/course/:id', deleteCourse)
 
 //////////////////////////////////////////////
+
+router.get('/calendar/:id', getCalendarById);
+
+router.post('/calendar', createCalendar);
 
 router.delete('/calendar/:id', deleteCalendar)
 

@@ -37,10 +37,11 @@ interface CourseTableProps {
     courses: Course[];
     deleteCourse: (courseId: string) => void,
     deleteCalendar: (calendarId: string, force: boolean) => void
+    createCalendar: (courseId: string, semester: number) => void
     setSelectedIds: (ids: string[]) => void;
 }
 
-export function CourseTable({ courses, deleteCourse, deleteCalendar, setSelectedIds }: CourseTableProps) {
+export function CourseTable({ courses, deleteCourse, deleteCalendar, createCalendar, setSelectedIds }: CourseTableProps) {
 
     const { t } = useTranslation();
 
@@ -57,7 +58,7 @@ export function CourseTable({ courses, deleteCourse, deleteCalendar, setSelected
 
     const table = useReactTable({
         data: courses,
-        columns: defaultColumns({ deleteCourse, deleteCalendar }, t),
+        columns: defaultColumns({ deleteCourse, deleteCalendar, createCalendar }, t),
         state: {
             sorting,
             columnFilters,

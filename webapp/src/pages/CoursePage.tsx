@@ -12,6 +12,7 @@ import { useDeleteCourse } from "@/hooks/course/useDeleteCourse"
 import { useCreateCourse } from "@/hooks/course/useCreateCourse"
 import { useDegreeByAcronym } from "@/hooks/degree/useDegreeByAcronym"
 import { CreateCourseDrawer } from "@/components/course/CreateCourseDrawer"
+import { CreateCalendarDrawer } from "@/components/calendar/CreateCalendarDrawer"
 
 interface DeleteState {
     type: 'single' | 'bulk' | 'calendar' | null;
@@ -25,6 +26,12 @@ interface CourseFormData {
     endYear: string;
     state: string;
 }
+
+interface CalendarFormData {
+    courseId: string;
+    semester: number;
+}
+
 
 export default function CoursePage() {
     const { t } = useTranslation()
@@ -54,6 +61,12 @@ export default function CoursePage() {
 
     const [selectedIds, setSelectedIds] = useState<string[]>([])
     const [openDrawer, setOpenDrawer] = useState(false)
+    const [openCalendarDrawer, setOpenCalendarDrawer] = useState(false)
+    const [calendarDrawerData, setCalendarDrawerData] = useState<{
+        courseId: string;
+        semester: number;
+        courseYear: string;
+    } | null>(null)
     const [deleteState, setDeleteState] = useState<DeleteState>({ type: null })
 
     // Configurar breadcrumb
@@ -119,6 +132,19 @@ export default function CoursePage() {
             selectedIds: [...selectedIds]
         });
     }, [selectedIds]);
+
+    // Abrir drawer para crear calendario
+    const handleCreateCalendar = useCallback((courseId: string, semester: number) => {
+        const course = courses.find(c => c.id === courseId);
+        if (!course) return;
+
+        setCalendarDrawerData({
+            courseId,
+            semester,
+            courseYear: `${course.startYear}-${course.endYear}`
+        });
+        setOpenCalendarDrawer(true);
+    }, [courses]);
 
     // Manejar eliminación de calendario con confirmación
     const handleDeleteCalendar = useCallback(async (calendarId: string, force = false) => {
@@ -227,6 +253,12 @@ export default function CoursePage() {
         setDeleteState({ type: null });
     }, []);
 
+    // Cerrar drawer de calendario
+    const handleCloseCalendarDrawer = useCallback(() => {
+        setOpenCalendarDrawer(false);
+        setCalendarDrawerData(null);
+    }, []);
+
     // Guardar nuevo curso
     const handleSaveCourse = useCallback(async (formData: CourseFormData) => {
         if (!degree?.id) return;
@@ -259,6 +291,37 @@ export default function CoursePage() {
             variant: "destructive",
         });
     }, [degree?.id, createCourse, refetch, triggerAlert, t]);
+
+    // Guardar nuevo calendario
+    const handleSaveCalendar = useCallback(async (formData: CalendarFormData) => {
+        try {
+            // Aquí implementarías la llamada a la API para crear el calendario
+            // const result = await createCalendar(formData);
+
+            // Por ahora, simular éxito
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Simular delay
+
+            setOpenCalendarDrawer(false);
+            setCalendarDrawerData(null);
+
+            triggerAlert({
+                title: t("alerts.calendar.success.create.title"),
+                description: t("alerts.calendar.success.create.description", {
+                    semester: formData.semester,
+                    year: calendarDrawerData?.courseYear
+                }),
+                variant: "success"
+            });
+
+            refetch(); // Refrescar datos
+        } catch {
+            triggerAlert({
+                title: t("alerts.calendar.error.create.title"),
+                description: t("alerts.calendar.error.create.description"),
+                variant: "destructive"
+            });
+        }
+    }, [triggerAlert, t, refetch, calendarDrawerData]);
 
     // Generar props para el diálogo de eliminación
     const getDeleteDialogProps = useCallback(() => {
@@ -344,6 +407,7 @@ export default function CoursePage() {
                             courses={courses}
                             deleteCourse={handleDeleteCourse}
                             deleteCalendar={handleDeleteCalendar}
+                            createCalendar={handleCreateCalendar}
                             setSelectedIds={setSelectedIds}
                         />
                     )}
@@ -354,6 +418,15 @@ export default function CoursePage() {
                 open={openDrawer && !!degree?.id}
                 onOpenChange={setOpenDrawer}
                 onSave={handleSaveCourse}
+            />
+
+            <CreateCalendarDrawer
+                open={openCalendarDrawer}
+                onOpenChange={handleCloseCalendarDrawer}
+                onSave={handleSaveCalendar}
+                courseId={calendarDrawerData?.courseId}
+                semester={calendarDrawerData?.semester}
+                courseYear={calendarDrawerData?.courseYear}
             />
 
             <DeleteConfirmationDialog {...getDeleteDialogProps()} />

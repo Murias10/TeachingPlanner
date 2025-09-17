@@ -23,9 +23,10 @@ type Props = {
     course: Course
     deleteCourse: (courseId: string) => void;
     deleteCalendar: (calendarId: string, force: boolean) => void
+    createCalendar: (courseId: string, semester: number) => void;
 }
 
-export function CourseTableButtons({ course, deleteCourse, deleteCalendar }: Props) {
+export function CourseTableButtons({ course, deleteCourse, deleteCalendar, createCalendar }: Props) {
 
     const { t } = useTranslation()
 
@@ -77,7 +78,7 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar }: Pro
                     </Tooltip>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <Button variant="outline" size="icon" className="size-10">
+                            <Button variant="outline" size="icon" className="size-10" onClick={() => createCalendar(course.id, 1)}>
                                 <Plus />
                             </Button>
                         </TooltipTrigger>
@@ -127,7 +128,7 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar }: Pro
                     </Tooltip>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <Button variant="outline" size="icon" className="size-10">
+                            <Button variant="outline" size="icon" className="size-10" onClick={() => createCalendar(course.id, 2)}>
                                 <Plus />
                             </Button>
                         </TooltipTrigger>

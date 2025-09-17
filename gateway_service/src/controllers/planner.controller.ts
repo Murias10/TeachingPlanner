@@ -309,6 +309,42 @@ export const deleteClassroom = async (req: Request, res: Response, next: NextFun
         });
 };
 
+export const createCalendar = async (req: Request, res: Response, next: NextFunction) => {
+    const { idCourse, semester, start, end } = req.body;
+    fetch("http://planner_service:5001/calendar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idCourse, semester, start, end })
+    })
+        .then(async (response) => {
+            response.headers.forEach((value, key) => {
+                res.setHeader(key, value);
+            });
+            const body = await response.json();
+            res.status(response.status).json(body);
+        })
+        .catch((error) => {
+            next(error);
+        });
+};
+
+export const getCalendarById = async (req: Request, res: Response, next: NextFunction) => {
+    const { id } = req.params;
+    fetch(`http://planner_service:5001/calendar/${id}`)
+        .then(async (response) => {
+            // Copia los headers del planner service
+            response.headers.forEach((value, key) => {
+                res.setHeader(key, value);
+            });
+            // Obtén el body como JSON
+            const body = await response.json();
+            res.status(response.status).json(body);
+        })
+        .catch((error) => {
+            next(error);
+        });
+}
+
 
 export const deleteCalendar = async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;

@@ -1,4 +1,4 @@
-// components/CreateCourseDrawer.tsx
+// components/course/CreateCourseDrawer.tsx
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -24,13 +24,7 @@ import {
     Alert,
     AlertDescription,
 } from "@/components/ui/alert";
-import { CourseState, CourseStateManager } from "@/types/Course";
-
-interface CourseFormData {
-    startYear: string;
-    endYear: string;
-    state: CourseState;
-}
+import { CourseState, CourseStateManager, CourseFormData } from "@/types/Course";
 
 interface CreateCourseDrawerProps {
     open: boolean;
@@ -53,7 +47,7 @@ export const CreateCourseDrawer = ({
 }: CreateCourseDrawerProps) => {
     const { t } = useTranslation();
     const [selectedYearRange, setSelectedYearRange] = useState("");
-    const [state, setState] = useState<CourseState>(CourseState.PLANIFICADO);
+    const [state, setState] = useState<CourseState>(CourseState.PLANIFIED);
     const [isLoading, setIsLoading] = useState(false);
 
     const yearOptions = generateYearOptions();
@@ -62,7 +56,7 @@ export const CreateCourseDrawer = ({
     useEffect(() => {
         if (!open) {
             setSelectedYearRange("");
-            setState(CourseState.PLANIFICADO);
+            setState(CourseState.PLANIFIED);
             setIsLoading(false);
         }
     }, [open]);
@@ -111,7 +105,7 @@ export const CreateCourseDrawer = ({
                     {/* Select de año académico */}
                     <div className="space-y-2 max-w-sm mx-auto">
                         <Label htmlFor="course-start-end-year">
-                            {t("drawer.courses.create.start.end.year")}
+                            {t("drawer.courses.create.start.end.year.title")}
                         </Label>
                         <Select
                             value={selectedYearRange}
@@ -134,7 +128,7 @@ export const CreateCourseDrawer = ({
                     {/* Select de estado */}
                     <div className="space-y-3 max-w-sm mx-auto">
                         <Label htmlFor="course-state">
-                            {t("drawer.courses.create.state")}
+                            {t("drawer.courses.create.state.title")}
                         </Label>
                         <Select
                             value={state}
@@ -148,7 +142,7 @@ export const CreateCourseDrawer = ({
                                             variant="secondary"
                                             className={`text-xs ${CourseStateManager.getStateColor(state)}`}
                                         >
-                                            {state}
+                                            {t(`drawer.courses.create.states.${state.toLowerCase()}`)}
                                         </Badge>
                                         <span className="text-sm text-muted-foreground">
                                             {CourseStateManager.getStateDescription(state)}
@@ -164,12 +158,11 @@ export const CreateCourseDrawer = ({
                                                 variant="secondary"
                                                 className={`text-xs ${CourseStateManager.getStateColor(stateOption)}`}
                                             >
-                                                {stateOption}
+                                                {t(`drawer.courses.create.states.${stateOption}`).toUpperCase()}
                                             </Badge>
                                             <div className="flex flex-col">
                                                 <span className="font-medium">
-                                                    {t(`drawer.courses.create.states.${stateOption.toLowerCase()}`) ||
-                                                        stateOption.charAt(0).toUpperCase() + stateOption.slice(1).toLowerCase()}
+                                                    {t(`drawer.courses.create.states.${stateOption.toLowerCase()}`)}
                                                 </span>
                                                 <span className="text-xs text-muted-foreground">
                                                     {CourseStateManager.getStateDescription(stateOption)}
@@ -187,14 +180,13 @@ export const CreateCourseDrawer = ({
                             <AlertDescription>
                                 <div className="space-y-1">
                                     <p className="text-sm font-medium">
-                                        {t("drawer.courses.create.state.info.title", "Flujo de estados")}:
+                                        {t("drawer.courses.create.state.info.title")}:
                                     </p>
                                     <p className="text-xs text-muted-foreground">
-                                        PLANIFICADO → ACTIVO → FINALIZADO
+                                        {t("drawer.courses.create.states.planified")} → {t("drawer.courses.create.states.active")} → {t("drawer.courses.create.states.finished")}
                                     </p>
                                     <p className="text-xs text-muted-foreground">
-                                        {t("drawer.courses.create.state.info.description",
-                                            "Los cursos nuevos comienzan como 'Planificado' por defecto.")}
+                                        {t("drawer.courses.create.state.info.description")}
                                     </p>
                                 </div>
                             </AlertDescription>
@@ -217,14 +209,7 @@ export const CreateCourseDrawer = ({
                         disabled={!isFormValid || isLoading}
                         onClick={handleSave}
                     >
-                        {isLoading ? (
-                            <div className="flex items-center gap-2">
-                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent" />
-                                {t("drawer.courses.create.saving", "Guardando...")}
-                            </div>
-                        ) : (
-                            t("drawer.courses.create.save")
-                        )}
+                        {t("drawer.courses.create.save")}
                     </Button>
                 </div>
             </DrawerContent>

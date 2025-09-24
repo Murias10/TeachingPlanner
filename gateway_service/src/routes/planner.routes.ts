@@ -1,5 +1,22 @@
 import express from 'express';
-import { getDegrees, getCourses, getCoursesByDegreeId, getCoursesByDegreeAcronym, getSubjects, getSubjectsByDegreeId, getSubjectsWithEventsAndGroupsByCourseAndSemester, getClassrooms, createClassroom, deleteClassroom, createDegree, deleteDegree, deleteSubject, createSubject, deleteCourse, deleteCalendar, getDegreeByAcronym, createCourse, createCalendar, getCalendarById } from '@/controllers/planner.controller';
+import multer from 'multer';
+import { getDegrees, getCourses, getCoursesByDegreeId, getCoursesByDegreeAcronym, getSubjects, getSubjectsByDegreeId, getSubjectsWithEventsAndGroupsByCourseAndSemester, getClassrooms, createClassroom, deleteClassroom, createDegree, deleteDegree, deleteSubject, createSubject, deleteCourse, deleteCalendar, getDegreeByAcronym, createCourse, createCalendar, getCalendarById, createCalendarWithImport } from '@/controllers/planner.controller';
+
+// Configurar multer para el gateway
+const storage = multer.memoryStorage();
+const upload = multer({
+    storage,
+    fileFilter: (_req, file, cb) => {
+        if (file.originalname.endsWith('.txt')) {
+            cb(null, true);
+        } else {
+            cb(null, false);
+        }
+    },
+    limits: {
+        fileSize: 5 * 1024 * 1024 // 5MB límite
+    }
+});
 
 const router = express.Router();
 
@@ -48,6 +65,8 @@ router.delete('/course/:id', deleteCourse)
 router.get('/calendar/:id', getCalendarById);
 
 router.post('/calendar', createCalendar);
+
+router.post('/calendar/import', upload.array('files', 10), createCalendarWithImport);
 
 router.delete('/calendar/:id', deleteCalendar)
 

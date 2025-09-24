@@ -10,9 +10,13 @@ import { useParams } from "react-router-dom"
 import { useCoursesByDegreeAcronym } from "@/hooks/course/useCoursesByDegreeAcronym"
 import { useDeleteCourse } from "@/hooks/course/useDeleteCourse"
 import { useCreateCourse } from "@/hooks/course/useCreateCourse"
+import { useDeleteCalendar } from "@/hooks/calendar/useDeleteCalendar"
 import { useDegreeByAcronym } from "@/hooks/degree/useDegreeByAcronym"
+import { useImportCalendar } from "@/hooks/calendar/useImportCalendar"
 import { CreateCourseDrawer } from "@/components/course/CreateCourseDrawer"
 import { CreateCalendarDrawer } from "@/components/calendar/CreateCalendarDrawer"
+import { CourseFormData } from "@/types/Course"
+import { CalendarFormData, CalendarDrawerData } from "@/types/Calendar"
 
 interface DeleteState {
     type: 'single' | 'bulk' | 'calendar' | null;
@@ -20,18 +24,6 @@ interface DeleteState {
     calendarId?: string;
     selectedIds?: string[];
 }
-
-interface CourseFormData {
-    startYear: string;
-    endYear: string;
-    state: string;
-}
-
-interface CalendarFormData {
-    courseId: string;
-    semester: number;
-}
-
 
 export default function CoursePage() {
     const { t } = useTranslation()
@@ -42,6 +34,8 @@ export default function CoursePage() {
     const { triggerAlert } = useFloatingAlertContext()
     const { deleteCourse } = useDeleteCourse()
     const { createCourse } = useCreateCourse()
+    const { deleteCalendar } = useDeleteCalendar()
+    const { importCalendar } = useImportCalendar()
     const { setItems } = useBreadcrumbContext()
 
     // Obtener degree desde el acrónimo de la URL
@@ -62,11 +56,7 @@ export default function CoursePage() {
     const [selectedIds, setSelectedIds] = useState<string[]>([])
     const [openDrawer, setOpenDrawer] = useState(false)
     const [openCalendarDrawer, setOpenCalendarDrawer] = useState(false)
-    const [calendarDrawerData, setCalendarDrawerData] = useState<{
-        courseId: string;
-        semester: number;
-        courseYear: string;
-    } | null>(null)
+    const [calendarDrawerData, setCalendarDrawerData] = useState<CalendarDrawerData | null>(null)
     const [deleteState, setDeleteState] = useState<DeleteState>({ type: null })
 
     // Configurar breadcrumb
@@ -115,6 +105,38 @@ export default function CoursePage() {
         return result.success;
     }, [deleteCourse, refetch, triggerAlert, t, courses]);
 
+    // Función principal de eliminación de calendario
+    const performDeleteCalendar = useCallback(async (calendarId: string, showAlert = true) => {
+        const result = await deleteCalendar(calendarId, refetch);
+
+        if (result.success && showAlert) {
+            triggerAlert({
+                title: t("alerts.calendar.success.delete.title"),
+                description: t("alerts.calendar.success.delete.description"),
+                variant: "success"
+            });
+        } else if (!result.success && showAlert) {
+            let errorMessage = t("alerts.calendar.error.delete.description");
+
+            // Personalizar mensaje según el tipo de error
+            if (result.status === 404) {
+                errorMessage = t("alerts.calendar.error.delete.not_found");
+            } else if (result.status === 403) {
+                errorMessage = t("alerts.calendar.error.delete.forbidden");
+            } else if (result.message) {
+                errorMessage = result.message;
+            }
+
+            triggerAlert({
+                title: t("alerts.calendar.error.delete.title"),
+                description: errorMessage,
+                variant: "destructive"
+            });
+        }
+
+        return result.success;
+    }, [deleteCalendar, refetch, triggerAlert, t]);
+
     // Iniciar eliminación individual de curso
     const handleDeleteCourse = useCallback((courseId: string) => {
         setDeleteState({
@@ -136,98 +158,42 @@ export default function CoursePage() {
     // Abrir drawer para crear calendario
     const handleCreateCalendar = useCallback((courseId: string, semester: number) => {
         const course = courses.find(c => c.id === courseId);
-        if (!course) return;
+        if (!course || !degree?.id) return;
 
         setCalendarDrawerData({
             courseId,
             semester,
-            courseYear: `${course.startYear}-${course.endYear}`
+            courseYear: `${course.startYear}-${course.endYear}`,
+            degreeId: degree.id
         });
         setOpenCalendarDrawer(true);
+    }, [courses, degree?.id]);
+
+    // Iniciar eliminación de calendario
+    const handleDeleteCalendarWithConfirmation = useCallback((calendarId: string) => {
+        // Buscar el curso que contiene este calendario
+        const course = courses.find(c =>
+            c.calendars?.some(calendar => calendar.id === calendarId)
+        );
+
+        setDeleteState({
+            type: 'calendar',
+            calendarId,
+            courseId: course?.id // AGREGAR courseId al estado
+        });
     }, [courses]);
-
-    // Manejar eliminación de calendario con confirmación
-    const handleDeleteCalendar = useCallback(async (calendarId: string, force = false) => {
-        if (!force) {
-            // Primer intento - verificar si hay eventos relacionados
-            try {
-                const res = await fetch(`http://localhost:8080/calendar/${calendarId}`, {
-                    method: "DELETE",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({ force: false })
-                });
-
-                if (res.status === 409) {
-                    // Mostrar diálogo de confirmación
-                    setDeleteState({
-                        type: 'calendar',
-                        calendarId
-                    });
-                    return;
-                }
-
-                if (!res.ok) {
-                    throw new Error('Delete failed');
-                }
-
-                // Eliminación exitosa
-                triggerAlert({
-                    title: t("alerts.calendar.success.delete.title"),
-                    description: t("alerts.calendar.success.delete.description"),
-                    variant: "success"
-                });
-
-                refetch();
-            } catch {
-                triggerAlert({
-                    title: t("alerts.calendar.error.title"),
-                    description: t("alerts.calendar.error.network"),
-                    variant: "destructive"
-                });
-            }
-        } else {
-            // Eliminación forzada
-            try {
-                const res = await fetch(`http://localhost:8080/calendar/${calendarId}`, {
-                    method: "DELETE",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({ force: true })
-                });
-
-                if (!res.ok) throw new Error('Forced delete failed');
-
-                triggerAlert({
-                    title: t("alerts.calendar.success.delete.title"),
-                    description: t("alerts.calendar.success.delete.description"),
-                    variant: "success"
-                });
-
-                refetch();
-            } catch {
-                triggerAlert({
-                    title: t("alerts.calendar.error.title"),
-                    description: t("alerts.calendar.error.default"),
-                    variant: "destructive"
-                });
-            }
-        }
-    }, [triggerAlert, t, refetch]);
 
     // Confirmar eliminación
     const handleConfirmDelete = useCallback(async () => {
         if (deleteState.type === 'single' && deleteState.courseId) {
-            await performDeleteCourse(deleteState.courseId, true); // showAlert = true para borrado individual
+            await performDeleteCourse(deleteState.courseId, true);
             setDeleteState({ type: null });
 
         } else if (deleteState.type === 'bulk' && deleteState.selectedIds) {
             let deletedCount = 0;
 
             for (const id of deleteState.selectedIds) {
-                const success = await performDeleteCourse(id, false); // showAlert = false para borrado múltiple
+                const success = await performDeleteCourse(id, false);
                 if (success) deletedCount++;
             }
 
@@ -243,10 +209,10 @@ export default function CoursePage() {
             setDeleteState({ type: null });
 
         } else if (deleteState.type === 'calendar' && deleteState.calendarId) {
-            await handleDeleteCalendar(deleteState.calendarId, true);
+            await performDeleteCalendar(deleteState.calendarId, true);
             setDeleteState({ type: null });
         }
-    }, [deleteState, performDeleteCourse, handleDeleteCalendar, triggerAlert, t]);
+    }, [deleteState, performDeleteCourse, performDeleteCalendar, triggerAlert, t]);
 
     // Cerrar diálogo de eliminación
     const handleCloseDeleteDialog = useCallback(() => {
@@ -292,36 +258,85 @@ export default function CoursePage() {
         });
     }, [degree?.id, createCourse, refetch, triggerAlert, t]);
 
+    // Función para crear calendario manual
+    const createManualCalendar = useCallback(async (formData: CalendarFormData) => {
+        if (!calendarDrawerData?.degreeId) {
+            throw new Error('Degree ID is required');
+        }
+
+        const response = await fetch(`http://localhost:8080/api/calendars`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                idCourse: formData.courseId,
+                degreeId: calendarDrawerData.degreeId,
+                semester: formData.semester,
+                start: formData.startDate?.toISOString(),
+                end: formData.endDate?.toISOString()
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Error creating manual calendar');
+        }
+
+        return await response.json();
+    }, [calendarDrawerData]);
+
     // Guardar nuevo calendario
     const handleSaveCalendar = useCallback(async (formData: CalendarFormData) => {
+        if (!calendarDrawerData) return;
+
         try {
-            // Aquí implementarías la llamada a la API para crear el calendario
-            // const result = await createCalendar(formData);
+            if (formData.files?.length && formData.formData) {
+                // Modo importación
+                await importCalendar({
+                    courseId: formData.courseId,
+                    degreeId: calendarDrawerData.degreeId,
+                    semester: formData.semester,
+                    files: formData.files,
+                });
+            } else {
+                // Modo manual
+                await createManualCalendar(formData);
+            }
 
-            // Por ahora, simular éxito
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Simular delay
-
-            setOpenCalendarDrawer(false);
-            setCalendarDrawerData(null);
+            handleCloseCalendarDrawer();
 
             triggerAlert({
                 title: t("alerts.calendar.success.create.title"),
                 description: t("alerts.calendar.success.create.description", {
                     semester: formData.semester,
-                    year: calendarDrawerData?.courseYear
+                    year: calendarDrawerData.courseYear
                 }),
                 variant: "success"
             });
 
-            refetch(); // Refrescar datos
-        } catch {
+            refetch();
+
+        } catch (error) {
+            console.error('Error creating calendar:', error);
+
+            let errorMessage = t("alerts.calendar.error.create.description");
+
+            if (error instanceof Error) {
+                if (error.message.includes('already exists')) {
+                    errorMessage = t("alerts.calendar.error.create.conflict.description");
+                } else if (error.message.includes('Course not found')) {
+                    errorMessage = t("alerts.calendar.error.create.course.description");
+                } else {
+                    errorMessage = error.message;
+                }
+            }
+
             triggerAlert({
                 title: t("alerts.calendar.error.create.title"),
-                description: t("alerts.calendar.error.create.description"),
+                description: errorMessage,
                 variant: "destructive"
             });
         }
-    }, [triggerAlert, t, refetch, calendarDrawerData]);
+    }, [importCalendar, createManualCalendar, triggerAlert, t, refetch, calendarDrawerData, handleCloseCalendarDrawer]);
 
     // Generar props para el diálogo de eliminación
     const getDeleteDialogProps = useCallback(() => {
@@ -342,7 +357,10 @@ export default function CoursePage() {
                     onOpenChange: handleCloseDeleteDialog,
                     onConfirm: handleConfirmDelete,
                     title: t("dialog.courses.delete.single.title"),
-                    description: t("dialog.courses.delete.single.description", { startYear: courses.find(c => c.id === deleteState.courseId)?.startYear, endYear: courses.find(c => c.id === deleteState.courseId)?.endYear }),
+                    description: t("dialog.courses.delete.single.description", {
+                        startYear: courses.find(c => c.id === deleteState.courseId)?.startYear,
+                        endYear: courses.find(c => c.id === deleteState.courseId)?.endYear
+                    }),
                 };
 
             case 'bulk':
@@ -356,15 +374,24 @@ export default function CoursePage() {
                     }),
                 };
 
-            case 'calendar':
+            case 'calendar': {
+                // Una sola búsqueda del curso
+                const course = courses.find(c => c.id === deleteState.courseId);
+                // Una sola búsqueda del calendario
+                const calendar = course?.calendars?.find(cal => cal.id === deleteState.calendarId);
+
                 return {
                     open: true,
                     onOpenChange: handleCloseDeleteDialog,
                     onConfirm: handleConfirmDelete,
                     title: t("dialog.calendar.delete.title"),
-                    description: t("dialog.calendar.delete.description"),
+                    description: t("dialog.calendar.delete.description", {
+                        semester: calendar?.semester || 0,
+                        startYear: course?.startYear || 0,
+                        endYear: course?.endYear || 0
+                    }),
                 };
-
+            }
             default:
                 return {
                     open: false,
@@ -406,7 +433,7 @@ export default function CoursePage() {
                         <CourseTable
                             courses={courses}
                             deleteCourse={handleDeleteCourse}
-                            deleteCalendar={handleDeleteCalendar}
+                            deleteCalendar={handleDeleteCalendarWithConfirmation}
                             createCalendar={handleCreateCalendar}
                             setSelectedIds={setSelectedIds}
                         />
@@ -424,9 +451,7 @@ export default function CoursePage() {
                 open={openCalendarDrawer}
                 onOpenChange={handleCloseCalendarDrawer}
                 onSave={handleSaveCalendar}
-                courseId={calendarDrawerData?.courseId}
-                semester={calendarDrawerData?.semester}
-                courseYear={calendarDrawerData?.courseYear}
+                calendarData={calendarDrawerData}
             />
 
             <DeleteConfirmationDialog {...getDeleteDialogProps()} />

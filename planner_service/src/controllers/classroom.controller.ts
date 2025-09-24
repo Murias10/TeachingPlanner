@@ -53,9 +53,6 @@ export const createClassroom = async (req: Request, res: Response) => {
         const codeExists = await classroomRepo.findOneBy({ code });
         if (codeExists) conflicts.push("code");
 
-        const gisUrlExists = await classroomRepo.findOneBy({ gisUrl });
-        if (gisUrlExists) conflicts.push("gisUrl");
-
         if (conflicts.length > 0) {
             res.status(409).json({
                 status: "error",

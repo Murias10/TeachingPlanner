@@ -167,7 +167,9 @@
             "error": {
                 "create": {
                     "title": "Error al crear el curso",
-                    "description": "No se pudo crear el curso. Por favor, inténtalo de nuevo mas tarde."
+                    "description": "No se pudo crear el curso. Por favor, inténtalo de nuevo mas tarde.",
+                    "start.end.year": "Año académico",
+                    "conflict.description": "Ya existe un aula con el mismo '{{fields}}'."
                 }
             },
             "success": {
@@ -231,14 +233,22 @@
             "create": {
                 "title": "Crear curso",
                 "description": "Completa los campos para crear un nuevo curso.",
-                "start.end.year": "Año académico del curso",
-                "start.end.year.placeholder": "Selecciona un año académico",
-                "state": "Estado del curso",
-                "state.placeholder": "Selecciona un estado",
+                "start.end.year": {
+                    "title": "Año académico del curso",
+                    "placeholder": "Seleccion un año académico"
+                },
+                "state": {
+                    "title": "Estado del curso",
+                    "placeholder": "Selecciona un estado",
+                    "info": {
+                        "title": "Flujo de estados",
+                        "description": "Los cursos nuevos comienzan como 'Planificado' por defecto."
+                    }
+                },
                 "states": {
+                    "planified": "Planificado",
                     "active": "Activo",
-                    "inactive": "Inactivo",
-                    "archived": "Archivado"
+                    "finished": "Finalizado"
                 },
                 "save": "Guardar curso",
                 "cancel": "Cancelar"
@@ -261,6 +271,22 @@
             "create": {
                 "title": "Crear calendario",
                 "description": "Completa los campos para crear un nuevo calendario.",
+                "tabs": {
+                    "manual": {
+                        "title": "Manual",
+                        "start.date": "Fecha de inicio",
+                        "end.date": "Fecha de fin"
+                    },
+                    "import": {
+                        "title": "Importar",
+                        "required.files": "Archivos requeridos",
+                        "uploaded.files": "Archivos subidos",
+                        "drop": {
+                            "description": "Solo archivos .txt",
+                            "title": "Arrastra archivos aquí o haz clic para seleccionar"
+                        }
+                    }
+                },
                 "save": "Guardar calendario",
                 "cancel": "Cancelar"
             }
@@ -311,12 +337,18 @@
             "delete": {
                 "single": {
                     "title": "Confirmar eliminación",
-                    "description": "Esta acción eliminará el curso '{{startYear}}-{{endYear}}' y toda la información relacionada (grupos, asignaturas, eventos, etc.). Esta acción no se puede deshacer."
+                    "description": "Esta acción eliminará el curso {{startYear}}-{{endYear}} y toda la información relacionada (grupos, asignaturas, eventos, etc.). Esta acción no se puede deshacer."
                 },
                 "multiple": {
                     "title": "Confirmar eliminación múltiple",
                     "description": "Esta acción eliminará {{count}} curso(s) y toda su información relacionada (grupos, asignaturas, eventos, etc.). Esta acción no se puede deshacer."
                 }
+            }
+        },
+        "calendar": {
+            "delete": {
+                "title": "Confirmar eliminación",
+                "description": "Esta acción eliminará el calendario del semestre {{semester}} del año {{startYear}}-{{endYear}} y toda su información relacionada (grupos, días, eventos, etc.)"
             }
         }
     },

@@ -11,6 +11,13 @@ export const getCourses = async (_req: Request, res: Response) => {
             relations: ['calendars']
         })
 
+        // Ordenar calendarios por semestre para cada curso
+        courses.forEach(course => {
+            if (course.calendars && course.calendars.length > 0) {
+                course.calendars.sort((a, b) => a.semester - b.semester);
+            }
+        });
+
         res.status(200).json({
             status: 'success',
             message: 'Courses fetched successfully',
@@ -47,6 +54,13 @@ export const getCoursesByDegreeId = async (req: Request, res: Response) => {
 
         // Ordenar por año de inicio
         courses.sort((a, b) => a.startYear - b.startYear);
+
+        // Ordenar calendarios por semestre para cada curso
+        courses.forEach(course => {
+            if (course.calendars && course.calendars.length > 0) {
+                course.calendars.sort((a, b) => a.semester - b.semester);
+            }
+        });
 
         res.status(200).json({
             status: "success",
@@ -104,6 +118,13 @@ export const getCoursesByDegreeAcronym = async (req: Request, res: Response) => 
 
         // Ordenar por año de inicio
         courses.sort((a, b) => a.startYear - b.startYear);
+
+        // Ordenar calendarios por semestre para cada curso
+        courses.forEach(course => {
+            if (course.calendars && course.calendars.length > 0) {
+                course.calendars.sort((a, b) => a.semester - b.semester);
+            }
+        });
 
         res.status(200).json({
             status: "success",

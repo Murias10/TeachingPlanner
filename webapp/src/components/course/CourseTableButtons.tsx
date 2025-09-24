@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button"
 import { useAppContext } from "@/context/useAppContext"
 import { useNavigate } from "react-router-dom"
@@ -39,9 +38,22 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
         navigate(`${course.startYear}/${course.endYear}/semester/${semester}/groups`)
     }
 
+    // Funciones auxiliares para encontrar calendarios por semestre
+    const findCalendarBySemester = (semester: number) => {
+        return course.calendars?.find(calendar => calendar.semester === semester);
+    }
+
+    const hasCalendarForSemester = (semester: number) => {
+        return course.calendars?.some(calendar => calendar.semester === semester) || false;
+    }
+
+    // Obtener calendarios específicos
+    const semester1Calendar = findCalendarBySemester(1);
+    const semester2Calendar = findCalendarBySemester(2);
+
     return (
         <div className="flex justify-end space-x-2">
-            {course.calendars?.some(c => c.semester === 1) ? (
+            {hasCalendarForSemester(1) ? (
                 <>
                     <Tooltip>
                         <TooltipTrigger asChild>
@@ -55,7 +67,12 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
                     </Tooltip>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <Button variant="destructive" size="icon" className="size-10" onClick={() => deleteCalendar(course.calendars?.[0].id, false)}>
+                            <Button
+                                variant="destructive"
+                                size="icon"
+                                className="size-10"
+                                onClick={() => semester1Calendar && deleteCalendar(semester1Calendar.id, false)}
+                            >
                                 <Trash2 />
                             </Button>
                         </TooltipTrigger>
@@ -89,9 +106,8 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
                 </>
             )}
 
-            {course.calendars?.some(c => c.semester === 2) ? (
+            {hasCalendarForSemester(2) ? (
                 <>
-
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button variant="outline" size="lg" onClick={() => goToGroups(2)}>
@@ -104,7 +120,12 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
                     </Tooltip>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <Button variant="destructive" size="icon" className="size-10" onClick={() => deleteCalendar(course.calendars?.[1].id, false)}>
+                            <Button
+                                variant="destructive"
+                                size="icon"
+                                className="size-10"
+                                onClick={() => semester2Calendar && deleteCalendar(semester2Calendar.id, false)}
+                            >
                                 <Trash2 />
                             </Button>
                         </TooltipTrigger>
@@ -113,7 +134,6 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
                         </TooltipContent>
                     </Tooltip>
                 </>
-
             ) : (
                 <>
                     <Tooltip>

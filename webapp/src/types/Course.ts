@@ -1,10 +1,18 @@
-// types/course.types.ts
+// ============================================
+// types/Course.ts
+// ============================================
 import { Calendar } from "@/types/Calendar";
 
+export interface CourseFormData {
+    startYear: string;
+    endYear: string;
+    state: CourseState;
+}
+
 export enum CourseState {
-    PLANIFICADO = 'PLANIFICADO',
-    ACTIVO = 'ACTIVO',
-    FINALIZADO = 'FINALIZADO'
+    PLANIFIED = 'planified',
+    ACTIVE = 'active',
+    FINISHED = 'finished'
 }
 
 export interface Course {
@@ -26,9 +34,9 @@ export interface CreateCourseRequest {
 // Utilidad para validar transiciones de estado válidas
 export class CourseStateManager {
     private static readonly VALID_TRANSITIONS: Record<CourseState, CourseState[]> = {
-        [CourseState.PLANIFICADO]: [CourseState.ACTIVO],
-        [CourseState.ACTIVO]: [CourseState.FINALIZADO],
-        [CourseState.FINALIZADO]: [] // Estado final, no se puede cambiar
+        [CourseState.PLANIFIED]: [CourseState.ACTIVE],
+        [CourseState.ACTIVE]: [CourseState.FINISHED],
+        [CourseState.FINISHED]: []
     };
 
     static canTransition(from: CourseState, to: CourseState): boolean {
@@ -41,20 +49,20 @@ export class CourseStateManager {
 
     static getStateDescription(state: CourseState): string {
         const descriptions = {
-            [CourseState.PLANIFICADO]: 'Curso planificado, pendiente de inicio',
-            [CourseState.ACTIVO]: 'Curso en desarrollo activo',
-            [CourseState.FINALIZADO]: 'Curso completado exitosamente'
+            [CourseState.PLANIFIED]: 'Curso planificado, pendiente de inicio',
+            [CourseState.ACTIVE]: 'Curso en desarrollo activo',
+            [CourseState.FINISHED]: 'Curso completado exitosamente'
         };
         return descriptions[state];
     }
 
     static getStateColor(state: CourseState): string {
         switch (state) {
-            case CourseState.PLANIFICADO:
+            case CourseState.PLANIFIED:
                 return "bg-blue-100 text-blue-800 hover:bg-blue-200";
-            case CourseState.ACTIVO:
+            case CourseState.ACTIVE:
                 return "bg-green-100 text-green-800 hover:bg-green-200";
-            case CourseState.FINALIZADO:
+            case CourseState.FINISHED:
                 return "bg-gray-100 text-gray-800 hover:bg-gray-200";
             default:
                 return "bg-gray-100 text-gray-800";

@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
+import FormData from 'form-data';
 
 export const getDegrees = (_req: Request, res: Response, next: NextFunction) => {
     fetch('http://planner_service:5001/degrees')
@@ -327,6 +328,65 @@ export const createCalendar = async (req: Request, res: Response, next: NextFunc
             next(error);
         });
 };
+
+export const createCalendarWithImport = async (req: Request, res: Response) => {
+    try {
+        const files = req.files as Express.Multer.File[];
+        const { courseId, semester } = req.body;
+
+        console.log(courseId)
+        console.log(semester)
+        console.log(files)
+
+        // Crear FormData para enviar al servicio planner
+        const formData = new FormData()
+        formData.append('courseId', courseId);
+        formData.append('semester', semester);
+
+        // Agregar archivos al FormData
+        if (files && files.length > 0) {
+            files.forEach((file) => {
+                formData.append('files', file.buffer, {
+                    filename: file.originalname,
+                    contentType: file.mimetype,
+                    knownLength: file.buffer.length
+                });
+            });
+        }
+
+        console.log(formData)
+
+        console.log(`Proxying import request to planner service: courseId=${courseId}, semester=${semester}, files=${files?.length || 0}`);
+
+        // Usar fetch con el body y headers correctos para form-data
+        const response = await fetch(`http://planner_service:5001/calendar/import`, {
+            method: 'POST',
+            body: formData as any,
+            headers: {
+                ...formData.getHeaders(),
+            }
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            console.error('Planner service error:', data);
+            res.status(response.status).json(data);
+            return;
+        }
+
+        console.log('Import successful:', data);
+        res.status(201).json(data);
+    } catch (error) {
+        console.error('Error proxying create calendar with import:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error connecting to planner service',
+            data: error instanceof Error ? error.message : error
+        });
+    }
+};
+
 
 export const getCalendarById = async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;

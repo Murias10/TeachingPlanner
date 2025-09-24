@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button"
-import { useNavigate, useLocation } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 import { Degree } from "@/types/Degree"
 import { Trash2, Pencil, Eye, ChevronsRight } from "lucide-react"
 import {
@@ -18,9 +18,6 @@ export function DegreeTableButtons({ degree, deleteDegree }: Props) {
 
     const { t } = useTranslation()
 
-    const location = useLocation()
-    const view = location.state?.view
-
     const navigate = useNavigate()
 
     const goToCourses = () => {
@@ -32,53 +29,49 @@ export function DegreeTableButtons({ degree, deleteDegree }: Props) {
     }
 
     return (
-        <div className="flex justify-end space-x-2">
-            {view === "subjects" && (
-                <Button variant="outline" size="lg" onClick={goToSubjects}>
+        <div className="flex justify-end items-center space-x-2">
+
+            <div className="grid grid-cols-2 gap-2">
+                <Button variant="outline" size="lg" onClick={goToSubjects} className="w-full">
                     {t("table.degrees.actions.show.subjects")}<ChevronsRight />
                 </Button>
-            )}
-            {view === "calendars" && (
-                <Button variant="outline" size="lg" onClick={goToCourses}>
+                <Button variant="outline" size="lg" onClick={goToCourses} className="w-full">
                     {t("table.degrees.actions.show.courses")}<ChevronsRight />
                 </Button>
-            )}
-            {view === "degrees" && (
-                <>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button variant="outline" size="icon" className="size-10">
-                                <Eye />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>{t("table.degrees.actions.view")}</p>
-                        </TooltipContent>
-                    </Tooltip>
+            </div>
 
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button variant="outline" size="icon" className="size-10">
-                                <Pencil />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>{t("table.degrees.actions.edit")}</p>
-                        </TooltipContent>
-                    </Tooltip>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button variant="outline" size="icon" className="size-10">
+                        <Eye />
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p>{t("table.degrees.actions.view")}</p>
+                </TooltipContent>
+            </Tooltip>
 
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button variant="destructive" size="icon" className="size-10" onClick={() => deleteDegree(degree.id)}>
-                                <Trash2 />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>{t("table.degrees.actions.delete")}</p>
-                        </TooltipContent>
-                    </Tooltip>
-                </>
-            )}
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button variant="outline" size="icon" className="size-10">
+                        <Pencil />
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p>{t("table.degrees.actions.edit")}</p>
+                </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button variant="destructive" size="icon" className="size-10" onClick={() => deleteDegree(degree.id)}>
+                        <Trash2 />
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p>{t("table.degrees.actions.delete")}</p>
+                </TooltipContent>
+            </Tooltip>
         </div >
     )
 }

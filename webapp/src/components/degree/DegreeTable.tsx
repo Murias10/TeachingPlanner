@@ -30,7 +30,6 @@ import {
     TableCell,
 } from "@/components/ui/table"
 import { Degree } from "@/types/Degree"
-// import { useTranslation } from "react-i18next"
 import { useEffect } from "react"
 import { useTranslation } from "react-i18next"
 

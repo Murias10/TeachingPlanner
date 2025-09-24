@@ -7,7 +7,6 @@ import { useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useDegrees } from "@/hooks/degree/useDegrees"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
-import { useLocation } from "react-router-dom"
 import { useDeleteDegree } from "@/hooks/degree/useDeleteDegree"
 import { useCreateDegree } from "@/hooks/degree/useCreateDegree"
 import { useFloatingAlertContext } from "@/context/useFloatingAlertContext"
@@ -20,8 +19,6 @@ interface DeleteState {
 
 export default function DegreePage() {
     const { t } = useTranslation()
-    const location = useLocation()
-    const view = location.state?.view
 
     const { triggerAlert } = useFloatingAlertContext()
     const { deleteDegree } = useDeleteDegree()
@@ -201,13 +198,13 @@ export default function DegreePage() {
 
     return (
         <>
-            {view === "degrees" && (
-                <DegreeToolbar
-                    deleteSelectedDegrees={handleDeleteSelectedDegrees}
-                    selectedIds={selectedIds}
-                    onCreateClick={() => setDrawerOpen(true)}
-                />
-            )}
+
+            <DegreeToolbar
+                deleteSelectedDegrees={handleDeleteSelectedDegrees}
+                selectedIds={selectedIds}
+                onCreateClick={() => setDrawerOpen(true)}
+            />
+
 
             <section className="h-full rounded-xl bg-muted/50 flex items-center justify-center m-2">
                 <div className="min-w-[400px] w-2/3">

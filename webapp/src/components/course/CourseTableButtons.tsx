@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button"
-import { useAppContext } from "@/context/useAppContext"
 import { useNavigate } from "react-router-dom"
 import { Course } from "@/types/Course"
 import {
@@ -29,12 +28,9 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
 
     const { t } = useTranslation()
 
-    const { setCourseId, setSemester } = useAppContext()
     const navigate = useNavigate()
 
     const goToGroups = (semester: number) => {
-        setCourseId(course.id)
-        setSemester(semester)
         navigate(`${course.startYear}/${course.endYear}/semester/${semester}/groups`)
     }
 

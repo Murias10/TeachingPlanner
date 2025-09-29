@@ -11,7 +11,7 @@ import { Day } from '@/entities/day.entity';
 export function createAppDataSource() {
   return new DataSource({
     type: 'mariadb',
-    host: process.env.PLANNER_DATABASE_HOST || 'localhost',
+    host: process.env.PLANNER_DATABASE_HOST,
     port: parseInt(process.env.PLANNER_DATABASE_PORT ?? '', 10),
     username: process.env.PLANNER_DATABASE_USER,
     password: process.env.PLANNER_DATABASE_PASSWORD,

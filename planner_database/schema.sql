@@ -1,4 +1,16 @@
-USE mydatabase;
+-- Crear base de datos (opcional, si no la creaste)
+CREATE DATABASE IF NOT EXISTS planner_database;
+
+-- Crear usuario y darle acceso desde cualquier host (para contenedores)
+CREATE USER IF NOT EXISTS 'planner_user'@'%' IDENTIFIED BY 'planner_password';
+
+-- Dar permisos sobre la base
+GRANT ALL PRIVILEGES ON planner_database.* TO 'planner_user'@'%';
+
+-- Aplicar cambios
+FLUSH PRIVILEGES;
+
+USE planner_database;
 
 CREATE TABLE DEGREES (
     ID VARCHAR(36) NOT NULL,

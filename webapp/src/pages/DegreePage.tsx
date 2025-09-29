@@ -2,14 +2,14 @@ import { DegreeToolbar } from "@/components/degree/DegreeToolbar"
 import { DegreeTable } from "@/components/degree/DegreeTable"
 import { CreateDegreeDrawer } from "@/components/degree/CreateDegreeDrawer"
 import { DeleteConfirmationDialog } from "@/components/DeleteConfirmationDialog"
-import { useBreadcrumbContext } from "@/context/useBreadcrumbContext"
+import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext"
 import { useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useDegrees } from "@/hooks/degree/useDegrees"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
 import { useDeleteDegree } from "@/hooks/degree/useDeleteDegree"
 import { useCreateDegree } from "@/hooks/degree/useCreateDegree"
-import { useFloatingAlertContext } from "@/context/useFloatingAlertContext"
+import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext"
 
 interface DeleteState {
     type: 'single' | 'bulk' | null;

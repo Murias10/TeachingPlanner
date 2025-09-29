@@ -5,8 +5,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from '@/queryClient';
 import { ThemeProvider } from "@/components/theme-provider"
 import { TitleUpdater } from '@/hooks/title-updater';
-import { FloatingAlertProvider } from "@/context/FloatingAlertContext"
-import { AppProvider } from "@/context/AppContext";
+import { FloatingAlertProvider } from "@/contexts/FloatingAlertContext"
+import { AppProvider } from "@/contexts/AppContext";
 
 import '@/i18n'
 import '@/index.css'

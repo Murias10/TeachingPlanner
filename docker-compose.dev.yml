@@ -55,9 +55,9 @@ services:
     image: teachingplanner_planner_database:dev
     environment:
       MARIADB_ROOT_PASSWORD: "root_secret"
-      MARIADB_DATABASE: "mydatabase"
-      MARIADB_USER: "myuser"
-      MARIADB_PASSWORD: "mypassword"
+      MARIADB_DATABASE: "planner_db"
+      MARIADB_USER: "planner_user"
+      MARIADB_PASSWORD: "planner_password"
     env_file:
       - .env
     restart: unless-stopped
@@ -68,7 +68,7 @@ services:
     volumes:
       - planner_database_volume:/var/lib/mysql
     ports:
-      - "${PLANNER_DATABASE_PORT}:${PLANNER_DATABASE_PORT}"
+      - "${PLANNER_DATABASE_PORT}:3306"
     networks:
       - app_network
 
@@ -114,8 +114,8 @@ services:
     environment:
       MARIADB_ROOT_PASSWORD: "root_secret"
       MARIADB_DATABASE: "management_db"
-      MARIADB_USER: "mgmt_user"
-      MARIADB_PASSWORD: "mgmt_password"
+      MARIADB_USER: "management_user"
+      MARIADB_PASSWORD: "management_password"
     env_file:
       - .env
     restart: unless-stopped
@@ -126,7 +126,7 @@ services:
     volumes:
       - management_database_volume:/var/lib/mysql
     ports:
-      - "${MANAGEMENT_DATABASE_PORT}:${MANAGEMENT_DATABASE_PORT}"
+      - "${MANAGEMENT_DATABASE_PORT}:3306"
     networks:
       - app_network
 

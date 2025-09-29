@@ -1,12 +1,14 @@
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { BreadcrumbProvider } from "@/context/BreadcrumbContext";
+import { BreadcrumbProvider } from "@/contexts/BreadcrumbContext";
+
 import { Outlet } from "react-router-dom";
 
 
 export default function AppLayout() {
     return (
+
         <BreadcrumbProvider>
             <SidebarProvider className="flex flex-col">
                 <SiteHeader />
@@ -18,5 +20,6 @@ export default function AppLayout() {
                 </div>
             </SidebarProvider>
         </BreadcrumbProvider>
+
     );
 }

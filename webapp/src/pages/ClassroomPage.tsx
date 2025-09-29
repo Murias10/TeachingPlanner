@@ -2,14 +2,14 @@ import { ClassroomToolbar } from "@/components/classroom/ClassroomToolbar"
 import { ClassroomTable } from "@/components/classroom/ClassroomTable"
 import { CreateClassroomDrawer } from "@/components/classroom/CreateClassroomDrawer"
 import { DeleteConfirmationDialog } from "@/components/DeleteConfirmationDialog"
-import { useBreadcrumbContext } from "@/context/useBreadcrumbContext"
+import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext"
 import { useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useClassrooms } from "@/hooks/classroom/useClassrooms"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
 import { useDeleteClassroom } from "@/hooks/classroom/useDeleteClassroom"
 import { useCreateClassroom } from "@/hooks/classroom/useCreateClassroom"
-import { useFloatingAlertContext } from "@/context/useFloatingAlertContext"
+import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext"
 
 interface DeleteState {
     type: 'single' | 'bulk' | null;

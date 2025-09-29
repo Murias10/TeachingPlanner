@@ -1,5 +1,5 @@
 import { useEffect } from "react"
-import { useBreadcrumbContext } from "@/context/useBreadcrumbContext";
+import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext";
 
 const SettingsPage = () => {
 

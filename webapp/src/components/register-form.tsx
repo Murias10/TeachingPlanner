@@ -1,3 +1,4 @@
+import { useState, FormEvent, ChangeEvent } from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -9,73 +10,231 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
+import { useAuth } from "@/contexts/AuthContext"
+import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext"
+
+interface RegisterFormData {
+    name: string;
+    firstSurname: string;
+    secondSurname: string;
+    role: string;
+    email: string;
+    password: string;
+    confirmPassword: string;
+}
 
 export function RegisterForm({
     className,
     ...props
 }: React.ComponentProps<"div">) {
+    const navigate = useNavigate();
+    const { register } = useAuth();
+    const { triggerAlert } = useFloatingAlertContext();
+
+    const [formData, setFormData] = useState<RegisterFormData>({
+        name: '',
+        firstSurname: '',
+        secondSurname: '',
+        role: 'user',
+        email: '',
+        password: '',
+        confirmPassword: ''
+    });
+
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+
+    const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        setIsLoading(true);
+
+        try {
+            // Validaciones
+            if (formData.password !== formData.confirmPassword) {
+                triggerAlert({
+                    title: 'Error de validación',
+                    description: 'Las contraseñas no coinciden',
+                    variant: 'destructive'
+                });
+                return;
+            }
+
+            if (formData.password.length < 6) {
+                triggerAlert({
+                    title: 'Error de validación',
+                    description: 'La contraseña debe tener al menos 6 caracteres',
+                    variant: 'destructive'
+                });
+                return;
+            }
+
+            if (!formData.name.trim() || !formData.firstSurname.trim() || !formData.secondSurname.trim()) {
+                triggerAlert({
+                    title: 'Error de validación',
+                    description: 'Por favor, completa todos los campos',
+                    variant: 'destructive'
+                });
+                return;
+            }
+
+            // Preparar datos para enviar (excluir confirmPassword del objeto a enviar)
+            const registerData = {
+                name: formData.name,
+                firstSurname: formData.firstSurname,
+                secondSurname: formData.secondSurname,
+                role: formData.role,
+                email: formData.email,
+                password: formData.password
+            };
+
+            const success = await register(registerData);
+
+            if (success) {
+                triggerAlert({
+                    title: '¡Registro exitoso!',
+                    description: 'Tu cuenta ha sido creada correctamente',
+                    variant: 'success'
+                });
+
+                setTimeout(() => {
+                    navigate('/dashboard');
+                }, 500);
+            } else {
+                triggerAlert({
+                    title: 'Error al registrar',
+                    description: 'No se pudo crear la cuenta. Por favor, intenta de nuevo.',
+                    variant: 'destructive'
+                });
+            }
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Ocurrió un error inesperado';
+            triggerAlert({
+                title: 'Error al registrar',
+                description: errorMessage,
+                variant: 'destructive'
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     return (
         <div className={cn("flex flex-col gap-6", className)} {...props}>
             <Card>
                 <CardHeader>
-                    <CardTitle>Create an account</CardTitle>
+                    <CardTitle>Crear una cuenta</CardTitle>
                     <CardDescription>
-                        Fill in your details to create your new account
+                        Completa tus datos para crear tu nueva cuenta
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <form>
+                    <form onSubmit={handleSubmit}>
                         <div className="flex flex-col gap-6">
                             <div className="grid gap-3">
-                                <Label htmlFor="name">Full Name</Label>
+                                <Label htmlFor="name">Nombre</Label>
                                 <Input
                                     id="name"
                                     name="name"
                                     type="text"
-                                    placeholder="John Doe"
+                                    placeholder="Juan"
+                                    value={formData.name}
+                                    onChange={handleChange}
+                                    disabled={isLoading}
                                     required
                                 />
                             </div>
+
+                            <div className="grid gap-3">
+                                <Label htmlFor="firstSurname">Primer Apellido</Label>
+                                <Input
+                                    id="firstSurname"
+                                    name="firstSurname"
+                                    type="text"
+                                    placeholder="Pérez"
+                                    value={formData.firstSurname}
+                                    onChange={handleChange}
+                                    disabled={isLoading}
+                                    required
+                                />
+                            </div>
+
+                            <div className="grid gap-3">
+                                <Label htmlFor="secondSurname">Segundo Apellido</Label>
+                                <Input
+                                    id="secondSurname"
+                                    name="secondSurname"
+                                    type="text"
+                                    placeholder="García"
+                                    value={formData.secondSurname}
+                                    onChange={handleChange}
+                                    disabled={isLoading}
+                                    required
+                                />
+                            </div>
+
                             <div className="grid gap-3">
                                 <Label htmlFor="email">Email</Label>
                                 <Input
                                     id="email"
                                     name="email"
                                     type="email"
-                                    placeholder="m@example.com"
+                                    placeholder="correo@ejemplo.com"
+                                    value={formData.email}
+                                    onChange={handleChange}
+                                    disabled={isLoading}
                                     required
                                 />
                             </div>
+
                             <div className="grid gap-3">
-                                <Label htmlFor="password">Password</Label>
+                                <Label htmlFor="password">Contraseña</Label>
                                 <Input
                                     id="password"
                                     name="password"
                                     type="password"
+                                    placeholder="••••••••"
+                                    value={formData.password}
+                                    onChange={handleChange}
+                                    disabled={isLoading}
                                     required
                                 />
                             </div>
+
                             <div className="grid gap-3">
-                                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                                <Label htmlFor="confirmPassword">Confirmar Contraseña</Label>
                                 <Input
                                     id="confirmPassword"
                                     name="confirmPassword"
                                     type="password"
+                                    placeholder="••••••••"
+                                    value={formData.confirmPassword}
+                                    onChange={handleChange}
+                                    disabled={isLoading}
                                     required
                                 />
                             </div>
-                            <div className="flex flex-col gap-3">
-                                <Button type="submit" className="w-full">
-                                    Create account
-                                </Button>
 
-                            </div>
+                            <Button
+                                type="submit"
+                                className="w-full"
+                                disabled={isLoading}
+                            >
+                                {isLoading ? 'Creando cuenta...' : 'Crear cuenta'}
+                            </Button>
                         </div>
+
                         <div className="mt-4 text-center text-sm">
-                            Already have an account?{" "}
+                            ¿Ya tienes una cuenta?{" "}
                             <Link to="/login" className="underline underline-offset-4">
-                                Log in
+                                Iniciar sesión
                             </Link>
                         </div>
                     </form>

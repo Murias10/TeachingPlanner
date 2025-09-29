@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 
-const USER_SERVICE_URL = process.env.USER_SERVICE_URL || 'http://user_service:3001';
+const USER_SERVICE_URL = 'http://user_service:5002';
 
 export const createUser = (req: Request, res: Response, next: NextFunction) => {
-    fetch(`${USER_SERVICE_URL}/api/users`, {
+    fetch(`${USER_SERVICE_URL}/user`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(req.body)
@@ -16,7 +16,7 @@ export const createUser = (req: Request, res: Response, next: NextFunction) => {
 };
 
 export const getAllUsers = (req: Request, res: Response, next: NextFunction) => {
-    fetch(`${USER_SERVICE_URL}/api/users`)
+    fetch(`${USER_SERVICE_URL}/users`)
         .then(async (response) => {
             const body = await response.json();
             res.status(response.status).json(body);
@@ -26,7 +26,7 @@ export const getAllUsers = (req: Request, res: Response, next: NextFunction) => 
 
 export const getUserById = (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
-    fetch(`${USER_SERVICE_URL}/api/users/${id}`)
+    fetch(`${USER_SERVICE_URL}/user/${id}`)
         .then(async (response) => {
             const body = await response.json();
             res.status(response.status).json(body);
@@ -36,7 +36,7 @@ export const getUserById = (req: Request, res: Response, next: NextFunction) => 
 
 export const updateUser = (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
-    fetch(`${USER_SERVICE_URL}/api/users/${id}`, {
+    fetch(`${USER_SERVICE_URL}/user/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(req.body)
@@ -50,7 +50,7 @@ export const updateUser = (req: Request, res: Response, next: NextFunction) => {
 
 export const deleteUser = (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
-    fetch(`${USER_SERVICE_URL}/api/users/${id}`, {
+    fetch(`${USER_SERVICE_URL}/user/${id}`, {
         method: 'DELETE'
     })
         .then(async (response) => {

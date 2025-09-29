@@ -1,5 +1,5 @@
 import MyCalendar from "@/components/MyCalendar";
-import { useBreadcrumbContext } from "@/context/useBreadcrumbContext";
+import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext";
 import { useEffect } from "react"
 
 export default function CoursePage() {

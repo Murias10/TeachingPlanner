@@ -12,7 +12,7 @@ import { Separator } from "@/components/ui/separator"
 import { useSidebar } from "@/components/ui/sidebar"
 import { ModeToggle } from "@/components/mode-toggle"
 import { LanguageSelector } from "@/components/LanguageSelector"
-import { useBreadcrumbContext } from "@/context/useBreadcrumbContext"
+import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext"
 import { Link } from "react-router-dom"
 
 export function SiteHeader() {

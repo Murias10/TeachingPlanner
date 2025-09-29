@@ -4,8 +4,8 @@ import { User } from '@/entities/user.entity';
 export function createAppDataSource() {
   return new DataSource({
     type: 'mariadb',
-    host: process.env.MANAGEMENT_DATABASE_HOST || 'localhost',
-    port: parseInt(process.env.MANAGEMENT_DATABASE_PORT ?? '', 10),
+    host: process.env.MANAGEMENT_DATABASE_HOST,
+    port: 3306,
     username: process.env.MANAGEMENT_DATABASE_USER,
     password: process.env.MANAGEMENT_DATABASE_PASSWORD,
     database: process.env.MANAGEMENT_DATABASE_DATABASE,

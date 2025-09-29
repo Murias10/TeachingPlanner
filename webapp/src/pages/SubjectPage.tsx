@@ -2,7 +2,7 @@ import { SubjectToolbar } from "@/components/subject/SubjectToolbar"
 import { SubjectTable } from "@/components/subject/SubjectTable"
 import { CreateSubjectDrawer } from "@/components/subject/CreateSubjectDrawer"
 import { DeleteConfirmationDialog } from "@/components/DeleteConfirmationDialog"
-import { useBreadcrumbContext } from "@/context/useBreadcrumbContext"
+import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext"
 import { useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useParams } from "react-router-dom"
@@ -11,7 +11,7 @@ import { LoadingSpinner } from "@/components/LoadingSpinner"
 import { useDeleteSubject } from "@/hooks/subject/useDeleteSubject"
 import { useCreateSubject } from "@/hooks/subject/useCreateSubject"
 import { useDegreeByAcronym } from "@/hooks/degree/useDegreeByAcronym"
-import { useFloatingAlertContext } from "@/context/useFloatingAlertContext"
+import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext"
 
 interface DeleteState {
     type: 'single' | 'bulk' | null;

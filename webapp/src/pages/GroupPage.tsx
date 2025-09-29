@@ -1,12 +1,12 @@
 
 import { GroupToolbar } from "@/components/group/GroupToolbar"
-import { useBreadcrumbContext } from "@/context/useBreadcrumbContext"
+import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext"
 import { useCallback, useEffect } from "react"
 import { GroupTable } from "@/components/group/GroupTable"
 import { useTranslation } from "react-i18next"
 import { useSubjectsWithEventsAndGroupsByCourseAndSemester } from "@/hooks/subject/useSubjectsWithEventsAndGroupsByCourseIdAndSemester"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
-import { useFloatingAlertContext } from "@/context/useFloatingAlertContext"
+import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext"
 import { useCoursesByDegreeAcronym } from "@/hooks/course/useCoursesByDegreeAcronym"
 import { useParams } from "react-router-dom"
 

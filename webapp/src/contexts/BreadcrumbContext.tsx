@@ -4,7 +4,7 @@ import {
     ReactNode,
     useMemo,
 } from "react"
-import { BreadcrumbContext } from "@/context/BreadcrumbContextInstance"
+import { BreadcrumbContext } from "@/contexts/BreadcrumbContextInstance"
 
 export interface BreadcrumbItem {
     label: string

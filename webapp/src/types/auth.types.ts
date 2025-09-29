@@ -1,0 +1,34 @@
+export interface User {
+    id: string;
+    name: string;
+    firstSurname: string;
+    secondSurname: string;
+    role: string;
+    email: string;
+}
+
+export interface LoginCredentials {
+    email: string;
+    password: string;
+}
+
+export interface RegisterData {
+    name: string;
+    firstSurname: string;
+    secondSurname: string;
+    role: string;
+    email: string;
+    password: string;
+}
+
+export interface AuthResponse {
+    user: User;
+    token: string;
+}
+
+export interface ApiResponse<T> {
+    success: boolean;
+    message: string;
+    data?: T;
+    error?: string;
+}

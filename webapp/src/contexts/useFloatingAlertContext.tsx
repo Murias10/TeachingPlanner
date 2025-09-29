@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { FloatingAlertContext } from "@/context/FloatingAlertContextInstance";
+import { FloatingAlertContext } from "@/contexts/FloatingAlertContextInstance";
 
 
 export function useFloatingAlertContext() {

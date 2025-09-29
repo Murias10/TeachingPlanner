@@ -16,7 +16,7 @@ export const useImportCalendar = () => {
             // Construir FormData con los datos necesarios
             const formData = new FormData();
             formData.append('courseId', data.courseId);
-            formData.append('degreeId', data.degreeId); // Incluir degreeId
+            formData.append('degreeId', data.degreeId);
             formData.append('semester', data.semester.toString());
 
             // Agregar cada archivo

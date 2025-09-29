@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { AppContext } from "@/context/AppContextInstance";
+import { AppContext } from "@/contexts/AppContextInstance";
 
 export type AppContextType = {
     degreeId: string | null;

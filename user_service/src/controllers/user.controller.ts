@@ -1,39 +1,243 @@
-import { Request, Response } from "express";
-import { AppDataSource } from "@/config/data-source"
-import { User } from "@/entities/user.entity";
-import bcrypt from "bcrypt";
+import { Request, Response } from 'express';
+import { UserService } from '@/service/user.service'
+import { ApiResponse, CreateUserDTO, UpdateUserDTO } from '../types/user.types';
 
-const userRepo = AppDataSource.getRepository(User);
+export class UserController {
+    private userService: UserService;
 
-export const createUser = async (req: Request, res: Response) => {
-    const { email, password, name, firstSurname, secondSurname, role } = req.body;
-    const hashed = await bcrypt.hash(password, 10);
-    const user = userRepo.create({ email, password: hashed, name, firstSurname, secondSurname, role });
-    await userRepo.save(user);
-    res.status(201).json(user);
-};
-
-export const updateUser = async (req: Request, res: Response) => {
-    const { name, firstSurname, secondSurname, role } = req.body;
-    const user = await userRepo.findOneBy({ id: req.params.id });
-    if (!user) {
-        res.status(404).json({ message: "Usuario no encontrado" })
-        return
+    constructor() {
+        this.userService = new UserService();
     }
-    user.name = name;
-    user.firstSurname = firstSurname;
-    user.secondSurname = secondSurname;
-    user.role = role;
-    await userRepo.save(user);
-    res.json(user);
-};
 
-export const deleteUser = async (req: Request, res: Response) => {
-    const user = await userRepo.findOneBy({ id: req.params.id });
-    if (!user) {
-        res.status(404).json({ message: "Usuario no encontrado" })
-        return
-    }
-    await userRepo.remove(user);
-    res.json({ message: "Usuario eliminado" });
-};
+    createUser = async (req: Request, res: Response): Promise<void> => {
+        try {
+            const userData: CreateUserDTO = req.body;
+            const user = await this.userService.createUser(userData);
+
+            const response: ApiResponse = {
+                success: true,
+                message: 'User created successfully',
+                data: user
+            };
+
+            res.status(201).json(response);
+        } catch (error: any) {
+            const response: ApiResponse = {
+                success: false,
+                message: 'Failed to create user',
+                error: error.message
+            };
+            res.status(400).json(response);
+        }
+    };
+
+    getAllUsers = async (req: Request, res: Response): Promise<void> => {
+        try {
+            const users = await this.userService.getAllUsers();
+
+            const response: ApiResponse = {
+                success: true,
+                message: 'Users retrieved successfully',
+                data: users
+            };
+
+            res.json(response);
+        } catch (error: any) {
+            const response: ApiResponse = {
+                success: false,
+                message: 'Failed to retrieve users',
+                error: error.message
+            };
+            res.status(500).json(response);
+        }
+    };
+
+    getUserById = async (req: Request, res: Response): Promise<void> => {
+        try {
+            const { id } = req.params;
+            const user = await this.userService.getUserById(id);
+
+            if (!user) {
+                const response: ApiResponse = {
+                    success: false,
+                    message: 'User not found'
+                };
+                res.status(404).json(response);
+                return;
+            }
+
+            const response: ApiResponse = {
+                success: true,
+                message: 'User retrieved successfully',
+                data: user
+            };
+
+            res.json(response);
+        } catch (error: any) {
+            const response: ApiResponse = {
+                success: false,
+                message: 'Failed to retrieve user',
+                error: error.message
+            };
+            res.status(500).json(response);
+        }
+    };
+
+    updateUser = async (req: Request, res: Response): Promise<void> => {
+        try {
+            const { id } = req.params;
+            const userData: UpdateUserDTO = req.body;
+
+            const user = await this.userService.updateUser(id, userData);
+
+            if (!user) {
+                const response: ApiResponse = {
+                    success: false,
+                    message: 'User not found'
+                };
+                res.status(404).json(response);
+                return;
+            }
+
+            const response: ApiResponse = {
+                success: true,
+                message: 'User updated successfully',
+                data: user
+            };
+
+            res.json(response);
+        } catch (error: any) {
+            const response: ApiResponse = {
+                success: false,
+                message: 'Failed to update user',
+                error: error.message
+            };
+            res.status(400).json(response);
+        }
+    };
+
+    deleteUser = async (req: Request, res: Response): Promise<void> => {
+        try {
+            const { id } = req.params;
+            const deleted = await this.userService.deleteUser(id);
+
+            if (!deleted) {
+                const response: ApiResponse = {
+                    success: false,
+                    message: 'User not found'
+                };
+                res.status(404).json(response);
+                return;
+            }
+
+            const response: ApiResponse = {
+                success: true,
+                message: 'User deleted successfully'
+            };
+
+            res.json(response);
+        } catch (error: any) {
+            const response: ApiResponse = {
+                success: false,
+                message: 'Failed to delete user',
+                error: error.message
+            };
+            res.status(500).json(response);
+        }
+    };
+
+    getUsersByRole = async (req: Request, res: Response): Promise<void> => {
+        try {
+            const { role } = req.params;
+            const users = await this.userService.getUsersByRole(role);
+
+            const response: ApiResponse = {
+                success: true,
+                message: `Users with role '${role}' retrieved successfully`,
+                data: users
+            };
+
+            res.json(response);
+        } catch (error: any) {
+            const response: ApiResponse = {
+                success: false,
+                message: 'Failed to retrieve users by role',
+                error: error.message
+            };
+            res.status(500).json(response);
+        }
+    };
+
+    searchUsers = async (req: Request, res: Response): Promise<void> => {
+        try {
+            const { q } = req.query;
+
+            if (!q || typeof q !== 'string') {
+                const response: ApiResponse = {
+                    success: false,
+                    message: 'Search query is required'
+                };
+                res.status(400).json(response);
+                return;
+            }
+
+            const users = await this.userService.searchUsers(q);
+
+            const response: ApiResponse = {
+                success: true,
+                message: 'Search completed successfully',
+                data: users
+            };
+
+            res.json(response);
+        } catch (error: any) {
+            const response: ApiResponse = {
+                success: false,
+                message: 'Search failed',
+                error: error.message
+            };
+            res.status(500).json(response);
+        }
+    };
+
+    updatePassword = async (req: Request, res: Response): Promise<void> => {
+        try {
+            const { id } = req.params;
+            const { newPassword } = req.body;
+
+            if (!newPassword || newPassword.length < 6) {
+                const response: ApiResponse = {
+                    success: false,
+                    message: 'Password must be at least 6 characters long'
+                };
+                res.status(400).json(response);
+                return;
+            }
+
+            const updated = await this.userService.updatePassword(id, newPassword);
+
+            if (!updated) {
+                const response: ApiResponse = {
+                    success: false,
+                    message: 'User not found'
+                };
+                res.status(404).json(response);
+                return;
+            }
+
+            const response: ApiResponse = {
+                success: true,
+                message: 'Password updated successfully'
+            };
+
+            res.json(response);
+        } catch (error: any) {
+            const response: ApiResponse = {
+                success: false,
+                message: 'Failed to update password',
+                error: error.message
+            };
+            res.status(500).json(response);
+        }
+    };
+}

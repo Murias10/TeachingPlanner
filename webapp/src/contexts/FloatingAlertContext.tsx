@@ -1,6 +1,6 @@
 import { useFloatingAlert } from "@/hooks/useFloatingAlert"
 import { FloatingAlertContainer } from "@/components/FloatingAlertContainer"
-import { FloatingAlertContext } from "@/context/FloatingAlertContextInstance"
+import { FloatingAlertContext } from "@/contexts/FloatingAlertContextInstance"
 import { useEffect } from "react"
 
 interface TriggerAlertArgs {

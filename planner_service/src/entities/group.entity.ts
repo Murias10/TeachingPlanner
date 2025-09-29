@@ -5,11 +5,13 @@ import {
     ManyToMany,
     JoinColumn,
     ManyToOne,
+    Unique,
 } from 'typeorm';
 import { Event } from '@/entities/event.entity';
 import { Subject } from '@/entities/subject.entity';
 
 @Entity('GROUPS')
+@Unique('UQ_GROUP_UNIQUE', ['subject', 'number', 'type', 'language'])
 export class Group {
     @PrimaryGeneratedColumn('uuid', { name: 'ID' })
     id!: string;
@@ -21,6 +23,7 @@ export class Group {
     type!: string;
 
     @Column('varchar', { length: 2, name: 'LANGUAGE' })
+    language!: string;
 
     @ManyToOne(() => Subject, (subject) => subject.groups, {
         onDelete: 'CASCADE',

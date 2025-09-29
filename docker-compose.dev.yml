@@ -72,8 +72,67 @@ services:
     networks:
       - app_network
 
+  auth_service:
+    container_name: ${AUTH_SERVICE_HOST}
+    build:
+      context: ./auth_service
+      dockerfile: Dockerfile
+    image: teachingplanner_auth_service:dev
+    ports:
+      - "${AUTH_SERVICE_PORT}:${AUTH_SERVICE_PORT}"
+    env_file:
+      - .env
+    restart: unless-stopped
+    depends_on:
+      - management_database
+    networks:
+      - app_network
+
+  user_service:
+    container_name: ${USER_SERVICE_HOST}
+    build:
+      context: ./user_service
+      dockerfile: Dockerfile
+    image: teachingplanner_user_service:dev
+    ports:
+      - "${USER_SERVICE_PORT}:${USER_SERVICE_PORT}"
+    env_file:
+      - .env
+    restart: unless-stopped
+    depends_on:
+      - management_database
+      - auth_service
+    networks:
+      - app_network
+
+  management_database:
+    container_name: ${MANAGEMENT_DATABASE_HOST}
+    build:
+      context: ./management_database
+      dockerfile: Dockerfile
+    image: teachingplanner_management_database:dev
+    environment:
+      MARIADB_ROOT_PASSWORD: "root_secret"
+      MARIADB_DATABASE: "management_db"
+      MARIADB_USER: "mgmt_user"
+      MARIADB_PASSWORD: "mgmt_password"
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      retries: 5
+    volumes:
+      - management_database_volume:/var/lib/mysql
+    ports:
+      - "${MANAGEMENT_DATABASE_PORT}:${MANAGEMENT_DATABASE_PORT}"
+    networks:
+      - app_network
+
 volumes:
   planner_database_volume:
+  management_database_volume:
 
 networks:
   app_network:

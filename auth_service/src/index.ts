@@ -2,7 +2,7 @@ import app from '@/app';
 import { connectToManagementDatabase } from '@/config/data-source';
 import authRouter from '@/routes/auth.routes';
 
-const port = process.env.PLANNER_SERVICE_PORT;
+const port = process.env.AUTH_SERVICE_PORT;
 
 const startServer = async () => {
     await connectToManagementDatabase();
@@ -10,7 +10,7 @@ const startServer = async () => {
     app.use(authRouter);
 
     // Error handling
-    app.use((error: Error, req: any, res: any, next: any) => {
+    app.use((error: Error, _req: any, res: any, _next: any) => {
         console.error(error.stack);
         res.status(500).json({
             success: false,
@@ -18,7 +18,7 @@ const startServer = async () => {
         });
     });
 
-    app.use((req: any, res: any) => {
+    app.use((_req: any, res: any) => {
         res.status(404).json({
             success: false,
             message: 'Route not found'

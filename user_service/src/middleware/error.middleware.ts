@@ -10,7 +10,7 @@ export const errorHandler = (
     console.error(error.stack);
 
     const response: ApiResponse = {
-        success: false,
+        status: 'error',
         message: 'Internal server error',
         error: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
     };
@@ -20,7 +20,7 @@ export const errorHandler = (
 
 export const notFoundHandler = (req: Request, res: Response) => {
     const response: ApiResponse = {
-        success: false,
+        status: 'error',
         message: `Route ${req.originalUrl} not found`
     };
 

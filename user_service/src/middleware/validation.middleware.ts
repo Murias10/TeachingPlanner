@@ -26,7 +26,7 @@ export const validateCreateUser = (req: Request, res: Response, next: NextFuncti
 
     if (errors.length > 0) {
         const response: ApiResponse = {
-            success: false,
+            status: 'error',
             message: 'Validation failed',
             error: errors.join(', ')
         };
@@ -59,7 +59,7 @@ export const validateUpdateUser = (req: Request, res: Response, next: NextFuncti
 
     if (errors.length > 0) {
         const response: ApiResponse = {
-            success: false,
+            status: 'error',
             message: 'Validation failed',
             error: errors.join(', ')
         };

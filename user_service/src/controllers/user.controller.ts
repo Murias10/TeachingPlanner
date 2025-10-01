@@ -15,7 +15,7 @@ export class UserController {
             const user = await this.userService.createUser(userData);
 
             const response: ApiResponse = {
-                success: true,
+                status: 'success',
                 message: 'User created successfully',
                 data: user
             };
@@ -23,7 +23,7 @@ export class UserController {
             res.status(201).json(response);
         } catch (error: any) {
             const response: ApiResponse = {
-                success: false,
+                status: 'error',
                 message: 'Failed to create user',
                 error: error.message
             };
@@ -36,7 +36,7 @@ export class UserController {
             const users = await this.userService.getAllUsers();
 
             const response: ApiResponse = {
-                success: true,
+                status: 'success',
                 message: 'Users retrieved successfully',
                 data: users
             };
@@ -44,7 +44,7 @@ export class UserController {
             res.json(response);
         } catch (error: any) {
             const response: ApiResponse = {
-                success: false,
+                status: 'error',
                 message: 'Failed to retrieve users',
                 error: error.message
             };
@@ -59,7 +59,7 @@ export class UserController {
 
             if (!user) {
                 const response: ApiResponse = {
-                    success: false,
+                    status: 'error',
                     message: 'User not found'
                 };
                 res.status(404).json(response);
@@ -67,7 +67,7 @@ export class UserController {
             }
 
             const response: ApiResponse = {
-                success: true,
+                status: 'success',
                 message: 'User retrieved successfully',
                 data: user
             };
@@ -75,7 +75,7 @@ export class UserController {
             res.json(response);
         } catch (error: any) {
             const response: ApiResponse = {
-                success: false,
+                status: 'error',
                 message: 'Failed to retrieve user',
                 error: error.message
             };
@@ -92,7 +92,7 @@ export class UserController {
 
             if (!user) {
                 const response: ApiResponse = {
-                    success: false,
+                    status: 'error',
                     message: 'User not found'
                 };
                 res.status(404).json(response);
@@ -100,7 +100,7 @@ export class UserController {
             }
 
             const response: ApiResponse = {
-                success: true,
+                status: 'success',
                 message: 'User updated successfully',
                 data: user
             };
@@ -108,7 +108,7 @@ export class UserController {
             res.json(response);
         } catch (error: any) {
             const response: ApiResponse = {
-                success: false,
+                status: 'error',
                 message: 'Failed to update user',
                 error: error.message
             };
@@ -123,7 +123,7 @@ export class UserController {
 
             if (!deleted) {
                 const response: ApiResponse = {
-                    success: false,
+                    status: 'error',
                     message: 'User not found'
                 };
                 res.status(404).json(response);
@@ -131,14 +131,14 @@ export class UserController {
             }
 
             const response: ApiResponse = {
-                success: true,
+                status: 'success',
                 message: 'User deleted successfully'
             };
 
             res.json(response);
         } catch (error: any) {
             const response: ApiResponse = {
-                success: false,
+                status: 'error',
                 message: 'Failed to delete user',
                 error: error.message
             };
@@ -152,7 +152,7 @@ export class UserController {
             const users = await this.userService.getUsersByRole(role);
 
             const response: ApiResponse = {
-                success: true,
+                status: 'success',
                 message: `Users with role '${role}' retrieved successfully`,
                 data: users
             };
@@ -160,7 +160,7 @@ export class UserController {
             res.json(response);
         } catch (error: any) {
             const response: ApiResponse = {
-                success: false,
+                status: 'error',
                 message: 'Failed to retrieve users by role',
                 error: error.message
             };
@@ -174,7 +174,7 @@ export class UserController {
 
             if (!q || typeof q !== 'string') {
                 const response: ApiResponse = {
-                    success: false,
+                    status: 'error',
                     message: 'Search query is required'
                 };
                 res.status(400).json(response);
@@ -184,7 +184,7 @@ export class UserController {
             const users = await this.userService.searchUsers(q);
 
             const response: ApiResponse = {
-                success: true,
+                status: 'success',
                 message: 'Search completed successfully',
                 data: users
             };
@@ -192,7 +192,7 @@ export class UserController {
             res.json(response);
         } catch (error: any) {
             const response: ApiResponse = {
-                success: false,
+                status: 'error',
                 message: 'Search failed',
                 error: error.message
             };
@@ -207,7 +207,7 @@ export class UserController {
 
             if (!newPassword || newPassword.length < 6) {
                 const response: ApiResponse = {
-                    success: false,
+                    status: 'error',
                     message: 'Password must be at least 6 characters long'
                 };
                 res.status(400).json(response);
@@ -218,7 +218,7 @@ export class UserController {
 
             if (!updated) {
                 const response: ApiResponse = {
-                    success: false,
+                    status: 'error',
                     message: 'User not found'
                 };
                 res.status(404).json(response);
@@ -226,14 +226,14 @@ export class UserController {
             }
 
             const response: ApiResponse = {
-                success: true,
+                status: 'success',
                 message: 'Password updated successfully'
             };
 
             res.json(response);
         } catch (error: any) {
             const response: ApiResponse = {
-                success: false,
+                status: 'error',
                 message: 'Failed to update password',
                 error: error.message
             };

@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 
-const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://auth_service:3002';
+const AUTH_SERVICE_URL = 'http://auth_service:5003';
 
 export const login = (req: Request, res: Response, next: NextFunction) => {
     fetch(`${AUTH_SERVICE_URL}/auth/login`, {

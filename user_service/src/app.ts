@@ -1,11 +1,10 @@
 import express from 'express';
 import bodyParser from 'body-parser';
-import { errorHandler, notFoundHandler } from '@/middleware/error.middleware';
+
 
 const app = express();
 
-app.use(notFoundHandler);
-app.use(errorHandler);
+
 app.use(bodyParser.json());
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))

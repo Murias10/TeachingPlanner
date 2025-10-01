@@ -24,8 +24,9 @@ export interface UserResponse {
     email: string;
 }
 
+// types/user.types.ts
 export interface ApiResponse<T = any> {
-    success: boolean;
+    status: 'success' | 'error';
     message: string;
     data?: T;
     error?: string;

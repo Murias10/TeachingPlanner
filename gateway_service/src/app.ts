@@ -2,6 +2,8 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import statusRouter from '@/routes/status.routes';
 import plannerRouter from '@/routes/planner.routes';
+import userRouter from '@/routes/user.routes';
+import authRouter from '@/routes/auth.routes';
 import cors from 'cors';
 
 const app = express();
@@ -32,8 +34,5 @@ const corsOptions: cors.CorsOptions = {
 };
 
 app.use(cors(corsOptions));
-
-app.use(statusRouter);
-app.use(plannerRouter);
 
 export default app;

@@ -1,4 +1,4 @@
-name: Deploy on Release  # Nombre del workflow
+name: Deploy on Release/Push to main  # Nombre del workflow
 
 on:
   release:

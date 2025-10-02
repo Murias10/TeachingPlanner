@@ -1,6 +1,6 @@
 import { LoginCredentials, RegisterData, AuthResponse, ApiResponse, User } from '@/types/auth.types';
 
-const API_BASE_URL = 'http://localhost:8080/';
+const API_BASE_URL = 'http://gateway_service:8080';
 
 class AuthService {
     private getToken(): string | null {

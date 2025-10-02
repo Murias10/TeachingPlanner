@@ -1,3 +1,5 @@
+// components/login-form.tsx
+import { useState, FormEvent, ChangeEvent } from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -9,23 +11,81 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Link } from "react-router-dom"
+import { Link, useNavigate, useLocation } from "react-router-dom"
+import { useAuth } from "@/contexts/AuthContext"
+import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext"
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
+  const { triggerAlert } = useFloatingAlertContext();
+
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      // Validación básica
+      if (!email || !password) {
+        triggerAlert({
+          title: 'Error de validación',
+          description: 'Por favor, completa todos los campos',
+          variant: 'warning'
+        });
+        return;
+      }
+
+      const success = await login({ email, password });
+
+      if (success) {
+        triggerAlert({
+          title: '¡Bienvenido!',
+          description: 'Has iniciado sesión correctamente',
+          variant: 'success'
+        });
+
+        setTimeout(() => {
+          const from = location.state?.from?.pathname || '/dashboard';
+          navigate(from, { replace: true });
+        }, 500);
+      } else {
+        triggerAlert({
+          title: 'Error de autenticación',
+          description: 'Email o contraseña incorrectos',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Ocurrió un error inesperado';
+      triggerAlert({
+        title: 'Error al iniciar sesión',
+        description: errorMessage,
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
         <CardHeader>
-          <CardTitle>Login to your account</CardTitle>
+          <CardTitle>Iniciar Sesión</CardTitle>
           <CardDescription>
-            Enter your email below to login to your account
+            Ingresa tu email y contraseña para acceder
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form>
+          <form onSubmit={handleSubmit}>
             <div className="flex flex-col gap-6">
               <div className="grid gap-3">
                 <Label htmlFor="email">Email</Label>
@@ -33,33 +93,49 @@ export function LoginForm({
                   id="email"
                   name="email"
                   type="email"
-                  placeholder="m@example.com"
+                  placeholder="correo@ejemplo.com"
+                  value={email}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+                  disabled={isLoading}
                   required
                 />
               </div>
+
               <div className="grid gap-3">
                 <div className="flex items-center">
-                  <Label htmlFor="password">Password</Label>
-                  <a
-                    href="#"
+                  <Label htmlFor="password">Contraseña</Label>
+                  <Link
+                    to="/forgot-password"
                     className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
                   >
-                    Forgot your password?
-                  </a>
+                    ¿Olvidaste tu contraseña?
+                  </Link>
                 </div>
-                <Input id="password" type="password" required />
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+                  disabled={isLoading}
+                  required
+                />
               </div>
-              <div className="flex flex-col gap-3">
-                <Button type="submit" className="w-full">
-                  Login
-                </Button>
 
-              </div>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isLoading}
+              >
+                {isLoading ? 'Iniciando sesión...' : 'Iniciar sesión'}
+              </Button>
             </div>
+
             <div className="mt-4 text-center text-sm">
-              Don&apos;t have an account?{" "}
+              ¿No tienes una cuenta?{" "}
               <Link to="/register" className="underline underline-offset-4">
-                Sign up
+                Crear cuenta
               </Link>
             </div>
           </form>

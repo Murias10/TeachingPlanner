@@ -71,6 +71,30 @@ jobs:
           push: true
           tags: ghcr.io/${{ vars.REPOSITORY_NAME }}/planner_service:latest
 
+      - name: 🏗️ Construir y subir imagen auth_service
+        uses: docker/build-push-action@v3
+        with:
+          context: ./auth_service
+          file: ./auth_service/Dockerfile
+          push: true
+          tags: ghcr.io/${{ vars.REPOSITORY_NAME }}/auth_service:latest
+
+      - name: 🏗️ Construir y subir imagen user_service
+        uses: docker/build-push-action@v3
+        with:
+          context: ./user_service
+          file: ./user_service/Dockerfile
+          push: true
+          tags: ghcr.io/${{ vars.REPOSITORY_NAME }}/user_service:latest
+
+      - name: 🏗️ Construir y subir imagen management_database
+        uses: docker/build-push-action@v3
+        with:
+          context: ./management_database
+          file: ./management_database/Dockerfile
+          push: true
+          tags: ghcr.io/${{ vars.REPOSITORY_NAME }}/management_database:latest
+
   deploy:
     needs: [docker-push-images]  # Se ejecuta solo después de que las imágenes han sido subidas
     runs-on: ubuntu-latest

@@ -3,7 +3,7 @@ services:
     container_name: ${WEBAPP_HOST}
     image: ghcr.io/murias10/teachingplanner/webapp:latest
     ports:
-      - "${WEBAPP_PORT}:80" # Mapeo: puerto del host (WEBAPP_PORT) → puerto 80 en el contenedor
+      - "${WEBAPP_PORT}:80"
     env_file:
       - .env
     restart: unless-stopped
@@ -16,28 +16,30 @@ services:
     container_name: ${GATEWAY_SERVICE_HOST}
     image: ghcr.io/murias10/teachingplanner/gateway_service:latest
     ports:
-      - "${GATEWAY_SERVICE_PORT}:${GATEWAY_SERVICE_PORT}" # Mapeo: mismo puerto en host y contenedor (GATEWAY_SERVICE_PORT)
+      - "${GATEWAY_SERVICE_PORT}:${GATEWAY_SERVICE_PORT}"
     env_file:
       - .env
     restart: unless-stopped
     depends_on:
       - planner_service
+      - auth_service
+      - user_service
     networks:
       - app_network
 
   planner_service:
-    container_name: planner_service # Nombre descriptivo del contenedor del servicio de la aplicación
+    container_name: planner_service
     image: ghcr.io/murias10/teachingplanner/planner_service:latest
     expose:
-      - "${PLANNER_SERVICE_PORT}"   # Solo comunicación interna: servicio escucha en PLANNER_SERVICE_PORT
+      - "${PLANNER_SERVICE_PORT}"
     env_file:
       - .env
     restart: unless-stopped
     depends_on:
       planner_database:
-        condition: service_healthy # Espera hasta que MariaDB esté listo antes de iniciar
+        condition: service_healthy
     networks:
-      - app_network # Conecta el servicio de la aplicación web y MariaD
+      - app_network
 
   planner_database:
     container_name: ${PLANNER_DATABASE_HOST}
@@ -51,19 +53,72 @@ services:
       - .env
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ] # Verifica si el servicio está activo
-      interval: 10s # Revisión cada 10 segundos
-      retries: 5 # Número de intentos antes de considerar que el servicio está fallando
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      retries: 5
     volumes:
-      - planner_database_volume:/var/lib/mysql # Persistencia de datos de la base de datos
-    ports: 
-      - "${PLANNER_DATABASE_PORT}:${PLANNER_DATABASE_PORT}"
+      - planner_database_volume:/var/lib/mysql
+    ports:
+      - "${PLANNER_DATABASE_PORT}:3306"
     networks:
-      - app_network # Conecta MariaDB y la aplicación web
+      - app_network
+
+  auth_service:
+    container_name: ${AUTH_SERVICE_HOST}
+    image: ghcr.io/murias10/teachingplanner/auth_service:latest
+    expose:
+      - "${AUTH_SERVICE_PORT}"
+    env_file:
+      - .env
+    restart: unless-stopped
+    depends_on:
+      management_database:
+        condition: service_healthy
+    networks:
+      - app_network
+
+  user_service:
+    container_name: ${USER_SERVICE_HOST}
+    image: ghcr.io/murias10/teachingplanner/user_service:latest
+    expose:
+      - "${USER_SERVICE_PORT}"
+    env_file:
+      - .env
+    restart: unless-stopped
+    depends_on:
+      management_database:
+        condition: service_healthy
+      auth_service:
+        condition: service_started
+    networks:
+      - app_network
+
+  management_database:
+    container_name: ${MANAGEMENT_DATABASE_HOST}
+    image: ghcr.io/murias10/teachingplanner/management_database:latest
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MANAGEMENT_DATABASE_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${MANAGEMENT_DATABASE_DATABASE}
+      MARIADB_USER: ${MANAGEMENT_DATABASE_USER}
+      MARIADB_PASSWORD: ${MANAGEMENT_DATABASE_PASSWORD}
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      retries: 5
+    volumes:
+      - management_database_volume:/var/lib/mysql
+    ports:
+      - "${MANAGEMENT_DATABASE_PORT}:3306"
+    networks:
+      - app_network
 
 volumes:
   planner_database_volume:
+  management_database_volume:
 
 networks:
   app_network:
-    driver: bridge # Red dedicada para mejorar la comunicación entre servicios
+    driver: bridge

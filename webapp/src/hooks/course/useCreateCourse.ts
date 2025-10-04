@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import VITE_GATEWAY_API_URL from '@/config/api';
 
 interface CourseFormData {
     startYear: string;
@@ -27,7 +28,7 @@ export const useCreateCourse = () => {
                 }
             };
 
-            const response = await fetch('http://localhost:8080/course', {
+            const response = await fetch(`${VITE_GATEWAY_API_URL}/course`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

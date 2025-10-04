@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Degree } from "@/types/Degree";
+import VITE_GATEWAY_API_URL from '@/config/api';
 
 export function useDegreeByAcronym(acronym: string | null) {
     return useQuery<Degree, Error>({
@@ -9,7 +10,7 @@ export function useDegreeByAcronym(acronym: string | null) {
             if (!acronym) {
                 throw new Error("acronym is required");
             }
-            const res = await fetch(`http://localhost:8080/degree/acronym/${acronym}`);
+            const res = await fetch(`${VITE_GATEWAY_API_URL}/degree/acronym/${acronym}`);
             if (!res.ok) { if (!res.ok) throw new Error(`Error ${res.status}`) }
             const body = await res.json();
             return body.data

@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import VITE_GATEWAY_API_URL from '@/config/api';
 
 // Tipos para mejor type safety
 interface CreateDegreeResponse {
@@ -15,7 +16,7 @@ export const useCreateDegree = () => {
         refetch?: () => void
     ): Promise<CreateDegreeResponse> => {
         try {
-            const response = await fetch("http://localhost:8080/degree", {
+            const response = await fetch(`${VITE_GATEWAY_API_URL}/degree`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ name, acronym })

@@ -1,4 +1,5 @@
 import { useCallback } from "react"
+import VITE_GATEWAY_API_URL from '@/config/api';
 
 // Tipos para mejor type safety
 interface DeleteResponse {
@@ -14,7 +15,7 @@ export const useDeleteDegree = () => {
         refetch?: () => void
     ): Promise<DeleteResponse> => {
         try {
-            const res = await fetch(`http://localhost:8080/degree/${degreeId}`, {
+            const res = await fetch(`${VITE_GATEWAY_API_URL}/degree/${degreeId}`, {
                 method: "DELETE",
                 headers: {
                     "Content-Type": "application/json"

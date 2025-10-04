@@ -1,5 +1,6 @@
 // hooks/calendar/useDeleteCalendar.ts
 import { useState } from 'react';
+import VITE_GATEWAY_API_URL from "@/config/api"
 
 interface DeleteCalendarResult {
     success: boolean;
@@ -19,7 +20,7 @@ export const useDeleteCalendar = () => {
         setError(null);
 
         try {
-            const response = await fetch(`http://localhost:8080/calendar/${calendarId}`, {
+            const response = await fetch(`${VITE_GATEWAY_API_URL}/calendar/${calendarId}`, {
                 method: "DELETE"
             });
 

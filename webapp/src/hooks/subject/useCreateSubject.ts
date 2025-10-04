@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import VITE_GATEWAY_API_URL from "@/config/api";
 
 interface CreateResult {
     success: boolean;
@@ -28,7 +29,7 @@ export function useCreateSubject() {
             };
 
             try {
-                const response = await fetch("http://localhost:8080/subject", {
+                const response = await fetch(`${VITE_GATEWAY_API_URL}/subject`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(payload)

@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import VITE_GATEWAY_API_URL from "@/config/api";
 
 interface DeleteResult {
     success: boolean;
@@ -11,7 +12,7 @@ export function useDeleteSubject() {
     const deleteSubject = useCallback(
         async (subjectId: string, refetch: () => void): Promise<DeleteResult> => {
             try {
-                const response = await fetch(`http://localhost:8080/subject/${subjectId}`, {
+                const response = await fetch(`${VITE_GATEWAY_API_URL}/subject/${subjectId}`, {
                     method: "DELETE",
                 });
 

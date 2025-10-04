@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import VITE_GATEWAY_API_URL from '@/config/api';
 
 interface DeleteResult {
     success: boolean;
@@ -13,7 +14,7 @@ export const useDeleteCourse = () => {
         refetch: () => void
     ): Promise<DeleteResult> => {
         try {
-            const response = await fetch(`http://localhost:8080/course/${courseId}`, {
+            const response = await fetch(`${VITE_GATEWAY_API_URL}/course/${courseId}`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',

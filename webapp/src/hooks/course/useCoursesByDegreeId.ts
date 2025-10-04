@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { Course } from "@/types/Course"
+import VITE_GATEWAY_API_URL from "@/config/api"
 
 export function useCoursesByDegreeId(degreeId: string | null) {
 
@@ -10,7 +11,7 @@ export function useCoursesByDegreeId(degreeId: string | null) {
             if (!degreeId) {
                 throw new Error("degreeId is required");
             }
-            const res = await fetch(`http://localhost:8080/courses/degree/${degreeId}`)
+            const res = await fetch(`${VITE_GATEWAY_API_URL}/courses/degree/${degreeId}`)
             if (!res.ok) throw new Error(`Error ${res.status}`)
             const body = await res.json()
             return body.data.courses

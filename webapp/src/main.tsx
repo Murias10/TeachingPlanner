@@ -29,3 +29,7 @@ createRoot(document.getElementById('root')!).render(
   </BrowserRouter>
 
 )
+
+// src/main.tsx o main.ts
+console.log('🌍 Environment:', import.meta.env.MODE);
+console.log('🔗 API URL:', import.meta.env.VITE_API_URL);

@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import VITE_GATEWAY_API_URL from '@/config/api';
 
 // Tipos para mejor type safety
 interface CreateClassroomResponse {
@@ -15,7 +16,7 @@ export const useCreateClassroom = () => {
         refetch?: () => void
     ): Promise<CreateClassroomResponse> => {
         try {
-            const response = await fetch("http://localhost:8080/classroom", {
+            const response = await fetch(`${VITE_GATEWAY_API_URL}/classroom`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ code, gisUrl })

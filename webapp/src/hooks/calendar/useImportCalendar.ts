@@ -3,6 +3,7 @@
 // ============================================
 import { useState } from 'react';
 import { ImportCalendarData, ImportResult } from '@/types/Calendar';
+import VITE_GATEWAY_API_URL from '@/config/api';
 
 export const useImportCalendar = () => {
     const [isImporting, setIsImporting] = useState(false);
@@ -24,7 +25,7 @@ export const useImportCalendar = () => {
                 formData.append('files', file);
             });
 
-            const response = await fetch(`http://localhost:8080/calendar/import`, {
+            const response = await fetch(`${VITE_GATEWAY_API_URL}/calendar/import`, {
                 method: 'POST',
                 body: formData
             });

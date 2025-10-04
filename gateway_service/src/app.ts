@@ -19,8 +19,8 @@ const whitelist = [
     `http://localhost:5173`,
 
     // Producción - añade tus dominios reales aquí
-    "https://4.210.225.47.com",
-    "http://4.210.225.47.com",
+    "https://4.210.225.47",
+    "http://4.210.225.47",
 ];
 
 // Opciones de CORS usando la whitelist

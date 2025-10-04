@@ -13,10 +13,14 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 // Dominios que permites
 const whitelist = [
+    // Desarrollo local
     `http://localhost:${process.env.WEBAPP_PORT}`,
     `http://localhost`,
     `http://localhost:5173`,
-    "https://app-produccion.com",
+
+    // Producción - añade tus dominios reales aquí
+    "https://4.210.225.47.com",
+    "http://4.210.225.47.com",
 ];
 
 // Opciones de CORS usando la whitelist

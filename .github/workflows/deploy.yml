@@ -138,8 +138,8 @@ jobs:
 
             # 🗑️ DESCOMENTAR SOLO SI QUIERES BORRAR LOS DATOS DE LAS BASES DE DATOS
             echo "🗑️ Eliminando volúmenes de bases de datos"
-            docker volume rm planner_database_volume || true
-            docker volume rm management_database_volume || true
+            docker volume rm teachingplanner_planner_database_volume || true
+            docker volume rm teachingplanner_management_database_volume || true
 
             echo "🚀 Descargando y levantando todo de nuevo"
             docker compose up -d --pull always --force-recreate --remove-orphans

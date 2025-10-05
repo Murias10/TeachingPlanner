@@ -1,6 +1,5 @@
 import { LoginCredentials, RegisterData, AuthResponse, ApiResponse, User } from '@/types/auth.types';
-
-const API_BASE_URL = 'http://gateway_service:8080';
+import VITE_GATEWAY_API_URL from '@/config/api';
 
 class AuthService {
     private getToken(): string | null {
@@ -17,7 +16,7 @@ class AuthService {
 
     async login(credentials: LoginCredentials): Promise<AuthResponse> {
 
-        const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        const response = await fetch(`${VITE_GATEWAY_API_URL}/auth/login`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -37,7 +36,7 @@ class AuthService {
 
     async register(registerData: RegisterData): Promise<AuthResponse> {
 
-        const response = await fetch(`${API_BASE_URL}/auth/register`, {
+        const response = await fetch(`${VITE_GATEWAY_API_URL}/auth/register`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -57,7 +56,7 @@ class AuthService {
 
     async validateToken(token: string): Promise<boolean> {
 
-        const response = await fetch(`${API_BASE_URL}/auth/validate`, {
+        const response = await fetch(`${VITE_GATEWAY_API_URL}/auth/validate`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -72,7 +71,7 @@ class AuthService {
 
     async getProfile(): Promise<User> {
 
-        const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+        const response = await fetch(`${VITE_GATEWAY_API_URL}/auth/profile`, {
             headers: this.getAuthHeaders(),
         });
 

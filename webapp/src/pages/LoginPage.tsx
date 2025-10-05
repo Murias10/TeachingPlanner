@@ -2,11 +2,12 @@
 import { LoginForm } from "@/components/login-form"
 import { useAuth } from "@/contexts/AuthContext"
 import { Navigate, useLocation } from "react-router-dom"
+import { LoadingSpinner } from "@/components/LoadingSpinner";
 
 export default function LoginPage() {
     const { isAuthenticated, isLoading } = useAuth();
     const location = useLocation();
-
+    //TODO
     // Si ya está autenticado, redirigir
     if (isAuthenticated) {
         const from = location.state?.from?.pathname || '/dashboard';
@@ -17,7 +18,7 @@ export default function LoginPage() {
     if (isLoading) {
         return (
             <div className="flex min-h-svh w-full items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                <LoadingSpinner />
             </div>
         );
     }

@@ -25,15 +25,17 @@ import {
 } from "@/components/ui/sidebar"
 
 import { useTranslation } from "react-i18next"
+import { useAuth } from "@/contexts/AuthContext"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   const { t } = useTranslation()
+  const { user, isAuthenticated } = useAuth()
 
   const data = {
     user: {
-      name: "Diego Murias Suárez",
-      email: "uo290009@uniovi.es",
+      name: isAuthenticated && user ? `${user.name} ${user.firstSurname} ${user.secondSurname}` : "Invitado",
+      email: isAuthenticated && user ? user.email : "",
       avatar: "/avatars/shadcn.jpg",
     },
     main: [

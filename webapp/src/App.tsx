@@ -13,16 +13,14 @@ import DegreePage from "@/pages/DegreePage";
 import AppLayout from "@/components/AppLayout";
 import CoursePage from "@/pages/CoursePage";
 import CalendarPage from "@/pages/CalendarPage";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AuthProvider } from "@/contexts/AuthContext";
-
 import { Route, Routes, Navigate } from "react-router-dom";
-
 
 export default function App() {
     return (
         <AuthProvider>
             <div className="[--header-height:calc(theme(spacing.14))]">
-
                 <Routes>
                     {/* Página inicial sin sidebar */}
                     <Route path="/" element={<Start />} />
@@ -31,6 +29,7 @@ export default function App() {
 
                     {/* Layout con header + sidebar */}
                     <Route element={<AppLayout />}>
+                        {/* Rutas públicas - No requieren autenticación */}
                         <Route path="home" element={<HomePage />} />
                         <Route path="degrees" element={<DegreePage />} />
                         <Route path="degrees/:acronym/courses" element={<CoursePage />} />
@@ -38,17 +37,46 @@ export default function App() {
                         <Route path="degrees/:acronym/courses/:startYear/:endYear/semester/:semester/groups/calendar" element={<CalendarPage />} />
                         <Route path="degrees/:acronym/subjects" element={<SubjectPage />} />
                         <Route path="classrooms" element={<ClassroomPage />} />
-                        <Route path="settings" element={<SettingsPage />} />
-                        <Route path="logs" element={<LogsPage />} />
-                        <Route path="users" element={<UserPage />} />
-                        <Route path="reports" element={<ReportPage />} />
+
+
+                        {/* Rutas protegidas - Requieren autenticación */}
+
+                        <Route path="settings" element={
+                            <ProtectedRoute>
+                                <SettingsPage />
+                            </ProtectedRoute>
+                        } />
+
+                        <Route
+                            path="reports"
+                            element={
+                                <ProtectedRoute>
+                                    <ReportPage />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="users"
+                            element={
+                                <ProtectedRoute>
+                                    <UserPage />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="logs"
+                            element={
+                                <ProtectedRoute>
+                                    <LogsPage />
+                                </ProtectedRoute>
+                            }
+                        />
                     </Route>
 
-                    {/* Opcional: Ruta “catch-all” */}
+                    {/* Ruta "catch-all" */}
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
             </div>
         </AuthProvider>
-
     );
 }

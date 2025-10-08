@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
 import { AppDataSource } from '@/config/data-source';
 import { Classroom } from '@/entities/classroom.entity';
-import { Event } from '@/entities/event.entity';
+import { PeriodicEvent } from '@/entities/periodic_event.entity';
+import { PuntualEvent } from '@/entities/puntual_event.entity';
 
 export const getClassrooms = async (_req: Request, res: Response) => {
 
@@ -90,7 +91,8 @@ export const deleteClassroom = async (req: Request, res: Response) => {
         const { id } = req.params;
 
         const classroomRepo = AppDataSource.getRepository(Classroom);
-        const eventRepo = AppDataSource.getRepository(Event);
+        const puntualEventRepo = AppDataSource.getRepository(PuntualEvent);
+        const periodicEventRepo = AppDataSource.getRepository(PeriodicEvent);
 
         const classroom = await classroomRepo.findOne({ where: { id } });
 
@@ -100,20 +102,32 @@ export const deleteClassroom = async (req: Request, res: Response) => {
                 message: "No se encontró el aula",
                 data: null,
             });
+            return;
         }
 
-        const relatedEvents = await eventRepo
-            .createQueryBuilder("event")
-            .innerJoin("event.classrooms", "classroom")
+        // Verificar eventos puntuales relacionados
+        const relatedPunctualEvents = await puntualEventRepo
+            .createQueryBuilder("puntualEvent")
+            .innerJoin("puntualEvent.classrooms", "classroom")
             .where("classroom.id = :id", { id })
             .getCount();
 
-        if (relatedEvents > 0) {
+        // Verificar eventos periódicos relacionados
+        const relatedPeriodicEvents = await periodicEventRepo
+            .createQueryBuilder("periodicEvent")
+            .innerJoin("periodicEvent.classrooms", "classroom")
+            .where("classroom.id = :id", { id })
+            .getCount();
+
+        const totalRelatedEvents = relatedPunctualEvents + relatedPeriodicEvents;
+
+        if (totalRelatedEvents > 0) {
             res.status(409).json({
                 status: "error",
                 message: "No se puede eliminar el aula porque tiene eventos asociados",
-                data: { relatedEvents },
+                data: { relatedEvents: totalRelatedEvents },
             });
+            return;
         }
 
         await classroomRepo.delete(id);

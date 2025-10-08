@@ -7,7 +7,8 @@ import {
     ManyToOne,
     Unique,
 } from 'typeorm';
-import { Event } from '@/entities/event.entity';
+import { PuntualEvent } from '@/entities/puntual_event.entity';
+import { PeriodicEvent } from '@/entities/periodic_event.entity';
 import { Subject } from '@/entities/subject.entity';
 
 @Entity('GROUPS')
@@ -31,8 +32,13 @@ export class Group {
     @JoinColumn({ name: 'ID_SUBJECT' })
     subject!: Subject;
 
-    @ManyToMany(() => Event, (event) => event.groups, {
+    @ManyToMany(() => PuntualEvent, (puntualEvent) => puntualEvent.groups, {
         cascade: true,
     })
-    events!: Event[];
+    puntualEvents!: PuntualEvent[];
+
+    @ManyToMany(() => PeriodicEvent, (periodicEvent) => periodicEvent.groups, {
+        cascade: true,
+    })
+    periodicEvents!: Event[];
 }

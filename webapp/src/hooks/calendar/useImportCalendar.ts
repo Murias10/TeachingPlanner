@@ -14,19 +14,34 @@ export const useImportCalendar = () => {
         setError(null);
 
         try {
-            // Construir FormData con los datos necesarios
+            console.log('=== DEBUG INFO ===');
+            console.log('courseId:', data.courseId);
+            console.log('degreeId:', data.degreeId);
+            console.log('semester:', data.semester);
+            console.log('files:', data.files);
+            console.log('files length:', data.files.length);
+            console.log('first file type:', data.files[0]?.constructor.name);
+            console.log('first file instanceof File:', data.files[0] instanceof File);
+
             const formData = new FormData();
             formData.append('courseId', data.courseId);
             formData.append('degreeId', data.degreeId);
             formData.append('semester', data.semester.toString());
 
-            // Agregar cada archivo
-            data.files.forEach(file => {
+            data.files.forEach((file, index) => {
+                console.log(`File ${index}:`, file.name, file.type, file.size);
                 formData.append('files', file);
             });
 
+            // Debug: Ver contenido del FormData
+            console.log('FormData entries:');
+            for (const [key, value] of formData.entries()) {
+                console.log(key, value);
+            }
+
             const response = await fetch(`${VITE_GATEWAY_API_URL}/calendar/import`, {
                 method: 'POST',
+                // ❌ NO incluir headers aquí
                 body: formData
             });
 

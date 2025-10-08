@@ -6,7 +6,7 @@ import {
     OneToMany,
     ManyToOne,
 } from 'typeorm';
-import { Event } from '@/entities/event.entity';
+import { PuntualEvent } from '@/entities/puntual_event.entity';
 import { Calendar } from '@/entities/calendar.entity';
 
 @Entity('DAYS')
@@ -26,8 +26,8 @@ export class Day {
     @Column('varchar', { length: 100, name: 'DAY_CHARACTER' })
     dayCharacter!: string;
 
-    @OneToMany(() => Event, (event) => event.day)
-    events!: Event[];
+    @OneToMany(() => PuntualEvent, (puntualEvent) => puntualEvent.day)
+    puntualEvents!: PuntualEvent[];
 
     @ManyToOne(() => Calendar, (calendar) => calendar.days, {
         onDelete: 'CASCADE',

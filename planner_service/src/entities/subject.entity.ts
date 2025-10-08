@@ -23,11 +23,9 @@ export class Subject {
     @Column('varchar', { length: 20, name: 'ACRONYM' })
     acronym!: string
 
-    // Cambio de 'bigint' a 'int' - más eficiente para valores pequeños
     @Column('int', { name: 'SEMESTER' })
     semester!: number;
-
-    // Cambio de 'bigint' a 'int' - más eficiente para valores pequeños
+    
     @Column('int', { name: 'YEAR' })
     year!: number;
 

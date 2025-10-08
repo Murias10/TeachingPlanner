@@ -1,5 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import FormData from 'form-data';
+import axios from 'axios';
+
 
 export const getDegrees = (_req: Request, res: Response, next: NextFunction) => {
     fetch('http://planner_service:5001/degrees')
@@ -334,56 +336,53 @@ export const createCalendarWithImport = async (req: Request, res: Response) => {
         const files = req.files as Express.Multer.File[];
         const { courseId, semester } = req.body;
 
-        console.log(courseId)
-        console.log(semester)
-        console.log(files)
+        console.log('courseId:', courseId);
+        console.log('semester:', semester);
+        console.log('files received:', files?.length);
 
-        // Crear FormData para enviar al servicio planner
-        const formData = new FormData()
+        // Crear FormData para reenviar al planner service
+        const formData = new FormData();
         formData.append('courseId', courseId);
         formData.append('semester', semester);
 
-        // Agregar archivos al FormData
+        // Agregar archivos
         if (files && files.length > 0) {
             files.forEach((file) => {
                 formData.append('files', file.buffer, {
                     filename: file.originalname,
                     contentType: file.mimetype,
-                    knownLength: file.buffer.length
                 });
             });
         }
 
-        console.log(formData)
+        console.log('Forwarding to planner service...');
 
-        console.log(`Proxying import request to planner service: courseId=${courseId}, semester=${semester}, files=${files?.length || 0}`);
-
-        // Usar fetch con el body y headers correctos para form-data
-        const response = await fetch(`http://planner_service:5001/calendar/import`, {
-            method: 'POST',
-            body: formData as any,
-            headers: {
-                ...formData.getHeaders(),
+        // Usar axios para reenviar correctamente
+        const response = await axios.post(
+            'http://planner_service:5001/calendar/import',
+            formData,
+            {
+                headers: formData.getHeaders(),
+                maxContentLength: Infinity,
+                maxBodyLength: Infinity,
             }
-        });
+        );
 
-        const data = await response.json();
+        console.log('Planner service responded successfully');
+        res.status(response.status).json(response.data);
 
-        if (!response.ok) {
-            console.error('Planner service error:', data);
-            res.status(response.status).json(data);
-            return;
-        }
-
-        console.log('Import successful:', data);
-        res.status(201).json(data);
     } catch (error) {
-        console.error('Error proxying create calendar with import:', error);
-        res.status(500).json({
-            status: 'error',
-            message: 'Error connecting to planner service',
-            data: error instanceof Error ? error.message : error
-        });
+        console.error('Error forwarding to planner service:', error);
+
+        if (axios.isAxiosError(error) && error.response) {
+            res.status(error.response.status).json(error.response.data);
+        } else {
+            res.status(500).json({
+                status: 'error',
+                message: 'Error connecting to planner service',
+                data: error instanceof Error ? error.message : error
+            });
+        }
     }
 };
 

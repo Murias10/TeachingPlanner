@@ -11,16 +11,10 @@ import { Day } from '@/entities/day.entity';
 import { Group } from '@/entities/group.entity';
 import { Classroom } from '@/entities/classroom.entity';
 
-@Entity('EVENTS')
-export class Event {
+@Entity('PERIODIC_EVENTS')
+export class PeriodicEvent {
     @PrimaryGeneratedColumn('uuid', { name: 'ID' })
     id!: string;
-
-    @ManyToOne(() => Day, (day) => day.events, {
-        onDelete: 'CASCADE',
-    })
-    @JoinColumn({ name: 'ID_DAY' })
-    day!: Day;
 
     @Column('time', { name: 'START_TIME' })
     startTime!: string;
@@ -28,31 +22,28 @@ export class Event {
     @Column('time', { name: 'END_TIME' })
     endTime!: string;
 
-    @Column('varchar', { length: 50, name: 'TYPE' })
-    type!: string;
+    @Column('int', { name: 'YEAR' })
+    year!: number;
 
-    @Column('boolean', { name: 'CANCELLED' })
-    cancelled!: boolean;
-
-    @Column('varchar', { length: 255, name: 'COMMENT' })
-    comment!: string;
+    @Column('varchar', { length: 10, name: 'WEEK_DAY' })
+    weekDay!: string;
 
     @Column('varchar', { length: 50, name: 'EVENT_CHARACTER' })
     eventCharacter!: string;
 
-    @ManyToMany(() => Group, (group) => group.events)
+    @ManyToMany(() => Group, (group) => group.periodicEvents)
     @JoinTable({
-        name: 'EVENT_GROUPS',
-        joinColumn: { name: 'ID_EVENT', referencedColumnName: 'id' },
+        name: 'PERIODIC_EVENTS_GROUPS',
+        joinColumn: { name: 'ID_PERIODIC_EVENT', referencedColumnName: 'id' },
         inverseJoinColumn: { name: 'ID_GROUP', referencedColumnName: 'id' },
     })
     groups!: Group[];
 
-    @ManyToMany(() => Classroom, (classroom) => classroom.events)
+    @ManyToMany(() => Classroom, (classroom) => classroom.periodicEvents)
     @JoinTable({
-        name: 'EVENT_CLASSROOMS',
+        name: 'PERIODIC_EVENTS__CLASSROOMS',
         joinColumn: { name: 'ID_CLASSROOM', referencedColumnName: 'id' },
-        inverseJoinColumn: { name: 'ID_EVENT', referencedColumnName: 'id' },
+        inverseJoinColumn: { name: 'ID_PERIODIC_EVENT', referencedColumnName: 'id' },
     })
     classrooms!: Classroom[];
 

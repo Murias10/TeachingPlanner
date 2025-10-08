@@ -2,10 +2,10 @@ import {
     Entity,
     PrimaryGeneratedColumn,
     Column,
-    ManyToMany,
-    JoinTable,
+    ManyToMany
 } from 'typeorm';
-import { Event } from '@/entities/event.entity';
+import { PuntualEvent } from '@/entities/puntual_event.entity';
+import { PeriodicEvent } from '@/entities/periodic_event.entity';
 
 @Entity('CLASSROOMS')
 export class Classroom {
@@ -18,8 +18,13 @@ export class Classroom {
     @Column('varchar', { name: 'GIS_URL', length: 255 })
     gisUrl!: string;
 
-    @ManyToMany(() => Event, (event) => event.classrooms, {
+    @ManyToMany(() => PeriodicEvent, (periodicEvent) => periodicEvent.classrooms, {
         cascade: true
     })
-    events!: Event[];
+    periodicEvents!: PeriodicEvent[];
+
+    @ManyToMany(() => PuntualEvent, (puntualEvent) => puntualEvent.classrooms, {
+        cascade: true
+    })
+    puntualEvents!: PuntualEvent[];
 }

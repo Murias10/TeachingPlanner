@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { useNavigate } from "react-router-dom"
 import { Degree } from "@/types/Degree"
-import { Trash2, Pencil, Eye, ChevronsRight, BookOpen, GraduationCap } from "lucide-react"
+import { Trash2, Pencil, ChevronsRight, BookOpen, GraduationCap } from "lucide-react"
 import {
     Tooltip,
     TooltipContent,
@@ -71,7 +71,7 @@ export function DegreeTableButtons({ degree, deleteDegree }: Props) {
             </Tooltip>
 
             {/* Botón Ver */}
-            <Tooltip>
+            {/* <Tooltip>
                 <TooltipTrigger asChild>
                     <Button variant="outline" size="icon" className="size-10">
                         <Eye />
@@ -80,7 +80,7 @@ export function DegreeTableButtons({ degree, deleteDegree }: Props) {
                 <TooltipContent>
                     <p>{t("table.degrees.actions.view")}</p>
                 </TooltipContent>
-            </Tooltip>
+            </Tooltip> */}
 
             {/* Botón Editar */}
             <Tooltip>

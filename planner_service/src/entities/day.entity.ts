@@ -5,11 +5,13 @@ import {
     Column,
     OneToMany,
     ManyToOne,
+    Unique,
 } from 'typeorm';
 import { PuntualEvent } from '@/entities/puntual_event.entity';
 import { Calendar } from '@/entities/calendar.entity';
 
 @Entity('DAYS')
+@Unique('UQ_DAY_CALENDAR_DATE', ['calendar', 'date'])
 export class Day {
     @PrimaryGeneratedColumn('uuid', { name: 'ID' })
     id!: string;

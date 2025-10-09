@@ -7,6 +7,7 @@ import multer from 'multer';
 import { validate as isValidUUID } from 'uuid';
 import { Subject } from '@/entities/subject.entity';
 import { Group } from '@/entities/group.entity';
+import { Day } from '@/entities/day.entity';
 
 export const getCalendars = async (_req: Request, res: Response) => {
     try {
@@ -236,7 +237,6 @@ const upload = multer({
 // Middleware para múltiples archivos
 export const uploadFiles = upload.array('files', 10);
 
-// Nueva función para crear calendario con importación
 export const createCalendarWithImport = async (req: Request, res: Response) => {
     try {
         const { courseId, semester } = req.body;
@@ -278,46 +278,43 @@ export const createCalendarWithImport = async (req: Request, res: Response) => {
             return;
         }
 
-        const calendarRepo = AppDataSource.getRepository(Calendar);
+        // Verificar si el archivo calendario.txt está presente
+        const calendarFile = files.find(f => f.originalname === 'calendario.txt');
 
-        // Verificar si ya existe un calendario para este curso y semestre
-        const existingCalendar = await calendarRepo.findOne({
-            where: {
-                course: { id: courseId },
-                semester: parseInt(semester)
-            }
-        });
-
-        if (existingCalendar) {
-            res.status(409).json({
+        if (!calendarFile) {
+            res.status(400).json({
                 status: 'error',
-                message: 'Calendar already exists for this course and semester',
-                data: { existingCalendar }
+                message: 'calendario.txt is required to create the calendar',
+                data: null
             });
             return;
         }
 
         // Procesar archivos importados
-        const result = await processImportedFiles(files, courseId, semester);
+        // El calendario se creará automáticamente en processCalendarioFile
+        const result = await processImportedFiles(files, courseId, parseInt(semester));
         const importResult = result.importResult;
 
-        // Crear el calendario
-        const calendar = calendarRepo.create({
-            course,
-            semester: parseInt(semester),
-            start: new Date(),
-            end: new Date(),
-        });
+        // Verificar si el calendario fue creado exitosamente
+        if (!importResult.calendario || !importResult.calendario.processed) {
+            res.status(500).json({
+                status: 'error',
+                message: 'Failed to process calendario.txt',
+                data: importResult.calendario
+            });
+            return;
+        }
 
-        const savedCalendar = await calendarRepo.save(calendar);
-
-        console.log('Calendar created successfully:', savedCalendar.id);
+        console.log('Calendar created/updated successfully:', importResult.calendario.calendarId);
 
         res.status(201).json({
             status: 'success',
-            message: 'Calendar created successfully',
+            message: 'Calendar created successfully with imported data',
             data: {
-                calendar: savedCalendar,
+                calendarId: importResult.calendario.calendarId,
+                calendarAction: importResult.calendario.calendarAction,
+                startDate: importResult.calendario.startDate,
+                endDate: importResult.calendario.endDate,
                 importResult: importResult
             }
         });
@@ -331,7 +328,6 @@ export const createCalendarWithImport = async (req: Request, res: Response) => {
         });
     }
 };
-
 // Función para detectar y decodificar contenido según el archivo
 const decodeFileContent = (file: Express.Multer.File): string => {
     const fileName = file.originalname;
@@ -376,10 +372,9 @@ const processImportedFiles = async (files: Express.Multer.File[], courseId: stri
                 importResult.asignaturas = subjectsResult;
                 break;
 
-            // En processImportedFiles, actualiza el case para calendario.txt:
             case 'calendario.txt':
-                // const calendarResult = await processCalendarioFile(content, calendarId); // Necesitarás pasar el calendarId
-                // importResult.calendario = calendarResult;
+                const calendarResult = await processCalendarioFile(content, courseId, semester);
+                importResult.calendario = calendarResult;
                 break;
 
             case 'horarios.txt':
@@ -749,207 +744,314 @@ const processAsignaturasFile = async (content: string, courseId: string, semeste
 };
 
 // Procesar archivo calendario.txt línea por línea
-// const processCalendarioFile = async (content: string, calendarId: string) => {
-//     const dayRepo = AppDataSource.getRepository(Day);
-//     const calendarRepo = AppDataSource.getRepository(Calendar);
-//     const lines = content.split('\n');
-//     const processedDays = [];
-//     const errors = [];
+const processCalendarioFile = async (content: string, courseId: string, semester: number) => {
+    const dayRepo = AppDataSource.getRepository(Day);
+    const calendarRepo = AppDataSource.getRepository(Calendar);
+    const courseRepo = AppDataSource.getRepository(Course);
+    const lines = content.split('\n');
+    const processedDays = [];
+    const errors = [];
+    const dates: Date[] = [];
 
-//     console.log(`Processing calendario.txt with ${lines.length} lines`);
+    console.log(`Processing calendario.txt with ${lines.length} lines`);
 
-//     // Verificar que el calendario existe
-//     let calendar;
-//     try {
-//         calendar = await calendarRepo.findOne({ where: { id: calendarId } });
+    // Verificar que el curso existe
+    let course;
+    try {
+        course = await courseRepo.findOne({ where: { id: courseId } });
 
-//         if (!calendar) {
-//             return {
-//                 processed: false,
-//                 error: `Calendar with ID ${calendarId} not found`,
-//                 totalLines: 0,
-//                 processedCount: 0,
-//                 errorCount: 1,
-//                 days: [],
-//                 errors: [`Calendar with ID ${calendarId} not found`]
-//             };
-//         }
-//     } catch (error) {
-//         return {
-//             processed: false,
-//             error: `Error fetching calendar: ${error instanceof Error ? error.message : error}`,
-//             totalLines: 0,
-//             processedCount: 0,
-//             errorCount: 1,
-//             days: [],
-//             errors: [`Error fetching calendar: ${error instanceof Error ? error.message : error}`]
-//         };
-//     }
+        if (!course) {
+            return {
+                processed: false,
+                error: `Course with ID ${courseId} not found`,
+                totalLines: 0,
+                processedCount: 0,
+                errorCount: 1,
+                days: [],
+                errors: [`Course with ID ${courseId} not found`]
+            };
+        }
+    } catch (error) {
+        return {
+            processed: false,
+            error: `Error fetching course: ${error instanceof Error ? error.message : error}`,
+            totalLines: 0,
+            processedCount: 0,
+            errorCount: 1,
+            days: [],
+            errors: [`Error fetching course: ${error instanceof Error ? error.message : error}`]
+        };
+    }
 
-//     console.log(`Found calendar ${calendarId}`);
+    console.log(`Found course ${courseId}`);
 
-//     for (let i = 0; i < lines.length; i++) {
-//         const line = lines[i].trim();
+    // Primera pasada: validar todas las líneas y recolectar fechas válidas
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
 
-//         // Saltar líneas vacías
-//         if (!line) continue;
+        // Saltar líneas vacías
+        if (!line) continue;
 
-//         try {
-//             // Parsear línea: Fecha : [Tipo de fecha] : texto libre
-//             const parts = line.split(':');
+        try {
+            // Parsear línea: date:dayCharacter:comment
+            const parts = line.split(':');
 
-//             if (parts.length < 3) {
-//                 errors.push(`Línea ${i + 1}: Formato inválido - debe tener al menos 3 campos separados por ':'`);
-//                 continue;
-//             }
+            if (parts.length < 3) {
+                errors.push(`Línea ${i + 1}: Formato inválido - debe tener exactamente 3 campos separados por ':' (date:dayCharacter:comment)`);
+                continue;
+            }
 
-//             const dateStr = parts[0].trim();
-//             const dayType = parts[1].trim();
-//             const description = parts.slice(2).join(':').trim(); // Unir el resto como descripción
+            const dateStr = parts[0].trim();
 
-//             // Validar fecha (formato DD/MM/YYYY)
-//             const dateMatch = dateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-//             if (!dateMatch) {
-//                 errors.push(`Línea ${i + 1}: Fecha inválida '${dateStr}' - debe tener formato DD/MM/YYYY`);
-//                 continue;
-//             }
+            // Validar fecha (formato DD/MM/YYYY)
+            const dateMatch = dateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+            if (!dateMatch) {
+                errors.push(`Línea ${i + 1}: Fecha inválida '${dateStr}' - debe tener formato DD/MM/YYYY`);
+                continue;
+            }
 
-//             const [, day, month, year] = dateMatch;
-//             const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+            const [, day, month, year] = dateMatch;
+            const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
 
-//             // Verificar que la fecha es válida
-//             if (isNaN(date.getTime()) ||
-//                 date.getDate() !== parseInt(day) ||
-//                 date.getMonth() !== parseInt(month) - 1 ||
-//                 date.getFullYear() !== parseInt(year)) {
-//                 errors.push(`Línea ${i + 1}: Fecha inválida '${dateStr}'`);
-//                 continue;
-//             }
+            // Verificar que la fecha es válida
+            if (isNaN(date.getTime()) ||
+                date.getDate() !== parseInt(day) ||
+                date.getMonth() !== parseInt(month) - 1 ||
+                date.getFullYear() !== parseInt(year)) {
+                errors.push(`Línea ${i + 1}: Fecha inválida '${dateStr}'`);
+                continue;
+            }
 
-//             // Determinar el tipo de día
-//             let isHoliday = false;
-//             let isLectiveDay = true;
-//             let eventType = null;
+            // Agregar fecha válida al array
+            dates.push(date);
 
-//             // Si el tipo contiene 'F' es festivo
-//             if (dayType.includes('F')) {
-//                 isHoliday = true;
-//                 isLectiveDay = false;
-//             }
+        } catch (error) {
+            const errorMsg = `Línea ${i + 1}: Error validando fecha - ${error instanceof Error ? error.message : error}`;
+            errors.push(errorMsg);
+            console.error(errorMsg);
+        }
+    }
 
-//             // Si el tipo contiene letras del alfabeto (que no sean F), es un evento etiquetado
-//             const eventMatch = dayType.match(/[A-EG-Z]/); // Cualquier letra excepto F
-//             if (eventMatch) {
-//                 eventType = eventMatch[0];
-//             }
+    // Verificar que tenemos al menos una fecha válida
+    if (dates.length === 0) {
+        return {
+            processed: false,
+            error: 'No valid dates found in file',
+            totalLines: lines.filter(line => line.trim()).length,
+            processedCount: 0,
+            errorCount: errors.length,
+            days: [],
+            errors: [...errors, 'No valid dates found in file']
+        };
+    }
 
-//             console.log(`Processing day: ${dateStr} -> Type: ${dayType}, Holiday: ${isHoliday}, Event: ${eventType}`);
+    // Obtener fecha más antigua (start) y más reciente (end)
+    const startDate = new Date(Math.min(...dates.map(d => d.getTime())));
+    const endDate = new Date(Math.max(...dates.map(d => d.getTime())));
 
-//             // Verificar si el día ya existe para este calendario
-//             const existingDay = await dayRepo.findOne({
-//                 where: {
-//                     calendar: { id: calendarId },
-//                     date: date
-//                 }
-//             });
+    console.log(`Date range: ${startDate.toISOString()} to ${endDate.toISOString()}`);
 
-//             if (existingDay) {
-//                 // Actualizar si hay cambios
-//                 let hasChanges = false;
-//                 const changes = [];
+    // Buscar o crear el calendario
+    let calendar;
+    let calendarAction = '';
+    try {
+        calendar = await calendarRepo.findOne({
+            where: {
+                course: { id: courseId },
+                semester: semester
+            }
+        });
 
-//                 if (existingDay.isHoliday !== isHoliday) {
-//                     existingDay.isHoliday = isHoliday;
-//                     hasChanges = true;
-//                     changes.push(`isHoliday: ${existingDay.isHoliday} -> ${isHoliday}`);
-//                 }
+        if (calendar) {
+            // Actualizar fechas del calendario si son diferentes
+            let calendarUpdated = false;
+            if (calendar.start.getTime() !== startDate.getTime()) {
+                calendar.start = startDate;
+                calendarUpdated = true;
+            }
+            if (calendar.end.getTime() !== endDate.getTime()) {
+                calendar.end = endDate;
+                calendarUpdated = true;
+            }
 
-//                 if (existingDay.isLectiveDay !== isLectiveDay) {
-//                     existingDay.isLectiveDay = isLectiveDay;
-//                     hasChanges = true;
-//                     changes.push(`isLectiveDay: ${existingDay.isLectiveDay} -> ${isLectiveDay}`);
-//                 }
+            if (calendarUpdated) {
+                await calendarRepo.save(calendar);
+                calendarAction = 'updated';
+                console.log(`Calendar updated with new dates`);
+            } else {
+                calendarAction = 'existing';
+                console.log(`Using existing calendar`);
+            }
+        } else {
+            // Crear nuevo calendario
+            calendar = calendarRepo.create({
+                course: course,
+                semester: semester,
+                start: startDate,
+                end: endDate
+            });
+            await calendarRepo.save(calendar);
+            calendarAction = 'created';
+            console.log(`Calendar created with ID: ${calendar.id}`);
+        }
+    } catch (error) {
+        return {
+            processed: false,
+            error: `Error creating/updating calendar: ${error instanceof Error ? error.message : error}`,
+            totalLines: 0,
+            processedCount: 0,
+            errorCount: 1,
+            days: [],
+            errors: [`Error creating/updating calendar: ${error instanceof Error ? error.message : error}`]
+        };
+    }
 
-//                 if (existingDay.eventType !== eventType) {
-//                     existingDay.eventType = eventType;
-//                     hasChanges = true;
-//                     changes.push(`eventType: ${existingDay.eventType} -> ${eventType}`);
-//                 }
+    // Segunda pasada: procesar y guardar los días
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
 
-//                 if (existingDay.description !== description) {
-//                     existingDay.description = description;
-//                     hasChanges = true;
-//                     changes.push(`description updated`);
-//                 }
+        // Saltar líneas vacías
+        if (!line) continue;
 
-//                 if (hasChanges) {
-//                     await dayRepo.save(existingDay);
-//                     processedDays.push({
-//                         date: dateStr,
-//                         dayType,
-//                         isHoliday,
-//                         isLectiveDay,
-//                         eventType,
-//                         description,
-//                         action: 'updated',
-//                         changes,
-//                         line: i + 1
-//                     });
-//                     console.log(`Updated day: ${dateStr} (${changes.join(', ')})`);
-//                 } else {
-//                     processedDays.push({
-//                         date: dateStr,
-//                         dayType,
-//                         isHoliday,
-//                         isLectiveDay,
-//                         eventType,
-//                         description,
-//                         action: 'skipped',
-//                         reason: 'already exists with same data',
-//                         line: i + 1
-//                     });
-//                     console.log(`Skipped day: ${dateStr} (already exists)`);
-//                 }
-//             } else {
-//                 // Crear nuevo día
-//                 const day = dayRepo.create({
-//                     date,
-//                     isHoliday,
-//                     isLectiveDay,
-//                     eventType,
-//                     description,
-//                     calendar
-//                 });
-//                 await dayRepo.save(day);
-//                 processedDays.push({
-//                     date: dateStr,
-//                     dayType,
-//                     isHoliday,
-//                     isLectiveDay,
-//                     eventType,
-//                     description,
-//                     action: 'created',
-//                     line: i + 1
-//                 });
-//                 console.log(`Created day: ${dateStr}`);
-//             }
+        try {
+            // Parsear línea: date:dayCharacter:comment
+            const parts = line.split(':');
 
-//         } catch (error) {
-//             const errorMsg = `Línea ${i + 1}: Error procesando - ${error instanceof Error ? error.message : error}`;
-//             errors.push(errorMsg);
-//             console.error(errorMsg);
-//         }
-//     }
+            if (parts.length < 3) {
+                // Ya registrado en primera pasada
+                continue;
+            }
 
-//     const result = {
-//         processed: true,
-//         totalLines: lines.filter(line => line.trim()).length,
-//         processedCount: processedDays.length,
-//         errorCount: errors.length,
-//         days: processedDays,
-//         errors: errors
-//     };
+            const dateStr = parts[0].trim();
+            const dayCharacter = parts[1].trim();
+            const comment = parts.slice(2).join(':').trim(); // Unir el resto como comentario
 
-//     console.log(`Calendario processing completed:`, result);
-//     return result;
-// };
+            // Validar que dayCharacter no esté vacío
+            if (!dayCharacter) {
+                errors.push(`Línea ${i + 1}: dayCharacter vacío`);
+                continue;
+            }
+
+            // Validar fecha (formato DD/MM/YYYY)
+            const dateMatch = dateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+            if (!dateMatch) {
+                // Ya registrado en primera pasada
+                continue;
+            }
+
+            const [, day, month, year] = dateMatch;
+            const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+
+            // Verificar que la fecha es válida
+            if (isNaN(date.getTime()) ||
+                date.getDate() !== parseInt(day) ||
+                date.getMonth() !== parseInt(month) - 1 ||
+                date.getFullYear() !== parseInt(year)) {
+                // Ya registrado en primera pasada
+                continue;
+            }
+
+            // Determinar si es lectivo: solo es true si dayCharacter es 'L'
+            const lective = dayCharacter.toUpperCase() === 'L';
+
+            console.log(`Processing day: ${dateStr} -> Character: ${dayCharacter}, Lective: ${lective}, Comment: ${comment}`);
+
+            // Verificar si el día ya existe para este calendario
+            const existingDay = await dayRepo.findOne({
+                where: {
+                    calendar: { id: calendar.id },
+                    date: date
+                }
+            });
+
+            if (existingDay) {
+                // Actualizar si hay cambios
+                let hasChanges = false;
+                const changes = [];
+
+                if (existingDay.lective !== lective) {
+                    existingDay.lective = lective;
+                    hasChanges = true;
+                    changes.push(`lective: ${existingDay.lective} -> ${lective}`);
+                }
+
+                if (existingDay.dayCharacter !== dayCharacter) {
+                    existingDay.dayCharacter = dayCharacter;
+                    hasChanges = true;
+                    changes.push(`dayCharacter: ${existingDay.dayCharacter} -> ${dayCharacter}`);
+                }
+
+                if (existingDay.comment !== comment) {
+                    existingDay.comment = comment;
+                    hasChanges = true;
+                    changes.push(`comment updated`);
+                }
+
+                if (hasChanges) {
+                    await dayRepo.save(existingDay);
+                    processedDays.push({
+                        date: dateStr,
+                        dayCharacter,
+                        lective,
+                        comment,
+                        action: 'updated',
+                        changes,
+                        line: i + 1
+                    });
+                    console.log(`Updated day: ${dateStr} (${changes.join(', ')})`);
+                } else {
+                    processedDays.push({
+                        date: dateStr,
+                        dayCharacter,
+                        lective,
+                        comment,
+                        action: 'skipped',
+                        reason: 'already exists with same data',
+                        line: i + 1
+                    });
+                    console.log(`Skipped day: ${dateStr} (already exists)`);
+                }
+            } else {
+                // Crear nuevo día
+                const day = dayRepo.create({
+                    date,
+                    lective,
+                    dayCharacter,
+                    comment,
+                    calendar
+                });
+                await dayRepo.save(day);
+                processedDays.push({
+                    date: dateStr,
+                    dayCharacter,
+                    lective,
+                    comment,
+                    action: 'created',
+                    line: i + 1
+                });
+                console.log(`Created day: ${dateStr}`);
+            }
+
+        } catch (error) {
+            const errorMsg = `Línea ${i + 1}: Error procesando - ${error instanceof Error ? error.message : error}`;
+            errors.push(errorMsg);
+            console.error(errorMsg);
+        }
+    }
+
+    const result = {
+        processed: true,
+        calendarId: calendar.id,
+        calendarAction: calendarAction,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        totalLines: lines.filter(line => line.trim()).length,
+        processedCount: processedDays.length,
+        errorCount: errors.length,
+        days: processedDays,
+        errors: errors
+    };
+
+    console.log(`Calendario processing completed:`, result);
+    return result;
+};

@@ -1,13 +1,10 @@
 import {
     Entity,
     Column,
-    ManyToOne,
     ManyToMany,
     JoinTable,
-    JoinColumn,
     PrimaryGeneratedColumn,
 } from 'typeorm';
-import { Day } from '@/entities/day.entity';
 import { Group } from '@/entities/group.entity';
 import { Classroom } from '@/entities/classroom.entity';
 
@@ -30,6 +27,9 @@ export class PeriodicEvent {
 
     @Column('varchar', { length: 50, name: 'EVENT_CHARACTER' })
     eventCharacter!: string;
+
+    @Column('int', { name: 'PLANIFIED_HOURS' })
+    planifiedHours!: number;
 
     @ManyToMany(() => Group, (group) => group.periodicEvents)
     @JoinTable({

@@ -7,7 +7,6 @@ import { LoadingSpinner } from "@/components/LoadingSpinner"
 import { useTranslation } from "react-i18next"
 import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext"
 import { useParams } from "react-router-dom"
-import { useCoursesByDegreeAcronym } from "@/hooks/course/useCoursesByDegreeAcronym"
 import { useDeleteCourse } from "@/hooks/course/useDeleteCourse"
 import { useCreateCourse } from "@/hooks/course/useCreateCourse"
 import { useDeleteCalendar } from "@/hooks/calendar/useDeleteCalendar"
@@ -17,6 +16,7 @@ import { CreateCourseDrawer } from "@/components/course/CreateCourseDrawer"
 import { CreateCalendarDrawer } from "@/components/calendar/CreateCalendarDrawer"
 import { CourseFormData } from "@/types/Course"
 import { CalendarFormData, CalendarDrawerData } from "@/types/Calendar"
+import { useCoursesByDegreeId } from "@/hooks/course/useCoursesByDegreeId"
 
 interface DeleteState {
     type: 'single' | 'bulk' | 'calendar' | null;
@@ -51,7 +51,7 @@ export default function CoursePage() {
         isLoading: isCoursesLoading,
         error: coursesError,
         refetch
-    } = useCoursesByDegreeAcronym(acronym || null)
+    } = useCoursesByDegreeId(degree?.id || null)
 
     const [selectedIds, setSelectedIds] = useState<string[]>([])
     const [openDrawer, setOpenDrawer] = useState(false)

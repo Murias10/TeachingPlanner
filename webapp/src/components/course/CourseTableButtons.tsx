@@ -30,8 +30,8 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
 
     const navigate = useNavigate()
 
-    const goToGroups = (semester: number) => {
-        navigate(`${course.startYear}/${course.endYear}/semester/${semester}/groups`)
+    const goToCalendar = (semester: number) => {
+        navigate(`${course.startYear}/${course.endYear}/semester/${semester}/calendar`)
     }
 
     // Funciones auxiliares para encontrar calendarios por semestre
@@ -53,7 +53,7 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
                 <>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <Button variant="outline" size="lg" onClick={() => goToGroups(1)}>
+                            <Button variant="outline" size="lg" onClick={() => goToCalendar(1)}>
                                 {t("table.courses.actions.show.semester.1")}<ChevronsRight />
                             </Button>
                         </TooltipTrigger>
@@ -106,7 +106,7 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
                 <>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <Button variant="outline" size="lg" onClick={() => goToGroups(2)}>
+                            <Button variant="outline" size="lg" onClick={() => goToCalendar(2)}>
                                 {t("table.courses.actions.show.semester.2")}<ChevronsRight />
                             </Button>
                         </TooltipTrigger>

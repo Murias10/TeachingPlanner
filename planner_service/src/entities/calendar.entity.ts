@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { Course } from '@/entities/course.entity';
 import { Day } from '@/entities/day.entity';
+import { PeriodicEvent } from '@/entities/periodic_event.entity';
 
 @Entity('CALENDARS')
 @Unique('UQ_CALENDAR_UNIQUE', ['course', 'semester'])
@@ -29,6 +30,9 @@ export class Calendar {
 
     @OneToMany(() => Day, (day) => day.calendar)
     days!: Day[];
+
+    @OneToMany(() => PeriodicEvent, (periodicEvent) => periodicEvent.calendar)
+    periodicEvents!: PeriodicEvent[]
 
     @ManyToOne(() => Course, (course) => course.calendars, {
         onDelete: 'CASCADE',

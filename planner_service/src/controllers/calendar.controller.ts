@@ -958,8 +958,8 @@ const processCalendarioFile = async (content: string, courseId: string, semester
                 continue;
             }
 
-            // Determinar si es lectivo: solo es true si dayCharacter es 'L'
-            const lective = dayCharacter.toUpperCase() === 'F';
+            // Determinar si es lectivo: solo es true si dayCharacter es distinto de  'F'
+            const lective = dayCharacter.toUpperCase() !== 'F';
 
             console.log(`Processing day: ${dateStr} -> Character: ${dayCharacter}, Lective: ${lective}, Comment: ${comment}`);
 
@@ -1075,7 +1075,7 @@ const processHorariosFile = async (content: string, courseId: string, semester: 
 
     console.log(`Processing horarios.txt with ${lines.length} lines`);
 
-    // Verificar que el calendario existe (para validación)
+    // Verificar que el calendario existe (AHORA ES OBLIGATORIO)
     let calendar;
     try {
         calendar = await calendarRepo.findOne({
@@ -1276,11 +1276,13 @@ const processHorariosFile = async (content: string, courseId: string, semester: 
             }
 
             // Verificar si el evento periódico ya existe
+            // AÑADIDO: Ahora también buscamos por calendario
             const existingEvent = await periodicEventRepo
                 .createQueryBuilder('event')
                 .leftJoinAndSelect('event.groups', 'group')
                 .leftJoinAndSelect('event.classrooms', 'classroom')
-                .where('event.year = :year', { year })
+                .where('event.calendar = :calendarId', { calendarId: calendar.id })
+                .andWhere('event.year = :year', { year })
                 .andWhere('event.weekDay = :weekDay', { weekDay: weekDayUpper })
                 .andWhere('event.startTime = :startTime', { startTime: startTime })
                 .andWhere('event.endTime = :endTime', { endTime: endTime })
@@ -1344,6 +1346,7 @@ const processHorariosFile = async (content: string, courseId: string, semester: 
             } else {
                 // Crear nuevo evento periódico
                 const periodicEvent = periodicEventRepo.create({
+                    calendar: calendar,
                     year,
                     weekDay: weekDayUpper,
                     startTime: startTime,
@@ -1743,3 +1746,205 @@ const processExcepcionesFile = async (content: string, courseId: string, semeste
     console.log(`Excepciones processing completed:`, result);
     return result;
 };
+
+export const getCalendarEvents = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+
+        // Validar que el ID sea un UUID válido
+        if (!isValidUUID(id)) {
+            res.status(400).json({
+                status: 'error',
+                message: 'Invalid UUID format for calendar ID',
+                data: null
+            });
+            return;
+        }
+
+        const calendarRepo = AppDataSource.getRepository(Calendar);
+        const periodicEventRepo = AppDataSource.getRepository(PeriodicEvent);
+        const dayRepo = AppDataSource.getRepository(Day);
+
+        // Verificar que el calendario existe
+        const calendar = await calendarRepo.findOne({
+            where: { id },
+            relations: ['course']
+        });
+
+        if (!calendar) {
+            res.status(404).json({
+                status: 'error',
+                message: 'Calendar not found',
+                data: null
+            });
+            return;
+        }
+
+        console.log(`Fetching events for calendar ${id}`);
+
+        // Obtener todos los días del calendario
+        const days = await dayRepo.find({
+            where: { calendar: { id } },
+            order: { date: 'ASC' }
+        });
+
+        console.log(`Found ${days.length} days in calendar`);
+
+        // Obtener todos los eventos periódicos del calendario
+        const periodicEvents = await periodicEventRepo.find({
+            where: { calendar: { id } },
+            relations: ['groups', 'groups.subject', 'classrooms']
+        });
+
+        console.log(`Found ${periodicEvents.length} periodic events`);
+
+        const allEvents: any[] = [];
+
+        // Expandir eventos periódicos en eventos individuales
+        for (const periodicEvent of periodicEvents) {
+            console.log(`\n=== Processing periodic event ${periodicEvent.id} ===`);
+
+            // FILTRO: Solo procesar eventos con eventCharacter = 'N' por ahora
+            if (periodicEvent.eventCharacter.toUpperCase() !== 'N') {
+                console.log(`Skipping event with eventCharacter '${periodicEvent.eventCharacter}' (only processing 'N' for now)`);
+                continue;
+            }
+
+            // Calcular duración del evento en horas
+            const [startHour, startMin] = periodicEvent.startTime.split(':').map(Number);
+            const [endHour, endMin] = periodicEvent.endTime.split(':').map(Number);
+            const durationMinutes = (endHour * 60 + endMin) - (startHour * 60 + startMin);
+            const durationHours = durationMinutes / 60;
+
+            console.log(`Duration: ${durationHours} hours (${startHour}:${startMin} - ${endHour}:${endMin})`);
+
+            // Mapeo de días de la semana
+            const weekDayMap: { [key: string]: number } = {
+                'L': 1, // Lunes
+                'M': 2, // Martes
+                'X': 3, // Miércoles
+                'J': 4, // Jueves
+                'V': 5  // Viernes
+            };
+
+            const targetWeekDay = weekDayMap[periodicEvent.weekDay];
+
+            console.log(`Week day: ${periodicEvent.weekDay}, Target day number: ${targetWeekDay}`);
+            console.log(`Event character: ${periodicEvent.eventCharacter}`);
+            console.log(`Planified hours: ${periodicEvent.planifiedHours}`);
+
+            // Contar cuántas horas ya hemos programado
+            let hoursScheduled = 0;
+            const maxHours = periodicEvent.planifiedHours;
+
+            // Contadores para debug
+            let matchingDays = 0;
+            let lectiveDays = 0;
+            let eventsCreated = 0;
+
+            // Iterar sobre cada día del calendario
+            for (const day of days) {
+                // Si ya hemos programado todas las horas, salir
+                if (hoursScheduled >= maxHours) {
+                    break;
+                }
+
+                // Verificar si este día coincide con el día de la semana del evento
+                const dayOfWeek = day.date.getDay(); // 0=Domingo, 1=Lunes, ..., 6=Sábado
+
+                if (dayOfWeek === targetWeekDay) {
+                    matchingDays++;
+
+                    // CRÍTICO: Verificar que el día sea lectivo (lective = true)
+                    if (!day.lective) {
+                        continue; // Saltar días festivos o no lectivos
+                    }
+
+                    lectiveDays++;
+
+                    // Para eventCharacter = 'N', hay clase TODAS las semanas en días lectivos
+                    const dateKey = day.date.toISOString().split('T')[0];
+
+                    // Determinar cuántas horas programar en este evento
+                    const hoursRemaining = maxHours - hoursScheduled;
+                    const hoursThisEvent = Math.min(durationHours, hoursRemaining);
+
+                    // Solo crear el evento si hay horas que programar
+                    if (hoursThisEvent > 0) {
+                        allEvents.push({
+                            id: `${periodicEvent.id}-${dateKey}`,
+                            date: day.date.toISOString(),
+                            startTime: periodicEvent.startTime,
+                            endTime: periodicEvent.endTime,
+                            duration: hoursThisEvent,
+                            subject: periodicEvent.groups[0]?.subject ? {
+                                id: periodicEvent.groups[0].subject.id,
+                                acronym: periodicEvent.groups[0].subject.acronym,
+                                name: periodicEvent.groups[0].subject.name
+                            } : null,
+                            groups: periodicEvent.groups.map(group => ({
+                                id: group.id,
+                                number: group.number,
+                                type: group.type,
+                                language: group.language
+                            })),
+                            classrooms: periodicEvent.classrooms.map(classroom => ({
+                                id: classroom.id,
+                                code: classroom.code,
+                                gisUrl: classroom.gisUrl
+                            })),
+                            type: 'periodic',
+                            cancelled: false,
+                            periodicEventId: periodicEvent.id,
+                            dayCharacter: day.dayCharacter,
+                            dayComment: day.comment
+                        });
+
+                        hoursScheduled += hoursThisEvent;
+                        eventsCreated++;
+                    }
+                }
+            }
+
+            console.log(`Stats for event ${periodicEvent.id}:`);
+            console.log(`  - Matching weekday days: ${matchingDays}`);
+            console.log(`  - Lective days: ${lectiveDays}`);
+            console.log(`  - Events created: ${eventsCreated}`);
+            console.log(`  - Hours scheduled: ${hoursScheduled}/${maxHours}`);
+        }
+
+        // Ordenar eventos por fecha
+        allEvents.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+        console.log(`\n=== SUMMARY ===`);
+        console.log(`Total events generated: ${allEvents.length}`);
+
+        res.status(200).json({
+            status: 'success',
+            message: 'Calendar events fetched successfully',
+            data: {
+                calendarId: calendar.id,
+                semester: calendar.semester,
+                startDate: calendar.start.toISOString(),
+                endDate: calendar.end.toISOString(),
+                totalEvents: allEvents.length,
+                events: allEvents
+            }
+        });
+
+    } catch (error) {
+        console.error('Error fetching calendar events:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error fetching calendar events',
+            data: error instanceof Error ? error.message : error
+        });
+    }
+};
+
+// Función auxiliar para calcular el número de semana desde el inicio del calendario
+function getWeekNumber(date: Date, startDate: Date): number {
+    const diffTime = date.getTime() - startDate.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    return Math.floor(diffDays / 7);
+}

@@ -4,9 +4,12 @@ import {
     ManyToMany,
     JoinTable,
     PrimaryGeneratedColumn,
+    ManyToOne,
+    JoinColumn,
 } from 'typeorm';
 import { Group } from '@/entities/group.entity';
 import { Classroom } from '@/entities/classroom.entity';
+import { Calendar } from '@/entities/calendar.entity';
 
 @Entity('PERIODIC_EVENTS')
 export class PeriodicEvent {
@@ -30,6 +33,12 @@ export class PeriodicEvent {
 
     @Column('int', { name: 'PLANIFIED_HOURS' })
     planifiedHours!: number;
+
+    @ManyToOne(() => Calendar, calendar => calendar.periodicEvents, {
+        onDelete: 'CASCADE',
+    })
+    @JoinColumn({ name: 'ID_CALENDAR' })
+    calendar!: Calendar
 
     @ManyToMany(() => Group, (group) => group.periodicEvents)
     @JoinTable({

@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Filter, X, ChevronRight, ChevronDown, Check } from 'lucide-react';
+import { Filter, X, ChevronRight, ChevronDown, Check, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { cn } from '@/lib/utils';
 
 type FilterCategory = 'tipoGrupo' | 'asignatura' | 'aula' | 'idioma';
 
@@ -25,9 +26,17 @@ interface ClassFilterProps {
   filters: FilterValues;
   onFiltersChange: (filters: FilterValues) => void;
   filterOptions: FilterOption[];
+  isCollapsed: boolean;
+  onToggleCollapse: () => void;
 }
 
-export default function ClassFilter({ filters, onFiltersChange, filterOptions }: ClassFilterProps) {
+export default function ClassFilter({
+  filters,
+  onFiltersChange,
+  filterOptions,
+  isCollapsed,
+  onToggleCollapse
+}: ClassFilterProps) {
   const [expandedCategories, setExpandedCategories] = useState<Record<FilterCategory, boolean>>({
     tipoGrupo: true,
     asignatura: true,
@@ -79,12 +88,50 @@ export default function ClassFilter({ filters, onFiltersChange, filterOptions }:
 
   const totalActiveFilters = Object.values(filters).reduce((sum, arr) => sum + arr.length, 0);
 
+  // Vista colapsada (solo botón)
+  if (isCollapsed) {
+    return (
+      <div className="relative">
+        <Button
+          onClick={onToggleCollapse}
+          variant="outline"
+          size="icon"
+          className="absolute left-0 top-4 z-10 rounded-r-lg rounded-l-none border-l-0 h-12 w-8"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+        {totalActiveFilters > 0 && (
+          <Badge
+            variant="destructive"
+            className="absolute left-6 top-2 z-10 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+          >
+            {totalActiveFilters}
+          </Badge>
+        )}
+      </div>
+    );
+  }
+
+  // Vista expandida
   return (
-    <aside className="w-80 border-r bg-gray-50/50 h-full flex flex-col">
-      <div className="p-6 border-b bg-white">
-        <div className="flex items-center gap-3 mb-1">
-          <Filter className="w-5 h-5 text-gray-700" />
-          <h2 className="text-lg font-semibold text-gray-900">Filtros</h2>
+    <aside className={cn(
+      "w-80 border-r bg-gray-50/50 flex flex-col transition-all duration-300",
+      "h-full"
+    )}>
+      <div className="p-6 border-b bg-white flex-shrink-0">
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center gap-3">
+            <Filter className="w-5 h-5 text-gray-700" />
+            <h2 className="text-lg font-semibold text-gray-900">Filtros</h2>
+          </div>
+          <Button
+            onClick={onToggleCollapse}
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
         </div>
         <p className="text-sm text-gray-600 mt-1">
           {totalActiveFilters > 0
@@ -104,8 +151,8 @@ export default function ClassFilter({ filters, onFiltersChange, filterOptions }:
         )}
       </div>
 
-      <ScrollArea className="flex-1 px-4 py-4">
-        <div className="space-y-2">
+      <ScrollArea className="flex-1">
+        <div className="px-4 py-4 space-y-2">
           {filterOptions.map(({ category, label, options, icon: Icon }) => {
             const isExpanded = expandedCategories[category];
             const selectedCount = filters[category].length;
@@ -188,28 +235,28 @@ export default function ClassFilter({ filters, onFiltersChange, filterOptions }:
               </div>
             );
           })}
-        </div>
 
-        {totalActiveFilters > 0 && (
-          <div className="mt-4 p-4 bg-white border rounded-lg">
-            <p className="text-xs font-medium text-gray-700 mb-3">Filtros activos</p>
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(filters).map(([category, values]) =>
-                values.map((value: string) => (
-                  <Badge
-                    key={`${category}-${value}`}
-                    variant="secondary"
-                    className="px-2 py-1 flex items-center gap-1 cursor-pointer hover:bg-gray-300 transition-colors"
-                    onClick={() => toggleFilter(category as FilterCategory, value)}
-                  >
-                    {value}
-                    <X className="w-3 h-3" />
-                  </Badge>
-                ))
-              )}
+          {totalActiveFilters > 0 && (
+            <div className="mt-4 p-4 bg-white border rounded-lg">
+              <p className="text-xs font-medium text-gray-700 mb-3">Filtros activos</p>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(filters).map(([category, values]) =>
+                  values.map((value: string) => (
+                    <Badge
+                      key={`${category}-${value}`}
+                      variant="secondary"
+                      className="px-2 py-1 flex items-center gap-1 cursor-pointer hover:bg-gray-300 transition-colors"
+                      onClick={() => toggleFilter(category as FilterCategory, value)}
+                    >
+                      {value}
+                      <X className="w-3 h-3" />
+                    </Badge>
+                  ))
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </ScrollArea>
     </aside>
   );

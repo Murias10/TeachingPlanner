@@ -422,3 +422,21 @@ export const deleteCalendar = async (req: Request, res: Response, next: NextFunc
             next(error);
         });
 };
+
+
+export const getCalendarEvents = (req: Request, res: Response, next: NextFunction) => {
+    const { id } = req.params;
+    fetch(`http://planner_service:5001/calendar/${id}/events`)
+        .then(async (response) => {
+            // Copia los headers del planner service
+            response.headers.forEach((value, key) => {
+                res.setHeader(key, value);
+            });
+            // Obtén el body como JSON
+            const body = await response.json();
+            res.status(response.status).json(body);
+        })
+        .catch((error) => {
+            next(error);
+        });
+}

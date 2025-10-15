@@ -50,7 +50,7 @@ export default function CalendarPage() {
             { label: "Cursos", href: `/degrees/${acronym}/courses` },
             { label: "Calendario", href: "" },
         ]);
-    }, [setItems]);
+    }, [setItems, acronym]);
 
     // Extraer opciones únicas de los eventos
     const filterOptions = useMemo(() => {
@@ -186,7 +186,7 @@ export default function CalendarPage() {
     }
 
     return (
-        <section className="h-full rounded-xl bg-muted/50 m-2 overflow-hidden flex">
+        <section className="h-full bg-muted/50 overflow-hidden flex">
             {/* Panel de filtros */}
             <ClassFilter
                 filters={filters}
@@ -197,23 +197,22 @@ export default function CalendarPage() {
             />
 
             {/* Calendario */}
-            <div className="flex-1 flex flex-col min-w-0">
+            <div className="flex-1 flex flex-col min-w-0 m-10 bg-white rounded-2xl shadow">
                 {/* Header con contador de eventos */}
-                {/* <div className="p-4 border-b bg-white flex-shrink-0">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className="text-xl font-semibold">
-                                Calendario - Semestre {data.semester}
-                            </h1>
-                            <p className="text-sm text-gray-600 mt-1">
-                                Mostrando {events.length} de {data.totalEvents} eventos
-                            </p>
-                        </div>
-                        <div className="text-sm text-gray-600">
-                            {moment(data.startDate).format('DD/MM/YYYY')} - {moment(data.endDate).format('DD/MM/YYYY')}
-                        </div>
+
+                <div className="flex items-center justify-between p-4 border-b">
+                    <div>
+                        <h1 className="text-xl font-semibold">
+                            Calendario - Semestre {data.semester}
+                        </h1>
+                        <p className="text-sm text-gray-600 mt-1">
+                            Mostrando {events.length} de {data.totalEvents} eventos
+                        </p>
                     </div>
-                </div> */}
+                    <div className="text-sm text-gray-600">
+                        {moment(data.startDate).format('DD/MM/YYYY')} - {moment(data.endDate).format('DD/MM/YYYY')}
+                    </div>
+                </div>
 
                 {/* Calendario */}
                 <div className="flex-1 p-4 overflow-hidden">

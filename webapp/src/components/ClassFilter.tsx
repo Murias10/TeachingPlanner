@@ -38,8 +38,8 @@ export default function ClassFilter({
   onToggleCollapse
 }: ClassFilterProps) {
   const [expandedCategories, setExpandedCategories] = useState<Record<FilterCategory, boolean>>({
-    tipoGrupo: true,
-    asignatura: true,
+    tipoGrupo: false,
+    asignatura: false,
     aula: false,
     idioma: false
   });

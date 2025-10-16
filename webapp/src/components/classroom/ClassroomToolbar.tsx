@@ -18,39 +18,42 @@ export function ClassroomToolbar({ deleteSelectedClassrooms, selectedIds, onCrea
 
     return (
         <section className="flex items-center justify-between bg-muted/50 p-4 rounded-xl mt-2 mx-2 gap-4">
-            <div className="flex-1 flex justify-end">
-                <>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                variant="destructive"
-                                size="lg"
-                                className="mr-2"
-                                onClick={deleteSelectedClassrooms}
-                                disabled={!selectedIds?.length}
-                            >
-                                <Trash2 /> {t("toolbar.classrooms.delete.selected")}
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            {t("toolbar.classrooms.delete.selected")}
-                        </TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                variant="outline"
-                                size="lg"
-                                onClick={onCreateClick}
-                            >
-                                <CirclePlus />{t("toolbar.classrooms.create")}
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            {t("toolbar.classrooms.create")}
-                        </TooltipContent>
-                    </Tooltip>
-                </>
+            <div className="flex-1 flex justify-end gap-2">
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            variant="destructive"
+                            onClick={deleteSelectedClassrooms}
+                            disabled={!selectedIds?.length}
+                            className="lg:size-auto size-10 lg:px-4"
+                        >
+                            <Trash2 className="lg:mr-2" />
+                            <span className="hidden lg:inline">
+                                {t("toolbar.classrooms.delete.selected")}
+                            </span>
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>{t("toolbar.classrooms.delete.selected")}</p>
+                    </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            variant="outline"
+                            onClick={onCreateClick}
+                            className="lg:size-auto size-10 lg:px-4"
+                        >
+                            <CirclePlus className="lg:mr-2" />
+                            <span className="hidden lg:inline">
+                                {t("toolbar.classrooms.create")}
+                            </span>
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>{t("toolbar.classrooms.create")}</p>
+                    </TooltipContent>
+                </Tooltip>
             </div>
         </section>
     )

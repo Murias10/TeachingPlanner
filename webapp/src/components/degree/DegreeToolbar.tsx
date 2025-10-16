@@ -18,35 +18,40 @@ export function DegreeToolbar({ deleteSelectedDegrees, selectedIds, onCreateClic
 
     return (
         <section className="flex items-center justify-between bg-muted/50 p-4 rounded-xl mt-2 mx-2 gap-4">
-            <div className="flex-1 flex justify-end">
+            <div className="flex-1 flex justify-end gap-2">
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <Button
                             variant="destructive"
-                            size="lg"
-                            className="mr-2"
                             onClick={deleteSelectedDegrees}
                             disabled={!selectedIds?.length}
+                            className="lg:size-auto size-10 lg:px-4"
                         >
-                            <Trash2 /> {t("toolbar.degrees.delete.selected")}
+                            <Trash2 className="lg:mr-2" />
+                            <span className="hidden lg:inline">
+                                {t("toolbar.degrees.delete.selected")}
+                            </span>
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                        {t("toolbar.degrees.delete.selected")}
+                        <p>{t("toolbar.degrees.delete.selected")}</p>
                     </TooltipContent>
                 </Tooltip>
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <Button
                             variant="outline"
-                            size="lg"
                             onClick={onCreateClick}
+                            className="lg:size-auto size-10 lg:px-4"
                         >
-                            <CirclePlus />{t("toolbar.degrees.create")}
+                            <CirclePlus className="lg:mr-2" />
+                            <span className="hidden lg:inline">
+                                {t("toolbar.degrees.create")}
+                            </span>
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                        {t("toolbar.degrees.create")}
+                        <p>{t("toolbar.degrees.create")}</p>
                     </TooltipContent>
                 </Tooltip>
             </div>

@@ -9,6 +9,15 @@ import ClassFilter, { FilterValues } from "@/components/ClassFilter";
 import { BookOpen, DoorOpen, Languages, Users } from "lucide-react";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+
+// Configurar moment para usar español y que la semana empiece en lunes
+moment.locale('es', {
+    week: {
+        dow: 1, // Lunes es el primer día de la semana (0 = domingo, 1 = lunes)
+        doy: 4  // Usada para calcular la primera semana del año
+    }
+});
 
 const localizer = momentLocalizer(moment);
 
@@ -20,6 +29,8 @@ interface MyEvent {
 }
 
 export default function CalendarPage() {
+
+    const { t } = useTranslation()
 
     // Extraer el acrónimo de la URL
     const { acronym, startYear, endYear, semester } = useParams<{ acronym: string, startYear: string, endYear: string, semester: string }>()
@@ -45,12 +56,12 @@ export default function CalendarPage() {
 
     useEffect(() => {
         setItems([
-            { label: "Inicio", href: "/home" },
-            { label: "Títulos", href: "/degrees" },
-            { label: "Cursos", href: `/degrees/${acronym}/courses` },
-            { label: "Calendario", href: "" },
+            { label: t("breadcrumb.home"), href: "/home" },
+            { label: t("breadcrumb.degrees"), href: "/degrees" },
+            { label: t("breadcrumb.courses"), href: `/degrees/${acronym}/courses` },
+            { label: t("breadcrumb.calendar"), href: "" },
         ]);
-    }, [setItems, acronym]);
+    }, [setItems, acronym, t]);
 
     // Extraer opciones únicas de los eventos
     const filterOptions = useMemo(() => {
@@ -149,7 +160,10 @@ export default function CalendarPage() {
             const eventDate = moment(event.date).format('YYYY-MM-DD');
 
             return {
-                title: `${event.subject?.acronym || 'Sin asignatura'} - ${event.groups.map(g => `${g.type}${g.number}`).join(', ')}`,
+                title: `${event.subject?.acronym || 'Sin asignatura'}.${event.groups.map(g => {
+                    const lang = g.language === 'EN' ? 'I-' : '';
+                    return `${g.type}.${lang}${g.number}`;
+                }).join(', ')}`,
                 start: moment(`${eventDate}T${event.startTime}`).toDate(),
                 end: moment(`${eventDate}T${event.endTime}`).toDate(),
                 resource: event
@@ -199,7 +213,6 @@ export default function CalendarPage() {
             {/* Calendario */}
             <div className="flex-1 flex flex-col min-w-0 m-10 bg-white rounded-2xl shadow">
                 {/* Header con contador de eventos */}
-
                 <div className="flex items-center justify-between p-4 border-b">
                     <div>
                         <h1 className="text-xl font-semibold">
@@ -218,13 +231,15 @@ export default function CalendarPage() {
                 <div className="flex-1 p-4 overflow-hidden">
                     {events.length > 0 ? (
                         <Calendar
-                            defaultView="week"
+                            defaultView="work_week"
+                            views={['week', 'work_week', 'day', 'month']}
                             localizer={localizer}
                             events={events}
                             max={maxDate}
                             min={minDate}
                             startAccessor="start"
                             endAccessor="end"
+                            culture="es"
                             style={{ height: '100%', width: '100%' }}
                             eventPropGetter={(event) => {
                                 const calendarEvent = event.resource as CalendarEvent;

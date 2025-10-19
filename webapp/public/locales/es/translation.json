@@ -366,7 +366,7 @@
                 "edit": "Editar aula",
                 "delete": "Eliminar aula",
                 "view": "Ver aula",
-                "gisUrl": "Ir a https://{{url}}"
+                "gisUrl": "Ir a {{url}}"
             }
         },
         "subjects": {

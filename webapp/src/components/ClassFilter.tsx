@@ -37,18 +37,10 @@ export default function ClassFilter({
   isCollapsed,
   onToggleCollapse
 }: ClassFilterProps) {
-  const [expandedCategories, setExpandedCategories] = useState<Record<FilterCategory, boolean>>({
-    tipoGrupo: false,
-    asignatura: false,
-    aula: false,
-    idioma: false
-  });
+  const [expandedCategory, setExpandedCategory] = useState<FilterCategory | null>(null);
 
   const toggleCategory = (category: FilterCategory) => {
-    setExpandedCategories(prev => ({
-      ...prev,
-      [category]: !prev[category]
-    }));
+    setExpandedCategory(prev => prev === category ? null : category);
   };
 
   const toggleFilter = (category: FilterCategory, value: string) => {
@@ -115,14 +107,14 @@ export default function ClassFilter({
   // Vista expandida
   return (
     <aside className={cn(
-      "w-80 border-r bg-gray-50/50 flex flex-col transition-all duration-300",
+      "w-80 border-r bg-background/50 flex flex-col transition-all duration-300",
       "h-full"
     )}>
-      <div className="p-6 border-b bg-white flex-shrink-0">
+      <div className="p-6 border-b bg-card flex-shrink-0">
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-3">
-            <Filter className="w-5 h-5 text-gray-700" />
-            <h2 className="text-lg font-semibold text-gray-900">Filtros</h2>
+            <Filter className="w-5 h-5 text-foreground" />
+            <h2 className="text-lg font-semibold text-foreground">Filtros</h2>
           </div>
           <Button
             onClick={onToggleCollapse}
@@ -133,7 +125,7 @@ export default function ClassFilter({
             <ChevronLeft className="h-4 w-4" />
           </Button>
         </div>
-        <p className="text-sm text-gray-600 mt-1">
+        <p className="text-sm text-muted-foreground mt-1">
           {totalActiveFilters > 0
             ? `${totalActiveFilters} aplicado${totalActiveFilters > 1 ? 's' : ''}`
             : 'Ningún filtro aplicado'}
@@ -154,21 +146,21 @@ export default function ClassFilter({
       <ScrollArea className="flex-1">
         <div className="px-4 py-4 space-y-2">
           {filterOptions.map(({ category, label, options, icon: Icon }) => {
-            const isExpanded = expandedCategories[category];
+            const isExpanded = expandedCategory === category;
             const selectedCount = filters[category].length;
 
             return (
-              <div key={category} className="border rounded-lg overflow-hidden bg-white">
+              <div key={category} className="border rounded-lg overflow-hidden bg-card">
                 <button
-                  className="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition-colors"
+                  className="w-full flex items-center justify-between p-3 hover:bg-accent hover:text-accent-foreground transition-colors"
                   onClick={() => toggleCategory(category)}
                 >
                   <div className="flex items-center gap-3">
-                    <Icon className="w-4 h-4 text-gray-600" />
+                    <Icon className="w-4 h-4 text-muted-foreground" />
                     <div className="text-left">
-                      <div className="font-medium text-sm text-gray-900">{label}</div>
+                      <div className="font-medium text-sm text-foreground">{label}</div>
                       {selectedCount > 0 && (
-                        <div className="text-xs text-gray-500 mt-0.5">
+                        <div className="text-xs text-muted-foreground mt-0.5">
                           {selectedCount} de {options.length}
                         </div>
                       )}
@@ -181,16 +173,16 @@ export default function ClassFilter({
                       </Badge>
                     )}
                     {isExpanded ? (
-                      <ChevronDown className="w-4 h-4 text-gray-500" />
+                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
                     ) : (
-                      <ChevronRight className="w-4 h-4 text-gray-500" />
+                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
                     )}
                   </div>
                 </button>
 
                 {isExpanded && (
                   <div className="border-t">
-                    <div className="p-2 bg-gray-50 flex gap-2">
+                    <div className="p-2 bg-muted/50 flex gap-2">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -214,18 +206,18 @@ export default function ClassFilter({
                       {options.map(option => (
                         <button
                           key={option}
-                          className="w-full flex items-center gap-3 p-2 hover:bg-gray-50 rounded transition-colors"
+                          className="w-full flex items-center gap-3 p-2 hover:bg-accent hover:text-accent-foreground rounded transition-colors"
                           onClick={() => toggleFilter(category, option)}
                         >
                           <Checkbox
                             checked={filters[category].includes(option)}
                             className="pointer-events-none"
                           />
-                          <span className="text-sm flex-1 text-left text-gray-700">
+                          <span className="text-sm flex-1 text-left text-foreground">
                             {option}
                           </span>
                           {filters[category].includes(option) && (
-                            <Check className="w-4 h-4 text-gray-900" />
+                            <Check className="w-4 h-4 text-foreground" />
                           )}
                         </button>
                       ))}
@@ -237,15 +229,15 @@ export default function ClassFilter({
           })}
 
           {totalActiveFilters > 0 && (
-            <div className="mt-4 p-4 bg-white border rounded-lg">
-              <p className="text-xs font-medium text-gray-700 mb-3">Filtros activos</p>
+            <div className="mt-4 p-4 bg-card border rounded-lg">
+              <p className="text-xs font-medium text-foreground mb-3">Filtros activos</p>
               <div className="flex flex-wrap gap-2">
                 {Object.entries(filters).map(([category, values]) =>
                   values.map((value: string) => (
                     <Badge
                       key={`${category}-${value}`}
                       variant="secondary"
-                      className="px-2 py-1 flex items-center gap-1 cursor-pointer hover:bg-gray-300 transition-colors"
+                      className="px-2 py-1 flex items-center gap-1 cursor-pointer hover:bg-secondary/80 transition-colors"
                       onClick={() => toggleFilter(category as FilterCategory, value)}
                     >
                       {value}

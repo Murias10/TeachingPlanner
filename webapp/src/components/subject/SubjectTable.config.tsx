@@ -3,6 +3,7 @@ import { ColumnDef } from "@tanstack/react-table"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { ProtectedComponent } from "@/components/ProtectedComponent"
 import {
     Tooltip,
     TooltipContent,
@@ -14,6 +15,7 @@ import { Subject } from "@/types/Subject"
 
 interface ColumnExtraProps {
     deleteSubject: (subjectId: string) => void;
+    isAdmin?: boolean;
 }
 
 // Función para generar colores consistentes basados en el texto
@@ -42,25 +44,31 @@ const getColorFromText = (text: string) => {
     return colors[Math.abs(hash) % colors.length];
 };
 
-export const columns = ({ deleteSubject }: ColumnExtraProps, t: TFunction): ColumnDef<Subject>[] => [
-    {
-        id: "select",
-        header: ({ table }) => (
-            <Checkbox
-                checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate")}
-                onCheckedChange={(v) => table.toggleAllPageRowsSelected(!!v)}
-            />
-        ),
-        cell: ({ row }) => (
-            <Checkbox
-                checked={row.getIsSelected()}
-                onCheckedChange={(v) => row.toggleSelected(!!v)}
-            />
-        ),
-        enableSorting: false,
-        enableHiding: false,
-    },
-    {
+export const columns = ({ deleteSubject, isAdmin = false }: ColumnExtraProps, t: TFunction): ColumnDef<Subject>[] => {
+    const cols: ColumnDef<Subject>[] = [];
+
+    // Solo agregar columna de selección si es ADMIN
+    if (isAdmin) {
+        cols.push({
+            id: "select",
+            header: ({ table }) => (
+                <Checkbox
+                    checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate")}
+                    onCheckedChange={(v) => table.toggleAllPageRowsSelected(!!v)}
+                />
+            ),
+            cell: ({ row }) => (
+                <Checkbox
+                    checked={row.getIsSelected()}
+                    onCheckedChange={(v) => row.toggleSelected(!!v)}
+                />
+            ),
+            enableSorting: false,
+            enableHiding: false,
+        });
+    }
+
+    cols.push({
         accessorKey: "name",
         header: ({ column }) => (
             <Button
@@ -73,109 +81,115 @@ export const columns = ({ deleteSubject }: ColumnExtraProps, t: TFunction): Colu
         ),
         cell: ({ getValue }) => <span>{getValue<string>()}</span>,
     },
-    {
-        accessorKey: "acronym",
-        header: ({ column }) => (
-            <Button
-                variant="ghost"
-                onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-                className="flex items-center gap-1"
-            >
-                {t("table.subjects.columns.acronym")} <ArrowUpDown className="h-4 w-4" />
-            </Button>
-        ),
-        cell: ({ getValue }) => {
-            const acronym = getValue<string>();
-            const colorClasses = getColorFromText(acronym);
+        {
+            accessorKey: "acronym",
+            header: ({ column }) => (
+                <Button
+                    variant="ghost"
+                    onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+                    className="flex items-center gap-1"
+                >
+                    {t("table.subjects.columns.acronym")} <ArrowUpDown className="h-4 w-4" />
+                </Button>
+            ),
+            cell: ({ getValue }) => {
+                const acronym = getValue<string>();
+                const colorClasses = getColorFromText(acronym);
 
-            return (
-                <Badge className={colorClasses}>
-                    {acronym}
-                </Badge>
-            );
+                return (
+                    <Badge className={colorClasses}>
+                        {acronym}
+                    </Badge>
+                );
+            },
         },
-    },
-    {
-        accessorKey: "semester",
-        header: ({ column }) => (
-            <Button
-                variant="ghost"
-                onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-                className="flex items-center gap-1"
-            >
-                {t("table.subjects.columns.semester")} <ArrowUpDown className="h-4 w-4" />
-            </Button>
-        ),
-        cell: ({ getValue }) => {
-            const semester = getValue<number>();
-            const label = semester === 1 ? t("table.subjects.semester.1") : semester === 2 ? t("table.subjects.semester.2") : "—";
-            return <span>{label}</span>;
-        }
-    },
-    {
-        accessorKey: "year",
-        header: ({ column }) => (
-            <Button
-                variant="ghost"
-                onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-                className="flex items-center gap-1"
-            >
-                {t("table.subjects.columns.year")} <ArrowUpDown className="h-4 w-4" />
-            </Button>
-        ),
-        cell: ({ getValue }) => {
-            const year = getValue<number>();
-            const label =
-                year === 1 ? t("table.subjects.year.1") :
-                    year === 2 ? t("table.subjects.year.2") :
-                        year === 3 ? t("table.subjects.year.3") :
-                            year === 4 ? t("table.subjects.year.4") :
-                                "—";
-            return <span>{label}</span>;
+        {
+            accessorKey: "semester",
+            header: ({ column }) => (
+                <Button
+                    variant="ghost"
+                    onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+                    className="flex items-center gap-1"
+                >
+                    {t("table.subjects.columns.semester")} <ArrowUpDown className="h-4 w-4" />
+                </Button>
+            ),
+            cell: ({ getValue }) => {
+                const semester = getValue<number>();
+                const label = semester === 1 ? t("table.subjects.semester.1") : semester === 2 ? t("table.subjects.semester.2") : "—";
+                return <span>{label}</span>;
+            }
         },
-    },
-    {
-        id: "actions",
-        enableSorting: false,
-        cell: ({ row }) => {
-            const subject = row.original
-
-            return (
-                <div className="flex justify-end space-x-2">
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button variant="outline" size="icon" className="size-10">
-                                <Eye />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>{t("table.subjects.actions.view")}</p>
-                        </TooltipContent>
-                    </Tooltip>
-
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button variant="outline" size="icon" className="size-10">
-                                <Pencil />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>{t("table.subjects.actions.edit")}</p>
-                        </TooltipContent>
-                    </Tooltip>
-
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button variant="destructive" size="icon" className="size-10" onClick={() => deleteSubject(subject.id)}>
-                                <Trash2 />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>{t("table.subjects.actions.delete")}</p>
-                        </TooltipContent>
-                    </Tooltip>
-                </div>
-            )
+        {
+            accessorKey: "year",
+            header: ({ column }) => (
+                <Button
+                    variant="ghost"
+                    onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+                    className="flex items-center gap-1"
+                >
+                    {t("table.subjects.columns.year")} <ArrowUpDown className="h-4 w-4" />
+                </Button>
+            ),
+            cell: ({ getValue }) => {
+                const year = getValue<number>();
+                const label =
+                    year === 1 ? t("table.subjects.year.1") :
+                        year === 2 ? t("table.subjects.year.2") :
+                            year === 3 ? t("table.subjects.year.3") :
+                                year === 4 ? t("table.subjects.year.4") :
+                                    "—";
+                return <span>{label}</span>;
+            },
         },
-    },
-]
+        {
+            id: "actions",
+            enableSorting: false,
+            cell: ({ row }) => {
+                const subject = row.original
+
+                return (
+                    <div className="flex justify-end space-x-2">
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="outline" size="icon" className="size-10">
+                                    <Eye />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>{t("table.subjects.actions.view")}</p>
+                            </TooltipContent>
+                        </Tooltip>
+
+                        <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button variant="outline" size="icon" className="size-10">
+                                        <Pencil />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>{t("table.subjects.actions.edit")}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </ProtectedComponent>
+
+                        <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button variant="destructive" size="icon" className="size-10" onClick={() => deleteSubject(subject.id)}>
+                                        <Trash2 />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>{t("table.subjects.actions.delete")}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </ProtectedComponent>
+                    </div>
+                )
+            },
+        });
+
+    return cols;
+}

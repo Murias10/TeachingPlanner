@@ -8,6 +8,7 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { useTranslation } from "react-i18next"
+import { ProtectedComponent } from "@/components/ProtectedComponent"
 
 type Props = {
     degree: Degree,
@@ -83,28 +84,32 @@ export function DegreeTableButtons({ degree, deleteDegree }: Props) {
             </Tooltip> */}
 
             {/* Botón Editar */}
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button variant="outline" size="icon" className="size-10">
-                        <Pencil />
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                    <p>{t("table.degrees.actions.edit")}</p>
-                </TooltipContent>
-            </Tooltip>
+            <ProtectedComponent requiredRoles={["ADMIN"]}>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="outline" size="icon" className="size-10">
+                            <Pencil />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>{t("table.degrees.actions.edit")}</p>
+                    </TooltipContent>
+                </Tooltip>
+            </ProtectedComponent>
 
             {/* Botón Eliminar */}
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button variant="destructive" size="icon" className="size-10" onClick={() => deleteDegree(degree.id)}>
-                        <Trash2 />
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                    <p>{t("table.degrees.actions.delete")}</p>
-                </TooltipContent>
-            </Tooltip>
+            <ProtectedComponent requiredRoles={["ADMIN"]}>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="destructive" size="icon" className="size-10" onClick={() => deleteDegree(degree.id)}>
+                            <Trash2 />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>{t("table.degrees.actions.delete")}</p>
+                    </TooltipContent>
+                </Tooltip>
+            </ProtectedComponent>
         </div>
     )
 }

@@ -35,7 +35,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const data = {
     user: {
       name: isAuthenticated && user ? `${user.name} ${user.firstSurname} ${user.secondSurname}` : "Invitado",
-      email: isAuthenticated && user ? user.email : "",
+      email: isAuthenticated && user ? user.email : "No autenticado",
       avatar: "/avatars/shadcn.jpg",
     },
     main: [

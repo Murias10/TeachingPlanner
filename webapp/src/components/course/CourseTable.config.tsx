@@ -12,27 +12,34 @@ interface ColumnExtraProps {
     deleteCourse: (courseId: string) => void;
     deleteCalendar: (calendarId: string, force: boolean) => void;
     createCalendar: (courseId: string, semester: number) => void;
+    isAdmin?: boolean;
 }
 
-export const columns = ({ deleteCourse, deleteCalendar, createCalendar }: ColumnExtraProps, t: TFunction): ColumnDef<Course>[] => [
-    {
-        id: 'select',
-        header: ({ table }) => (
-            <Checkbox
-                checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && 'indeterminate')}
-                onCheckedChange={v => table.toggleAllPageRowsSelected(!!v)}
-            />
-        ),
-        cell: ({ row }) => (
-            <Checkbox
-                checked={row.getIsSelected()}
-                onCheckedChange={v => row.toggleSelected(!!v)}
-            />
-        ),
-        enableSorting: false,
-        enableHiding: false,
-    },
-    {
+export const columns = ({ deleteCourse, deleteCalendar, createCalendar, isAdmin = false }: ColumnExtraProps, t: TFunction): ColumnDef<Course>[] => {
+    const cols: ColumnDef<Course>[] = [];
+
+    // Solo agregar columna de selección si es ADMIN
+    if (isAdmin) {
+        cols.push({
+            id: 'select',
+            header: ({ table }) => (
+                <Checkbox
+                    checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && 'indeterminate')}
+                    onCheckedChange={v => table.toggleAllPageRowsSelected(!!v)}
+                />
+            ),
+            cell: ({ row }) => (
+                <Checkbox
+                    checked={row.getIsSelected()}
+                    onCheckedChange={v => row.toggleSelected(!!v)}
+                />
+            ),
+            enableSorting: false,
+            enableHiding: false,
+        });
+    }
+
+    cols.push({
         id: 'course',
         accessorFn: row => `${row.startYear}-${row.endYear}`,
         header: ({ column }) => (
@@ -82,5 +89,7 @@ export const columns = ({ deleteCourse, deleteCalendar, createCalendar }: Column
                 />
             )
         },
-    },
-]
+    });
+
+    return cols;
+}

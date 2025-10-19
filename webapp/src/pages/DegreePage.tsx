@@ -2,7 +2,9 @@ import { DegreeToolbar } from "@/components/degree/DegreeToolbar"
 import { DegreeTable } from "@/components/degree/DegreeTable"
 import { CreateDegreeDrawer } from "@/components/degree/CreateDegreeDrawer"
 import { DeleteConfirmationDialog } from "@/components/DeleteConfirmationDialog"
+import { ProtectedComponent } from "@/components/ProtectedComponent"
 import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext"
+import { useAuth } from "@/contexts/AuthContext"
 import { useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useDegrees } from "@/hooks/degree/useDegrees"
@@ -19,11 +21,14 @@ interface DeleteState {
 
 export default function DegreePage() {
     const { t } = useTranslation()
+    const { user } = useAuth()
 
     const { triggerAlert } = useFloatingAlertContext()
     const { deleteDegree } = useDeleteDegree()
     const { createDegree } = useCreateDegree()
     const { setItems } = useBreadcrumbContext()
+
+    const isAdmin = user?.role === "ADMIN"
 
     // Estados principales
     const { data: degrees = [], isLoading, error, refetch } = useDegrees()
@@ -198,13 +203,13 @@ export default function DegreePage() {
 
     return (
         <>
-
-            <DegreeToolbar
-                deleteSelectedDegrees={handleDeleteSelectedDegrees}
-                selectedIds={selectedIds}
-                onCreateClick={() => setDrawerOpen(true)}
-            />
-
+            <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
+                <DegreeToolbar
+                    deleteSelectedDegrees={handleDeleteSelectedDegrees}
+                    selectedIds={selectedIds}
+                    onCreateClick={() => setDrawerOpen(true)}
+                />
+            </ProtectedComponent>
 
             <section className="h-full rounded-xl bg-muted/50 flex items-center justify-center m-2">
                 <div className="min-w-[400px] w-2/3">
@@ -215,6 +220,7 @@ export default function DegreePage() {
                             degrees={degrees}
                             deleteDegree={handleDeleteClick}
                             setSelectedIds={setSelectedIds}
+                            isAdmin={isAdmin}
                         />
                     )}
                 </div>

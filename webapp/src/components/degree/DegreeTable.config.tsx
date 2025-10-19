@@ -9,6 +9,7 @@ import { TFunction } from "i18next"
 
 interface ColumnExtraProps {
     deleteDegree: (degreeId: string) => void;
+    isAdmin?: boolean;
 }
 
 // Función para generar colores consistentes basados en el texto
@@ -37,28 +38,34 @@ const getColorFromText = (text: string) => {
     return colors[Math.abs(hash) % colors.length];
 };
 
-export const columns = ({ deleteDegree }: ColumnExtraProps, t: TFunction): ColumnDef<Degree>[] => [
-    {
-        id: "select",
-        header: ({ table }) => (
-            <Checkbox
-                checked={
-                    table.getIsAllPageRowsSelected() ||
-                    (table.getIsSomePageRowsSelected() && "indeterminate")
-                }
-                onCheckedChange={(v) => table.toggleAllPageRowsSelected(!!v)}
-            />
-        ),
-        cell: ({ row }) => (
-            <Checkbox
-                checked={row.getIsSelected()}
-                onCheckedChange={(v) => row.toggleSelected(!!v)}
-            />
-        ),
-        enableSorting: false,
-        enableHiding: false,
-    },
-    {
+export const columns = ({ deleteDegree, isAdmin = false }: ColumnExtraProps, t: TFunction): ColumnDef<Degree>[] => {
+    const cols: ColumnDef<Degree>[] = [];
+
+    // Solo agregar columna de selección si es ADMIN
+    if (isAdmin) {
+        cols.push({
+            id: "select",
+            header: ({ table }) => (
+                <Checkbox
+                    checked={
+                        table.getIsAllPageRowsSelected() ||
+                        (table.getIsSomePageRowsSelected() && "indeterminate")
+                    }
+                    onCheckedChange={(v) => table.toggleAllPageRowsSelected(!!v)}
+                />
+            ),
+            cell: ({ row }) => (
+                <Checkbox
+                    checked={row.getIsSelected()}
+                    onCheckedChange={(v) => row.toggleSelected(!!v)}
+                />
+            ),
+            enableSorting: false,
+            enableHiding: false,
+        });
+    }
+
+    cols.push({
         accessorKey: "name",
         enableHiding: false,
         header: ({ column }) => (
@@ -73,8 +80,9 @@ export const columns = ({ deleteDegree }: ColumnExtraProps, t: TFunction): Colum
             </Button>
         ),
         cell: ({ getValue }) => <span>{getValue<string>()}</span>,
-    },
-    {
+    });
+
+    cols.push({
         accessorKey: "acronym",
         header: ({ column }) => (
             <Button
@@ -97,8 +105,9 @@ export const columns = ({ deleteDegree }: ColumnExtraProps, t: TFunction): Colum
                 </Badge>
             );
         },
-    },
-    {
+    });
+
+    cols.push({
         id: "actions",
         enableSorting: false,
         cell: ({ row }) => {
@@ -108,5 +117,7 @@ export const columns = ({ deleteDegree }: ColumnExtraProps, t: TFunction): Colum
                 <DegreeTableButtons degree={degree} deleteDegree={deleteDegree} />
             )
         },
-    },
-]
+    });
+
+    return cols;
+}

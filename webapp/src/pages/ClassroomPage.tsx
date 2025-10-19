@@ -2,7 +2,9 @@ import { ClassroomToolbar } from "@/components/classroom/ClassroomToolbar"
 import { ClassroomTable } from "@/components/classroom/ClassroomTable"
 import { CreateClassroomDrawer } from "@/components/classroom/CreateClassroomDrawer"
 import { DeleteConfirmationDialog } from "@/components/DeleteConfirmationDialog"
+import { ProtectedComponent } from "@/components/ProtectedComponent"
 import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext"
+import { useAuth } from "@/contexts/AuthContext"
 import { useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useClassrooms } from "@/hooks/classroom/useClassrooms"
@@ -19,8 +21,11 @@ interface DeleteState {
 
 export default function ClassroomPage() {
     const { t } = useTranslation()
+    const { user } = useAuth()
 
     const { triggerAlert } = useFloatingAlertContext()
+
+    const isAdmin = user?.role === "ADMIN"
     const { deleteClassroom } = useDeleteClassroom()
     const { createClassroom } = useCreateClassroom()
     const { setItems } = useBreadcrumbContext()
@@ -214,11 +219,13 @@ export default function ClassroomPage() {
 
     return (
         <>
-            <ClassroomToolbar
-                deleteSelectedClassrooms={handleDeleteSelectedClassrooms}
-                selectedIds={selectedIds}
-                onCreateClick={() => setDrawerOpen(true)}
-            />
+            <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
+                <ClassroomToolbar
+                    deleteSelectedClassrooms={handleDeleteSelectedClassrooms}
+                    selectedIds={selectedIds}
+                    onCreateClick={() => setDrawerOpen(true)}
+                />
+            </ProtectedComponent>
 
             <section className="h-full rounded-xl bg-muted/50 flex items-center justify-center m-2">
                 <div className="min-w-[400px] w-2/3">
@@ -229,6 +236,7 @@ export default function ClassroomPage() {
                             classrooms={classrooms}
                             deleteClassroom={handleDeleteClick}
                             setSelectedIds={setSelectedIds}
+                            isAdmin={isAdmin}
                         />
                     )}
                 </div>

@@ -2,7 +2,9 @@ import { SubjectToolbar } from "@/components/subject/SubjectToolbar"
 import { SubjectTable } from "@/components/subject/SubjectTable"
 import { CreateSubjectDrawer } from "@/components/subject/CreateSubjectDrawer"
 import { DeleteConfirmationDialog } from "@/components/DeleteConfirmationDialog"
+import { ProtectedComponent } from "@/components/ProtectedComponent"
 import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext"
+import { useAuth } from "@/contexts/AuthContext"
 import { useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useParams } from "react-router-dom"
@@ -29,11 +31,13 @@ interface SubjectFormData {
 
 export default function SubjectPage() {
     const { t } = useTranslation()
+    const { user } = useAuth()
 
-    // AQUÍ ES DONDE HAY QUE USAR useParams - se extrae el acrónimo de la URL
     const { acronym } = useParams<{ acronym: string }>()
 
     const { triggerAlert } = useFloatingAlertContext()
+
+    const isAdmin = user?.role === "ADMIN"
     const { deleteSubject } = useDeleteSubject()
     const { createSubject } = useCreateSubject()
     const { setItems } = useBreadcrumbContext()
@@ -254,11 +258,13 @@ export default function SubjectPage() {
 
     return (
         <>
-            <SubjectToolbar
-                deleteSelectedSubjects={handleDeleteSelectedSubjects}
-                selectedIds={selectedIds}
-                onCreateClick={() => setDrawerOpen(true)}
-            />
+            <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
+                <SubjectToolbar
+                    deleteSelectedSubjects={handleDeleteSelectedSubjects}
+                    selectedIds={selectedIds}
+                    onCreateClick={() => setDrawerOpen(true)}
+                />
+            </ProtectedComponent>
 
             <section className="h-full rounded-xl bg-muted/50 flex items-center justify-center m-2">
                 <div className="min-w-[400px] w-2/3">
@@ -269,6 +275,7 @@ export default function SubjectPage() {
                             subjects={subjects}
                             deleteSubject={handleDeleteClick}
                             setSelectedIds={setSelectedIds}
+                            isAdmin={isAdmin}
                         />
                     )}
                 </div>

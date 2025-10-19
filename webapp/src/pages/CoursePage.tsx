@@ -1,7 +1,9 @@
 import { CourseToolbar } from "@/components/course/CourseToolbar"
 import { CourseTable } from "@/components/course/CourseTable"
 import { DeleteConfirmationDialog } from "@/components/DeleteConfirmationDialog"
+import { ProtectedComponent } from "@/components/ProtectedComponent"
 import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext"
+import { useAuth } from "@/contexts/AuthContext"
 import { useCallback, useEffect, useState } from "react"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
 import { useTranslation } from "react-i18next"
@@ -27,11 +29,15 @@ interface DeleteState {
 
 export default function CoursePage() {
     const { t } = useTranslation()
+    const { user } = useAuth()
 
     // Extraer el acrónimo de la URL
     const { acronym } = useParams<{ acronym: string }>()
 
     const { triggerAlert } = useFloatingAlertContext()
+
+    const isAdmin = user?.role === "ADMIN"
+
     const { deleteCourse } = useDeleteCourse()
     const { createCourse } = useCreateCourse()
     const { deleteCalendar } = useDeleteCalendar()
@@ -419,11 +425,13 @@ export default function CoursePage() {
 
     return (
         <>
-            <CourseToolbar
-                setOpenDrawer={setOpenDrawer}
-                deleteSelectedCourses={handleDeleteSelectedCourses}
-                selectedIds={selectedIds}
-            />
+            <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
+                <CourseToolbar
+                    setOpenDrawer={setOpenDrawer}
+                    deleteSelectedCourses={handleDeleteSelectedCourses}
+                    selectedIds={selectedIds}
+                />
+            </ProtectedComponent>
 
             <section className="h-full rounded-xl bg-muted/50 flex items-center justify-center m-2">
                 <div className="min-w-[400px] w-2/3">
@@ -436,6 +444,7 @@ export default function CoursePage() {
                             deleteCalendar={handleDeleteCalendarWithConfirmation}
                             createCalendar={handleCreateCalendar}
                             setSelectedIds={setSelectedIds}
+                            isAdmin={isAdmin}
                         />
                     )}
                 </div>

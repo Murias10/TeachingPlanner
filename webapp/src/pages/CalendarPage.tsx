@@ -193,7 +193,7 @@ export default function CalendarPage() {
         return (
             <section className="h-full rounded-xl bg-muted/50 flex items-center justify-center m-2 p-10">
                 <div className="flex items-center justify-center h-full">
-                    <p className="text-gray-500">No hay eventos para mostrar</p>
+                    <p className="text-muted-foreground">No hay eventos para mostrar</p>
                 </div>
             </section>
         );
@@ -211,24 +211,24 @@ export default function CalendarPage() {
             />
 
             {/* Calendario */}
-            <div className="flex-1 flex flex-col min-w-0 m-10 bg-white rounded-2xl shadow">
+            <div className="flex-1 flex flex-col min-w-0 m-10 bg-card rounded-2xl shadow-lg border">
                 {/* Header con contador de eventos */}
                 <div className="flex items-center justify-between p-4 border-b">
                     <div>
-                        <h1 className="text-xl font-semibold">
+                        <h1 className="text-xl font-semibold text-foreground">
                             Calendario - Semestre {data.semester}
                         </h1>
-                        <p className="text-sm text-gray-600 mt-1">
+                        <p className="text-sm text-muted-foreground mt-1">
                             Mostrando {events.length} de {data.totalEvents} eventos
                         </p>
                     </div>
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm text-muted-foreground">
                         {moment(data.startDate).format('DD/MM/YYYY')} - {moment(data.endDate).format('DD/MM/YYYY')}
                     </div>
                 </div>
 
                 {/* Calendario */}
-                <div className="flex-1 p-4 overflow-hidden">
+                <div className="flex-1 p-4 overflow-hidden bg-white rounded-b-2xl">
                     {events.length > 0 ? (
                         <Calendar
                             defaultView="work_week"
@@ -270,8 +270,8 @@ export default function CalendarPage() {
                     ) : (
                         <div className="flex items-center justify-center h-full">
                             <div className="text-center">
-                                <p className="text-gray-500 mb-2">No hay eventos que coincidan con los filtros seleccionados</p>
-                                <p className="text-sm text-gray-400">Intenta ajustar los filtros</p>
+                                <p className="text-muted-foreground mb-2">No hay eventos que coincidan con los filtros seleccionados</p>
+                                <p className="text-sm text-muted-foreground/70">Intenta ajustar los filtros</p>
                             </div>
                         </div>
                     )}

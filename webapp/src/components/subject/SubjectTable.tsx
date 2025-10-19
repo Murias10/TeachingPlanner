@@ -37,9 +37,10 @@ interface SubjectTableProps {
     subjects: Subject[];
     deleteSubject: (subjectId: string) => void;
     setSelectedIds: (ids: string[]) => void;
+    isAdmin: boolean;
 }
 
-export function SubjectTable({ subjects, deleteSubject, setSelectedIds }: SubjectTableProps) {
+export function SubjectTable({ subjects, deleteSubject, setSelectedIds, isAdmin }: SubjectTableProps) {
 
     const { t } = useTranslation();
 
@@ -56,7 +57,7 @@ export function SubjectTable({ subjects, deleteSubject, setSelectedIds }: Subjec
 
     const table = useReactTable({
         data: subjects,
-        columns: defaultColumns({ deleteSubject }, t),
+        columns: defaultColumns({ deleteSubject, isAdmin }, t),
         state: {
             sorting,
             columnFilters,

@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { useNavigate } from "react-router-dom"
 import { Course } from "@/types/Course"
+import { ProtectedComponent } from "@/components/ProtectedComponent"
 import {
     Tooltip,
     TooltipContent,
@@ -61,21 +62,23 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
                             <p> {t("table.courses.actions.show.semester.1")}</p>
                         </TooltipContent>
                     </Tooltip>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                variant="destructive"
-                                size="icon"
-                                className="size-10"
-                                onClick={() => semester1Calendar && deleteCalendar(semester1Calendar.id, false)}
-                            >
-                                <Trash2 />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>{t("table.courses.actions.delete.semester.1")}</p>
-                        </TooltipContent>
-                    </Tooltip>
+                    <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="destructive"
+                                    size="icon"
+                                    className="size-10"
+                                    onClick={() => semester1Calendar && deleteCalendar(semester1Calendar.id, false)}
+                                >
+                                    <Trash2 />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>{t("table.courses.actions.delete.semester.1")}</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </ProtectedComponent>
                 </>
             ) : (
                 <>
@@ -89,16 +92,18 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
                             <p>{t("table.courses.actions.show.semester.1")}</p>
                         </TooltipContent>
                     </Tooltip>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button variant="outline" size="icon" className="size-10" onClick={() => createCalendar(course.id, 1)}>
-                                <Plus />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>{t("table.courses.actions.create.semester.1")}</p>
-                        </TooltipContent>
-                    </Tooltip>
+                    <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="outline" size="icon" className="size-10" onClick={() => createCalendar(course.id, 1)}>
+                                    <Plus />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>{t("table.courses.actions.create.semester.1")}</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </ProtectedComponent>
                 </>
             )}
 
@@ -114,21 +119,23 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
                             <p> {t("table.courses.actions.show.semester.2")}</p>
                         </TooltipContent>
                     </Tooltip>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                variant="destructive"
-                                size="icon"
-                                className="size-10"
-                                onClick={() => semester2Calendar && deleteCalendar(semester2Calendar.id, false)}
-                            >
-                                <Trash2 />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>{t("table.courses.actions.delete.semester.2")}</p>
-                        </TooltipContent>
-                    </Tooltip>
+                    <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="destructive"
+                                    size="icon"
+                                    className="size-10"
+                                    onClick={() => semester2Calendar && deleteCalendar(semester2Calendar.id, false)}
+                                >
+                                    <Trash2 />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>{t("table.courses.actions.delete.semester.2")}</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </ProtectedComponent>
                 </>
             ) : (
                 <>
@@ -142,34 +149,38 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
                             <p>{t("table.courses.actions.show.semester.2")}</p>
                         </TooltipContent>
                     </Tooltip>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button variant="outline" size="icon" className="size-10" onClick={() => createCalendar(course.id, 2)}>
-                                <Plus />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>{t("table.courses.actions.create.semester.2")}</p>
-                        </TooltipContent>
-                    </Tooltip>
+                    <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="outline" size="icon" className="size-10" onClick={() => createCalendar(course.id, 2)}>
+                                    <Plus />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>{t("table.courses.actions.create.semester.2")}</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </ProtectedComponent>
                 </>
             )}
 
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
-                        <span className="sr-only">Open menu</span>
-                        <MoreHorizontal />
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>{t("table.courses.actions.title")}</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => console.log("View")}>{t("table.courses.actions.view")}</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => console.log("Edit")}>{t("table.courses.actions.edit")}</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => deleteCourse(course.id)}>{t("table.courses.actions.delete")}</DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
+            <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Open menu</span>
+                            <MoreHorizontal />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>{t("table.courses.actions.title")}</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => console.log("View")}>{t("table.courses.actions.view")}</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => console.log("Edit")}>{t("table.courses.actions.edit")}</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => deleteCourse(course.id)}>{t("table.courses.actions.delete")}</DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </ProtectedComponent>
         </div>
     )
 }

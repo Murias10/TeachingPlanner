@@ -37,9 +37,10 @@ interface DegreeTableProps {
     degrees: Degree[];
     deleteDegree: (degreeId: string) => void,
     setSelectedIds: (ids: string[]) => void;
+    isAdmin?: boolean;
 }
 
-export function DegreeTable({ degrees, deleteDegree, setSelectedIds }: DegreeTableProps) {
+export function DegreeTable({ degrees, deleteDegree, setSelectedIds, isAdmin = false }: DegreeTableProps) {
 
     const { t } = useTranslation();
 
@@ -56,7 +57,7 @@ export function DegreeTable({ degrees, deleteDegree, setSelectedIds }: DegreeTab
 
     const table = useReactTable({
         data: degrees,
-        columns: defaultColumns({ deleteDegree }, t),
+        columns: defaultColumns({ deleteDegree, isAdmin }, t),
         state: {
             sorting,
             columnFilters,

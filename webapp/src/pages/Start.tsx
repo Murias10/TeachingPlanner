@@ -1,34 +1,47 @@
-import LetterGlitch from "@/components/LetterGlitch";
-import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Link } from "react-router-dom"
+import { useAuth } from "@/contexts/AuthContext"
+import { useEffect } from "react"
+import { useNavigate } from "react-router-dom"
 
 const Start = () => {
+    const { isAuthenticated } = useAuth()
+    const navigate = useNavigate()
+
+    useEffect(() => {
+        if (isAuthenticated) {
+            navigate("/home")
+        }
+    }, [isAuthenticated, navigate])
 
     return (
-        <>
-            <div className="h-[calc(100svh)]!">
-                <LetterGlitch
-                    glitchColors={["#bbbbbb"]}
-                    glitchSpeed={600}
-                    centerVignette={true}
-                    outerVignette={true}
-                    smooth={true}
-                >
-                    <div className=" flex flex-col items-center justify-center text-white">
-                        <h1 className="text-5xl font-bold text-center">Planificador Docente</h1>
-                        <div className="flex flex-row items-center m-10 gap-6">
-                            <Button className="w-38 h-12  whitespace-normal">
-                                <Link to="/home">Continuar como docente</Link>
-                            </Button>
-                            <Button className="w-38 h-12  whitespace-normal">
-                                <Link to="/about">Continuar como estudiante</Link>
-                            </Button>
-                        </div>
-                    </div>
-                </LetterGlitch>
-            </div >
-        </>
-    );
-};
+        <div className="min-h-screen flex items-center justify-center p-4">
+            <Card className="w-full max-w-md">
+                <CardHeader className="space-y-1 text-center">
+                    <CardTitle className="text-3xl font-bold tracking-tight">
+                        Teaching Planner
+                    </CardTitle>
+                    <CardDescription className="text-base">
+                        Planificación académica simplificada
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <Link to="/home" className="block">
+                        <Button variant="outline" className="w-full" size="lg">
+                            Continuar como invitado
+                        </Button>
+                    </Link>
 
-export default Start;
+                    <Link to="/login" className="block">
+                        <Button className="w-full" size="lg">
+                            Iniciar sesión
+                        </Button>
+                    </Link>
+                </CardContent>
+            </Card>
+        </div>
+    )
+}
+
+export default Start

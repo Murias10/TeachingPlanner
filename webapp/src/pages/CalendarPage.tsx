@@ -28,38 +28,28 @@ interface MyEvent {
     resource?: CalendarEvent;
 }
 
-// Colores pastel suaves y únicos para asignaturas
+// Colores pastel suaves y únicos para asignaturas (con buen contraste para texto blanco)
 const SUBJECT_COLORS = [
     '#FFB3BA', // Pastel red
     '#FFCAB0', // Pastel coral
     '#FFDAB9', // Pastel peach
-    '#FFE5B4', // Pastel peach cream
-    '#FFFACD', // Pastel lemon
-    '#E0FFE0', // Pastel mint light
     '#B4F0E0', // Pastel mint
-    '#ADD8E6', // Pastel light blue
-    '#B0E0E6', // Pastel powder blue
     '#D8BFD8', // Pastel thistle
     '#DDA0DD', // Pastel plum
     '#FFB6C1', // Pastel light pink
     '#FFC0CB', // Pastel pink
     '#F08080', // Pastel light coral
-    '#F0E68C', // Pastel khaki
-    '#FAFAD2', // Pastel light goldenrod
     '#E6E6FA', // Pastel lavender
-    '#F5FFFA', // Pastel mint cream
-    '#FFF0F5', // Pastel lavender blush
-    '#FFF8DC', // Pastel cornsilk
-    '#F0FFFF', // Pastel azure
-    '#FFFACD', // Pastel lemon chiffon
-    '#FFEFD5', // Pastel papaya whip
-    '#F5DEB3', // Pastel wheat
-    '#FFDEAD', // Pastel navajo white
-    '#FFE4B5', // Pastel moccasin
-    '#FFEAA7', // Pastel yellow light
-    '#DFF9FB', // Pastel baby blue
-    '#C8E6E6', // Pastel light cyan
     '#E1D5E7', // Pastel light purple
+    '#FFD4A3', // Pastel orange
+    '#C9E4CA', // Pastel sage green
+    '#A8D5BA', // Pastel green
+    '#FFD6E8', // Pastel rose
+    '#C8D4E6', // Pastel slate blue
+    '#E8C8E8', // Pastel mauve
+    '#FFE0D4', // Pastel apricot
+    '#D4E8FF', // Pastel periwinkle
+    '#E8D4C8', // Pastel tan
 ];
 
 // Map para almacenar asignaturas vistas y sus colores asignados
@@ -307,6 +297,8 @@ export default function CalendarPage() {
                                     style: {
                                         backgroundColor: backgroundColor,
                                         opacity: calendarEvent?.cancelled ? 0.6 : 1,
+                                        border: '1px solid white',
+                                        borderRadius: '10px',
                                     }
                                 };
                             }}

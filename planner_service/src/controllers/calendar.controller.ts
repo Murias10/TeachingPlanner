@@ -1527,16 +1527,15 @@ const processExcepcionesFile = async (content: string, courseId: string, semeste
             let endTime: string = '';
 
             if (cancelled) {
-                // Si está cancelado, usar 00:00 para startTime pero guardar el endTime real
-                startTime = '00:00';
-
-                // Validar y normalizar la hora de fin
+                // Si está cancelado, el endTimeStr contiene el startTime real
+                // Guardar endTimeStr en startTime y 00:00 en endTime
                 const normalizeTime = (time: string) => time.replace('.', ':');
-                endTime = normalizeTime(endTimeStr);
+                startTime = normalizeTime(endTimeStr);
+                endTime = '00:00';
 
                 const timeRegex = /^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$/;
-                if (!timeRegex.test(endTime)) {
-                    errors.push(`Línea ${i + 1}: Hora de fin inválida '${endTimeStr}' - debe tener formato HH:MM o HH.MM`);
+                if (!timeRegex.test(startTime)) {
+                    errors.push(`Línea ${i + 1}: Hora inválida '${endTimeStr}' - debe tener formato HH:MM o HH.MM`);
                     continue;
                 }
             } else {
@@ -1747,6 +1746,29 @@ const processExcepcionesFile = async (content: string, courseId: string, semeste
     return result;
 };
 
+/**
+ * Función auxiliar para crear una clave única de evento cancelado
+ * Formato: groupId|date|startTime
+ */
+function createCancelledEventKey(groupId: string, date: Date, startTime: string): string {
+    const dateStr = date.toISOString().split('T')[0];
+    return `${groupId}|${dateStr}|${startTime}`;
+}
+
+/**
+ * Función auxiliar para verificar si existe un evento puntual cancelado
+ * para un grupo específico, fecha y hora
+ */
+function isCancelledEvent(
+    cancelledEventsIndex: Set<string>,
+    groupId: string,
+    date: Date,
+    startTime: string
+): boolean {
+    const key = createCancelledEventKey(groupId, date, startTime);
+    return cancelledEventsIndex.has(key);
+}
+
 export const getCalendarEvents = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
@@ -1785,6 +1807,7 @@ export const getCalendarEvents = async (req: Request, res: Response) => {
         // Obtener todos los días del calendario
         const days = await dayRepo.find({
             where: { calendar: { id } },
+            relations: ['puntualEvents', 'puntualEvents.groups', 'puntualEvents.groups.subject', 'puntualEvents.classrooms'],
             order: { date: 'ASC' }
         });
 
@@ -1800,15 +1823,93 @@ export const getCalendarEvents = async (req: Request, res: Response) => {
 
         const allEvents: any[] = [];
 
-        // Expandir eventos periódicos en eventos individuales
-        for (const periodicEvent of periodicEvents) {
-            console.log(`\n=== Processing periodic event ${periodicEvent.id} ===`);
+        // ============================================================================
+        // PASO 1: Obtener todos los eventos puntuales cancelados (cancelled === true)
+        // ============================================================================
+        console.log('\n=== PASO 1: Procesando eventos puntuales cancelados ===');
 
-            // FILTRO: Solo procesar eventos con eventCharacter = 'N' por ahora
-            if (periodicEvent.eventCharacter.toUpperCase() !== 'N') {
-                console.log(`Skipping event with eventCharacter '${periodicEvent.eventCharacter}' (only processing 'N' for now)`);
-                continue;
+        const cancelledEventsIndex = new Set<string>();
+        const cancelledPuntualEvents: PuntualEvent[] = [];
+
+        // Array para almacenar eventos cancelados con información ordenable
+        const cancelledEventsWithInfo: Array<{
+            day: any;
+            puntualEvent: PuntualEvent;
+            groupLabel: string;
+            subjectAcronym: string;
+            dateKey: string;
+        }> = [];
+
+        for (const day of days) {
+            for (const puntualEvent of day.puntualEvents || []) {
+                if (puntualEvent.cancelled) {
+                    cancelledPuntualEvents.push(puntualEvent);
+
+                    // Indexar por cada grupo asociado al evento cancelado
+                    for (const group of puntualEvent.groups) {
+                        const key = createCancelledEventKey(group.id, day.date, puntualEvent.startTime);
+                        cancelledEventsIndex.add(key);
+                        const groupLabel = `${group.subject?.acronym}.${group.type}.${group.language}-${group.number}`;
+                        const subjectAcronym = group.subject?.acronym || '';
+                        const dateKey = day.date.toISOString().split('T')[0];
+
+                        cancelledEventsWithInfo.push({
+                            day: day,
+                            puntualEvent: puntualEvent,
+                            groupLabel: groupLabel,
+                            subjectAcronym: subjectAcronym,
+                            dateKey: dateKey
+                        });
+                    }
+                }
             }
+        }
+
+        // Ordenar eventos cancelados primero por asignatura, luego por fecha
+        cancelledEventsWithInfo.sort((a, b) => {
+            // Primero por acrónimo de asignatura
+            const subjectCompare = a.subjectAcronym.localeCompare(b.subjectAcronym);
+            if (subjectCompare !== 0) return subjectCompare;
+            // Luego por fecha
+            return new Date(a.day.date).getTime() - new Date(b.day.date).getTime();
+        });
+
+        // Imprimir eventos cancelados ordenados
+        if (cancelledEventsWithInfo.length > 0) {
+            let currentSubject = '';
+            for (const cancelledInfo of cancelledEventsWithInfo) {
+                // Si cambiamos de asignatura, imprimir un separador
+                if (cancelledInfo.subjectAcronym !== currentSubject) {
+                    currentSubject = cancelledInfo.subjectAcronym;
+                    console.log(`\n  Asignatura: ${currentSubject}`);
+                }
+                console.log(`    - Evento cancelado en ${cancelledInfo.dateKey} ${cancelledInfo.groupLabel} ${cancelledInfo.puntualEvent.startTime}-${cancelledInfo.puntualEvent.endTime}`);
+            }
+        }
+
+        console.log(`\nTotal eventos cancelados: ${cancelledPuntualEvents.length}`);
+        console.log(`Total claves de cancelación indexadas: ${cancelledEventsIndex.size}`);
+
+        // ============================================================================
+        // PASO 2: Procesar eventos periódicos con carácter "N"
+        // ============================================================================
+        console.log('\n=== PASO 2: Procesando eventos periódicos con carácter "N" ===');
+
+        const periodicEventsN = periodicEvents.filter(pe => pe.eventCharacter.toUpperCase() === 'N');
+        console.log(`Eventos periódicos con carácter N: ${periodicEventsN.length}`);
+
+        // Mapeo de días de la semana
+        const weekDayMap: { [key: string]: number } = {
+            'L': 1, // Lunes
+            'M': 2, // Martes
+            'X': 3, // Miércoles
+            'J': 4, // Jueves
+            'V': 5  // Viernes
+        };
+
+        for (const periodicEvent of periodicEventsN) {
+            const groupLabel = `${periodicEvent.groups[0]?.subject?.acronym}.${periodicEvent.groups[0]?.type}.${periodicEvent.groups[0]?.language}-${periodicEvent.groups[0]?.number}`;
+            console.log(`\nProcesando evento periódico ${groupLabel} (carácter N)`);
 
             // Calcular duración del evento en horas
             const [startHour, startMin] = periodicEvent.startTime.split(':').map(Number);
@@ -1816,31 +1917,11 @@ export const getCalendarEvents = async (req: Request, res: Response) => {
             const durationMinutes = (endHour * 60 + endMin) - (startHour * 60 + startMin);
             const durationHours = durationMinutes / 60;
 
-            console.log(`Duration: ${durationHours} hours (${startHour}:${startMin} - ${endHour}:${endMin})`);
-
-            // Mapeo de días de la semana
-            const weekDayMap: { [key: string]: number } = {
-                'L': 1, // Lunes
-                'M': 2, // Martes
-                'X': 3, // Miércoles
-                'J': 4, // Jueves
-                'V': 5  // Viernes
-            };
-
             const targetWeekDay = weekDayMap[periodicEvent.weekDay];
-
-            console.log(`Week day: ${periodicEvent.weekDay}, Target day number: ${targetWeekDay}`);
-            console.log(`Event character: ${periodicEvent.eventCharacter}`);
-            console.log(`Planified hours: ${periodicEvent.planifiedHours}`);
-
-            // Contar cuántas horas ya hemos programado
             let hoursScheduled = 0;
             const maxHours = periodicEvent.planifiedHours;
 
-            // Contadores para debug
-            let matchingDays = 0;
-            let lectiveDays = 0;
-            let eventsCreated = 0;
+            console.log(`  Día: ${periodicEvent.weekDay}, Horas planificadas: ${maxHours}, Duración por sesión: ${durationHours}h`);
 
             // Iterar sobre cada día del calendario
             for (const day of days) {
@@ -1850,27 +1931,122 @@ export const getCalendarEvents = async (req: Request, res: Response) => {
                 }
 
                 // Verificar si este día coincide con el día de la semana del evento
-                const dayOfWeek = day.date.getDay(); // 0=Domingo, 1=Lunes, ..., 6=Sábado
+                const dayOfWeek = day.date.getDay();
 
-                if (dayOfWeek === targetWeekDay) {
-                    matchingDays++;
-
-                    // CRÍTICO: Verificar que el día sea lectivo (lective = true)
-                    if (!day.lective) {
-                        continue; // Saltar días festivos o no lectivos
+                if (dayOfWeek === targetWeekDay && day.lective) {
+                    // Verificar que no existe un evento puntual cancelado para este grupo, día y hora
+                    let hasConflict = false;
+                    for (const group of periodicEvent.groups) {
+                        if (isCancelledEvent(cancelledEventsIndex, group.id, day.date, periodicEvent.startTime)) {
+                            hasConflict = true;
+                            const groupLabel = `${group.subject?.acronym}.${group.type}.${group.language}-${group.number}`;
+                            console.log(`  ⚠ Conflicto detectado: Evento cancelado para ${groupLabel} en ${day.date.toISOString().split('T')[0]}`);
+                            break;
+                        }
                     }
 
-                    lectiveDays++;
+                    if (!hasConflict) {
+                        const dateKey = day.date.toISOString().split('T')[0];
+                        const hoursRemaining = maxHours - hoursScheduled;
+                        const hoursThisEvent = Math.min(durationHours, hoursRemaining);
 
-                    // Para eventCharacter = 'N', hay clase TODAS las semanas en días lectivos
+                        if (hoursThisEvent > 0) {
+                            const groupLabelForEvent = `${periodicEvent.groups[0]?.subject?.acronym}.${periodicEvent.groups[0]?.type}.${periodicEvent.groups[0]?.language}-${periodicEvent.groups[0]?.number}`;
+                            allEvents.push({
+                                id: `${periodicEvent.id}-${dateKey}`,
+                                date: day.date.toISOString(),
+                                startTime: periodicEvent.startTime,
+                                endTime: periodicEvent.endTime,
+                                duration: hoursThisEvent,
+                                subject: periodicEvent.groups[0]?.subject ? {
+                                    id: periodicEvent.groups[0].subject.id,
+                                    acronym: periodicEvent.groups[0].subject.acronym,
+                                    name: periodicEvent.groups[0].subject.name
+                                } : null,
+                                groups: periodicEvent.groups.map(group => ({
+                                    id: group.id,
+                                    number: group.number,
+                                    type: group.type,
+                                    language: group.language
+                                })),
+                                classrooms: periodicEvent.classrooms.map(classroom => ({
+                                    id: classroom.id,
+                                    code: classroom.code,
+                                    gisUrl: classroom.gisUrl
+                                })),
+                                type: 'periodic',
+                                cancelled: false,
+                                periodicEventId: periodicEvent.id
+                            });
+
+                            hoursScheduled += hoursThisEvent;
+                            console.log(`  ✓ Evento creado en ${dateKey} ${groupLabelForEvent} a las ${periodicEvent.startTime}-${periodicEvent.endTime} (${hoursScheduled}/${maxHours}h programadas)`);
+                        }
+                    }
+                }
+            }
+
+            console.log(`  Total horas programadas: ${hoursScheduled}/${maxHours}`);
+        }
+
+        // ============================================================================
+        // PASO 3: Procesar eventos periódicos con carácter distinto de "N"
+        // ============================================================================
+        console.log('\n=== PASO 3: Procesando eventos periódicos con carácter distinto de "N" ===');
+
+        const periodicEventsOther = periodicEvents.filter(pe => pe.eventCharacter.toUpperCase() !== 'N');
+        console.log(`Eventos periódicos con carácter distinto de N: ${periodicEventsOther.length}`);
+
+        for (const periodicEvent of periodicEventsOther) {
+            const groupLabel = `${periodicEvent.groups[0]?.subject?.acronym}.${periodicEvent.groups[0]?.type}.${periodicEvent.groups[0]?.language}-${periodicEvent.groups[0]?.number}`;
+            console.log(`\nProcesando evento periódico ${groupLabel} (carácter ${periodicEvent.eventCharacter})`);
+
+            // Calcular duración del evento en horas
+            const [startHour, startMin] = periodicEvent.startTime.split(':').map(Number);
+            const [endHour, endMin] = periodicEvent.endTime.split(':').map(Number);
+            const durationMinutes = (endHour * 60 + endMin) - (startHour * 60 + startMin);
+            const durationHours = durationMinutes / 60;
+
+            const targetWeekDay = weekDayMap[periodicEvent.weekDay];
+            let hoursScheduled = 0;
+            const maxHours = periodicEvent.planifiedHours;
+
+            console.log(`  Día: ${periodicEvent.weekDay}, Horas planificadas: ${maxHours}, Duración por sesión: ${durationHours}h`);
+
+            // Filtrar días que coincidan con el día de la semana Y que tengan el carácter del evento
+            const matchingDays = days.filter(day => {
+                const dayOfWeek = day.date.getDay();
+                return dayOfWeek === targetWeekDay &&
+                    day.lective &&
+                    day.dayCharacter.toUpperCase() === periodicEvent.eventCharacter.toUpperCase();
+            });
+
+            console.log(`  Días que coinciden con el carácter ${periodicEvent.eventCharacter}: ${matchingDays.length}`);
+
+            // Crear eventos sucesivos hasta cubrir las horas totales
+            for (const day of matchingDays) {
+                if (hoursScheduled >= maxHours) {
+                    break;
+                }
+
+                // Verificar que no existe un evento puntual cancelado para este grupo, día y hora
+                let hasConflict = false;
+                for (const group of periodicEvent.groups) {
+                    if (isCancelledEvent(cancelledEventsIndex, group.id, day.date, periodicEvent.startTime)) {
+                        hasConflict = true;
+                        const groupLabel = `${group.subject?.acronym}.${group.type}.${group.language}-${group.number}`;
+                        console.log(`  ⚠ Conflicto detectado: Evento cancelado para ${groupLabel} en ${day.date.toISOString().split('T')[0]}`);
+                        break;
+                    }
+                }
+
+                if (!hasConflict) {
                     const dateKey = day.date.toISOString().split('T')[0];
-
-                    // Determinar cuántas horas programar en este evento
                     const hoursRemaining = maxHours - hoursScheduled;
                     const hoursThisEvent = Math.min(durationHours, hoursRemaining);
 
-                    // Solo crear el evento si hay horas que programar
                     if (hoursThisEvent > 0) {
+                        const groupLabel = `${periodicEvent.groups[0]?.subject?.acronym}.${periodicEvent.groups[0]?.type}.${periodicEvent.groups[0]?.language}-${periodicEvent.groups[0]?.number}`;
                         allEvents.push({
                             id: `${periodicEvent.id}-${dateKey}`,
                             date: day.date.toISOString(),
@@ -1895,29 +2071,134 @@ export const getCalendarEvents = async (req: Request, res: Response) => {
                             })),
                             type: 'periodic',
                             cancelled: false,
-                            periodicEventId: periodicEvent.id,
-                            dayCharacter: day.dayCharacter,
-                            dayComment: day.comment
+                            periodicEventId: periodicEvent.id
                         });
 
                         hoursScheduled += hoursThisEvent;
-                        eventsCreated++;
+                        console.log(`  ✓ Evento creado en ${dateKey} ${groupLabel} a las ${periodicEvent.startTime}-${periodicEvent.endTime} (${hoursScheduled}/${maxHours}h programadas)`);
                     }
                 }
             }
 
-            console.log(`Stats for event ${periodicEvent.id}:`);
-            console.log(`  - Matching weekday days: ${matchingDays}`);
-            console.log(`  - Lective days: ${lectiveDays}`);
-            console.log(`  - Events created: ${eventsCreated}`);
-            console.log(`  - Hours scheduled: ${hoursScheduled}/${maxHours}`);
+            console.log(`  Total horas programadas: ${hoursScheduled}/${maxHours}`);
         }
 
-        // Ordenar eventos por fecha
-        allEvents.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        // ============================================================================
+        // PASO 4: Procesar eventos puntuales activos (cancelled !== true)
+        // ============================================================================
+        console.log('\n=== PASO 4: Procesando eventos puntuales activos ===');
 
-        console.log(`\n=== SUMMARY ===`);
-        console.log(`Total events generated: ${allEvents.length}`);
+        // Array para almacenar eventos puntuales con información ordenable
+        const puntualEventsWithInfo: Array<{
+            event: any;
+            day: any;
+            groupLabel: string;
+            subjectAcronym: string;
+            dateKey: string;
+        }> = [];
+
+        for (const day of days) {
+            for (const puntualEvent of day.puntualEvents || []) {
+                // Solo procesar eventos NO cancelados
+                if (!puntualEvent.cancelled) {
+                    // Verificar que no hay conflicto con eventos cancelados
+                    // (aunque no debería haber, ya que estamos procesando eventos activos)
+                    let hasConflict = false;
+                    for (const group of puntualEvent.groups) {
+                        if (isCancelledEvent(cancelledEventsIndex, group.id, day.date, puntualEvent.startTime)) {
+                            hasConflict = true;
+                            const groupLabel = `${group.subject?.acronym}.${group.type}.${group.language}-${group.number}`;
+                            console.log(`  ⚠ Conflicto detectado: Evento puntual activo ${groupLabel} coincide con evento cancelado`);
+                            break;
+                        }
+                    }
+
+                    if (!hasConflict) {
+                        // Calcular duración del evento
+                        const [startHour, startMin] = puntualEvent.startTime.split(':').map(Number);
+                        const [endHour, endMin] = puntualEvent.endTime.split(':').map(Number);
+                        const durationMinutes = (endHour * 60 + endMin) - (startHour * 60 + startMin);
+                        const durationHours = durationMinutes / 60;
+
+                        const dateKey = day.date.toISOString().split('T')[0];
+                        const groupLabel = `${puntualEvent.groups[0]?.subject?.acronym}.${puntualEvent.groups[0]?.type}.${puntualEvent.groups[0]?.language}-${puntualEvent.groups[0]?.number}`;
+                        const subjectAcronym = puntualEvent.groups[0]?.subject?.acronym || '';
+
+                        const eventObj = {
+                            id: `puntual-${puntualEvent.id}`,
+                            date: day.date.toISOString(),
+                            startTime: puntualEvent.startTime,
+                            endTime: puntualEvent.endTime,
+                            duration: durationHours,
+                            subject: puntualEvent.groups[0]?.subject ? {
+                                id: puntualEvent.groups[0].subject.id,
+                                acronym: puntualEvent.groups[0].subject.acronym,
+                                name: puntualEvent.groups[0].subject.name
+                            } : null,
+                            groups: puntualEvent.groups.map(group => ({
+                                id: group.id,
+                                number: group.number,
+                                type: group.type,
+                                language: group.language
+                            })),
+                            classrooms: puntualEvent.classrooms.map(classroom => ({
+                                id: classroom.id,
+                                code: classroom.code,
+                                gisUrl: classroom.gisUrl
+                            })),
+                            type: 'puntual',
+                            cancelled: false,
+                            comment: puntualEvent.comment
+                        };
+
+                        allEvents.push(eventObj);
+
+                        puntualEventsWithInfo.push({
+                            event: eventObj,
+                            day: day,
+                            groupLabel: groupLabel,
+                            subjectAcronym: subjectAcronym,
+                            dateKey: dateKey
+                        });
+                    }
+                }
+            }
+        }
+
+        // Ordenar eventos puntuales primero por asignatura, luego por fecha
+        puntualEventsWithInfo.sort((a, b) => {
+            // Primero por acrónimo de asignatura
+            const subjectCompare = a.subjectAcronym.localeCompare(b.subjectAcronym);
+            if (subjectCompare !== 0) return subjectCompare;
+            // Luego por fecha
+            return new Date(a.day.date).getTime() - new Date(b.day.date).getTime();
+        });
+
+        // Imprimir eventos puntuales ordenados
+        let currentSubject = '';
+        for (const puntualInfo of puntualEventsWithInfo) {
+            // Si cambiamos de asignatura, imprimir un separador
+            if (puntualInfo.subjectAcronym !== currentSubject) {
+                currentSubject = puntualInfo.subjectAcronym;
+                console.log(`\n  Asignatura: ${currentSubject}`);
+            }
+            console.log(`    ✓ Evento puntual en ${puntualInfo.dateKey} ${puntualInfo.groupLabel} a las ${puntualInfo.event.startTime}-${puntualInfo.event.endTime}`);
+        }
+
+        console.log(`\nTotal eventos puntuales activos: ${puntualEventsWithInfo.length}`);
+
+        // Ordenar eventos por fecha y hora
+        allEvents.sort((a, b) => {
+            const dateCompare = new Date(a.date).getTime() - new Date(b.date).getTime();
+            if (dateCompare !== 0) return dateCompare;
+            return a.startTime.localeCompare(b.startTime);
+        });
+
+        console.log(`\n=== RESUMEN FINAL ===`);
+        console.log(`Total eventos generados: ${allEvents.length}`);
+        console.log(`  - Eventos periódicos (N): ${allEvents.filter(e => e.type === 'periodic' && e.periodicEventId && periodicEventsN.some(pe => pe.id === e.periodicEventId)).length}`);
+        console.log(`  - Eventos periódicos (otros): ${allEvents.filter(e => e.type === 'periodic' && e.periodicEventId && periodicEventsOther.some(pe => pe.id === e.periodicEventId)).length}`);
+        console.log(`  - Eventos puntuales: ${allEvents.filter(e => e.type === 'puntual').length}`);
 
         res.status(200).json({
             status: 'success',

@@ -28,6 +28,60 @@ interface MyEvent {
     resource?: CalendarEvent;
 }
 
+// Colores pastel suaves y únicos para asignaturas
+const SUBJECT_COLORS = [
+    '#FFB3BA', // Pastel red
+    '#FFCAB0', // Pastel coral
+    '#FFDAB9', // Pastel peach
+    '#FFE5B4', // Pastel peach cream
+    '#FFFACD', // Pastel lemon
+    '#E0FFE0', // Pastel mint light
+    '#B4F0E0', // Pastel mint
+    '#ADD8E6', // Pastel light blue
+    '#B0E0E6', // Pastel powder blue
+    '#D8BFD8', // Pastel thistle
+    '#DDA0DD', // Pastel plum
+    '#FFB6C1', // Pastel light pink
+    '#FFC0CB', // Pastel pink
+    '#F08080', // Pastel light coral
+    '#F0E68C', // Pastel khaki
+    '#FAFAD2', // Pastel light goldenrod
+    '#E6E6FA', // Pastel lavender
+    '#F5FFFA', // Pastel mint cream
+    '#FFF0F5', // Pastel lavender blush
+    '#FFF8DC', // Pastel cornsilk
+    '#F0FFFF', // Pastel azure
+    '#FFFACD', // Pastel lemon chiffon
+    '#FFEFD5', // Pastel papaya whip
+    '#F5DEB3', // Pastel wheat
+    '#FFDEAD', // Pastel navajo white
+    '#FFE4B5', // Pastel moccasin
+    '#FFEAA7', // Pastel yellow light
+    '#DFF9FB', // Pastel baby blue
+    '#C8E6E6', // Pastel light cyan
+    '#E1D5E7', // Pastel light purple
+];
+
+// Map para almacenar asignaturas vistas y sus colores asignados
+const subjectColorMap = new Map<string, string>();
+
+// Función para generar un color único y consistente basado en la asignatura
+const getSubjectColor = (subjectAcronym: string | undefined): string => {
+    if (!subjectAcronym) return '#9CA3AF'; // Color gris por defecto
+
+    // Si ya hemos asignado un color a esta asignatura, devolverlo
+    if (subjectColorMap.has(subjectAcronym)) {
+        return subjectColorMap.get(subjectAcronym)!;
+    }
+
+    // Asignar el siguiente color disponible
+    const colorIndex = subjectColorMap.size % SUBJECT_COLORS.length;
+    const assignedColor = SUBJECT_COLORS[colorIndex];
+    subjectColorMap.set(subjectAcronym, assignedColor);
+
+    return assignedColor;
+};
+
 export default function CalendarPage() {
 
     const { t } = useTranslation()
@@ -39,7 +93,7 @@ export default function CalendarPage() {
 
     console.log('Params:', { acronym, startYear, endYear, semester });
 
-    const calendarId = '2938afeb-dce6-4c03-9451-b099c6347c9e';
+    const calendarId = 'd284052f-5d80-4e7d-aeab-e5c97f19dfdb';
 
     const { data, isLoading } = useEventsCalendar(calendarId);
 
@@ -244,9 +298,14 @@ export default function CalendarPage() {
                             eventPropGetter={(event) => {
                                 const calendarEvent = event.resource as CalendarEvent;
 
+                                // Obtener el color basado en la asignatura
+                                const backgroundColor = calendarEvent?.cancelled
+                                    ? '#ef4444'
+                                    : getSubjectColor(calendarEvent?.subject?.acronym);
+
                                 return {
                                     style: {
-                                        backgroundColor: calendarEvent?.cancelled ? '#ef4444' : '#3b82f6',
+                                        backgroundColor: backgroundColor,
                                         opacity: calendarEvent?.cancelled ? 0.6 : 1,
                                     }
                                 };

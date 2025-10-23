@@ -1981,6 +1981,11 @@ export const getCalendarEvents = async (req: Request, res: Response) => {
 
                             hoursScheduled += hoursThisEvent;
                             console.log(`  ✓ Evento creado en ${dateKey} ${groupLabelForEvent} a las ${periodicEvent.startTime}-${periodicEvent.endTime} (${hoursScheduled}/${maxHours}h programadas)`);
+
+                            // Si ya hemos alcanzado las horas máximas después de este evento, salir
+                            if (hoursScheduled >= maxHours) {
+                                break;
+                            }
                         }
                     }
                 }
@@ -2076,6 +2081,11 @@ export const getCalendarEvents = async (req: Request, res: Response) => {
 
                         hoursScheduled += hoursThisEvent;
                         console.log(`  ✓ Evento creado en ${dateKey} ${groupLabel} a las ${periodicEvent.startTime}-${periodicEvent.endTime} (${hoursScheduled}/${maxHours}h programadas)`);
+
+                        // Si ya hemos alcanzado las horas máximas después de este evento, salir
+                        if (hoursScheduled >= maxHours) {
+                            break;
+                        }
                     }
                 }
             }

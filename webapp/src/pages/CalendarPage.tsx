@@ -202,14 +202,18 @@ export default function CalendarPage() {
     const events: MyEvent[] = useMemo(() => {
         return filteredEvents.map((event) => {
             const eventDate = moment(event.date).format('YYYY-MM-DD');
+            const startMoment = moment(`${eventDate}T${event.startTime}`);
+
+            // Calcular el end basándose en la duración real del evento (en horas)
+            const endMoment = startMoment.clone().add(event.duration, 'hours');
 
             return {
                 title: `${event.subject?.acronym || 'Sin asignatura'}.${event.groups.map(g => {
                     const lang = g.language === 'EN' ? 'I-' : '';
                     return `${g.type}.${lang}${g.number}`;
                 }).join(', ')}`,
-                start: moment(`${eventDate}T${event.startTime}`).toDate(),
-                end: moment(`${eventDate}T${event.endTime}`).toDate(),
+                start: startMoment.toDate(),
+                end: endMoment.toDate(),
                 resource: event
             };
         });

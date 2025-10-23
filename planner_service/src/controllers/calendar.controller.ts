@@ -2018,7 +2018,7 @@ export const getCalendarEvents = async (req: Request, res: Response) => {
                 const dayOfWeek = day.date.getDay();
                 return dayOfWeek === targetWeekDay &&
                     day.lective &&
-                    day.dayCharacter.toUpperCase() === periodicEvent.eventCharacter.toUpperCase();
+                    day.dayCharacter.toUpperCase().includes(periodicEvent.eventCharacter.toUpperCase());
             });
 
             console.log(`  Días que coinciden con el carácter ${periodicEvent.eventCharacter}: ${matchingDays.length}`);

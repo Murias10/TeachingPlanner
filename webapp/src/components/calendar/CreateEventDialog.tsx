@@ -1,11 +1,17 @@
+"use client"
+
 import React, { useState } from 'react';
-import { Repeat, Clock } from 'lucide-react';
+import { Repeat, Clock, ChevronDownIcon } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Dialog, DialogContent, DialogHeader } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { es } from 'date-fns/locale';
+import { format } from 'date-fns';
 import type { RecurrenceConfig, FrequencyType, WeekDay, EndsType } from '@/types/RecurrenceConfig';
 
 interface CreateEventDialogProps {
@@ -186,13 +192,30 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
                     <Label htmlFor="on" className="text-xs cursor-pointer m-0">
                       El
                     </Label>
-                    <Input
-                      type="date"
-                      value={config.endsOnDate}
-                      onChange={(e) => setConfig({ ...config, endsOnDate: e.target.value })}
-                      disabled={config.endsType !== 'on'}
-                      className="h-7 text-xs flex-1"
-                    />
+                    <Popover>
+                      <PopoverTrigger asChild disabled={config.endsType !== 'on'}>
+                        <Button
+                          variant="ghost"
+                          className="h-6 px-2 text-xs flex-1 justify-between font-normal"
+                        >
+                          {config.endsOnDate ? format(new Date(config.endsOnDate), 'dd/MM/yyyy', { locale: es }) : 'Seleccionar fecha'}
+                          <ChevronDownIcon className="w-3 h-3" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto overflow-hidden p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={config.endsOnDate ? new Date(config.endsOnDate) : undefined}
+                          onSelect={(date) => {
+                            if (date) {
+                              setConfig({ ...config, endsOnDate: format(date, 'yyyy-MM-dd') });
+                            }
+                          }}
+                          locale={es}
+                          disabled={(date) => date < new Date()}
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
 
                   <div className={`flex items-center space-x-2 p-2 rounded border transition-all cursor-pointer ${

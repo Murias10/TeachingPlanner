@@ -11,12 +11,14 @@ import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext"
 import { useParams } from "react-router-dom"
 import { useDeleteCourse } from "@/hooks/course/useDeleteCourse"
 import { useCreateCourse } from "@/hooks/course/useCreateCourse"
+import { useEditCourse } from "@/hooks/course/useEditCourse"
 import { useDeleteCalendar } from "@/hooks/calendar/useDeleteCalendar"
 import { useDegreeByAcronym } from "@/hooks/degree/useDegreeByAcronym"
 import { useImportCalendar } from "@/hooks/calendar/useImportCalendar"
 import { CreateCourseDrawer } from "@/components/course/CreateCourseDrawer"
+import { EditCourseDrawer, EditCourseFormData } from "@/components/course/EditCourseDrawer"
 import { CreateCalendarDrawer } from "@/components/calendar/CreateCalendarDrawer"
-import { CourseFormData } from "@/types/Course"
+import { CourseFormData, Course } from "@/types/Course"
 import { CalendarFormData, CalendarDrawerData } from "@/types/Calendar"
 import { useCoursesByDegreeId } from "@/hooks/course/useCoursesByDegreeId"
 
@@ -41,6 +43,7 @@ export default function CoursePage() {
 
     const { deleteCourse } = useDeleteCourse()
     const { createCourse } = useCreateCourse()
+    const { editCourse } = useEditCourse()
     const { deleteCalendar } = useDeleteCalendar()
     const { importCalendar } = useImportCalendar()
     const { setItems } = useBreadcrumbContext()
@@ -71,6 +74,8 @@ export default function CoursePage() {
 
     const [selectedIds, setSelectedIds] = useState<string[]>([])
     const [openDrawer, setOpenDrawer] = useState(false)
+    const [openEditDrawer, setOpenEditDrawer] = useState(false)
+    const [editCourseData, setEditCourseData] = useState<Course | null>(null)
     const [openCalendarDrawer, setOpenCalendarDrawer] = useState(false)
     const [calendarDrawerData, setCalendarDrawerData] = useState<CalendarDrawerData | null>(null)
     const [deleteState, setDeleteState] = useState<DeleteState>({ type: null })
@@ -274,6 +279,32 @@ export default function CoursePage() {
         });
     }, [degree?.id, createCourse, refetch, triggerAlert, t]);
 
+    const handleEditCourse = useCallback(async (formData: EditCourseFormData) => {
+        const result = await editCourse(formData, refetch);
+
+        if (result.success) {
+            setOpenEditDrawer(false);
+            triggerAlert({
+                title: t("alerts.course.success.edit.title"),
+                description: t("alerts.course.success.edit.description", {
+                    startYear: formData.startYear,
+                    endYear: formData.endYear
+                }),
+                variant: "success"
+            });
+            return;
+        }
+
+        // Manejo de errores de edición
+        const errorMessage = result.message || t("alerts.course.error.edit.description");
+
+        triggerAlert({
+            title: t("alerts.course.error.edit.title"),
+            description: errorMessage,
+            variant: "destructive",
+        });
+    }, [editCourse, refetch, triggerAlert, t]);
+
     // Función para crear calendario manual
     const createManualCalendar = useCallback(async (formData: CalendarFormData) => {
         if (!calendarDrawerData?.degreeId) {
@@ -453,6 +484,10 @@ export default function CoursePage() {
                             deleteCourse={handleDeleteCourse}
                             deleteCalendar={handleDeleteCalendarWithConfirmation}
                             createCalendar={handleCreateCalendar}
+                            onEditCourse={(course) => {
+                                setEditCourseData(course);
+                                setOpenEditDrawer(true);
+                            }}
                             setSelectedIds={setSelectedIds}
                             isAdmin={isAdmin}
                         />
@@ -464,6 +499,13 @@ export default function CoursePage() {
                 open={openDrawer && !!degree?.id}
                 onOpenChange={setOpenDrawer}
                 onSave={handleSaveCourse}
+            />
+
+            <EditCourseDrawer
+                open={openEditDrawer}
+                onOpenChange={setOpenEditDrawer}
+                onSave={handleEditCourse}
+                courseData={editCourseData || undefined}
             />
 
             <CreateCalendarDrawer

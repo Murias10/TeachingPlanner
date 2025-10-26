@@ -23,9 +23,10 @@ type Props = {
     deleteCourse: (courseId: string) => void;
     deleteCalendar: (calendarId: string, force: boolean) => void
     createCalendar: (courseId: string, semester: number) => void;
+    onEditCourse?: (course: Course) => void;
 }
 
-export function CourseTableButtons({ course, deleteCourse, deleteCalendar, createCalendar }: Props) {
+export function CourseTableButtons({ course, deleteCourse, deleteCalendar, createCalendar, onEditCourse }: Props) {
 
     const { t } = useTranslation()
 
@@ -176,7 +177,7 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
                         <DropdownMenuLabel>{t("table.courses.actions.title")}</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => console.log("View")}>{t("table.courses.actions.view")}</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => console.log("Edit")}>{t("table.courses.actions.edit")}</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onEditCourse?.(course)}>{t("table.courses.actions.edit")}</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => deleteCourse(course.id)}>{t("table.courses.actions.delete")}</DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>

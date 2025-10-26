@@ -84,6 +84,32 @@
                 },
                 "save": "Save Course",
                 "cancel": "Cancel"
+            },
+            "edit": {
+                "title": "Edit Course",
+                "description": "Update the course status.",
+                "course.year": "Academic Year",
+                "state": {
+                    "title": "Course Status"
+                },
+                "save": "Save Changes",
+                "cancel": "Cancel"
+            }
+        }
+    },
+    "alerts": {
+        "course": {
+            "error": {
+                "edit": {
+                    "title": "Error updating course",
+                    "description": "Could not update the course. Please try again later."
+                }
+            },
+            "success": {
+                "edit": {
+                    "title": "Course updated",
+                    "description": "The course '{{startYear}}-{{endYear}}' was successfully updated."
+                }
             }
         }
     },

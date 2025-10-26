@@ -12,10 +12,11 @@ interface ColumnExtraProps {
     deleteCourse: (courseId: string) => void;
     deleteCalendar: (calendarId: string, force: boolean) => void;
     createCalendar: (courseId: string, semester: number) => void;
+    onEditCourse?: (course: Course) => void;
     isAdmin?: boolean;
 }
 
-export const columns = ({ deleteCourse, deleteCalendar, createCalendar, isAdmin = false }: ColumnExtraProps, t: TFunction): ColumnDef<Course>[] => {
+export const columns = ({ deleteCourse, deleteCalendar, createCalendar, onEditCourse, isAdmin = false }: ColumnExtraProps, t: TFunction): ColumnDef<Course>[] => {
     const cols: ColumnDef<Course>[] = [];
 
     // Solo agregar columna de selección si es ADMIN
@@ -86,6 +87,7 @@ export const columns = ({ deleteCourse, deleteCalendar, createCalendar, isAdmin 
                     deleteCourse={deleteCourse}
                     deleteCalendar={deleteCalendar}
                     createCalendar={createCalendar}
+                    onEditCourse={onEditCourse}
                 />
             )
         },

@@ -1,4 +1,4 @@
-// components/course/CreateCourseDrawer.tsx
+// components/course/EditCourseDrawer.tsx
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -24,55 +24,57 @@ import {
     Alert,
     AlertDescription,
 } from "@/components/ui/alert";
-import { CourseState, CourseStateManager, CourseFormData } from "@/types/Course";
+import { CourseState, CourseStateManager } from "@/types/Course";
 
-interface CreateCourseDrawerProps {
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
-    onSave: (formData: CourseFormData) => Promise<void>;
+export interface EditCourseFormData {
+    courseId: string;
+    startYear: number;
+    endYear: number;
+    state: CourseState;
 }
 
-const generateYearOptions = (): string[] => {
-    const currentYear = new Date().getFullYear();
-    return Array.from({ length: 100 }, (_, i) => {
-        const start = currentYear + i;
-        return `${start}-${start + 1}`;
-    });
-};
+interface EditCourseDrawerProps {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    onSave: (formData: EditCourseFormData) => Promise<void>;
+    courseData?: {
+        id: string;
+        startYear: number;
+        endYear: number;
+        state: CourseState;
+    };
+}
 
-export const CreateCourseDrawer = ({
+export const EditCourseDrawer = ({
     open,
     onOpenChange,
-    onSave
-}: CreateCourseDrawerProps) => {
+    onSave,
+    courseData
+}: EditCourseDrawerProps) => {
     const { t } = useTranslation();
-    const [selectedYearRange, setSelectedYearRange] = useState("");
     const [state, setState] = useState<CourseState>(CourseState.PLANIFICADO);
     const [isLoading, setIsLoading] = useState(false);
 
-    const yearOptions = generateYearOptions();
-
-    // Reset form when drawer closes
+    // Reset form when drawer closes or courseData changes
     useEffect(() => {
-        if (!open) {
-            setSelectedYearRange("");
+        if (open && courseData) {
+            setState(courseData.state);
+        } else if (!open) {
             setState(CourseState.PLANIFICADO);
             setIsLoading(false);
         }
-    }, [open]);
+    }, [open, courseData]);
 
     const handleSave = async () => {
-        if (!selectedYearRange) return;
+        if (!courseData) return;
 
         setIsLoading(true);
 
         try {
-            // Extraer startYear y endYear del formato "YYYY-YYYY"
-            const [startYear, endYear] = selectedYearRange.split('-');
-
             await onSave({
-                startYear: startYear.trim(),
-                endYear: endYear.trim(),
+                courseId: courseData.id,
+                startYear: courseData.startYear,
+                endYear: courseData.endYear,
                 state
             });
         } catch (error) {
@@ -88,53 +90,45 @@ export const CreateCourseDrawer = ({
         }
     };
 
-    const isFormValid = selectedYearRange.trim() !== "";
+    const isFormValid = state !== courseData?.state; // Solo habilitar guardar si cambió el estado
 
     return (
         <Drawer open={open} onOpenChange={onOpenChange}>
             <DrawerContent className="flex flex-col max-h-screen">
                 <DrawerHeader>
-                    <DrawerTitle>{t("drawer.courses.create.title")}</DrawerTitle>
+                    <DrawerTitle>{t("drawer.courses.edit.title")}</DrawerTitle>
                     <DrawerDescription>
-                        {t("drawer.courses.create.description")}
+                        {t("drawer.courses.edit.description")}
                     </DrawerDescription>
                 </DrawerHeader>
 
                 {/* Contenido desplazable */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-6">
-                    {/* Select de año académico */}
-                    <div className="space-y-2 max-w-sm mx-auto">
-                        <Label htmlFor="course-start-end-year">
-                            {t("drawer.courses.create.start.end.year.title")}
-                        </Label>
-                        <Select
-                            value={selectedYearRange}
-                            onValueChange={setSelectedYearRange}
-                            disabled={isLoading}
-                        >
-                            <SelectTrigger className="w-full">
-                                <SelectValue placeholder={t("drawer.courses.create.start.end.year.placeholder")} />
-                            </SelectTrigger>
-                            <SelectContent className="max-h-55">
-                                {yearOptions.map((yearOption) => (
-                                    <SelectItem key={yearOption} value={yearOption}>
-                                        {yearOption}
+                    {/* Año académico (desactivado) */}
+                    {courseData && (
+                        <div className="space-y-3 max-w-sm mx-auto">
+                            <Label htmlFor="course-year">
+                                {t("drawer.courses.edit.course.year")}
+                            </Label>
+                            <Select value={`${courseData.startYear}-${courseData.endYear}`} disabled={true}>
+                                <SelectTrigger className="w-full">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value={`${courseData.startYear}-${courseData.endYear}`}>
+                                        {courseData.startYear}-{courseData.endYear}
                                     </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
 
                     {/* Select de estado */}
                     <div className="space-y-3 max-w-sm mx-auto">
                         <Label htmlFor="course-state">
-                            {t("drawer.courses.create.state.title")}
+                            {t("drawer.courses.edit.state.title")}
                         </Label>
-                        <Select
-                            value={state}
-                            onValueChange={(value: CourseState) => setState(value)}
-                            disabled={true}
-                        >
+                        <Select value={state} onValueChange={(value: CourseState) => setState(value)} disabled={isLoading}>
                             <SelectTrigger className="w-full">
                                 <SelectValue>
                                     <div className="flex items-center gap-2">
@@ -202,14 +196,14 @@ export const CreateCourseDrawer = ({
                             onClick={handleClose}
                             disabled={isLoading}
                         >
-                            {t("drawer.courses.create.cancel")}
+                            {t("drawer.courses.edit.cancel")}
                         </Button>
                     </DrawerClose>
                     <Button
                         disabled={!isFormValid || isLoading}
                         onClick={handleSave}
                     >
-                        {t("drawer.courses.create.save")}
+                        {t("drawer.courses.edit.save")}
                     </Button>
                 </div>
             </DrawerContent>

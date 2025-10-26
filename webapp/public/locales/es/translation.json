@@ -170,12 +170,20 @@
                     "description": "No se pudo crear el curso. Por favor, inténtalo de nuevo mas tarde.",
                     "start.end.year": "Año académico",
                     "conflict.description": "Ya existe un aula con el mismo '{{fields}}'."
+                },
+                "edit": {
+                    "title": "Error al editar el curso",
+                    "description": "No se pudo editar el curso. Por favor, inténtalo de nuevo mas tarde."
                 }
             },
             "success": {
                 "create": {
                     "title": "Curso creado",
                     "description": "El curso '{{startYear}}-{{endYear}}' fue creado correctamente."
+                },
+                "edit": {
+                    "title": "Curso actualizado",
+                    "description": "El curso '{{startYear}}-{{endYear}}' fue actualizado correctamente."
                 },
                 "delete": {
                     "individual": {
@@ -251,6 +259,16 @@
                     "finalizado": "Finalizado"
                 },
                 "save": "Guardar curso",
+                "cancel": "Cancelar"
+            },
+            "edit": {
+                "title": "Editar curso",
+                "description": "Actualiza el estado del curso.",
+                "course.year": "Año académico",
+                "state": {
+                    "title": "Estado del curso"
+                },
+                "save": "Guardar cambios",
                 "cancel": "Cancelar"
             }
         },

@@ -10,6 +10,10 @@ import { BookOpen, DoorOpen, Languages, Users } from "lucide-react";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import CalendarToolbar from "@/components/calendar/CalendarToolbar";
+import CreateEventDialog from "@/components/calendar/CreateEventDialog";
+import type { RecurrenceConfig } from "@/types/RecurrenceConfig";
+import { ProtectedComponent } from "@/components/ProtectedComponent";
 
 // Configurar moment para usar español y que la semana empiece en lunes
 moment.locale('es', {
@@ -97,6 +101,10 @@ export default function CalendarPage() {
 
     // Estado para colapsar/expandir filtros
     const [isFiltersCollapsed, setIsFiltersCollapsed] = useState(false);
+
+    // Estado para el diálogo de crear evento
+    const [isCreateEventDialogOpen, setIsCreateEventDialogOpen] = useState(false);
+    const [selectedEventIds, setSelectedEventIds] = useState<string[]>([]);
 
     useEffect(() => {
         setItems([
@@ -227,6 +235,26 @@ export default function CalendarPage() {
         ? moment(data.endDate).hour(21).minute(0).toDate()
         : moment().hour(21).minute(0).toDate();
 
+    const handleExportCalendar = () => {
+        console.log('Exporting calendar...');
+        // TODO: Implement export functionality
+    };
+
+    const handleCreateEvent = () => {
+        setIsCreateEventDialogOpen(true);
+    };
+
+    const handleDeleteEvents = () => {
+        console.log('Deleting events:', selectedEventIds);
+        // TODO: Implement delete functionality
+        setSelectedEventIds([]);
+    };
+
+    const handleSaveEvent = (config: RecurrenceConfig) => {
+        console.log('Creating event with config:', config);
+        // TODO: Implement event creation logic
+    };
+
     if (isLoading) {
         return (
             <section className="h-full rounded-xl bg-muted/50 flex items-center justify-center m-2 p-10">
@@ -248,35 +276,50 @@ export default function CalendarPage() {
     }
 
     return (
-        <section className="h-full bg-muted/50 overflow-hidden flex">
-            {/* Panel de filtros */}
-            <ClassFilter
-                filters={filters}
-                onFiltersChange={setFilters}
-                filterOptions={filterOptions}
-                isCollapsed={isFiltersCollapsed}
-                onToggleCollapse={() => setIsFiltersCollapsed(!isFiltersCollapsed)}
-            />
-
-            {/* Calendario */}
-            <div className="flex-1 flex flex-col min-w-0 m-10 bg-card rounded-2xl shadow-lg border">
-                {/* Header con contador de eventos */}
-                <div className="flex items-center justify-between p-4 border-b">
-                    <div>
-                        <h1 className="text-xl font-semibold text-foreground">
-                            Calendario - Semestre {data.semester}
-                        </h1>
-                        <p className="text-sm text-muted-foreground mt-1">
-                            Mostrando {events.length} de {data.totalEvents} eventos
-                        </p>
+        <>
+            <section className="h-full bg-muted/50 overflow-hidden flex flex-col">
+                {/* Toolbar */}
+                <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
+                    <div className="px-4 py-3 border-b bg-card">
+                        <CalendarToolbar
+                            onExport={handleExportCalendar}
+                            onCreateEvent={handleCreateEvent}
+                            onDeleteEvents={handleDeleteEvents}
+                            selectedCount={selectedEventIds.length}
+                        />
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                        {moment(data.startDate).format('DD/MM/YYYY')} - {moment(data.endDate).format('DD/MM/YYYY')}
-                    </div>
-                </div>
+                </ProtectedComponent>
 
-                {/* Calendario */}
-                <div className="flex-1 p-4 overflow-hidden bg-white rounded-b-2xl">
+                {/* Main content */}
+                <div className="flex-1 overflow-hidden flex">
+                    {/* Panel de filtros */}
+                    <ClassFilter
+                        filters={filters}
+                        onFiltersChange={setFilters}
+                        filterOptions={filterOptions}
+                        isCollapsed={isFiltersCollapsed}
+                        onToggleCollapse={() => setIsFiltersCollapsed(!isFiltersCollapsed)}
+                    />
+
+                    {/* Calendario */}
+                    <div className="flex-1 flex flex-col min-w-0 m-2 bg-card rounded-2xl shadow-lg border">
+                        {/* Header con contador de eventos */}
+                        <div className="flex items-center justify-between px-8 py-4 border-b">
+                            <div>
+                                <h1 className="text-xl font-semibold text-foreground">
+                                    Calendario - Semestre {data.semester}
+                                </h1>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                    Mostrando {events.length} de {data.totalEvents} eventos
+                                </p>
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                                {moment(data.startDate).format('DD/MM/YYYY')} - {moment(data.endDate).format('DD/MM/YYYY')}
+                            </div>
+                        </div>
+
+                        {/* Calendario */}
+                        <div className="flex-1 p-4 overflow-hidden bg-white rounded-b-2xl">
                     {events.length > 0 ? (
                         <Calendar
                             defaultView="work_week"
@@ -330,8 +373,17 @@ export default function CalendarPage() {
                             </div>
                         </div>
                     )}
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </section>
+            </section>
+
+            {/* Create Event Dialog */}
+            <CreateEventDialog
+                open={isCreateEventDialogOpen}
+                onOpenChange={setIsCreateEventDialogOpen}
+                onSave={handleSaveEvent}
+            />
+        </>
     );
 }

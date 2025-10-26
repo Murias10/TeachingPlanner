@@ -45,6 +45,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         icon: Home,
         isActive: true,
         items: [],
+        requiredAuth: false,
       },
       {
         title: t("sidebar.main.calendars.title"),
@@ -52,18 +53,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         icon: CalendarDays,
         isActive: true,
         items: [],
+        requiredAuth: false,
       },
       {
         title: t("sidebar.main.classrooms.title"),
         url: "/classrooms",
         icon: Warehouse,
         items: [],
+        requiredAuth: false,
       },
       {
         title: t("sidebar.main.settings.title"),
         url: "/settings",
         icon: Settings2,
         items: [],
+        requiredAuth: true,
       },
     ],
     system: [
@@ -71,16 +75,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         name: t("sidebar.system.logs.title"),
         url: "/logs",
         icon: ScrollText,
+        requiredAuth: true,
       },
       {
         name: t("sidebar.system.users.title"),
         url: "/users",
         icon: UserRoundCog,
+        requiredAuth: true,
       },
       {
         name: t("sidebar.system.reports.title"),
         url: "/reports",
         icon: PieChart,
+        requiredAuth: true,
       },
     ],
     extra: [
@@ -88,9 +95,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         title: t("sidebar.extra.faq.title"),
         url: "#",
         icon: CircleHelp,
+        requiredAuth: false,
       }
     ],
   }
+
+  // Filtrar items según la autenticación del usuario
+  const filteredMain = data.main.filter(item => !item.requiredAuth || isAuthenticated);
+  const filteredSystem = data.system.filter(item => !item.requiredAuth || isAuthenticated);
+  const filteredExtra = data.extra.filter(item => !item.requiredAuth || isAuthenticated);
 
   return (
     <Sidebar
@@ -117,9 +130,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.main} />
-        <NavSystem projects={data.system} />
-        <NavExtra items={data.extra} className="mt-auto" />
+        <NavMain items={filteredMain} />
+        <NavSystem projects={filteredSystem} />
+        <NavExtra items={filteredExtra} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} />

@@ -25,6 +25,11 @@ export function NavSystem({
 
   const { t } = useTranslation()
 
+  // No mostrar la sección si no hay items
+  if (options.length === 0) {
+    return null;
+  }
+
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
       <SidebarGroupLabel>{t("sidebar.system.title")}</SidebarGroupLabel>

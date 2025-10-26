@@ -19,6 +19,11 @@ export function NavExtra({
     icon: LucideIcon
   }[]
 } & React.ComponentPropsWithoutRef<typeof SidebarGroup>) {
+  // No mostrar la sección si no hay items
+  if (items.length === 0) {
+    return null;
+  }
+
   return (
     <SidebarGroup {...props}>
       <SidebarGroupContent>

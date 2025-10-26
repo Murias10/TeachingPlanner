@@ -4,7 +4,7 @@ import { DeleteConfirmationDialog } from "@/components/DeleteConfirmationDialog"
 import { ProtectedComponent } from "@/components/ProtectedComponent"
 import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext"
 import { useAuth } from "@/contexts/AuthContext"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useState, useMemo } from "react"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
 import { useTranslation } from "react-i18next"
 import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext"
@@ -35,6 +35,7 @@ export default function CoursePage() {
     const { acronym } = useParams<{ acronym: string }>()
 
     const { triggerAlert } = useFloatingAlertContext()
+    const { isAuthenticated } = useAuth()
 
     const isAdmin = user?.role === "ADMIN"
 
@@ -58,6 +59,15 @@ export default function CoursePage() {
         error: coursesError,
         refetch
     } = useCoursesByDegreeId(degree?.id || null)
+
+    // Filtrar cursos según autenticación
+    // Si está autenticado: mostrar todos los cursos
+    // Si no está autenticado: mostrar solo cursos ACTIVO
+    const filteredCourses = useMemo(() => {
+        return isAuthenticated
+            ? courses
+            : courses.filter(course => course.state === 'ACTIVO')
+    }, [isAuthenticated, courses])
 
     const [selectedIds, setSelectedIds] = useState<string[]>([])
     const [openDrawer, setOpenDrawer] = useState(false)
@@ -439,7 +449,7 @@ export default function CoursePage() {
                         <LoadingSpinner />
                     ) : (
                         <CourseTable
-                            courses={courses}
+                            courses={filteredCourses}
                             deleteCourse={handleDeleteCourse}
                             deleteCalendar={handleDeleteCalendarWithConfirmation}
                             createCalendar={handleCreateCalendar}

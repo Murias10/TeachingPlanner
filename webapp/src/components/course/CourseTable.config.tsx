@@ -67,7 +67,7 @@ export const columns = ({ deleteCourse, deleteCalendar, createCalendar, isAdmin 
                         variant="secondary"
                         className={`text-xs font-medium ${CourseStateManager.getStateColor(state)}`}
                     >
-                        {t(`drawer.courses.create.states.${state}`).toUpperCase()}
+                        {t(`drawer.courses.create.states.${state.toLowerCase()}`)}
                     </Badge>
 
                 </div>

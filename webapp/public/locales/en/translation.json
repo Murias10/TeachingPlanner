@@ -1,18 +1,30 @@
 {
+    "common": {
+        "and": "and",
+        "success": "Success",
+        "error": "Error",
+        "warning": "Warning"
+    },
     "sidebar": {
         "main": {
             "title": "Academic Management",
+            "degrees": {
+                "title": "Degrees"
+            },
+            "home": {
+                "title": "Home"
+            },
             "calendars": {
-                "title": "Calendars",
-                "list": "List All Calendars"
+                "title": "Calendars"
             },
             "classrooms": {
-                "title": "Classrooms",
-                "list": "List All Classrooms"
+                "title": "Classrooms"
             },
             "subjects": {
-                "title": "Subjects",
-                "list": "List All Subjects"
+                "title": "Subjects"
+            },
+            "settings": {
+                "title": "Settings"
             }
         },
         "system": {
@@ -26,6 +38,65 @@
             "reports": {
                 "title": "Usage Reports"
             }
+        },
+        "extra": {
+            "faq": {
+                "title": "Frequently Asked Questions"
+            }
+        }
+    },
+    "breadcrumb": {
+        "home": "Home",
+        "degrees": "Degrees",
+        "calendar": "Calendar",
+        "courses": "Courses",
+        "groups": "Groups",
+        "classrooms": "Classrooms",
+        "subjects": "Subjects",
+        "settings": "Settings",
+        "system": "System",
+        "logs": "System Logs",
+        "users": "Users Management",
+        "reports": "Usage Reports",
+        "faq": "Frequently Asked Questions"
+    },
+    "drawer": {
+        "courses": {
+            "create": {
+                "title": "Create Course",
+                "description": "Complete the fields to create a new course.",
+                "start.end.year": {
+                    "title": "Course Academic Year",
+                    "placeholder": "Select an academic year"
+                },
+                "state": {
+                    "title": "Course State",
+                    "placeholder": "Select a state",
+                    "info": {
+                        "title": "State Flow",
+                        "description": "New courses start as 'Planified' by default."
+                    }
+                },
+                "states": {
+                    "planificado": "Planified",
+                    "activo": "Active",
+                    "finalizado": "Finished"
+                },
+                "save": "Save Course",
+                "cancel": "Cancel"
+            }
+        }
+    },
+    "toolbar": {
+        "calendar": {
+            "export": "Export",
+            "create.event": "Create Event",
+            "delete.selected": "Delete Selected"
+        }
+    },
+    "table": {
+        "courses": {
+            "filter.placeholder": "Filter by course..."
         }
     }
 }

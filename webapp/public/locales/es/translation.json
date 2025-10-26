@@ -246,9 +246,9 @@
                     }
                 },
                 "states": {
-                    "planified": "Planificado",
-                    "active": "Activo",
-                    "finished": "Finalizado"
+                    "planificado": "Planificado",
+                    "activo": "Activo",
+                    "finalizado": "Finalizado"
                 },
                 "save": "Guardar curso",
                 "cancel": "Cancelar"
@@ -397,7 +397,7 @@
             }
         },
         "courses": {
-            "filter.placeholder": "Filtrar por estado...",
+            "filter.placeholder": "Filtrar por curso...",
             "columns": {
                 "title": "Columnas",
                 "course": "Curso",

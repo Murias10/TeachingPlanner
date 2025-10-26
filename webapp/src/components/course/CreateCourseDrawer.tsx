@@ -47,7 +47,7 @@ export const CreateCourseDrawer = ({
 }: CreateCourseDrawerProps) => {
     const { t } = useTranslation();
     const [selectedYearRange, setSelectedYearRange] = useState("");
-    const [state, setState] = useState<CourseState>(CourseState.PLANIFIED);
+    const [state, setState] = useState<CourseState>(CourseState.PLANIFICADO);
     const [isLoading, setIsLoading] = useState(false);
 
     const yearOptions = generateYearOptions();
@@ -56,7 +56,7 @@ export const CreateCourseDrawer = ({
     useEffect(() => {
         if (!open) {
             setSelectedYearRange("");
-            setState(CourseState.PLANIFIED);
+            setState(CourseState.PLANIFICADO);
             setIsLoading(false);
         }
     }, [open]);
@@ -158,7 +158,7 @@ export const CreateCourseDrawer = ({
                                                 variant="secondary"
                                                 className={`text-xs ${CourseStateManager.getStateColor(stateOption)}`}
                                             >
-                                                {t(`drawer.courses.create.states.${stateOption}`).toUpperCase()}
+                                                {t(`drawer.courses.create.states.${stateOption.toLowerCase()}`)}
                                             </Badge>
                                             <div className="flex flex-col">
                                                 <span className="font-medium">
@@ -183,7 +183,7 @@ export const CreateCourseDrawer = ({
                                         {t("drawer.courses.create.state.info.title")}:
                                     </p>
                                     <p className="text-xs text-muted-foreground">
-                                        {t("drawer.courses.create.states.planified")} → {t("drawer.courses.create.states.active")} → {t("drawer.courses.create.states.finished")}
+                                        {t("drawer.courses.create.states.planificado")} → {t("drawer.courses.create.states.activo")} → {t("drawer.courses.create.states.finalizado")}
                                     </p>
                                     <p className="text-xs text-muted-foreground">
                                         {t("drawer.courses.create.state.info.description")}

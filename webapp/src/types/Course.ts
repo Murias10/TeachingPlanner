@@ -10,9 +10,9 @@ export interface CourseFormData {
 }
 
 export enum CourseState {
-    PLANIFIED = 'planified',
-    ACTIVE = 'active',
-    FINISHED = 'finished'
+    PLANIFICADO = 'PLANIFICADO',
+    ACTIVO = 'ACTIVO',
+    FINALIZADO = 'FINALIZADO'
 }
 
 export interface Course {
@@ -34,9 +34,9 @@ export interface CreateCourseRequest {
 // Utilidad para validar transiciones de estado válidas
 export class CourseStateManager {
     private static readonly VALID_TRANSITIONS: Record<CourseState, CourseState[]> = {
-        [CourseState.PLANIFIED]: [CourseState.ACTIVE],
-        [CourseState.ACTIVE]: [CourseState.FINISHED],
-        [CourseState.FINISHED]: []
+        [CourseState.PLANIFICADO]: [CourseState.ACTIVO],
+        [CourseState.ACTIVO]: [CourseState.FINALIZADO],
+        [CourseState.FINALIZADO]: []
     };
 
     static canTransition(from: CourseState, to: CourseState): boolean {
@@ -49,20 +49,20 @@ export class CourseStateManager {
 
     static getStateDescription(state: CourseState): string {
         const descriptions = {
-            [CourseState.PLANIFIED]: 'Curso planificado, pendiente de inicio',
-            [CourseState.ACTIVE]: 'Curso en desarrollo activo',
-            [CourseState.FINISHED]: 'Curso completado exitosamente'
+            [CourseState.PLANIFICADO]: 'Curso planificado, pendiente de inicio',
+            [CourseState.ACTIVO]: 'Curso en desarrollo activo',
+            [CourseState.FINALIZADO]: 'Curso completado exitosamente'
         };
         return descriptions[state];
     }
 
     static getStateColor(state: CourseState): string {
         switch (state) {
-            case CourseState.PLANIFIED:
+            case CourseState.PLANIFICADO:
                 return "bg-blue-100 text-blue-800 hover:bg-blue-200";
-            case CourseState.ACTIVE:
+            case CourseState.ACTIVO:
                 return "bg-green-100 text-green-800 hover:bg-green-200";
-            case CourseState.FINISHED:
+            case CourseState.FINALIZADO:
                 return "bg-gray-100 text-gray-800 hover:bg-gray-200";
             default:
                 return "bg-gray-100 text-gray-800";

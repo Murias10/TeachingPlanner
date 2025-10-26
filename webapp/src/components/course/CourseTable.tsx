@@ -85,7 +85,7 @@ export function CourseTable({ courses, deleteCourse, deleteCalendar, createCalen
                     value={filterValue}
                     onChange={e => {
                         setFilterValue(e.target.value)
-                        table.getColumn("state")?.setFilterValue(e.target.value)
+                        table.getColumn("course")?.setFilterValue(e.target.value)
                     }}
                     className="max-w-sm"
                 />

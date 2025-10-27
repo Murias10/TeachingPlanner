@@ -220,7 +220,7 @@ export const CreateCalendarDrawer = ({
 
     return (
         <Drawer open={open} onOpenChange={onOpenChange}>
-            <DrawerContent className="flex flex-col max-h-screen">
+            <DrawerContent className="flex flex-col h-[85vh]">
                 <DrawerHeader>
                     <DrawerTitle>
                         {t("drawer.calendar.create.title")}
@@ -234,7 +234,7 @@ export const CreateCalendarDrawer = ({
                 </DrawerHeader>
 
                 {/* Contenido con tabs */}
-                <div className="flex-1 overflow-y-auto p-4">
+                <div className="flex-1 overflow-y-auto p-4 min-h-0">
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                         <div className="flex justify-center mb-6">
                             <TabsList>

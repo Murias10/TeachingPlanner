@@ -236,16 +236,18 @@ export const CreateCalendarDrawer = ({
                 {/* Contenido con tabs */}
                 <div className="flex-1 overflow-y-auto p-4">
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                        <TabsList className="grid w-full grid-cols-2">
-                            <TabsTrigger value="manual" className="flex items-center gap-2">
-                                <Calendar className="h-4 w-4" />
-                                {t("drawer.calendar.create.tabs.manual.title")}
-                            </TabsTrigger>
-                            <TabsTrigger value="import" className="flex items-center gap-2">
-                                <Upload className="h-4 w-4" />
-                                {t("drawer.calendar.create.tabs.import.title")}
-                            </TabsTrigger>
-                        </TabsList>
+                        <div className="flex justify-center mb-6">
+                            <TabsList>
+                                <TabsTrigger value="manual" className="flex items-center gap-2">
+                                    <Calendar className="h-4 w-4" />
+                                    {t("drawer.calendar.create.tabs.manual.title")}
+                                </TabsTrigger>
+                                <TabsTrigger value="import" className="flex items-center gap-2">
+                                    <Upload className="h-4 w-4" />
+                                    {t("drawer.calendar.create.tabs.import.title")}
+                                </TabsTrigger>
+                            </TabsList>
+                        </div>
 
                         {/* Tab Manual */}
                         <TabsContent value="manual" className="space-y-6 mt-6">
@@ -296,26 +298,24 @@ export const CreateCalendarDrawer = ({
                         </TabsContent>
 
                         {/* Tab Import */}
-                        <TabsContent value="import" className="space-y-6 mt-6">
+                        <TabsContent value="import" className="space-y-4 mt-6">
                             {/* Lista de archivos requeridos */}
-                            <div className="space-y-3">
+                            <div className="space-y-2 max-w-sm mx-auto">
                                 <h4 className="text-sm font-medium">
                                     {t("drawer.calendar.create.tabs.import.required.files")}:
                                 </h4>
-                                <div className="grid gap-2">
+                                <div className="grid gap-1.5">
                                     {REQUIRED_FILES.map((file) => {
                                         const uploaded = getFileStatus(file.name);
                                         return (
-                                            <div key={file.name} className="flex items-center gap-3 p-2 rounded-lg border">
+                                            <div key={file.name} className="flex items-center gap-2 p-2 rounded border text-sm">
                                                 {uploaded ? (
-                                                    <CheckCircle className="h-4 w-4 text-green-600" />
+                                                    <CheckCircle className="h-3.5 w-3.5 text-green-600 flex-shrink-0" />
                                                 ) : (
-                                                    <div className="h-4 w-4 rounded-full border-2 border-gray-300" />
+                                                    <div className="h-3.5 w-3.5 rounded-full border-2 border-gray-300 flex-shrink-0" />
                                                 )}
                                                 <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2">
-                                                        <p className="text-sm font-medium">{file.name}</p>
-                                                    </div>
+                                                    <p className="text-xs font-medium">{file.name}</p>
                                                     <p className="text-xs text-muted-foreground truncate">
                                                         {file.description}
                                                     </p>
@@ -332,58 +332,60 @@ export const CreateCalendarDrawer = ({
                             </div>
 
                             {/* Área de drop/upload */}
-                            <div
-                                className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors ${isDragOver
-                                    ? 'border-primary bg-primary/5'
-                                    : 'border-gray-300 hover:border-gray-400'
-                                    }`}
-                                onDrop={handleDrop}
-                                onDragOver={(e) => {
-                                    e.preventDefault();
-                                    setIsDragOver(true);
-                                }}
-                                onDragLeave={() => setIsDragOver(false)}
-                            >
-                                <input
-                                    type="file"
-                                    multiple
-                                    accept=".txt"
-                                    onChange={handleFileInput}
-                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                    disabled={isLoading}
-                                />
+                            <div className="max-w-sm mx-auto">
+                                <div
+                                    className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors ${isDragOver
+                                        ? 'border-primary bg-primary/5'
+                                        : 'border-gray-300 hover:border-gray-400'
+                                        }`}
+                                    onDrop={handleDrop}
+                                    onDragOver={(e) => {
+                                        e.preventDefault();
+                                        setIsDragOver(true);
+                                    }}
+                                    onDragLeave={() => setIsDragOver(false)}
+                                >
+                                    <input
+                                        type="file"
+                                        multiple
+                                        accept=".txt"
+                                        onChange={handleFileInput}
+                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                        disabled={isLoading}
+                                    />
 
-                                <div className="space-y-3">
-                                    <div className="mx-auto w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
-                                        <Upload className="h-6 w-6 text-gray-600" />
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-medium">
-                                            {t("drawer.calendar.create.tabs.import.drop.title")}
-                                        </p>
-                                        <p className="text-xs text-muted-foreground mt-1">
-                                            {t("drawer.calendar.create.tabs.import.drop.description")}
-                                        </p>
+                                    <div className="space-y-2">
+                                        <div className="mx-auto w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                                            <Upload className="h-5 w-5 text-gray-600" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-medium">
+                                                {t("drawer.calendar.create.tabs.import.drop.title")}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground mt-1">
+                                                {t("drawer.calendar.create.tabs.import.drop.description")}
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Lista de archivos subidos */}
                             {uploadedFiles.length > 0 && (
-                                <div className="space-y-3">
+                                <div className="space-y-2 max-w-sm mx-auto">
                                     <h4 className="text-sm font-medium">
                                         {t("drawer.calendar.create.tabs.import.uploaded.files")} ({uploadedFiles.length})
                                     </h4>
-                                    <div className="space-y-2">
+                                    <div className="space-y-1.5">
                                         {uploadedFiles.map((file) => {
                                             const isProcessable = file.name === 'ubicaciones.txt';
                                             return (
-                                                <div key={file.name} className={`flex items-center gap-3 p-3 rounded-lg ${isProcessable ? 'bg-green-50 border border-green-200' : 'bg-gray-50'
+                                                <div key={file.name} className={`flex items-center gap-2 p-2 rounded-lg text-sm ${isProcessable ? 'bg-green-50 border border-green-200' : 'bg-gray-50'
                                                     }`}>
-                                                    <FileText className={`h-4 w-4 ${isProcessable ? 'text-green-600' : 'text-gray-600'}`} />
+                                                    <FileText className={`h-3.5 w-3.5 flex-shrink-0 ${isProcessable ? 'text-green-600' : 'text-gray-600'}`} />
                                                     <div className="flex-1 min-w-0">
                                                         <div className="flex items-center gap-2">
-                                                            <p className={`text-sm font-medium truncate ${isProcessable ? 'text-green-900' : ''}`}>
+                                                            <p className={`text-xs font-medium truncate ${isProcessable ? 'text-green-900' : ''}`}>
                                                                 {file.name}
                                                             </p>
                                                         </div>

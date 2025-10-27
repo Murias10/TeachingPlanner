@@ -314,6 +314,27 @@ export const createClassroom = async (req: Request, res: Response, next: NextFun
 };
 
 
+export const updateClassroom = async (req: Request, res: Response, next: NextFunction) => {
+    const { id } = req.params;
+    const { code, gisUrl } = req.body;
+
+    fetch(`http://planner_service:5001/classroom/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, gisUrl })
+    })
+        .then(async (response) => {
+            response.headers.forEach((value, key) => {
+                res.setHeader(key, value);
+            });
+            const body = await response.json();
+            res.status(response.status).json(body);
+        })
+        .catch((error) => {
+            next(error);
+        });
+};
+
 export const deleteClassroom = async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
 

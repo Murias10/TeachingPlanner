@@ -104,6 +104,7 @@
         },
         "classroom": {
             "error": {
+                "title": "Error",
                 "create": {
                     "title": "Error al crear el aula",
                     "description": "No se pudo crear el aula. Por favor, inténtalo de nuevo mas tarde.",
@@ -111,30 +112,34 @@
                     "gisUrl": "URL GIS",
                     "conflict.description": "Ya existe un aula con el mismo '{{fields}}'."
                 },
+                "edit": {
+                    "title": "Error al editar el aula",
+                    "description": "No se pudo editar el aula. Por favor, inténtalo de nuevo mas tarde."
+                },
                 "delete": {
-                    "individual": {
-                        "title": "Error al eliminar el aula",
-                        "description": "No se pudo eliminar el aula '{{code}}'. Por favor, inténtalo de nuevo mas tarde."
-                    },
-                    "multiple": {
-                        "title": "Error al eliminar las aulas",
-                        "description": "No se pudieron eliminar las aulas. Por favor, inténtalo de nuevo mas tarde."
-                    }
-                }
+                    "title": "Error al eliminar el aula",
+                    "description": "No se pudo eliminar el aula '{{code}}'. Por favor, inténtalo de nuevo mas tarde."
+                },
+                "notFound": "No se encontró el aula",
+                "hasEvents": "No se puede eliminar el aula porque tiene eventos asociados",
+                "default": "Error al procesar la solicitud",
+                "read": "No se pudieron cargar las aulas. Por favor, inténtalo de nuevo mas tarde."
             },
             "success": {
                 "create": {
                     "title": "Aula creada",
                     "description": "El aula '{{code}}' fue creada correctamente."
                 },
+                "edit": {
+                    "title": "Aula editada",
+                    "description": "El aula '{{code}}' fue editada correctamente."
+                },
                 "delete": {
-                    "individual": {
-                        "title": "Aula eliminada",
-                        "description": "El aula '{{code}}' fue eliminada correctamente."
-                    },
+                    "title": "Aula eliminada",
+                    "description": "El aula '{{code}}' fue eliminada correctamente.",
                     "multiple": {
                         "title": "Aulas eliminadas",
-                        "description": "Las aulas fueron eliminadas correctamente."
+                        "description": "{{count}} aulas fueron eliminadas correctamente."
                     }
                 }
             }
@@ -224,6 +229,15 @@
                 "code": "Código del aula",
                 "gisUrl": "URL GIS del aula",
                 "save": "Guardar aula",
+                "cancel": "Cancelar"
+            },
+            "edit": {
+                "title": "Editar aula",
+                "description": "Modifica el campo GIS URL del aula.",
+                "code": "Código del aula",
+                "gisUrl": "URL GIS del aula",
+                "gisUrl.placeholder": "Ejemplo: example.com/classroom/101",
+                "save": "Guardar cambios",
                 "cancel": "Cancelar"
             }
         },

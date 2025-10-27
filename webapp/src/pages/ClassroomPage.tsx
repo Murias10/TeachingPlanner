@@ -1,6 +1,7 @@
 import { ClassroomToolbar } from "@/components/classroom/ClassroomToolbar"
 import { ClassroomTable } from "@/components/classroom/ClassroomTable"
 import { CreateClassroomDrawer } from "@/components/classroom/CreateClassroomDrawer"
+import { EditClassroomDrawer } from "@/components/classroom/EditClassroomDrawer"
 import { DeleteConfirmationDialog } from "@/components/DeleteConfirmationDialog"
 import { ProtectedComponent } from "@/components/ProtectedComponent"
 import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext"
@@ -11,7 +12,10 @@ import { useClassrooms } from "@/hooks/classroom/useClassrooms"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
 import { useDeleteClassroom } from "@/hooks/classroom/useDeleteClassroom"
 import { useCreateClassroom } from "@/hooks/classroom/useCreateClassroom"
+import { useUpdateClassroom } from "@/hooks/classroom/useUpdateClassroom"
 import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext"
+import { Classroom } from "@/types/Classroom"
+import { EditClassroomFormData } from "@/components/classroom/EditClassroomDrawer"
 
 interface DeleteState {
     type: 'single' | 'bulk' | null;
@@ -28,12 +32,15 @@ export default function ClassroomPage() {
     const isAdmin = user?.role === "ADMIN"
     const { deleteClassroom } = useDeleteClassroom()
     const { createClassroom } = useCreateClassroom()
+    const { updateClassroom } = useUpdateClassroom()
     const { setItems } = useBreadcrumbContext()
 
     // Estados principales
     const { data: classrooms = [], isLoading, error, refetch } = useClassrooms()
     const [selectedIds, setSelectedIds] = useState<string[]>([])
     const [drawerOpen, setDrawerOpen] = useState(false)
+    const [editDrawerOpen, setEditDrawerOpen] = useState(false)
+    const [classroomToEdit, setClassroomToEdit] = useState<Classroom | undefined>(undefined)
     const [deleteState, setDeleteState] = useState<DeleteState>({ type: null })
 
     // Configurar breadcrumb
@@ -186,6 +193,36 @@ export default function ClassroomPage() {
         });
     }, [createClassroom, refetch, triggerAlert, t, formatConflictFields]);
 
+    // Abrir drawer de edición
+    const handleEditClick = useCallback((classroom: Classroom) => {
+        setClassroomToEdit(classroom);
+        setEditDrawerOpen(true);
+    }, []);
+
+    // Guardar edición de aula
+    const handleEditSave = useCallback(async (formData: EditClassroomFormData) => {
+        const result = await updateClassroom(formData, refetch);
+
+        if (result.success) {
+            setEditDrawerOpen(false);
+            triggerAlert({
+                title: t("alerts.classroom.success.edit.title"),
+                description: t("alerts.classroom.success.edit.description", { code: formData.code }),
+                variant: "success"
+            });
+            return;
+        }
+
+        // Manejo de errores de edición
+        let errorMessage = result.message || t("alerts.classroom.error.edit.description");
+
+        triggerAlert({
+            title: t("alerts.classroom.error.edit.title"),
+            description: errorMessage,
+            variant: "destructive",
+        });
+    }, [updateClassroom, refetch, triggerAlert, t]);
+
     // Generar props para el diálogo de eliminación
     const getDeleteDialogProps = useCallback(() => {
         if (!deleteState.type) {
@@ -237,6 +274,7 @@ export default function ClassroomPage() {
                             deleteClassroom={handleDeleteClick}
                             setSelectedIds={setSelectedIds}
                             isAdmin={isAdmin}
+                            onEditClassroom={handleEditClick}
                         />
                     )}
                 </div>
@@ -246,6 +284,13 @@ export default function ClassroomPage() {
                 open={drawerOpen}
                 onOpenChange={setDrawerOpen}
                 onSave={handleSave}
+            />
+
+            <EditClassroomDrawer
+                open={editDrawerOpen}
+                onOpenChange={setEditDrawerOpen}
+                onSave={handleEditSave}
+                classroomData={classroomToEdit}
             />
 
             <DeleteConfirmationDialog {...getDeleteDialogProps()} />

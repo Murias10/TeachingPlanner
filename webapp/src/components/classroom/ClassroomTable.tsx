@@ -38,9 +38,10 @@ interface ClassroomTableProps {
     deleteClassroom: (classroomId: string) => void,
     setSelectedIds: (ids: string[]) => void;
     isAdmin: boolean;
+    onEditClassroom?: (classroom: Classroom) => void;
 }
 
-export function ClassroomTable({ classrooms, deleteClassroom, setSelectedIds, isAdmin }: ClassroomTableProps) {
+export function ClassroomTable({ classrooms, deleteClassroom, setSelectedIds, isAdmin, onEditClassroom }: ClassroomTableProps) {
 
     const { t } = useTranslation();
 
@@ -58,7 +59,7 @@ export function ClassroomTable({ classrooms, deleteClassroom, setSelectedIds, is
 
     const table = useReactTable({
         data: classrooms,
-        columns: defaultColumns({ deleteClassroom, isAdmin }, t),
+        columns: defaultColumns({ deleteClassroom, isAdmin, onEditClassroom }, t),
         state: {
             sorting,
             columnFilters,

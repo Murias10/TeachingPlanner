@@ -15,9 +15,10 @@ import { TFunction } from "i18next"
 interface ColumnExtraProps {
     deleteClassroom: (classroomId: string) => void;
     isAdmin?: boolean;
+    onEditClassroom?: (classroom: Classroom) => void;
 }
 
-export const columns = ({ deleteClassroom, isAdmin = false }: ColumnExtraProps, t: TFunction): ColumnDef<Classroom>[] => {
+export const columns = ({ deleteClassroom, isAdmin = false, onEditClassroom }: ColumnExtraProps, t: TFunction): ColumnDef<Classroom>[] => {
     const cols: ColumnDef<Classroom>[] = [];
 
     // Solo agregar columna de selección si es ADMIN
@@ -102,7 +103,7 @@ export const columns = ({ deleteClassroom, isAdmin = false }: ColumnExtraProps, 
                         <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <Button variant="outline" size="icon" className="size-10">
+                                    <Button variant="outline" size="icon" className="size-10" onClick={() => onEditClassroom?.(classroom)}>
                                         <Pencil />
                                     </Button>
                                 </TooltipTrigger>

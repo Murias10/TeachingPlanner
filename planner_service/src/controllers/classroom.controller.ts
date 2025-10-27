@@ -3,6 +3,7 @@ import { AppDataSource } from '@/config/data-source';
 import { Classroom } from '@/entities/classroom.entity';
 import { PeriodicEvent } from '@/entities/periodic_event.entity';
 import { PuntualEvent } from '@/entities/puntual_event.entity';
+import { validate as isUUID } from "uuid";
 
 export const getClassrooms = async (_req: Request, res: Response) => {
 
@@ -142,6 +143,69 @@ export const deleteClassroom = async (req: Request, res: Response) => {
         res.status(500).json({
             status: "error",
             message: "Error inesperado al eliminar el aula",
+            data: error instanceof Error ? error.message : error,
+        });
+    }
+};
+
+export const updateClassroom = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { code, gisUrl } = req.body;
+
+        // Validar que el ID sea un UUID válido
+        if (!id || typeof id !== "string" || !isUUID(id)) {
+            res.status(400).json({
+                status: "error",
+                message: "Invalid classroom ID",
+                data: null,
+            });
+            return;
+        }
+
+        // Validación de campos obligatorios
+        const missingFields = [];
+        if (!code) missingFields.push("code");
+        if (!gisUrl) missingFields.push("gisUrl");
+
+        if (missingFields.length > 0) {
+            res.status(400).json({
+                status: "error",
+                message: `Faltan los siguientes campos obligatorios: ${missingFields.join(", ")}`,
+                data: null,
+            });
+            return;
+        }
+
+        const classroomRepo = AppDataSource.getRepository(Classroom);
+
+        // Verificar que el classroom existe
+        const classroom = await classroomRepo.findOne({ where: { id } });
+
+        if (!classroom) {
+            res.status(404).json({
+                status: "error",
+                message: "Classroom not found",
+                data: null,
+            });
+            return;
+        }
+
+        // Actualizar solo el gisUrl (el code no se puede modificar)
+        classroom.gisUrl = gisUrl;
+
+        await classroomRepo.save(classroom);
+
+        res.status(200).json({
+            status: "success",
+            message: "Classroom updated successfully",
+            data: { classroom },
+        });
+    } catch (error) {
+        console.error("Error updating classroom:", error);
+        res.status(500).json({
+            status: "error",
+            message: "Unexpected error updating classroom",
             data: error instanceof Error ? error.message : error,
         });
     }

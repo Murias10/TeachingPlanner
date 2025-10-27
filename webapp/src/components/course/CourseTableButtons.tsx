@@ -176,7 +176,6 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
                     <DropdownMenuContent align="end">
                         <DropdownMenuLabel>{t("table.courses.actions.title")}</DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => console.log("View")}>{t("table.courses.actions.view")}</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => onEditCourse?.(course)}>{t("table.courses.actions.edit")}</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => deleteCourse(course.id)}>{t("table.courses.actions.delete")}</DropdownMenuItem>
                     </DropdownMenuContent>

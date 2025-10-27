@@ -7,7 +7,7 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { ArrowUpDown, Trash2, Pencil, ExternalLink, Eye } from "lucide-react"
+import { ArrowUpDown, Trash2, Pencil, ExternalLink } from "lucide-react"
 import { Classroom } from "@/types/Classroom"
 import { Link } from "react-router-dom"
 import { TFunction } from "i18next"
@@ -86,19 +86,6 @@ export const columns = ({ deleteClassroom, isAdmin = false, onEditClassroom }: C
                                 </TooltipContent>
                             </Tooltip>
                         </Link>
-
-                        <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button variant="outline" size="icon" className="size-10">
-                                        <Eye />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>{t("table.classrooms.actions.view")}</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        </ProtectedComponent>
 
                         <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
                             <Tooltip>

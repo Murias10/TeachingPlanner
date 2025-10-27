@@ -16,6 +16,7 @@ import { Subject } from "@/types/Subject"
 interface ColumnExtraProps {
     deleteSubject: (subjectId: string) => void;
     isAdmin?: boolean;
+    onViewSubject?: (subject: Subject) => void;
 }
 
 // Función para generar colores consistentes basados en el texto
@@ -44,7 +45,7 @@ const getColorFromText = (text: string) => {
     return colors[Math.abs(hash) % colors.length];
 };
 
-export const columns = ({ deleteSubject, isAdmin = false }: ColumnExtraProps, t: TFunction): ColumnDef<Subject>[] => {
+export const columns = ({ deleteSubject, isAdmin = false, onViewSubject }: ColumnExtraProps, t: TFunction): ColumnDef<Subject>[] => {
     const cols: ColumnDef<Subject>[] = [];
 
     // Solo agregar columna de selección si es ADMIN
@@ -152,7 +153,7 @@ export const columns = ({ deleteSubject, isAdmin = false }: ColumnExtraProps, t:
                     <div className="flex justify-end space-x-2">
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <Button variant="outline" size="icon" className="size-10">
+                                <Button variant="outline" size="icon" className="size-10" onClick={() => onViewSubject?.(subject)}>
                                     <Eye />
                                 </Button>
                             </TooltipTrigger>

@@ -297,6 +297,18 @@
                 "siesCode": "Sies Code de la asignatura",
                 "save": "Guardar asigantura",
                 "cancel": "Cancelar"
+            },
+            "view": {
+                "title": "Ver asignatura",
+                "description": "Información detallada de la asignatura.",
+                "name": "Nombre",
+                "acronym": "Acrónimo",
+                "year": "Año",
+                "semester": "Semestre",
+                "siesCode": "Código SIES",
+                "groups": "Grupos",
+                "groupsCount": "grupos",
+                "close": "Cerrar"
             }
         },
         "calendar": {

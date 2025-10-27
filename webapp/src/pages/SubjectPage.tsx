@@ -1,6 +1,7 @@
 import { SubjectToolbar } from "@/components/subject/SubjectToolbar"
 import { SubjectTable } from "@/components/subject/SubjectTable"
 import { CreateSubjectDrawer } from "@/components/subject/CreateSubjectDrawer"
+import { ViewSubjectDrawer } from "@/components/subject/ViewSubjectDrawer"
 import { DeleteConfirmationDialog } from "@/components/DeleteConfirmationDialog"
 import { ProtectedComponent } from "@/components/ProtectedComponent"
 import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext"
@@ -14,6 +15,7 @@ import { useDeleteSubject } from "@/hooks/subject/useDeleteSubject"
 import { useCreateSubject } from "@/hooks/subject/useCreateSubject"
 import { useDegreeByAcronym } from "@/hooks/degree/useDegreeByAcronym"
 import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext"
+import { Subject } from "@/types/Subject"
 
 interface DeleteState {
     type: 'single' | 'bulk' | null;
@@ -60,6 +62,8 @@ export default function SubjectPage() {
 
     const [selectedIds, setSelectedIds] = useState<string[]>([])
     const [drawerOpen, setDrawerOpen] = useState(false)
+    const [viewDrawerOpen, setViewDrawerOpen] = useState(false)
+    const [subjectToView, setSubjectToView] = useState<Subject | undefined>(undefined)
     const [deleteState, setDeleteState] = useState<DeleteState>({ type: null })
 
     // Configurar breadcrumb - incluye el nombre del degree si está disponible
@@ -206,6 +210,12 @@ export default function SubjectPage() {
         });
     }, [createSubject, degree, refetch, triggerAlert, t, formatConflictFields]);
 
+    // Abrir drawer de visualización
+    const handleViewClick = useCallback((subject: Subject) => {
+        setSubjectToView(subject);
+        setViewDrawerOpen(true);
+    }, []);
+
     // Generar props para el diálogo de eliminación
     const getDeleteDialogProps = useCallback(() => {
         if (!deleteState.type) {
@@ -276,6 +286,7 @@ export default function SubjectPage() {
                             deleteSubject={handleDeleteClick}
                             setSelectedIds={setSelectedIds}
                             isAdmin={isAdmin}
+                            onViewSubject={handleViewClick}
                         />
                     )}
                 </div>
@@ -285,6 +296,12 @@ export default function SubjectPage() {
                 open={drawerOpen && !!degree}
                 onOpenChange={setDrawerOpen}
                 onSave={handleSave}
+            />
+
+            <ViewSubjectDrawer
+                open={viewDrawerOpen}
+                onOpenChange={setViewDrawerOpen}
+                subjectData={subjectToView}
             />
 
             <DeleteConfirmationDialog {...getDeleteDialogProps()} />

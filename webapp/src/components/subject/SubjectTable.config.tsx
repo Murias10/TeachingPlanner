@@ -17,6 +17,7 @@ interface ColumnExtraProps {
     deleteSubject: (subjectId: string) => void;
     isAdmin?: boolean;
     onViewSubject?: (subject: Subject) => void;
+    onEditSubject?: (subject: Subject) => void;
 }
 
 // Función para generar colores consistentes basados en el texto
@@ -45,7 +46,7 @@ const getColorFromText = (text: string) => {
     return colors[Math.abs(hash) % colors.length];
 };
 
-export const columns = ({ deleteSubject, isAdmin = false, onViewSubject }: ColumnExtraProps, t: TFunction): ColumnDef<Subject>[] => {
+export const columns = ({ deleteSubject, isAdmin = false, onViewSubject, onEditSubject }: ColumnExtraProps, t: TFunction): ColumnDef<Subject>[] => {
     const cols: ColumnDef<Subject>[] = [];
 
     // Solo agregar columna de selección si es ADMIN
@@ -165,7 +166,7 @@ export const columns = ({ deleteSubject, isAdmin = false, onViewSubject }: Colum
                         <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <Button variant="outline" size="icon" className="size-10">
+                                    <Button variant="outline" size="icon" className="size-10" onClick={() => onEditSubject?.(subject)}>
                                         <Pencil />
                                     </Button>
                                 </TooltipTrigger>

@@ -2,6 +2,7 @@ import { SubjectToolbar } from "@/components/subject/SubjectToolbar"
 import { SubjectTable } from "@/components/subject/SubjectTable"
 import { CreateSubjectDrawer } from "@/components/subject/CreateSubjectDrawer"
 import { ViewSubjectDrawer } from "@/components/subject/ViewSubjectDrawer"
+import { EditSubjectDrawer } from "@/components/subject/EditSubjectDrawer"
 import { DeleteConfirmationDialog } from "@/components/DeleteConfirmationDialog"
 import { ProtectedComponent } from "@/components/ProtectedComponent"
 import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext"
@@ -13,9 +14,11 @@ import { useSubjectsByDegreeId } from "@/hooks/subject/useSubjectsByDegreeId"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
 import { useDeleteSubject } from "@/hooks/subject/useDeleteSubject"
 import { useCreateSubject } from "@/hooks/subject/useCreateSubject"
+import { useUpdateSubject } from "@/hooks/subject/useUpdateSubject"
 import { useDegreeByAcronym } from "@/hooks/degree/useDegreeByAcronym"
 import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext"
 import { Subject } from "@/types/Subject"
+import { EditSubjectFormData } from "@/components/subject/EditSubjectDrawer"
 
 interface DeleteState {
     type: 'single' | 'bulk' | null;
@@ -42,6 +45,7 @@ export default function SubjectPage() {
     const isAdmin = user?.role === "ADMIN"
     const { deleteSubject } = useDeleteSubject()
     const { createSubject } = useCreateSubject()
+    const { updateSubject } = useUpdateSubject()
     const { setItems } = useBreadcrumbContext()
 
     // Obtener degree desde el acrónimo de la URL usando React Query
@@ -63,7 +67,9 @@ export default function SubjectPage() {
     const [selectedIds, setSelectedIds] = useState<string[]>([])
     const [drawerOpen, setDrawerOpen] = useState(false)
     const [viewDrawerOpen, setViewDrawerOpen] = useState(false)
+    const [editDrawerOpen, setEditDrawerOpen] = useState(false)
     const [subjectToView, setSubjectToView] = useState<Subject | undefined>(undefined)
+    const [subjectToEdit, setSubjectToEdit] = useState<Subject | undefined>(undefined)
     const [deleteState, setDeleteState] = useState<DeleteState>({ type: null })
 
     // Configurar breadcrumb - incluye el nombre del degree si está disponible
@@ -216,6 +222,46 @@ export default function SubjectPage() {
         setViewDrawerOpen(true);
     }, []);
 
+    // Abrir drawer de edición
+    const handleEditClick = useCallback((subject: Subject) => {
+        setSubjectToEdit(subject);
+        setEditDrawerOpen(true);
+    }, []);
+
+    // Guardar edición de asignatura
+    const handleEditSave = useCallback(async (formData: EditSubjectFormData) => {
+        const result = await updateSubject(formData, refetch);
+
+        if (result.success) {
+            setEditDrawerOpen(false);
+            triggerAlert({
+                title: t("alerts.subject.success.edit.title"),
+                description: t("alerts.subject.success.edit.description", { name: formData.name }),
+                variant: "success"
+            });
+            return;
+        }
+
+        // Manejo de errores de edición
+        let errorMessage = result.message || t("alerts.subject.error.edit.description");
+
+        // Manejo específico para conflictos (409)
+        if (result.status === 409) {
+            const conflictData = result.data as { fields?: string[] } | undefined;
+
+            if (conflictData?.fields?.length) {
+                const fieldText = formatConflictFields(conflictData.fields);
+                errorMessage = t("alerts.subject.error.edit.conflict.description", { fields: fieldText });
+            }
+        }
+
+        triggerAlert({
+            title: t("alerts.subject.error.edit.title"),
+            description: errorMessage,
+            variant: "destructive",
+        });
+    }, [updateSubject, refetch, triggerAlert, t, formatConflictFields]);
+
     // Generar props para el diálogo de eliminación
     const getDeleteDialogProps = useCallback(() => {
         if (!deleteState.type) {
@@ -287,6 +333,7 @@ export default function SubjectPage() {
                             setSelectedIds={setSelectedIds}
                             isAdmin={isAdmin}
                             onViewSubject={handleViewClick}
+                            onEditSubject={handleEditClick}
                         />
                     )}
                 </div>
@@ -302,6 +349,13 @@ export default function SubjectPage() {
                 open={viewDrawerOpen}
                 onOpenChange={setViewDrawerOpen}
                 subjectData={subjectToView}
+            />
+
+            <EditSubjectDrawer
+                open={editDrawerOpen}
+                onOpenChange={setEditDrawerOpen}
+                onSave={handleEditSave}
+                subjectData={subjectToEdit}
             />
 
             <DeleteConfirmationDialog {...getDeleteDialogProps()} />

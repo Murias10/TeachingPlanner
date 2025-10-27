@@ -149,12 +149,28 @@
                 "read": {
                     "title": "Error al cargar las asignaturas",
                     "description": "No se pudieron cargar las asignaturas. Por favor, inténtalo de nuevo mas tarde."
+                },
+                "create": {
+                    "title": "Error al crear la asignatura",
+                    "description": "No se pudo crear la asignatura. Por favor, inténtalo de nuevo mas tarde.",
+                    "name": "Nombre",
+                    "acronym": "Acrónimo",
+                    "conflict.description": "Ya existe una asignatura con el mismo '{{fields}}'."
+                },
+                "edit": {
+                    "title": "Error al editar la asignatura",
+                    "description": "No se pudo editar la asignatura. Por favor, inténtalo de nuevo mas tarde.",
+                    "conflict.description": "Ya existe una asignatura con el mismo '{{fields}}'."
                 }
             },
             "success": {
                 "create": {
                     "title": "Asignatura creada",
                     "description": "La asignatura '{{name}}' fue creada correctamente."
+                },
+                "edit": {
+                    "title": "Asignatura editada",
+                    "description": "La asignatura '{{name}}' fue editada correctamente."
                 },
                 "delete": {
                     "individual": {
@@ -309,6 +325,17 @@
                 "groups": "Grupos",
                 "groupsCount": "grupos",
                 "close": "Cerrar"
+            },
+            "edit": {
+                "title": "Editar asignatura",
+                "description": "Modifica los campos de la asignatura.",
+                "name": "Nombre de la asignatura",
+                "acronym": "Acrónimo de la asignatura",
+                "year": "Año de la asignatura",
+                "semester": "Semestre de la asignatura",
+                "siesCode": "Sies Code de la asignatura",
+                "save": "Guardar cambios",
+                "cancel": "Cancelar"
             }
         },
         "calendar": {

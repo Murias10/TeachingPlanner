@@ -118,6 +118,129 @@ export const createSubject = async (req: Request, res: Response) => {
     }
 };
 
+export const updateSubject = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { acronym, year, name, siesCode, semester } = req.body;
+
+        // Validar que el ID sea un UUID válido
+        if (!id || typeof id !== "string" || !isValidUUID(id)) {
+            res.status(400).json({
+                status: "error",
+                message: "Invalid subject ID",
+                data: null,
+            });
+            return;
+        }
+
+        // Validación de campos obligatorios
+        const missingFields = [];
+        if (!acronym) missingFields.push("acronym");
+        if (year === undefined || year === null || !Number.isInteger(Number(year))) {
+            missingFields.push("year");
+        }
+        if (!name) missingFields.push("name");
+        if (!siesCode) missingFields.push("siesCode");
+        if (semester === undefined || semester === null || !Number.isInteger(Number(semester))) {
+            missingFields.push("semester");
+        }
+
+        if (missingFields.length > 0) {
+            res.status(400).json({
+                status: "error",
+                message: `Faltan los siguientes campos obligatorios: ${missingFields.join(", ")}`,
+                data: null,
+            });
+            return;
+        }
+
+        // Validar rangos
+        if (year < 1 || year > 4) {
+            res.status(400).json({
+                status: "error",
+                message: "El año debe estar entre 1 y 4",
+                data: null,
+            });
+            return;
+        }
+
+        if (semester < 1 || semester > 2) {
+            res.status(400).json({
+                status: "error",
+                message: "El semestre debe ser 1 o 2",
+                data: null,
+            });
+            return;
+        }
+
+        const subjectRepo = AppDataSource.getRepository(Subject);
+
+        // Verificar que la asignatura existe
+        const subject = await subjectRepo.findOne({ where: { id }, relations: ['degree'] });
+
+        if (!subject) {
+            res.status(404).json({
+                status: "error",
+                message: "Subject not found",
+                data: null,
+            });
+            return;
+        }
+
+        // Verificar conflictos de unicidad (nombre y acrónimo por degree)
+        const conflicts: string[] = [];
+
+        const nameExists = await subjectRepo.findOne({
+            where: {
+                name,
+                degree: { id: subject.degree.id }
+            }
+        });
+        if (nameExists && nameExists.id !== id) conflicts.push("name");
+
+        const acronymExists = await subjectRepo.findOne({
+            where: {
+                acronym,
+                degree: { id: subject.degree.id }
+            }
+        });
+        if (acronymExists && acronymExists.id !== id) conflicts.push("acronym");
+
+        if (conflicts.length > 0) {
+            res.status(409).json({
+                status: "error",
+                message: "Ya existe una asignatura con los mismos campos",
+                data: {
+                    fields: conflicts,
+                },
+            });
+            return;
+        }
+
+        // Actualizar los campos
+        subject.acronym = acronym;
+        subject.year = Number(year);
+        subject.name = name;
+        subject.siesCode = siesCode;
+        subject.semester = Number(semester);
+
+        await subjectRepo.save(subject);
+
+        res.status(200).json({
+            status: "success",
+            message: "Subject updated successfully",
+            data: { subject },
+        });
+    } catch (error) {
+        console.error("Error updating subject:", error);
+        res.status(500).json({
+            status: "error",
+            message: "Unexpected error updating subject",
+            data: error instanceof Error ? error.message : error,
+        });
+    }
+};
+
 export const deleteSubject = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;

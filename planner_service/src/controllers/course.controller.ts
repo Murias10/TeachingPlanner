@@ -286,3 +286,73 @@ export const deleteCourse = async (req: Request, res: Response) => {
         });
     }
 };
+
+export const updateCourse = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { startYear, endYear, state } = req.body;
+
+        // Validar que el ID sea un UUID válido
+        if (!id || typeof id !== "string" || !isUUID(id)) {
+            res.status(400).json({
+                status: "error",
+                message: "Invalid course ID",
+                data: null,
+            });
+            return;
+        }
+
+        // Validación de campos obligatorios
+        const missingFields = [];
+        if (startYear === undefined || startYear === null || !Number.isInteger(Number(startYear))) {
+            missingFields.push("startYear");
+        }
+        if (endYear === undefined || endYear === null || !Number.isInteger(Number(endYear))) {
+            missingFields.push("endYear");
+        }
+        if (!state) missingFields.push("state");
+
+        if (missingFields.length > 0) {
+            res.status(400).json({
+                status: "error",
+                message: `Faltan los siguientes campos obligatorios: ${missingFields.join(", ")}`,
+                data: null,
+            });
+            return;
+        }
+
+        const courseRepo = AppDataSource.getRepository(Course);
+
+        // Verificar que el curso existe
+        const course = await courseRepo.findOne({ where: { id } });
+
+        if (!course) {
+            res.status(404).json({
+                status: "error",
+                message: "Course not found",
+                data: null,
+            });
+            return;
+        }
+
+        // Actualizar solo los campos permitidos
+        course.startYear = Number(startYear);
+        course.endYear = Number(endYear);
+        course.state = state;
+
+        await courseRepo.save(course);
+
+        res.status(200).json({
+            status: "success",
+            message: "Course updated successfully",
+            data: { course },
+        });
+    } catch (error) {
+        console.error("Error updating course:", error);
+        res.status(500).json({
+            status: "error",
+            message: "Unexpected error updating course",
+            data: error instanceof Error ? error.message : error,
+        });
+    }
+};

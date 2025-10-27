@@ -237,6 +237,26 @@ export const createCourse = async (req: Request, res: Response, next: NextFuncti
         });
 }
 
+export const updateCourse = async (req: Request, res: Response, next: NextFunction) => {
+    const { id } = req.params;
+    const { startYear, endYear, state } = req.body;
+
+    fetch(`http://planner_service:5001/course/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ startYear, endYear, state })
+    })
+        .then(async (response) => {
+            response.headers.forEach((value, key) => {
+                res.setHeader(key, value);
+            });
+            const body = await response.json();
+            res.status(response.status).json(body);
+        })
+        .catch((error) => {
+            next(error);
+        });
+}
 
 export const deleteCourse = async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;

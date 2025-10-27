@@ -33,7 +33,7 @@ const corsOptions: cors.CorsOptions = {
             callback(new Error(`CORS policy: el origen ${origin} no está en la whitelist`));
         }
     },
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true,
 };
 

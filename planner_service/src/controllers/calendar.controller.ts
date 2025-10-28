@@ -3,6 +3,7 @@ import { AppDataSource } from '@/config/data-source';
 import { Calendar } from '@/entities/calendar.entity';
 import { Course } from '@/entities/course.entity';
 import { Classroom } from '@/entities/classroom.entity';
+import { In } from 'typeorm';
 import multer from 'multer';
 import { validate as isValidUUID } from 'uuid';
 import { Subject } from '@/entities/subject.entity';
@@ -2266,6 +2267,7 @@ export const exportCalendar = async (req: Request, res: Response) => {
         const classroomRepo = AppDataSource.getRepository(Classroom);
         const subjectRepo = AppDataSource.getRepository(Subject);
         const groupRepo = AppDataSource.getRepository(Group);
+        const dayRepo = AppDataSource.getRepository(Day);
 
         // Obtener el calendario con sus relaciones
         const calendar = await calendarRepo.findOne({
@@ -2328,7 +2330,8 @@ export const exportCalendar = async (req: Request, res: Response) => {
         // Obtener los grupos con sus asignaturas para extraer los subject IDs
         let groups: Group[] = [];
         if (groupIds.size > 0) {
-            groups = await groupRepo.findByIds(Array.from(groupIds), {
+            groups = await groupRepo.find({
+                where: { id: In(Array.from(groupIds)) },
                 relations: ['subject']
             });
         }
@@ -2344,33 +2347,39 @@ export const exportCalendar = async (req: Request, res: Response) => {
         // Obtener las classrooms completas con sus datos
         const classrooms = await classroomRepo.findByIds(Array.from(classroomIds));
 
-        // Obtener las asignaturas completas para tener todos sus datos
-        let subjects: Subject[] = [];
-        if (subjectIds.size > 0) {
-            subjects = await subjectRepo.findByIds(Array.from(subjectIds));
-        }
+        // Obtener TODAS las asignaturas del degree (no solo las del calendario)
+        const allSubjectsOfDegree = await subjectRepo.find({
+            where: { degree: { id: calendar.course.degree.id } }
+        });
 
         console.log(`Found ${classrooms.length} classrooms used in this calendar`);
-        console.log(`Found ${subjects.length} subjects used in this calendar`);
+        console.log(`Found ${allSubjectsOfDegree.length} subjects in degree`);
+        console.log(`Found ${groups.length} groups used in this calendar`);
+        console.log(`Groups with subject:`, groups.filter(g => g.subject).length);
 
         // Generar contenido de ubicaciones.txt
-        // Formato: "CódigoAula:URL_GIS" (ordenado en orden descendente por código)
+        // Formato: "CódigoAula:URL_GIS" (sin https://, ordenado en orden ascendente por código)
         const ubicacionesContent = classrooms
-            .sort((a, b) => b.code.localeCompare(a.code)) // Ordenar descendente
-            .map(classroom => `${classroom.code}:${classroom.gisUrl}`)
+            .sort((a, b) => a.code.localeCompare(b.code)) // Ordenar ascendente
+            .map(classroom => {
+                // Remover https:// si existe
+                const urlWithoutProtocol = classroom.gisUrl.replace(/^https?:\/\//, '');
+                return `${classroom.code}:${urlWithoutProtocol}`;
+            })
             .join('\n');
 
         // Generar contenido de asignaturas.txt
         // Formato: "Acrónimo:Nombre:Año:GruposTeoriaES:GruposSeminarioES:GruposLaboratorioES:GruposTeoriaEN:GruposSeminarioEN:GruposLaboratorioEN:GruposTutoriaGrupalES:GruposTutoriaGrupalEN:CódigoSIES"
-        // (12 campos, ordenado por acrónimo descendente)
-        // Usar los grupos que ya obtuvimos para contar por tipo y lenguaje
-        const asignaturasContent = subjects
-            .sort((a, b) => b.acronym.localeCompare(a.acronym)) // Ordenar descendente por acrónimo
-            .map(subject => {
-                // Obtener los grupos de esta asignatura desde el array de grupos que cargamos
+        // (12 campos, ordenado por acrónimo ascendente)
+        // Contar solo los grupos que participan en eventos del calendario actual
+        const asignaturasContent = allSubjectsOfDegree
+            .sort((a: Subject, b: Subject) => a.acronym.localeCompare(b.acronym)) // Ordenar ascendente por acrónimo
+            .map((subject: Subject) => {
+                // Obtener los grupos de esta asignatura que participan en eventos del calendario
                 const subjectGroups = groups.filter(g => g.subject && g.subject.id === subject.id);
+                console.log(`Subject ${subject.acronym} (${subject.id}): ${subjectGroups.length} groups in calendar`);
 
-                // Contar grupos por tipo y lenguaje
+                // Contar grupos únicos (por número) por tipo y lenguaje
                 const countByTypeAndLanguage = (type: string, language: string) => {
                     return new Set(
                         subjectGroups
@@ -2389,6 +2398,27 @@ export const exportCalendar = async (req: Request, res: Response) => {
                 const gruposTutoriaGrupalEN = countByTypeAndLanguage('TG', 'EN');
 
                 return `${subject.acronym}:${subject.name}:${subject.year}:${gruposTeoriaES}:${gruposSeminarioES}:${gruposLaboratorioES}:${gruposTeoriaEN}:${gruposSeminarioEN}:${gruposLaboratorioEN}:${gruposTutoriaGrupalES}:${gruposTutoriaGrupalEN}:${subject.siesCode}`;
+            })
+            .join('\n');
+
+        // Obtener todos los días del calendario ordenados por fecha
+        const days = await dayRepo.find({
+            where: { calendar: { id } },
+            order: { date: 'ASC' }
+        });
+
+        // Generar contenido de calendario.txt
+        // Formato: "DD/MM/YYYY:dayCharacter:comment"
+        const calendarioContent = days
+            .map(day => {
+                // Convertir la fecha a formato DD/MM/YYYY
+                const date = new Date(day.date);
+                const dayStr = String(date.getDate()).padStart(2, '0');
+                const monthStr = String(date.getMonth() + 1).padStart(2, '0');
+                const yearStr = date.getFullYear();
+                const dateFormatted = `${dayStr}/${monthStr}/${yearStr}`;
+
+                return `${dateFormatted}:${day.dayCharacter}:${day.comment}`;
             })
             .join('\n');
 
@@ -2429,6 +2459,9 @@ export const exportCalendar = async (req: Request, res: Response) => {
 
         // Agregar asignaturas.txt al ZIP (UTF-8)
         archive.append(asignaturasContent, { name: 'asignaturas.txt' });
+
+        // Agregar calendario.txt al ZIP (UTF-8)
+        archive.append(calendarioContent, { name: 'calendario.txt' });
 
         // Finalizar el archivo
         await archive.finalize();

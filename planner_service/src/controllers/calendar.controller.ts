@@ -2314,9 +2314,10 @@ export const exportCalendar = async (req: Request, res: Response) => {
         console.log(`Found ${classrooms.length} classrooms used in this calendar`);
 
         // Generar contenido de ubicaciones.txt
-        // Formato: "CódigoAula : URL_GIS"
+        // Formato: "CódigoAula:URL_GIS" (ordenado en orden descendente por código)
         const ubicacionesContent = classrooms
-            .map(classroom => `${classroom.code} : ${classroom.gisUrl}`)
+            .sort((a, b) => b.code.localeCompare(a.code)) // Ordenar descendente
+            .map(classroom => `${classroom.code}:${classroom.gisUrl}`)
             .join('\n');
 
         // Crear nombre del archivo ZIP

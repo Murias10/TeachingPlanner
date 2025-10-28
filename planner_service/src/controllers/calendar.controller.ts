@@ -2264,6 +2264,7 @@ export const exportCalendar = async (req: Request, res: Response) => {
         const periodicEventRepo = AppDataSource.getRepository(PeriodicEvent);
         const puntualEventRepo = AppDataSource.getRepository(PuntualEvent);
         const classroomRepo = AppDataSource.getRepository(Classroom);
+        const subjectRepo = AppDataSource.getRepository(Subject);
 
         // Obtener el calendario con sus relaciones
         const calendar = await calendarRepo.findOne({
@@ -2282,15 +2283,15 @@ export const exportCalendar = async (req: Request, res: Response) => {
 
         console.log(`Exporting calendar ${id}`);
 
-        // Obtener todos los eventos periódicos y puntuales para saber qué aulas se usan
+        // Obtener todos los eventos periódicos y puntuales para saber qué aulas y asignaturas se usan
         const periodicEvents = await periodicEventRepo.find({
             where: { calendar: { id } },
-            relations: ['classrooms']
+            relations: ['classrooms', 'groups', 'groups.subject']
         });
 
         const puntualEvents = await puntualEventRepo.find({
             where: { day: { calendar: { id } } },
-            relations: ['classrooms']
+            relations: ['classrooms', 'groups', 'groups.subject']
         });
 
         // Recopilar todas las classrooms únicas usadas en este calendario
@@ -2308,16 +2309,70 @@ export const exportCalendar = async (req: Request, res: Response) => {
             });
         });
 
+        // Recopilar todas las asignaturas únicas usadas en este calendario
+        const subjectIds = new Set<string>();
+
+        periodicEvents.forEach(event => {
+            event.groups.forEach(group => {
+                if (group.subject) {
+                    subjectIds.add(group.subject.id);
+                }
+            });
+        });
+
+        puntualEvents.forEach(event => {
+            event.groups.forEach(group => {
+                if (group.subject) {
+                    subjectIds.add(group.subject.id);
+                }
+            });
+        });
+
         // Obtener las classrooms completas con sus datos
         const classrooms = await classroomRepo.findByIds(Array.from(classroomIds));
 
+        // Obtener las asignaturas completas con sus grupos
+        const subjects = await subjectRepo.find({
+            where: { id: Array.from(subjectIds).length > 0 ? Array.from(subjectIds) : undefined },
+            relations: ['groups']
+        });
+
         console.log(`Found ${classrooms.length} classrooms used in this calendar`);
+        console.log(`Found ${subjects.length} subjects used in this calendar`);
 
         // Generar contenido de ubicaciones.txt
         // Formato: "CódigoAula:URL_GIS" (ordenado en orden descendente por código)
         const ubicacionesContent = classrooms
             .sort((a, b) => b.code.localeCompare(a.code)) // Ordenar descendente
             .map(classroom => `${classroom.code}:${classroom.gisUrl}`)
+            .join('\n');
+
+        // Generar contenido de asignaturas.txt
+        // Formato: "Acrónimo:Nombre:Año:GruposTeoriaES:GruposSeminarioES:GruposLaboratorioES:GruposTeoriaEN:GruposSeminarioEN:GruposLaboratorioEN:GruposTutoriaGrupalES:GruposTutoriaGrupalEN:CódigoSIES"
+        // (12 campos, ordenado por acrónimo descendente)
+        const asignaturasContent = subjects
+            .sort((a, b) => b.acronym.localeCompare(a.acronym)) // Ordenar descendente por acrónimo
+            .map(subject => {
+                // Contar grupos por tipo y lenguaje
+                const countByTypeAndLanguage = (type: string, language: string) => {
+                    return new Set(
+                        subject.groups
+                            .filter(g => g.type === type && g.language === language)
+                            .map(g => g.number)
+                    ).size;
+                };
+
+                const gruposTeoriaES = countByTypeAndLanguage('T', 'ES');
+                const gruposSeminarioES = countByTypeAndLanguage('S', 'ES');
+                const gruposLaboratorioES = countByTypeAndLanguage('L', 'ES');
+                const gruposTeoriaEN = countByTypeAndLanguage('T', 'EN');
+                const gruposSeminarioEN = countByTypeAndLanguage('S', 'EN');
+                const gruposLaboratorioEN = countByTypeAndLanguage('L', 'EN');
+                const gruposTutoriaGrupalES = countByTypeAndLanguage('TG', 'ES');
+                const gruposTutoriaGrupalEN = countByTypeAndLanguage('TG', 'EN');
+
+                return `${subject.acronym}:${subject.name}:${subject.year}:${gruposTeoriaES}:${gruposSeminarioES}:${gruposLaboratorioES}:${gruposTeoriaEN}:${gruposSeminarioEN}:${gruposLaboratorioEN}:${gruposTutoriaGrupalES}:${gruposTutoriaGrupalEN}:${subject.siesCode}`;
+            })
             .join('\n');
 
         // Crear nombre del archivo ZIP
@@ -2354,6 +2409,9 @@ export const exportCalendar = async (req: Request, res: Response) => {
 
         // Agregar ubicaciones.txt al ZIP (UTF-8)
         archive.append(ubicacionesContent, { name: 'ubicaciones.txt' });
+
+        // Agregar asignaturas.txt al ZIP (UTF-8)
+        archive.append(asignaturasContent, { name: 'asignaturas.txt' });
 
         // Finalizar el archivo
         await archive.finalize();

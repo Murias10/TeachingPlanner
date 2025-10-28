@@ -22,6 +22,7 @@ export interface Event {
     }>;
     type: 'periodic' | 'puntual';
     cancelled: boolean;
-    periodicEventId?: string; // ID del evento periódico original
+    periodicEventId?: string; // ID del evento periódico original (si type === 'periodic')
+    puntualEventId?: string; // ID del evento puntual original (si type === 'puntual')
     comment?: string;
 }

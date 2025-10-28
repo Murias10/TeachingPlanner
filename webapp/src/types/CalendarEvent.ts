@@ -13,9 +13,11 @@ export interface CalendarEvent {
     classrooms: Classroom[];
     type: 'periodic' | 'punctual';
     cancelled: boolean;
-    periodicEventId?: string;
+    periodicEventId?: string; // ID del evento periódico original (si type === 'periodic')
+    puntualEventId?: string; // ID del evento puntual original (si type === 'punctual')
     dayCharacter: string;
     dayComment: string;
+    comment?: string;
 }
 
 export interface CalendarEventsResponse {

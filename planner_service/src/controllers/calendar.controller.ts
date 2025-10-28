@@ -2158,6 +2158,7 @@ export const getCalendarEvents = async (req: Request, res: Response) => {
                             })),
                             type: 'puntual',
                             cancelled: false,
+                            puntualEventId: puntualEvent.id,
                             comment: puntualEvent.comment
                         };
 

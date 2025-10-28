@@ -2332,10 +2332,12 @@ export const exportCalendar = async (req: Request, res: Response) => {
         const classrooms = await classroomRepo.findByIds(Array.from(classroomIds));
 
         // Obtener las asignaturas completas con sus grupos
-        const subjects = await subjectRepo.find({
-            where: { id: Array.from(subjectIds).length > 0 ? Array.from(subjectIds) : undefined },
-            relations: ['groups']
-        });
+        let subjects: Subject[] = [];
+        if (subjectIds.size > 0) {
+            subjects = await subjectRepo.findByIds(Array.from(subjectIds), {
+                relations: ['groups']
+            });
+        }
 
         console.log(`Found ${classrooms.length} classrooms used in this calendar`);
         console.log(`Found ${subjects.length} subjects used in this calendar`);

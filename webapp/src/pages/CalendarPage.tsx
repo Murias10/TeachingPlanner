@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Calendar, momentLocalizer, Components } from "react-big-calendar";
 import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
-import { useEventsCalendar } from "@/hooks/calendar/useEventsCalendar";
+import { useCalendarByCourseAndSemester } from "@/hooks/calendar/useCalendarByCourseAndSemester";
 import { CalendarEvent } from "@/types/CalendarEvent";
 import ClassFilter, { FilterValues } from "@/components/ClassFilter";
 import { BookOpen, DoorOpen, Languages, Users } from "lucide-react";
@@ -88,9 +88,12 @@ export default function CalendarPage() {
 
     console.log('Params:', { acronym, startYear, endYear, semester });
 
-    const calendarId = 'd284052f-5d80-4e7d-aeab-e5c97f19dfdb';
-
-    const { data, isLoading } = useEventsCalendar(calendarId);
+    const { data, isLoading } = useCalendarByCourseAndSemester(
+        acronym || null,
+        startYear || null,
+        endYear || null,
+        semester || null
+    );
 
     // Estado de filtros
     const [filters, setFilters] = useState<FilterValues>({

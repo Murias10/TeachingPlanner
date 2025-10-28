@@ -2265,6 +2265,7 @@ export const exportCalendar = async (req: Request, res: Response) => {
         const puntualEventRepo = AppDataSource.getRepository(PuntualEvent);
         const classroomRepo = AppDataSource.getRepository(Classroom);
         const subjectRepo = AppDataSource.getRepository(Subject);
+        const groupRepo = AppDataSource.getRepository(Group);
 
         // Obtener el calendario con sus relaciones
         const calendar = await calendarRepo.findOne({
@@ -2283,15 +2284,15 @@ export const exportCalendar = async (req: Request, res: Response) => {
 
         console.log(`Exporting calendar ${id}`);
 
-        // Obtener todos los eventos periódicos y puntuales para saber qué aulas y asignaturas se usan
+        // Obtener todos los eventos periódicos y puntuales para saber qué aulas se usan
         const periodicEvents = await periodicEventRepo.find({
             where: { calendar: { id } },
-            relations: ['classrooms', 'groups', 'groups.subject']
+            relations: ['classrooms', 'groups']
         });
 
         const puntualEvents = await puntualEventRepo.find({
             where: { day: { calendar: { id } } },
-            relations: ['classrooms', 'groups', 'groups.subject']
+            relations: ['classrooms', 'groups']
         });
 
         // Recopilar todas las classrooms únicas usadas en este calendario
@@ -2309,34 +2310,44 @@ export const exportCalendar = async (req: Request, res: Response) => {
             });
         });
 
-        // Recopilar todas las asignaturas únicas usadas en este calendario
-        const subjectIds = new Set<string>();
+        // Recopilar todos los IDs de grupos únicos usados en este calendario
+        const groupIds = new Set<string>();
 
         periodicEvents.forEach(event => {
             event.groups.forEach(group => {
-                if (group.subject) {
-                    subjectIds.add(group.subject.id);
-                }
+                groupIds.add(group.id);
             });
         });
 
         puntualEvents.forEach(event => {
             event.groups.forEach(group => {
-                if (group.subject) {
-                    subjectIds.add(group.subject.id);
-                }
+                groupIds.add(group.id);
             });
+        });
+
+        // Obtener los grupos con sus asignaturas para extraer los subject IDs
+        let groups: Group[] = [];
+        if (groupIds.size > 0) {
+            groups = await groupRepo.findByIds(Array.from(groupIds), {
+                relations: ['subject']
+            });
+        }
+
+        // Recopilar todas las asignaturas únicas
+        const subjectIds = new Set<string>();
+        groups.forEach(group => {
+            if (group.subject) {
+                subjectIds.add(group.subject.id);
+            }
         });
 
         // Obtener las classrooms completas con sus datos
         const classrooms = await classroomRepo.findByIds(Array.from(classroomIds));
 
-        // Obtener las asignaturas completas con sus grupos
+        // Obtener las asignaturas completas para tener todos sus datos
         let subjects: Subject[] = [];
         if (subjectIds.size > 0) {
-            subjects = await subjectRepo.findByIds(Array.from(subjectIds), {
-                relations: ['groups']
-            });
+            subjects = await subjectRepo.findByIds(Array.from(subjectIds));
         }
 
         console.log(`Found ${classrooms.length} classrooms used in this calendar`);
@@ -2352,13 +2363,17 @@ export const exportCalendar = async (req: Request, res: Response) => {
         // Generar contenido de asignaturas.txt
         // Formato: "Acrónimo:Nombre:Año:GruposTeoriaES:GruposSeminarioES:GruposLaboratorioES:GruposTeoriaEN:GruposSeminarioEN:GruposLaboratorioEN:GruposTutoriaGrupalES:GruposTutoriaGrupalEN:CódigoSIES"
         // (12 campos, ordenado por acrónimo descendente)
+        // Usar los grupos que ya obtuvimos para contar por tipo y lenguaje
         const asignaturasContent = subjects
             .sort((a, b) => b.acronym.localeCompare(a.acronym)) // Ordenar descendente por acrónimo
             .map(subject => {
+                // Obtener los grupos de esta asignatura desde el array de grupos que cargamos
+                const subjectGroups = groups.filter(g => g.subject && g.subject.id === subject.id);
+
                 // Contar grupos por tipo y lenguaje
                 const countByTypeAndLanguage = (type: string, language: string) => {
                     return new Set(
-                        subject.groups
+                        subjectGroups
                             .filter(g => g.type === type && g.language === language)
                             .map(g => g.number)
                     ).size;

@@ -15,6 +15,7 @@ import CreateEventDialog from "@/components/calendar/CreateEventDialog";
 import type { RecurrenceConfig } from "@/types/RecurrenceConfig";
 import { ProtectedComponent } from "@/components/ProtectedComponent";
 import { CalendarEventWrapper } from "@/components/calendar/CalendarEventWrapper";
+import VITE_GATEWAY_API_URL from "@/config/api";
 
 // Configurar moment para usar español y que la semana empiece en lunes
 moment.locale('es', {
@@ -88,7 +89,7 @@ export default function CalendarPage() {
 
     console.log('Params:', { acronym, startYear, endYear, semester });
 
-    const { data, isLoading } = useCalendarByCourseAndSemester(
+    const { data, isLoading, calendarId } = useCalendarByCourseAndSemester(
         acronym || null,
         startYear || null,
         endYear || null,
@@ -239,9 +240,58 @@ export default function CalendarPage() {
         ? moment(data.endDate).hour(21).minute(0).toDate()
         : moment().hour(21).minute(0).toDate();
 
-    const handleExportCalendar = () => {
-        console.log('Exporting calendar...');
-        // TODO: Implement export functionality
+    const handleExportCalendar = async () => {
+        if (!calendarId) {
+            console.error('No calendar ID available for export');
+            return;
+        }
+
+        try {
+            console.log('Exporting calendar:', calendarId);
+
+            // Llamar al endpoint de exportación
+            const response = await fetch(`${VITE_GATEWAY_API_URL}/calendar/${calendarId}/export`);
+
+            if (!response.ok) {
+                throw new Error(`Error exporting calendar: ${response.status}`);
+            }
+
+            // Obtener el blob del ZIP
+            const blob = await response.blob();
+
+            // Crear URL del blob
+            const url = window.URL.createObjectURL(blob);
+
+            // Crear elemento <a> temporal para descargar
+            const link = document.createElement('a');
+            link.href = url;
+
+            // Obtener el nombre del archivo desde el header Content-Disposition
+            const contentDisposition = response.headers.get('Content-Disposition');
+            let filename = `${acronym} ${startYear}-${endYear} s${semester}.zip`;
+
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+                if (filenameMatch) {
+                    filename = filenameMatch[1];
+                }
+            }
+
+            link.download = filename;
+
+            // Agregar al DOM, hacer clic y remover
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            // Liberar el URL del blob
+            window.URL.revokeObjectURL(url);
+
+            console.log('Calendar exported successfully');
+        } catch (error) {
+            console.error('Error exporting calendar:', error);
+            // TODO: Mostrar mensaje de error al usuario
+        }
     };
 
     const handleCreateEvent = () => {

@@ -1,4 +1,5 @@
 import { CalendarEvent } from "@/types/CalendarEvent";
+import React from "react";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -34,27 +35,27 @@ export function CalendarEventWrapper({
     return <div className="h-full w-full">{event.title}</div>;
   }
 
-  const handleEdit = (e: Event) => {
+  const handleEdit = (e: React.MouseEvent<HTMLDivElement>) => {
     e.preventDefault();
     onEdit?.(calendarEvent);
   };
 
-  const handleDelete = (e: Event) => {
+  const handleDelete = (e: React.MouseEvent<HTMLDivElement>) => {
     e.preventDefault();
     onDelete?.(calendarEvent);
   };
 
-  const handleDuplicate = (e: Event) => {
+  const handleDuplicate = (e: React.MouseEvent<HTMLDivElement>) => {
     e.preventDefault();
     onDuplicate?.(calendarEvent);
   };
 
-  const handleViewDetails = (e: Event) => {
+  const handleViewDetails = (e: React.MouseEvent<HTMLDivElement>) => {
     e.preventDefault();
     onViewDetails?.(calendarEvent);
   };
 
-  const handleToggleCancellation = (e: Event) => {
+  const handleToggleCancellation = (e: React.MouseEvent<HTMLDivElement>) => {
     e.preventDefault();
     onToggleCancellation?.(calendarEvent);
   };

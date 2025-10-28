@@ -1,6 +1,6 @@
 import express from 'express';
 import multer from 'multer';
-import { getDegrees, getCourses, getCoursesByDegreeId, getCoursesByDegreeAcronym, getSubjects, getSubjectsByDegreeId, getSubjectsWithEventsAndGroupsByCourseAndSemester, getClassrooms, createClassroom, deleteClassroom, updateClassroom, createDegree, deleteDegree, deleteSubject, createSubject, updateSubject, deleteCourse, deleteCalendar, getDegreeByAcronym, createCourse, createCalendar, getCalendarById, createCalendarWithImport, getCalendarEvents, updateCourse } from '@/controllers/planner.controller';
+import { getDegrees, getCourses, getCoursesByDegreeId, getCoursesByDegreeAcronym, getSubjects, getSubjectsByDegreeId, getSubjectsWithEventsAndGroupsByCourseAndSemester, getClassrooms, createClassroom, deleteClassroom, updateClassroom, createDegree, deleteDegree, deleteSubject, createSubject, updateSubject, deleteCourse, deleteCalendar, getDegreeByAcronym, createCourse, createCalendar, getCalendarById, createCalendarWithImport, getCalendarEvents, exportCalendar, updateCourse } from '@/controllers/planner.controller';
 
 // Configurar multer para el gateway
 const storage = multer.memoryStorage();
@@ -75,6 +75,8 @@ router.post('/calendar', createCalendar);
 router.post('/calendar/import', upload.array('files', 10), createCalendarWithImport);
 
 router.get('/calendar/:id/events', getCalendarEvents);
+
+router.get('/calendar/:id/export', exportCalendar);
 
 router.delete('/calendar/:id', deleteCalendar)
 

@@ -502,3 +502,21 @@ export const getCalendarEvents = (req: Request, res: Response, next: NextFunctio
             next(error);
         });
 }
+
+export const exportCalendar = (req: Request, res: Response, next: NextFunction) => {
+    const { id } = req.params;
+    fetch(`http://planner_service:5001/calendar/${id}/export`)
+        .then(async (response) => {
+            // Copia los headers del planner service (incluyendo Content-Disposition para el filename)
+            response.headers.forEach((value, key) => {
+                res.setHeader(key, value);
+            });
+
+            // Para binarios (ZIP), obtener como buffer y enviar como blob
+            const buffer = await response.arrayBuffer();
+            res.status(response.status).send(Buffer.from(buffer));
+        })
+        .catch((error) => {
+            next(error);
+        });
+}

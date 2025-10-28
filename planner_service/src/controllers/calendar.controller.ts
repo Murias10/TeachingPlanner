@@ -10,6 +10,7 @@ import { Group } from '@/entities/group.entity';
 import { Day } from '@/entities/day.entity';
 import { PeriodicEvent } from '@/entities/periodic_event.entity';
 import { PuntualEvent } from '@/entities/puntual_event.entity';
+import archiver from 'archiver';
 
 export const getCalendars = async (_req: Request, res: Response) => {
     try {
@@ -2240,3 +2241,130 @@ function getWeekNumber(date: Date, startDate: Date): number {
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
     return Math.floor(diffDays / 7);
 }
+
+/**
+ * Exporta un calendario a formato ZIP con archivos TXT
+ * GET /calendar/:id/export
+ */
+export const exportCalendar = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+
+        // Validar que el ID sea un UUID válido
+        if (!isValidUUID(id)) {
+            res.status(400).json({
+                status: 'error',
+                message: 'Invalid UUID format for calendar ID',
+                data: null
+            });
+            return;
+        }
+
+        const calendarRepo = AppDataSource.getRepository(Calendar);
+        const periodicEventRepo = AppDataSource.getRepository(PeriodicEvent);
+        const puntualEventRepo = AppDataSource.getRepository(PuntualEvent);
+        const classroomRepo = AppDataSource.getRepository(Classroom);
+
+        // Obtener el calendario con sus relaciones
+        const calendar = await calendarRepo.findOne({
+            where: { id },
+            relations: ['course', 'course.degree']
+        });
+
+        if (!calendar) {
+            res.status(404).json({
+                status: 'error',
+                message: 'Calendar not found',
+                data: null
+            });
+            return;
+        }
+
+        console.log(`Exporting calendar ${id}`);
+
+        // Obtener todos los eventos periódicos y puntuales para saber qué aulas se usan
+        const periodicEvents = await periodicEventRepo.find({
+            where: { calendar: { id } },
+            relations: ['classrooms']
+        });
+
+        const puntualEvents = await puntualEventRepo.find({
+            where: { day: { calendar: { id } } },
+            relations: ['classrooms']
+        });
+
+        // Recopilar todas las classrooms únicas usadas en este calendario
+        const classroomIds = new Set<string>();
+
+        periodicEvents.forEach(event => {
+            event.classrooms.forEach(classroom => {
+                classroomIds.add(classroom.id);
+            });
+        });
+
+        puntualEvents.forEach(event => {
+            event.classrooms.forEach(classroom => {
+                classroomIds.add(classroom.id);
+            });
+        });
+
+        // Obtener las classrooms completas con sus datos
+        const classrooms = await classroomRepo.findByIds(Array.from(classroomIds));
+
+        console.log(`Found ${classrooms.length} classrooms used in this calendar`);
+
+        // Generar contenido de ubicaciones.txt
+        // Formato: "CódigoAula : URL_GIS"
+        const ubicacionesContent = classrooms
+            .map(classroom => `${classroom.code} : ${classroom.gisUrl}`)
+            .join('\n');
+
+        // Crear nombre del archivo ZIP
+        // Formato: "degreeAcronym courseStartYear-courseEndYear scalendarSemester"
+        const degreeAcronym = calendar.course.degree.acronym;
+        const courseStartYear = calendar.course.startYear;
+        const courseEndYear = calendar.course.endYear;
+        const semester = calendar.semester;
+        const zipFilename = `${degreeAcronym} ${courseStartYear}-${courseEndYear} s${semester}.zip`;
+
+        console.log(`Creating ZIP file: ${zipFilename}`);
+
+        // Configurar headers para la descarga
+        res.setHeader('Content-Type', 'application/zip');
+        res.setHeader('Content-Disposition', `attachment; filename="${zipFilename}"`);
+
+        // Crear el archivo ZIP
+        const archive = archiver('zip', {
+            zlib: { level: 9 } // Nivel máximo de compresión
+        });
+
+        // Manejar errores del archiver
+        archive.on('error', (err) => {
+            console.error('Error creating archive:', err);
+            res.status(500).json({
+                status: 'error',
+                message: 'Error creating export file',
+                data: err.message
+            });
+        });
+
+        // Pipe del archive a la response
+        archive.pipe(res);
+
+        // Agregar ubicaciones.txt al ZIP (UTF-8)
+        archive.append(ubicacionesContent, { name: 'ubicaciones.txt' });
+
+        // Finalizar el archivo
+        await archive.finalize();
+
+        console.log(`ZIP file created successfully: ${zipFilename}`);
+
+    } catch (error) {
+        console.error('Error exporting calendar:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error exporting calendar',
+            data: error instanceof Error ? error.message : error
+        });
+    }
+};

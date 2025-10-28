@@ -1,6 +1,6 @@
 import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext";
 import { useEffect, useMemo, useState } from "react";
-import { Calendar, momentLocalizer } from "react-big-calendar";
+import { Calendar, momentLocalizer, Components } from "react-big-calendar";
 import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { useEventsCalendar } from "@/hooks/calendar/useEventsCalendar";
@@ -14,6 +14,7 @@ import CalendarToolbar from "@/components/calendar/CalendarToolbar";
 import CreateEventDialog from "@/components/calendar/CreateEventDialog";
 import type { RecurrenceConfig } from "@/types/RecurrenceConfig";
 import { ProtectedComponent } from "@/components/ProtectedComponent";
+import { CalendarEventWrapper } from "@/components/calendar/CalendarEventWrapper";
 
 // Configurar moment para usar español y que la semana empiece en lunes
 moment.locale('es', {
@@ -255,6 +256,47 @@ export default function CalendarPage() {
         // TODO: Implement event creation logic
     };
 
+    const handleEditEvent = (event: CalendarEvent) => {
+        console.log('Editing event:', event);
+        // TODO: Implement event editing logic
+    };
+
+    const handleDeleteEvent = (event: CalendarEvent) => {
+        console.log('Deleting event:', event);
+        // TODO: Implement event deletion logic
+    };
+
+    const handleDuplicateEvent = (event: CalendarEvent) => {
+        console.log('Duplicating event:', event);
+        // TODO: Implement event duplication logic
+    };
+
+    const handleViewEventDetails = (event: CalendarEvent) => {
+        console.log('Viewing event details:', event);
+        // TODO: Implement event details view
+    };
+
+    const handleToggleCancellation = (event: CalendarEvent) => {
+        console.log('Toggling cancellation for event:', event);
+        // TODO: Implement toggle cancellation logic
+    };
+
+    // Custom event component with context menu
+    const EventComponent = ({ event }: { event: MyEvent }) => (
+        <CalendarEventWrapper
+            event={event}
+            onEdit={handleEditEvent}
+            onDelete={handleDeleteEvent}
+            onDuplicate={handleDuplicateEvent}
+            onViewDetails={handleViewEventDetails}
+            onToggleCancellation={handleToggleCancellation}
+        />
+    );
+
+    const calendarComponents: Components<MyEvent> = {
+        event: EventComponent,
+    };
+
     if (isLoading) {
         return (
             <section className="h-full rounded-xl bg-muted/50 flex items-center justify-center m-2 p-10">
@@ -332,6 +374,7 @@ export default function CalendarPage() {
                             endAccessor="end"
                             culture="es"
                             style={{ height: '100%', width: '100%' }}
+                            components={calendarComponents}
                             eventPropGetter={(event) => {
                                 const calendarEvent = event.resource as CalendarEvent;
 

@@ -2289,12 +2289,12 @@ export const exportCalendar = async (req: Request, res: Response) => {
         // Obtener todos los eventos periódicos y puntuales para saber qué aulas se usan
         const periodicEvents = await periodicEventRepo.find({
             where: { calendar: { id } },
-            relations: ['classrooms', 'groups']
+            relations: ['classrooms', 'groups', 'groups.subject']
         });
 
         const puntualEvents = await puntualEventRepo.find({
             where: { day: { calendar: { id } } },
-            relations: ['classrooms', 'groups']
+            relations: ['classrooms', 'groups', 'groups.subject', 'day']
         });
 
         // Recopilar todas las classrooms únicas usadas en este calendario
@@ -2422,6 +2422,132 @@ export const exportCalendar = async (req: Request, res: Response) => {
             })
             .join('\n');
 
+        // Generar contenido de horarios.txt
+        // Formato: "Curso:Asignatura.Tipo.Grupo:DíaSemana:HoraComienzo:HoraFin:Aula:SemanasConClase:NúmeroTotalHoras"
+        // Ordenado primero por year ascendente, luego por acrónimo de asignatura
+        const horariosContent = periodicEvents
+            .sort((a, b) => {
+                // Primero ordenar por year ascendente
+                if (a.year !== b.year) {
+                    return a.year - b.year;
+                }
+                // Dentro del mismo year, ordenar por acrónimo de asignatura
+                // Obtener el primer acrónimo de cada evento (si tiene grupos)
+                const acronymA = a.groups.length > 0 && a.groups[0].subject ? a.groups[0].subject.acronym : '';
+                const acronymB = b.groups.length > 0 && b.groups[0].subject ? b.groups[0].subject.acronym : '';
+                return acronymA.localeCompare(acronymB);
+            })
+            .map(event => {
+                // Obtener información de los grupos y aulas asociadas
+                const groupsInfo = event.groups.map(group => {
+                    const subject = group.subject;
+                    const groupTypeMapping: Record<string, string> = {
+                        'T': 'T',   // Teoría
+                        'S': 'S',   // Seminario
+                        'L': 'L',   // Laboratorio
+                        'TG': 'TG'  // Tutoría Grupal
+                    };
+                    const groupType = groupTypeMapping[group.type] || group.type;
+                    const groupNumber = group.language === 'EN' ? `I-${group.number}` : `${group.number}`;
+                    return `${subject.acronym}.${groupType}.${groupNumber}`;
+                }).join(',');
+
+                // Obtener información de aulas
+                const classroomsInfo = event.classrooms.map(classroom => classroom.code).join(',');
+
+                // Convertir startTime y endTime a formato HH:MM
+                const startTimeStr = event.startTime.substring(0, 5); // HH:MM
+                const endTimeStr = event.endTime.substring(0, 5);     // HH:MM
+
+                // Usar el código del día directamente (L, M, X, J, V)
+                const dayCode = event.weekDay;
+
+                return `${event.year}:${groupsInfo}:${dayCode}:${startTimeStr}:${endTimeStr}:${classroomsInfo}:${event.eventCharacter}:${event.planifiedHours}`;
+            })
+            .join('\n');
+
+        // Generar contenido de excepciones.txt
+        // Formato: "Fecha:Asignatura.Tipo.Grupo:HoraInicio:HoraFin:Aula:Comentarios"
+        // Para cancelados: HoraInicio=-1, HoraFin=HoraReal
+        // Organizadas por asignatura (orden alfabético), dentro de cada asignatura por fecha ascendente
+        // Con líneas vacías entre grupos de asignaturas
+
+        // Primero, procesar los eventos en líneas
+        const excepcionesLines = puntualEvents.map(event => {
+            // Convertir fecha a formato DD/MM/YYYY
+            const date = new Date(event.day.date);
+            const dayStr = String(date.getDate()).padStart(2, '0');
+            const monthStr = String(date.getMonth() + 1).padStart(2, '0');
+            const yearStr = date.getFullYear();
+            const dateFormatted = `${dayStr}/${monthStr}/${yearStr}`;
+
+            // Obtener información de los grupos
+            const groupsInfo = event.groups.map(group => {
+                const subject = group.subject;
+                const groupTypeMapping: Record<string, string> = {
+                    'T': 'T',   // Teoría
+                    'S': 'S',   // Seminario
+                    'L': 'L',   // Laboratorio
+                    'TG': 'TG'  // Tutoría Grupal
+                };
+                const groupType = groupTypeMapping[group.type] || group.type;
+                const groupNumber = group.language === 'EN' ? `I-${group.number}` : `${group.number}`;
+                return `${subject.acronym}.${groupType}.${groupNumber}`;
+            }).join(',');
+
+            // Obtener información de aulas
+            const classroomsInfo = event.classrooms.map(classroom => classroom.code).join(',');
+
+            // Convertir startTime y endTime a formato HH:MM
+            const startTimeStr = event.startTime.substring(0, 5); // HH:MM
+            const endTimeStr = event.endTime.substring(0, 5);     // HH:MM
+
+            // Determinar formato basado en si está cancelado o no
+            let horaInicio: string;
+            let horaFin: string;
+
+            if (event.cancelled) {
+                // Evento cancelado: HoraInicio=-1, HoraFin=startTime (hora real de inicio)
+                horaInicio = '-1';
+                horaFin = startTimeStr;
+            } else {
+                // Evento modificado: HoraInicio y HoraFin normales
+                horaInicio = startTimeStr;
+                horaFin = endTimeStr;
+            }
+
+            // Obtener acrónimo de asignatura para ordenamiento
+            const acronym = event.groups.length > 0 && event.groups[0].subject ? event.groups[0].subject.acronym : '';
+            const dateTimestamp = new Date(event.day.date).getTime();
+
+            return {
+                acronym,
+                dateTimestamp,
+                line: `${dateFormatted}:${groupsInfo}:${horaInicio}:${horaFin}:${classroomsInfo}:${event.comment}`
+            };
+        });
+
+        // Ordenar por acrónimo de asignatura, luego por fecha
+        excepcionesLines.sort((a, b) => {
+            const acronymCompare = a.acronym.localeCompare(b.acronym);
+            if (acronymCompare !== 0) {
+                return acronymCompare;
+            }
+            return a.dateTimestamp - b.dateTimestamp;
+        });
+
+        // Agrupar por acrónimo y agregar líneas vacías entre grupos
+        const excepcionesContent = excepcionesLines
+            .reduce((acc: string[], current, index) => {
+                if (index > 0 && excepcionesLines[index - 1].acronym !== current.acronym) {
+                    // Agregar línea vacía al cambiar de asignatura
+                    acc.push('');
+                }
+                acc.push(current.line);
+                return acc;
+            }, [])
+            .join('\n');
+
         // Crear nombre del archivo ZIP
         // Formato: "degreeAcronym courseStartYear-courseEndYear scalendarSemester"
         const degreeAcronym = calendar.course.degree.acronym;
@@ -2462,6 +2588,12 @@ export const exportCalendar = async (req: Request, res: Response) => {
 
         // Agregar calendario.txt al ZIP (UTF-8)
         archive.append(calendarioContent, { name: 'calendario.txt' });
+
+        // Agregar horarios.txt al ZIP (UTF-8)
+        archive.append(horariosContent, { name: 'horarios.txt' });
+
+        // Agregar excepciones.txt al ZIP (UTF-8)
+        archive.append(excepcionesContent, { name: 'excepciones.txt' });
 
         // Finalizar el archivo
         await archive.finalize();

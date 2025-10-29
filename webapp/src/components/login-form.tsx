@@ -53,7 +53,7 @@ export function LoginForm({
         });
 
         setTimeout(() => {
-          const from = location.state?.from?.pathname || '/dashboard';
+          const from = location.state?.from?.pathname || '/home';
           navigate(from, { replace: true });
         }, 500);
       } else {

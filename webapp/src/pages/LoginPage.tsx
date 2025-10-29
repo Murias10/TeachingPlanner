@@ -10,7 +10,7 @@ export default function LoginPage() {
     //TODO
     // Si ya está autenticado, redirigir
     if (isAuthenticated) {
-        const from = location.state?.from?.pathname || '/dashboard';
+        const from = location.state?.from?.pathname || '/home';
         return <Navigate to={from} replace />;
     }
 

@@ -16,6 +16,7 @@ import type { RecurrenceConfig } from "@/types/RecurrenceConfig";
 import { ProtectedComponent } from "@/components/ProtectedComponent";
 import { CalendarEventWrapper } from "@/components/calendar/CalendarEventWrapper";
 import VITE_GATEWAY_API_URL from "@/config/api";
+import { EventDetailsDrawer } from "@/components/calendar/EventDetailsDrawer";
 
 // Configurar moment para usar español y que la semana empiece en lunes
 moment.locale('es', {
@@ -110,6 +111,10 @@ export default function CalendarPage() {
     // Estado para el diálogo de crear evento
     const [isCreateEventDialogOpen, setIsCreateEventDialogOpen] = useState(false);
     const [selectedEventIds, setSelectedEventIds] = useState<string[]>([]);
+
+    // Estado para el drawer de detalles del evento
+    const [isEventDetailsDrawerOpen, setIsEventDetailsDrawerOpen] = useState(false);
+    const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | undefined>(undefined);
 
     useEffect(() => {
         setItems([
@@ -363,8 +368,8 @@ export default function CalendarPage() {
     };
 
     const handleViewEventDetails = (event: CalendarEvent) => {
-        console.log('Viewing event details:', event);
-        // TODO: Implement event details view
+        setSelectedEvent(event);
+        setIsEventDetailsDrawerOpen(true);
     };
 
     const handleToggleCancellation = (event: CalendarEvent) => {
@@ -517,6 +522,13 @@ export default function CalendarPage() {
                 open={isCreateEventDialogOpen}
                 onOpenChange={setIsCreateEventDialogOpen}
                 onSave={handleSaveEvent}
+            />
+
+            {/* Event Details Drawer */}
+            <EventDetailsDrawer
+                open={isEventDetailsDrawerOpen}
+                onOpenChange={setIsEventDetailsDrawerOpen}
+                event={selectedEvent}
             />
         </>
     );

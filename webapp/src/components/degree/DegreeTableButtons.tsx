@@ -12,10 +12,11 @@ import { ProtectedComponent } from "@/components/ProtectedComponent"
 
 type Props = {
     degree: Degree,
-    deleteDegree: (degreeId: string) => void
+    deleteDegree: (degreeId: string) => void,
+    editDegree?: (degree: Degree) => void
 }
 
-export function DegreeTableButtons({ degree, deleteDegree }: Props) {
+export function DegreeTableButtons({ degree, deleteDegree, editDegree }: Props) {
 
     const { t } = useTranslation()
 
@@ -87,7 +88,12 @@ export function DegreeTableButtons({ degree, deleteDegree }: Props) {
             <ProtectedComponent requiredRoles={["ADMIN"]}>
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <Button variant="outline" size="icon" className="size-10">
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            className="size-10"
+                            onClick={() => editDegree?.(degree)}
+                        >
                             <Pencil />
                         </Button>
                     </TooltipTrigger>

@@ -36,11 +36,12 @@ import { useTranslation } from "react-i18next"
 interface DegreeTableProps {
     degrees: Degree[];
     deleteDegree: (degreeId: string) => void,
+    editDegree?: (degree: Degree) => void,
     setSelectedIds: (ids: string[]) => void;
     isAdmin?: boolean;
 }
 
-export function DegreeTable({ degrees, deleteDegree, setSelectedIds, isAdmin = false }: DegreeTableProps) {
+export function DegreeTable({ degrees, deleteDegree, editDegree, setSelectedIds, isAdmin = false }: DegreeTableProps) {
 
     const { t } = useTranslation();
 
@@ -57,7 +58,7 @@ export function DegreeTable({ degrees, deleteDegree, setSelectedIds, isAdmin = f
 
     const table = useReactTable({
         data: degrees,
-        columns: defaultColumns({ deleteDegree, isAdmin }, t),
+        columns: defaultColumns({ deleteDegree, editDegree, isAdmin }, t),
         state: {
             sorting,
             columnFilters,

@@ -116,6 +116,103 @@ export const createDegree = async (req: Request, res: Response) => {
     }
 };
 
+export const updateDegree = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { name, acronym } = req.body;
+
+        // Validar que el ID esté presente
+        if (!id) {
+            res.status(400).json({
+                status: "error",
+                message: "Degree ID is required",
+                data: null
+            });
+            return;
+        }
+
+        // Validar campos obligatorios
+        if (!name) {
+            res.status(400).json({
+                status: "error",
+                message: "Name is required",
+                data: null
+            });
+            return;
+        }
+
+        if (!acronym) {
+            res.status(400).json({
+                status: "error",
+                message: "Acronym is required",
+                data: null
+            });
+            return;
+        }
+
+        const degreeRepo = AppDataSource.getRepository(Degree);
+
+        // Verificar que la titulación existe
+        const degree = await degreeRepo.findOneBy({ id });
+        if (!degree) {
+            res.status(404).json({
+                status: "error",
+                message: "Degree not found",
+                data: null
+            });
+            return;
+        }
+
+        // Verificar conflictos de unicidad (solo si cambiaron)
+        const conflicts: string[] = [];
+
+        if (name !== degree.name) {
+            const nameExists = await degreeRepo.findOneBy({ name });
+            if (nameExists) conflicts.push("name");
+        }
+
+        if (acronym !== degree.acronym) {
+            const acronymExists = await degreeRepo.findOneBy({ acronym });
+            if (acronymExists) conflicts.push("acronym");
+        }
+
+        if (conflicts.length > 0) {
+            res.status(409).json({
+                status: "error",
+                message: "Degree already exists with conflicting fields",
+                data: {
+                    fields: conflicts,
+                }
+            });
+            return;
+        }
+
+        // Actualizar los campos
+        degree.name = name;
+        degree.acronym = acronym;
+
+        // Guardar los cambios
+        const updatedDegree = await degreeRepo.save(degree);
+
+        // Respuesta exitosa
+        res.status(200).json({
+            status: "success",
+            message: "Degree updated successfully",
+            data: {
+                degree: updatedDegree
+            }
+        });
+
+    } catch (error) {
+        console.error("Error updating degree:", error);
+        res.status(500).json({
+            status: "error",
+            message: "Unexpected error while updating degree",
+            data: error instanceof Error ? error.message : error
+        });
+    }
+};
+
 export const deleteDegree = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;

@@ -70,7 +70,7 @@ export function EventDetailsDrawer({ open, onOpenChange, event }: EventDetailsDr
                         <Label htmlFor="event-date">Fecha</Label>
                         <Input
                             id="event-date"
-                            value={moment(event.date).format('dddd, DD/MM/YYYY')}
+                            value={moment(event.date).format('DD/MM/YYYY')}
                             disabled={true}
                             className="bg-muted"
                         />

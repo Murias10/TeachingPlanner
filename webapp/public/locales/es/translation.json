@@ -70,6 +70,11 @@
                     "acronym": "Acrónimo",
                     "conflict.description": "Ya existe una titulación con el mismo '{{fields}}'."
                 },
+                "update": {
+                    "title": "Error al actualizar la titulación",
+                    "description": "No se pudo actualizar la titulación. Por favor, inténtalo de nuevo mas tarde.",
+                    "conflict.description": "Ya existe una titulación con el mismo '{{fields}}'."
+                },
                 "delete": {
                     "individual": {
                         "title": "Error al eliminar la titulación",
@@ -89,6 +94,10 @@
                 "create": {
                     "title": "Titulación creada",
                     "description": "La titulación '{{name}}' fue creada correctamente."
+                },
+                "update": {
+                    "title": "Titulación actualizada",
+                    "description": "La titulación '{{name}}' fue actualizada correctamente."
                 },
                 "delete": {
                     "individual": {
@@ -264,6 +273,14 @@
                 "name": "Nombre de la titulación",
                 "acronym": "Acrónimo de la titulación",
                 "save": "Guardar titulación",
+                "cancel": "Cancelar"
+            },
+            "edit": {
+                "title": "Editar titulación",
+                "description": "Modifica los campos de la titulación.",
+                "name": "Nombre de la titulación",
+                "acronym": "Acrónimo de la titulación",
+                "save": "Guardar cambios",
                 "cancel": "Cancelar"
             }
         },

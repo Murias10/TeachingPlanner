@@ -57,6 +57,27 @@ export const createDegree = async (req: Request, res: Response, next: NextFuncti
         });
 };
 
+export const updateDegree = async (req: Request, res: Response, next: NextFunction) => {
+    const { id } = req.params;
+    const { name, acronym } = req.body;
+
+    fetch(`http://planner_service:5001/degree/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, acronym })
+    })
+        .then(async (response) => {
+            response.headers.forEach((value, key) => {
+                res.setHeader(key, value);
+            });
+            const body = await response.json();
+            res.status(response.status).json(body);
+        })
+        .catch((error) => {
+            next(error);
+        });
+};
+
 export const deleteDegree = async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
 

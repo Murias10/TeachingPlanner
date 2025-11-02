@@ -1,6 +1,7 @@
 import { DegreeToolbar } from "@/components/degree/DegreeToolbar"
 import { DegreeTable } from "@/components/degree/DegreeTable"
 import { CreateDegreeDrawer } from "@/components/degree/CreateDegreeDrawer"
+import { EditDegreeDrawer, EditDegreeFormData } from "@/components/degree/EditDegreeDrawer"
 import { DeleteConfirmationDialog } from "@/components/DeleteConfirmationDialog"
 import { ProtectedComponent } from "@/components/ProtectedComponent"
 import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext"
@@ -11,7 +12,9 @@ import { useDegrees } from "@/hooks/degree/useDegrees"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
 import { useDeleteDegree } from "@/hooks/degree/useDeleteDegree"
 import { useCreateDegree } from "@/hooks/degree/useCreateDegree"
+import { useUpdateDegree } from "@/hooks/degree/useUpdateDegree"
 import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext"
+import { Degree } from "@/types/Degree"
 
 interface DeleteState {
     type: 'single' | 'bulk' | null;
@@ -26,6 +29,7 @@ export default function DegreePage() {
     const { triggerAlert } = useFloatingAlertContext()
     const { deleteDegree } = useDeleteDegree()
     const { createDegree } = useCreateDegree()
+    const { updateDegree } = useUpdateDegree()
     const { setItems } = useBreadcrumbContext()
 
     const isAdmin = user?.role === "ADMIN"
@@ -34,6 +38,8 @@ export default function DegreePage() {
     const { data: degrees = [], isLoading, error, refetch } = useDegrees()
     const [selectedIds, setSelectedIds] = useState<string[]>([])
     const [drawerOpen, setDrawerOpen] = useState(false)
+    const [editDrawerOpen, setEditDrawerOpen] = useState(false)
+    const [degreeToEdit, setDegreeToEdit] = useState<Degree | undefined>(undefined)
     const [deleteState, setDeleteState] = useState<DeleteState>({ type: null })
 
     // Configurar breadcrumb
@@ -170,6 +176,45 @@ export default function DegreePage() {
         });
     }, [createDegree, refetch, triggerAlert, t, formatConflictFields]);
 
+    // Manejo de click para editar titulación
+    const handleEditClick = useCallback((degree: Degree) => {
+        setDegreeToEdit(degree);
+        setEditDrawerOpen(true);
+    }, []);
+
+    // Guardar cambios de titulación editada
+    const handleEditSave = useCallback(async (formData: EditDegreeFormData) => {
+        const result = await updateDegree(formData.degreeId, formData.name, formData.acronym, refetch);
+
+        if (result.success) {
+            setEditDrawerOpen(false);
+            triggerAlert({
+                title: t("alerts.degree.success.update.title"),
+                description: t("alerts.degree.success.update.description", { name: formData.name }),
+                variant: "success"
+            });
+            return;
+        }
+
+        // Manejo de errores de actualización
+        let errorMessage = result.message || t("alerts.degree.error.update.description");
+
+        if (result.status === 409) {
+            const conflictData = result.data as { fields?: string[] } | undefined;
+
+            if (conflictData?.fields?.length) {
+                const fieldText = formatConflictFields(conflictData.fields);
+                errorMessage = t("alerts.degree.error.update.conflict.description", { fields: fieldText });
+            }
+        }
+
+        triggerAlert({
+            title: t("alerts.degree.error.update.title"),
+            description: errorMessage,
+            variant: "destructive",
+        });
+    }, [updateDegree, refetch, triggerAlert, t, formatConflictFields]);
+
     // Generar props para el diálogo de eliminación
     const getDeleteDialogProps = useCallback(() => {
         if (!deleteState.type) {
@@ -219,6 +264,7 @@ export default function DegreePage() {
                         <DegreeTable
                             degrees={degrees}
                             deleteDegree={handleDeleteClick}
+                            editDegree={handleEditClick}
                             setSelectedIds={setSelectedIds}
                             isAdmin={isAdmin}
                         />
@@ -230,6 +276,13 @@ export default function DegreePage() {
                 open={drawerOpen}
                 onOpenChange={setDrawerOpen}
                 onSave={handleSave}
+            />
+
+            <EditDegreeDrawer
+                open={editDrawerOpen}
+                onOpenChange={setEditDrawerOpen}
+                onSave={handleEditSave}
+                degreeData={degreeToEdit}
             />
 
             <DeleteConfirmationDialog {...getDeleteDialogProps()} />

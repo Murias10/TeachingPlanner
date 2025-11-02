@@ -9,6 +9,7 @@ import { TFunction } from "i18next"
 
 interface ColumnExtraProps {
     deleteDegree: (degreeId: string) => void;
+    editDegree?: (degree: Degree) => void;
     isAdmin?: boolean;
 }
 
@@ -38,7 +39,7 @@ const getColorFromText = (text: string) => {
     return colors[Math.abs(hash) % colors.length];
 };
 
-export const columns = ({ deleteDegree, isAdmin = false }: ColumnExtraProps, t: TFunction): ColumnDef<Degree>[] => {
+export const columns = ({ deleteDegree, editDegree, isAdmin = false }: ColumnExtraProps, t: TFunction): ColumnDef<Degree>[] => {
     const cols: ColumnDef<Degree>[] = [];
 
     // Solo agregar columna de selección si es ADMIN
@@ -114,7 +115,7 @@ export const columns = ({ deleteDegree, isAdmin = false }: ColumnExtraProps, t: 
             const degree = row.original
 
             return (
-                <DegreeTableButtons degree={degree} deleteDegree={deleteDegree} />
+                <DegreeTableButtons degree={degree} deleteDegree={deleteDegree} editDegree={editDegree} />
             )
         },
     });

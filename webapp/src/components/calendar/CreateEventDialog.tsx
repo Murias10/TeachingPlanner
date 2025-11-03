@@ -257,6 +257,117 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
               )}
             </div>
 
+            {/* Groups and Classrooms Selection - Same row */}
+            <div className="flex gap-2">
+              {/* Groups Selection - Always visible */}
+              <div className="space-y-1 flex-1">
+                <Label className="text-xs font-semibold">Grupos</Label>
+                <div className="relative">
+                  <button
+                    type="button"
+                    className="h-8 px-3 text-xs w-full border border-input bg-background rounded-md flex items-center justify-between hover:bg-accent"
+                    onClick={() => {
+                      const dropdown = document.getElementById('groups-dropdown');
+                      if (dropdown) {
+                        dropdown.classList.toggle('hidden');
+                      }
+                    }}
+                  >
+                    <span>
+                      {config.groupIds && config.groupIds.length > 0
+                        ? `${config.groupIds.length} grupo(s) seleccionado(s)`
+                        : 'Seleccionar grupos'}
+                    </span>
+                    <ChevronDownIcon className="w-3 h-3" />
+                  </button>
+                  <div
+                    id="groups-dropdown"
+                    className="hidden absolute top-full left-0 right-0 mt-1 bg-background border border-input rounded-md shadow-lg z-50"
+                  >
+                    <div className="space-y-1 max-h-40 overflow-y-auto p-2">
+                      {config.subjectId ? (
+                        availableGroups.length > 0 ? (
+                          availableGroups.map((group) => (
+                            <div key={group.id} className="flex items-center gap-2">
+                              <Checkbox
+                                id={`group-${group.id}`}
+                                checked={config.groupIds?.includes(group.id) || false}
+                                onCheckedChange={(checked) => {
+                                  const newIds = checked
+                                    ? [...(config.groupIds || []), group.id]
+                                    : (config.groupIds || []).filter(id => id !== group.id);
+                                  setConfig({ ...config, groupIds: newIds });
+                                }}
+                              />
+                              <Label htmlFor={`group-${group.id}`} className="text-xs cursor-pointer m-0 flex-1">
+                                Grupo {group.number}
+                              </Label>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-xs text-muted-foreground">Sin grupos disponibles para esta asignatura</p>
+                        )
+                      ) : (
+                        <p className="text-xs text-muted-foreground">Selecciona una asignatura primero</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Classrooms Selection - Always visible */}
+              <div className="space-y-1 flex-1">
+                <Label className="text-xs font-semibold">Aulas</Label>
+                <div className="relative">
+                  <button
+                    type="button"
+                    className="h-8 px-3 text-xs w-full border border-input bg-background rounded-md flex items-center justify-between hover:bg-accent"
+                    onClick={() => {
+                      const dropdown = document.getElementById('classrooms-dropdown');
+                      if (dropdown) {
+                        dropdown.classList.toggle('hidden');
+                      }
+                    }}
+                  >
+                    <span>
+                      {config.classroomIds && config.classroomIds.length > 0
+                        ? `${config.classroomIds.length} aula(s) seleccionada(s)`
+                        : 'Seleccionar aulas'}
+                    </span>
+                    <ChevronDownIcon className="w-3 h-3" />
+                  </button>
+                  <div
+                    id="classrooms-dropdown"
+                    className="hidden absolute top-full left-0 right-0 mt-1 bg-background border border-input rounded-md shadow-lg z-50"
+                  >
+                    <div className="space-y-1 max-h-40 overflow-y-auto p-2">
+                      {classrooms.length > 0 ? (
+                        classrooms.map((classroom) => (
+                          <div key={classroom.id} className="flex items-center gap-2">
+                            <Checkbox
+                              id={`classroom-${classroom.id}`}
+                              checked={config.classroomIds?.includes(classroom.id) || false}
+                              onCheckedChange={(checked) => {
+                                const newIds = checked
+                                  ? [...(config.classroomIds || []), classroom.id]
+                                  : (config.classroomIds || []).filter(id => id !== classroom.id);
+                                setConfig({ ...config, classroomIds: newIds });
+                              }}
+                            />
+                            <Label htmlFor={`classroom-${classroom.id}`} className="text-xs cursor-pointer m-0 flex-1">
+                              {classroom.code}
+                            </Label>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-xs text-muted-foreground">Cargando aulas...</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Event Type Selection - Always visible */}
             <div className="space-y-1">
               <Label className="text-xs font-semibold">Tipo de Evento</Label>
@@ -270,66 +381,6 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
                   <SelectItem value="L">Laboratorio</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-
-            {/* Groups Selection - Always visible */}
-            <div className="space-y-1">
-              <Label className="text-xs font-semibold">Grupos</Label>
-              <div className="space-y-1 max-h-24 overflow-y-auto border border-primary/20 rounded p-2">
-                {config.subjectId ? (
-                  availableGroups.length > 0 ? (
-                    availableGroups.map((group) => (
-                      <div key={group.id} className="flex items-center gap-2">
-                        <Checkbox
-                          id={`group-${group.id}`}
-                          checked={config.groupIds?.includes(group.id) || false}
-                          onCheckedChange={(checked) => {
-                            const newIds = checked
-                              ? [...(config.groupIds || []), group.id]
-                              : (config.groupIds || []).filter(id => id !== group.id);
-                            setConfig({ ...config, groupIds: newIds });
-                          }}
-                        />
-                        <Label htmlFor={`group-${group.id}`} className="text-xs cursor-pointer m-0 flex-1">
-                          Grupo {group.number}
-                        </Label>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-xs text-muted-foreground">Sin grupos disponibles para esta asignatura</p>
-                  )
-                ) : (
-                  <p className="text-xs text-muted-foreground">Selecciona una asignatura primero</p>
-                )}
-              </div>
-            </div>
-
-            {/* Classrooms Selection - Always visible */}
-            <div className="space-y-1">
-              <Label className="text-xs font-semibold">Aulas</Label>
-              <div className="space-y-1 max-h-24 overflow-y-auto border border-primary/20 rounded p-2">
-                {classrooms.length > 0 ? (
-                  classrooms.map((classroom) => (
-                    <div key={classroom.id} className="flex items-center gap-2">
-                      <Checkbox
-                        id={`classroom-${classroom.id}`}
-                        checked={config.classroomIds?.includes(classroom.id) || false}
-                        onCheckedChange={(checked) => {
-                          const newIds = checked
-                            ? [...(config.classroomIds || []), classroom.id]
-                            : (config.classroomIds || []).filter(id => id !== classroom.id);
-                          setConfig({ ...config, classroomIds: newIds });
-                        }}
-                      />
-                      <Label htmlFor={`classroom-${classroom.id}`} className="text-xs cursor-pointer m-0 flex-1">
-                        {classroom.code}
-                      </Label>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-xs text-muted-foreground">Cargando aulas...</p>
-                )}
-              </div>
             </div>
 
             {/* Custom Options */}

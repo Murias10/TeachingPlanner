@@ -1,7 +1,7 @@
 "use client"
 
-import React, { useState } from 'react';
-import { Repeat, Clock, ChevronDownIcon } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Repeat, ChevronDownIcon } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -10,17 +10,25 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Dialog, DialogContent, DialogHeader } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import { Checkbox } from '@/components/ui/checkbox';
+import { TimePicker } from '@/components/ui/time-picker';
 import { es } from 'date-fns/locale';
 import { format } from 'date-fns';
 import type { RecurrenceConfig, FrequencyType, WeekDay, EndsType } from '@/types/RecurrenceConfig';
+import type { CalendarEvent } from '@/types/CalendarEvent';
+import type { Group } from '@/types/Group';
+import { useClassrooms } from '@/hooks/classroom/useClassrooms';
+import { useSubjectsByDegreeId } from '@/hooks/subject/useSubjectsByDegreeId';
 
 interface CreateEventDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (config: RecurrenceConfig) => void;
+  degreeId?: string;
+  calendarEvents?: CalendarEvent[];
 }
 
-const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChange, onSave }) => {
+const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChange, onSave, degreeId, calendarEvents = [] }) => {
   const [config, setConfig] = useState<RecurrenceConfig>({
     frequency: 'no-repeat',
     interval: 1,
@@ -30,9 +38,37 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
     endsAfterOccurrences: 1,
     startTime: '09:00',
     endTime: '10:00',
+    eventDate: format(new Date(), 'yyyy-MM-dd'),
+    subjectId: undefined,
+    groupIds: [],
+    classroomIds: [],
   });
 
   const [showCustom, setShowCustom] = useState(false);
+  const [eventType, setEventType] = useState<string>('T');
+  const [openStartTime, setOpenStartTime] = useState(false);
+  const [openEndTime, setOpenEndTime] = useState(false);
+  const { data: classrooms = [] } = useClassrooms();
+  const { data: subjects = [], isLoading: isLoadingSubjects } = useSubjectsByDegreeId(degreeId || null);
+
+  // Extract groups from calendar events for the selected subject and filter by event type
+  const availableGroups = useMemo(() => {
+    if (!config.subjectId || !calendarEvents) return [];
+
+    const groupsSet = new Set<string>();
+    calendarEvents.forEach((event) => {
+      if (event.subject?.id === config.subjectId && event.groups) {
+        event.groups.forEach((group) => {
+          // Only add groups that match the selected event type
+          if (group.type === eventType) {
+            groupsSet.add(JSON.stringify(group)); // Use stringify to create unique key
+          }
+        });
+      }
+    });
+
+    return Array.from(groupsSet).map(g => JSON.parse(g) as Group);
+  }, [config.subjectId, calendarEvents, eventType]);
 
   const weekDays: { value: WeekDay; label: string }[] = [
     { value: 'L', label: 'L' },
@@ -85,8 +121,8 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="flex flex-col max-h-[90vh] p-0">
+        <DialogHeader className="px-6 pt-6 pb-0">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-accent rounded-lg">
               <Repeat className="w-5 h-5" />
@@ -97,160 +133,325 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
           </div>
         </DialogHeader>
 
-        <div className="space-y-3">
-          {/* Time Selection */}
-          <div className="space-y-2">
-            <Label className="text-xs font-semibold">Horario</Label>
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-muted-foreground" />
-              <Input
-                type="time"
-                value={config.startTime}
-                onChange={(e) => setConfig({ ...config, startTime: e.target.value })}
-                className="h-8 text-xs"
-              />
-              <span className="text-xs">-</span>
-              <Input
-                type="time"
-                value={config.endTime}
-                onChange={(e) => setConfig({ ...config, endTime: e.target.value })}
-                className="h-8 text-xs"
-              />
-            </div>
-          </div>
-
-          {/* Frequency Selection */}
-          <div className="space-y-2">
-            <Label className="text-xs font-semibold">Frecuencia</Label>
-            <Select value={config.frequency} onValueChange={(value) => handleFrequencyChange(value as FrequencyType)}>
-              <SelectTrigger className="h-8 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="no-repeat">No se repite</SelectItem>
-                <SelectItem value="daily">Diariamente</SelectItem>
-                <SelectItem value="weekly">Semanalmente</SelectItem>
-                <SelectItem value="monthly">Mensualmente</SelectItem>
-                <SelectItem value="yearly">Anualmente</SelectItem>
-                <SelectItem value="custom">Personalizado</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Custom Options */}
-          {showCustom && (
-            <div className="space-y-3 p-3 border border-primary/20 rounded bg-accent/20">
-              <div className="space-y-2">
-                <Label className="text-xs font-semibold">Intervalo</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  value={config.interval}
-                  onChange={(e) => setConfig({ ...config, interval: parseInt(e.target.value) || 1 })}
-                  className="h-8 text-xs"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-xs font-semibold">Días</Label>
-                <div className="flex gap-1">
-                  {weekDays.map((day) => (
+        <div className="overflow-y-auto flex-1 px-6 py-3">
+          <div className={config.frequency === 'no-repeat' ? 'space-y-2' : 'space-y-3'}>
+            {/* Time Selection */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Horario</Label>
+              <div className="flex gap-2">
+                {/* Start Time */}
+                <Popover open={openStartTime} onOpenChange={setOpenStartTime} modal={true}>
+                  <PopoverTrigger asChild>
                     <Button
-                      key={day.value}
-                      variant={config.weekDays.includes(day.value) ? 'default' : 'outline'}
-                      size="sm"
-                      className="h-7 w-7 p-0 text-xs"
-                      onClick={() => toggleWeekDay(day.value)}
+                      variant="outline"
+                      className="h-8 px-3 text-xs justify-between font-normal flex-1"
                     >
-                      {day.label}
+                      {config.startTime}
+                      <ChevronDownIcon className="w-3 h-3" />
                     </Button>
-                  ))}
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <TimePicker
+                      value={config.startTime}
+                      onChange={(value) => {
+                        setConfig({ ...config, startTime: value });
+                        setOpenStartTime(false);
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
+
+                <span className="text-xs text-muted-foreground flex items-center">-</span>
+
+                {/* End Time */}
+                <Popover open={openEndTime} onOpenChange={setOpenEndTime} modal={true}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="h-8 px-3 text-xs justify-between font-normal flex-1"
+                    >
+                      {config.endTime}
+                      <ChevronDownIcon className="w-3 h-3" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <TimePicker
+                      value={config.endTime}
+                      onChange={(value) => {
+                        setConfig({ ...config, endTime: value });
+                        setOpenEndTime(false);
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+
+            {/* Frequency Selection */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Frecuencia</Label>
+              <Select value={config.frequency} onValueChange={(value) => handleFrequencyChange(value as FrequencyType)}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="no-repeat">No se repite</SelectItem>
+                  <SelectItem value="daily">Diariamente</SelectItem>
+                  <SelectItem value="weekly">Semanalmente</SelectItem>
+                  <SelectItem value="monthly">Mensualmente</SelectItem>
+                  <SelectItem value="yearly">Anualmente</SelectItem>
+                  <SelectItem value="custom">Personalizado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Puntual Event Fields - Only show when frequency is 'no-repeat' */}
+            {config.frequency === 'no-repeat' && (
+              <div className="space-y-2 p-2 border border-primary/20 rounded bg-accent/20">
+                {/* Date Selection */}
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold">Fecha</Label>
+                  <Popover modal={true}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        className="h-8 px-3 text-xs justify-between font-normal w-full"
+                      >
+                        {config.eventDate ? format(new Date(config.eventDate), 'dd/MM/yyyy', { locale: es }) : 'Seleccionar fecha'}
+                        <ChevronDownIcon className="w-3 h-3" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={config.eventDate ? new Date(config.eventDate) : new Date()}
+                        onSelect={(date) => {
+                          if (date) {
+                            setConfig({ ...config, eventDate: format(date, 'yyyy-MM-dd') });
+                          }
+                        }}
+                        locale={es}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                {/* Subject Selection */}
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold">Asignatura</Label>
+                  {isLoadingSubjects ? (
+                    <div className="h-8 text-xs flex items-center text-muted-foreground">
+                      Cargando asignaturas...
+                    </div>
+                  ) : subjects.length === 0 ? (
+                    <div className="h-8 text-xs flex items-center text-muted-foreground">
+                      No hay asignaturas disponibles
+                    </div>
+                  ) : (
+                    <Select value={config.subjectId || ''} onValueChange={(value) => setConfig({ ...config, subjectId: value })}>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Seleccionar asignatura" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {subjects.map((subject) => (
+                          <SelectItem key={subject.id} value={subject.id}>
+                            {subject.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+
+                {/* Event Type Selection */}
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold">Tipo de Evento</Label>
+                  <Select value={eventType} onValueChange={(value) => setEventType(value as 'T' | 'S' | 'L')}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="T">Teoría (T)</SelectItem>
+                      <SelectItem value="S">Seminario (S)</SelectItem>
+                      <SelectItem value="L">Laboratorio (L)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Groups Selection */}
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold">Grupos</Label>
+                  <div className="space-y-1 max-h-24 overflow-y-auto border border-primary/20 rounded p-2">
+                    {config.subjectId ? (
+                      availableGroups.length > 0 ? (
+                        availableGroups.map((group) => (
+                          <div key={group.id} className="flex items-center gap-2">
+                            <Checkbox
+                              id={`group-${group.id}`}
+                              checked={config.groupIds?.includes(group.id) || false}
+                              onCheckedChange={(checked) => {
+                                const newIds = checked
+                                  ? [...(config.groupIds || []), group.id]
+                                  : (config.groupIds || []).filter(id => id !== group.id);
+                                setConfig({ ...config, groupIds: newIds });
+                              }}
+                            />
+                            <Label htmlFor={`group-${group.id}`} className="text-xs cursor-pointer m-0 flex-1">
+                              Grupo {group.number}
+                            </Label>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-xs text-muted-foreground">Sin grupos disponibles para esta asignatura</p>
+                      )
+                    ) : (
+                      <p className="text-xs text-muted-foreground">Selecciona una asignatura primero</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Classrooms Selection */}
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold">Aulas</Label>
+                  <div className="space-y-1 max-h-24 overflow-y-auto border border-primary/20 rounded p-2">
+                    {classrooms.length > 0 ? (
+                      classrooms.map((classroom) => (
+                        <div key={classroom.id} className="flex items-center gap-2">
+                          <Checkbox
+                            id={`classroom-${classroom.id}`}
+                            checked={config.classroomIds?.includes(classroom.id) || false}
+                            onCheckedChange={(checked) => {
+                              const newIds = checked
+                                ? [...(config.classroomIds || []), classroom.id]
+                                : (config.classroomIds || []).filter(id => id !== classroom.id);
+                              setConfig({ ...config, classroomIds: newIds });
+                            }}
+                          />
+                          <Label htmlFor={`classroom-${classroom.id}`} className="text-xs cursor-pointer m-0 flex-1">
+                            {classroom.code}
+                          </Label>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-xs text-muted-foreground">Cargando aulas...</p>
+                    )}
+                  </div>
                 </div>
               </div>
+            )}
 
-              {/* Finalización */}
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold">Finaliza</Label>
-                <RadioGroup
-                  value={config.endsType}
-                  onValueChange={(value: EndsType) => setConfig({ ...config, endsType: value })}
-                  className="space-y-1"
-                >
-                  <div className={`flex items-center space-x-2 p-2 rounded border transition-all cursor-pointer ${
-                    config.endsType === 'never' ? 'border-primary bg-primary/10' : 'border-primary/20 bg-accent/20'
-                  }`}>
-                    <RadioGroupItem value="never" id="never" />
-                    <Label htmlFor="never" className="text-xs cursor-pointer m-0">
-                      Nunca
-                    </Label>
-                  </div>
+            {/* Custom Options */}
+            {showCustom && (
+              <div className="space-y-3 p-3 border border-primary/20 rounded bg-accent/20">
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold">Intervalo</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={config.interval}
+                    onChange={(e) => setConfig({ ...config, interval: parseInt(e.target.value) || 1 })}
+                    className="h-8 text-xs"
+                  />
+                </div>
 
-                  <div className={`flex items-center space-x-2 p-2 rounded border transition-all cursor-pointer ${
-                    config.endsType === 'on' ? 'border-primary bg-primary/10' : 'border-primary/20 bg-accent/20'
-                  }`}>
-                    <RadioGroupItem value="on" id="on" />
-                    <Label htmlFor="on" className="text-xs cursor-pointer m-0">
-                      El
-                    </Label>
-                    <Popover>
-                      <PopoverTrigger asChild disabled={config.endsType !== 'on'}>
-                        <Button
-                          variant="ghost"
-                          className="h-6 px-2 text-xs flex-1 justify-between font-normal"
-                        >
-                          {config.endsOnDate ? format(new Date(config.endsOnDate), 'dd/MM/yyyy', { locale: es }) : 'Seleccionar fecha'}
-                          <ChevronDownIcon className="w-3 h-3" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto overflow-hidden p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={config.endsOnDate ? new Date(config.endsOnDate) : undefined}
-                          onSelect={(date) => {
-                            if (date) {
-                              setConfig({ ...config, endsOnDate: format(date, 'yyyy-MM-dd') });
-                            }
-                          }}
-                          locale={es}
-                          disabled={(date) => date < new Date()}
-                        />
-                      </PopoverContent>
-                    </Popover>
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold">Días</Label>
+                  <div className="flex gap-1">
+                    {weekDays.map((day) => (
+                      <Button
+                        key={day.value}
+                        variant={config.weekDays.includes(day.value) ? 'default' : 'outline'}
+                        size="sm"
+                        className="h-7 w-7 p-0 text-xs"
+                        onClick={() => toggleWeekDay(day.value)}
+                      >
+                        {day.label}
+                      </Button>
+                    ))}
                   </div>
+                </div>
 
-                  <div className={`flex items-center space-x-2 p-2 rounded border transition-all cursor-pointer ${
-                    config.endsType === 'after' ? 'border-primary bg-primary/10' : 'border-primary/20 bg-accent/20'
-                  }`}>
-                    <RadioGroupItem value="after" id="after" />
-                    <Label htmlFor="after" className="text-xs cursor-pointer m-0">
-                      Después de
-                    </Label>
-                    <Input
-                      type="number"
-                      min="1"
-                      value={config.endsAfterOccurrences}
-                      onChange={(e) =>
-                        setConfig({ ...config, endsAfterOccurrences: parseInt(e.target.value) || 1 })
-                      }
-                      disabled={config.endsType !== 'after'}
-                      className="w-12 h-7 text-xs text-center"
-                    />
-                    <span className="text-xs">eventos</span>
-                  </div>
-                </RadioGroup>
+                {/* Finalización */}
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold">Finaliza</Label>
+                  <RadioGroup
+                    value={config.endsType}
+                    onValueChange={(value: EndsType) => setConfig({ ...config, endsType: value })}
+                    className="space-y-1"
+                  >
+                    <div className={`flex items-center space-x-2 p-2 rounded border transition-all cursor-pointer ${config.endsType === 'never' ? 'border-primary bg-primary/10' : 'border-primary/20 bg-accent/20'
+                      }`}>
+                      <RadioGroupItem value="never" id="never" />
+                      <Label htmlFor="never" className="text-xs cursor-pointer m-0">
+                        Nunca
+                      </Label>
+                    </div>
+
+                    <div className={`flex items-center space-x-2 p-2 rounded border transition-all cursor-pointer ${config.endsType === 'on' ? 'border-primary bg-primary/10' : 'border-primary/20 bg-accent/20'
+                      }`}>
+                      <RadioGroupItem value="on" id="on" />
+                      <Label htmlFor="on" className="text-xs cursor-pointer m-0">
+                        El
+                      </Label>
+                      <Popover>
+                        <PopoverTrigger asChild disabled={config.endsType !== 'on'}>
+                          <Button
+                            variant="ghost"
+                            className="h-6 px-2 text-xs flex-1 justify-between font-normal"
+                          >
+                            {config.endsOnDate ? format(new Date(config.endsOnDate), 'dd/MM/yyyy', { locale: es }) : 'Seleccionar fecha'}
+                            <ChevronDownIcon className="w-3 h-3" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto overflow-hidden p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={config.endsOnDate ? new Date(config.endsOnDate) : undefined}
+                            onSelect={(date) => {
+                              if (date) {
+                                setConfig({ ...config, endsOnDate: format(date, 'yyyy-MM-dd') });
+                              }
+                            }}
+                            locale={es}
+                            disabled={(date) => date < new Date()}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    <div className={`flex items-center space-x-2 p-2 rounded border transition-all cursor-pointer ${config.endsType === 'after' ? 'border-primary bg-primary/10' : 'border-primary/20 bg-accent/20'
+                      }`}>
+                      <RadioGroupItem value="after" id="after" />
+                      <Label htmlFor="after" className="text-xs cursor-pointer m-0">
+                        Después de
+                      </Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        value={config.endsAfterOccurrences}
+                        onChange={(e) =>
+                          setConfig({ ...config, endsAfterOccurrences: parseInt(e.target.value) || 1 })
+                        }
+                        disabled={config.endsType !== 'after'}
+                        className="w-12 h-7 text-xs text-center"
+                      />
+                      <span className="text-xs">eventos</span>
+                    </div>
+                  </RadioGroup>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Resumen */}
-          <div className="bg-accent/20 border border-primary/20 rounded p-3 text-xs">
-            <p className="font-semibold">{getSummary()}</p>
-            <p className="text-muted-foreground text-xs mt-1">{config.startTime} - {config.endTime}</p>
+            {/* Resumen */}
+            <div className="bg-accent/20 border border-primary/20 rounded p-3 text-xs">
+              <p className="font-semibold">{getSummary()}</p>
+              <p className="text-muted-foreground text-xs mt-1">{config.startTime} - {config.endTime}</p>
+            </div>
           </div>
         </div>
 
         {/* Buttons */}
-        <div className="flex gap-2 justify-end pt-2">
+        <div className="flex gap-2 justify-end px-6 pb-6 border-t pt-4">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}

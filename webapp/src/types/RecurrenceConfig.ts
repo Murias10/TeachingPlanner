@@ -11,4 +11,9 @@ export interface RecurrenceConfig {
   endsAfterOccurrences: number;
   startTime: string;
   endTime: string;
+  // Puntual event fields (only used when frequency === 'no-repeat')
+  eventDate?: string; // YYYY-MM-DD format
+  subjectId?: string;
+  groupIds?: string[];
+  classroomIds?: string[];
 }

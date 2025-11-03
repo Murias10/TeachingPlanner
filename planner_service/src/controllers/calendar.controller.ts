@@ -2609,3 +2609,135 @@ export const exportCalendar = async (req: Request, res: Response) => {
         });
     }
 };
+
+export const createPuntualEvent = async (req: Request, res: Response) => {
+    try {
+        const { calendarId, eventDate, startTime, endTime, subjectId, groupIds = [], classroomIds = [] } = req.body;
+
+        // Validaciones
+        if (!calendarId || !eventDate || !startTime || !endTime) {
+            res.status(400).json({
+                status: 'error',
+                message: 'Missing required fields: calendarId, eventDate, startTime, endTime',
+                data: null
+            });
+            return;
+        }
+
+        const dayRepo = AppDataSource.getRepository(Day);
+        const puntualEventRepo = AppDataSource.getRepository(PuntualEvent);
+        const groupRepo = AppDataSource.getRepository(Group);
+        const classroomRepo = AppDataSource.getRepository(Classroom);
+
+        // Verificar que el calendario existe
+        const calendar = await AppDataSource.getRepository(Calendar).findOne({
+            where: { id: calendarId }
+        });
+
+        if (!calendar) {
+            res.status(404).json({
+                status: 'error',
+                message: 'Calendar not found',
+                data: null
+            });
+            return;
+        }
+
+        // Buscar o crear el día
+        const eventDateObj = new Date(eventDate);
+        let day = await dayRepo.findOne({
+            where: {
+                date: eventDateObj,
+                calendar: { id: calendarId }
+            },
+            relations: ['puntualEvents', 'puntualEvents.groups', 'puntualEvents.classrooms']
+        });
+
+        if (!day) {
+            day = dayRepo.create({
+                date: eventDateObj,
+                calendar: calendar,
+                lective: true,
+                dayCharacter: 'Lectivo',
+                comment: ''
+            });
+            day = await dayRepo.save(day);
+        } else {
+            // Reload para obtener las relaciones
+            day = await dayRepo.findOne({
+                where: { id: day.id },
+                relations: ['puntualEvents', 'puntualEvents.groups', 'puntualEvents.classrooms']
+            }) || day;
+        }
+
+        // Validación de conflictos: verificar si hay eventos en el mismo horario con el mismo grupo o aula
+        const conflictingEvents = day.puntualEvents?.filter(event => {
+            const eventStart = event.startTime;
+            const eventEnd = event.endTime;
+            const hasTimeOverlap = startTime < eventEnd && endTime > eventStart;
+
+            if (!hasTimeOverlap) return false;
+
+            // Verificar si comparte grupo
+            const sharesGroup = event.groups?.some(g => groupIds.includes(g.id)) || groupIds.length === 0;
+            // Verificar si comparte aula
+            const sharesClassroom = event.classrooms?.some(c => classroomIds.includes(c.id)) || classroomIds.length === 0;
+
+            return sharesGroup && sharesClassroom;
+        });
+
+        if (conflictingEvents && conflictingEvents.length > 0) {
+            res.status(409).json({
+                status: 'error',
+                message: 'Time conflict: Same group/classroom already has an event at this time',
+                data: {
+                    conflicts: conflictingEvents.map(e => ({
+                        id: e.id,
+                        startTime: e.startTime,
+                        endTime: e.endTime
+                    }))
+                }
+            });
+            return;
+        }
+
+        // Obtener los grupos
+        const groups = groupIds.length > 0
+            ? await groupRepo.find({ where: { id: In(groupIds) } })
+            : [];
+
+        // Obtener las aulas
+        const classrooms = classroomIds.length > 0
+            ? await classroomRepo.find({ where: { id: In(classroomIds) } })
+            : [];
+
+        // Crear el evento puntual
+        const puntualEvent = puntualEventRepo.create({
+            day: day,
+            startTime: startTime,
+            endTime: endTime,
+            cancelled: false,
+            comment: '',
+            groups: groups,
+            classrooms: classrooms
+        });
+
+        const savedEvent = await puntualEventRepo.save(puntualEvent);
+
+        res.status(201).json({
+            status: 'success',
+            message: 'Puntual event created successfully',
+            data: {
+                event: savedEvent
+            }
+        });
+
+    } catch (error) {
+        console.error('Error creating puntual event:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error creating puntual event',
+            data: error instanceof Error ? error.message : error
+        });
+    }
+};

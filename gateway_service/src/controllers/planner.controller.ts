@@ -540,4 +540,33 @@ export const exportCalendar = (req: Request, res: Response, next: NextFunction) 
         .catch((error) => {
             next(error);
         });
+};
+
+export const createPuntualEvent = (req: Request, res: Response, next: NextFunction) => {
+    fetch(`${process.env.PLANNER_SERVICE_URL}/calendar/puntual-event`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(req.body)
+    })
+        .then((response) => {
+            // Copiar headers de respuesta
+            Object.entries(response.headers.raw ? response.headers.raw() : {}).forEach(([key, value]) => {
+                if (!['transfer-encoding', 'content-encoding'].includes(key.toLowerCase())) {
+                    if (Array.isArray(value)) {
+                        res.setHeader(key, value[0]);
+                    } else {
+                        res.setHeader(key, value);
+                    }
+                }
+            });
+
+            return response.json().then((body) => {
+                res.status(response.status).json(body);
+            });
+        })
+        .catch((error) => {
+            next(error);
+        });
 }

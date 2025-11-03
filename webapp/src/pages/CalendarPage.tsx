@@ -17,6 +17,8 @@ import { ProtectedComponent } from "@/components/ProtectedComponent";
 import { CalendarEventWrapper } from "@/components/calendar/CalendarEventWrapper";
 import VITE_GATEWAY_API_URL from "@/config/api";
 import { EventDetailsDrawer } from "@/components/calendar/EventDetailsDrawer";
+import { useCreatePuntualEvent } from "@/hooks/calendar/useCreatePuntualEvent";
+import { useFloatingAlert } from "@/hooks/useFloatingAlert";
 
 // Configurar moment para usar español y que la semana empiece en lunes
 moment.locale('es', {
@@ -82,6 +84,8 @@ const getSubjectColor = (subjectAcronym: string | undefined): string => {
 export default function CalendarPage() {
 
     const { t } = useTranslation()
+    const { triggerAlert } = useFloatingAlert();
+    const { mutate: createPuntualEvent } = useCreatePuntualEvent();
 
     // Extraer el acrónimo de la URL
     const { acronym, startYear, endYear, semester } = useParams<{ acronym: string, startYear: string, endYear: string, semester: string }>()
@@ -90,12 +94,17 @@ export default function CalendarPage() {
 
     console.log('Params:', { acronym, startYear, endYear, semester });
 
-    const { data, isLoading, calendarId } = useCalendarByCourseAndSemester(
+    const { data, isLoading, calendarId, course } = useCalendarByCourseAndSemester(
         acronym || null,
         startYear || null,
         endYear || null,
         semester || null
     );
+
+    // Debug: Log when course changes
+    useEffect(() => {
+        console.log('CalendarPage - course:', course, 'idDegree:', course?.idDegree);
+    }, [course]);
 
     // Estado de filtros
     const [filters, setFilters] = useState<FilterValues>({
@@ -349,7 +358,76 @@ export default function CalendarPage() {
 
     const handleSaveEvent = (config: RecurrenceConfig) => {
         console.log('Creating event with config:', config);
-        // TODO: Implement event creation logic
+
+        // Only handle puntual events for now
+        if (config.frequency !== 'no-repeat') {
+            triggerAlert({
+                title: 'No implementado',
+                description: 'Por el momento solo se pueden crear eventos puntuales',
+                variant: 'default'
+            });
+            return;
+        }
+
+        // Validar campos requeridos
+        if (!config.eventDate || !config.subjectId) {
+            triggerAlert({
+                title: 'Error',
+                description: 'Por favor selecciona una fecha y una asignatura',
+                variant: 'destructive'
+            });
+            return;
+        }
+
+        // Validar que al menos un grupo o aula esté seleccionado
+        if (!config.groupIds || config.groupIds.length === 0) {
+            triggerAlert({
+                title: 'Error',
+                description: 'Por favor selecciona al menos un grupo',
+                variant: 'destructive'
+            });
+            return;
+        }
+
+        if (!calendarId) {
+            triggerAlert({
+                title: 'Error',
+                description: 'No se pudo obtener el ID del calendario',
+                variant: 'destructive'
+            });
+            return;
+        }
+
+        // Crear el evento puntual
+        createPuntualEvent(
+            {
+                calendarId,
+                eventDate: config.eventDate,
+                startTime: config.startTime,
+                endTime: config.endTime,
+                subjectId: config.subjectId,
+                groupIds: config.groupIds,
+                classroomIds: config.classroomIds || []
+            },
+            {
+                onSuccess: () => {
+                    triggerAlert({
+                        title: 'Éxito',
+                        description: 'Evento puntual creado correctamente',
+                        variant: 'success'
+                    });
+                    setIsCreateEventDialogOpen(false);
+                    // Refetch calendar events
+                },
+                onError: (error) => {
+                    triggerAlert({
+                        title: 'Error',
+                        description: error.message || 'Error al crear el evento',
+                        variant: 'destructive'
+                    });
+                }
+            }
+        );
     };
 
     const handleEditEvent = (event: CalendarEvent) => {
@@ -522,6 +600,8 @@ export default function CalendarPage() {
                 open={isCreateEventDialogOpen}
                 onOpenChange={setIsCreateEventDialogOpen}
                 onSave={handleSaveEvent}
+                degreeId={course?.idDegree}
+                calendarEvents={data?.events}
             />
 
             {/* Event Details Drawer */}

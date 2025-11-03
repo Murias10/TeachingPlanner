@@ -4,8 +4,9 @@ import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import {
     Drawer,
     DrawerContent,
@@ -25,7 +26,8 @@ import {
     Upload,
     FileText,
     X,
-    CheckCircle
+    CheckCircle,
+    ChevronDownIcon
 } from "lucide-react";
 import { CalendarFormData, CalendarDrawerData } from "@/types/Calendar";
 
@@ -57,6 +59,7 @@ export const CreateCalendarDrawer = ({
     // Manual tab states
     const [startDate, setStartDate] = useState<Date | undefined>();
     const [endDate, setEndDate] = useState<Date | undefined>();
+    const [holidayDates, setHolidayDates] = useState<Date[]>([]);
     const [dateError, setDateError] = useState("");
 
     // Import tab states
@@ -86,6 +89,7 @@ export const CreateCalendarDrawer = ({
             setIsLoading(false);
             setStartDate(undefined);
             setEndDate(undefined);
+            setHolidayDates([]);
             setDateError("");
             setUploadedFiles([]);
             setActiveTab("manual");
@@ -146,7 +150,8 @@ export const CreateCalendarDrawer = ({
                     courseId,
                     semester,
                     startDate,
-                    endDate
+                    endDate,
+                    holidayDates: holidayDates.length > 0 ? holidayDates : undefined
                 };
 
                 await onSave(manualData);
@@ -251,49 +256,110 @@ export const CreateCalendarDrawer = ({
 
                         {/* Tab Manual */}
                         <TabsContent value="manual" className="space-y-6 mt-6">
-                            <div className="space-y-4 max-w-sm mx-auto">
-                                {/* Input para fecha de inicio */}
-                                <div className="space-y-2">
-                                    <Label>
-                                        {t("drawer.calendar.create.tabs.manual.start.date")}
-                                    </Label>
-                                    <Input
-                                        type="date"
-                                        value={startDate ? format(startDate, "yyyy-MM-dd") : ""}
-                                        onChange={(e) => {
-                                            const date = e.target.value ? new Date(e.target.value) : undefined;
-                                            if (date && isDateInCourseRange(date)) {
-                                                setStartDate(date);
-                                            }
-                                        }}
-                                        min={courseStartYear ? `${courseStartYear}-09-01` : undefined}
-                                        max={courseEndYear ? `${courseEndYear}-06-30` : undefined}
-                                        className="w-full"
-                                        disabled={isLoading}
-                                    />
+                            <div className="max-w-2xl mx-auto space-y-4">
+                                {/* Date Pickers en la misma fila */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    {/* Date Picker para fecha de inicio */}
+                                    <div className="space-y-2">
+                                        <Label>
+                                            {t("drawer.calendar.create.tabs.manual.start.date")}
+                                        </Label>
+                                        <Popover modal={true}>
+                                            <PopoverTrigger asChild>
+                                                <Button
+                                                    variant="outline"
+                                                    className="w-full justify-start text-left font-normal"
+                                                    disabled={isLoading}
+                                                >
+                                                    {startDate ? format(startDate, "dd/MM/yyyy") : "Seleccionar fecha"}
+                                                    <ChevronDownIcon className="ml-auto h-4 w-4" />
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0" align="start">
+                                                <CalendarComponent
+                                                    mode="single"
+                                                    selected={startDate}
+                                                    onSelect={(date) => {
+                                                        if (date && isDateInCourseRange(date)) {
+                                                            setStartDate(date);
+                                                        }
+                                                    }}
+                                                    disabled={(date) => !isDateInCourseRange(date)}
+                                                />
+                                            </PopoverContent>
+                                    </Popover>
+                                    </div>
+
+                                    {/* Date Picker para fecha de fin */}
+                                    <div className="space-y-2">
+                                        <Label>
+                                            {t("drawer.calendar.create.tabs.manual.end.date")}
+                                        </Label>
+                                        <Popover modal={true}>
+                                            <PopoverTrigger asChild>
+                                                <Button
+                                                    variant="outline"
+                                                    className="w-full justify-start text-left font-normal"
+                                                    disabled={!startDate || isLoading}
+                                                >
+                                                    {endDate ? format(endDate, "dd/MM/yyyy") : "Seleccionar fecha"}
+                                                    <ChevronDownIcon className="ml-auto h-4 w-4" />
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0" align="start">
+                                                <CalendarComponent
+                                                    mode="single"
+                                                    selected={endDate}
+                                                    onSelect={(date) => {
+                                                        if (date && isDateInCourseRange(date) && (!startDate || date > startDate)) {
+                                                            setEndDate(date);
+                                                        }
+                                                    }}
+                                                    disabled={(date) => !isDateInCourseRange(date) || (startDate ? date <= startDate : false)}
+                                                />
+                                            </PopoverContent>
+                                        </Popover>
+                                    </div>
                                 </div>
 
-                                {/* Input para fecha de fin */}
-                                <div className="space-y-2">
-                                    <Label>
-                                        {t("drawer.calendar.create.tabs.manual.end.date")}
-                                    </Label>
-                                    <Input
-                                        type="date"
-                                        value={endDate ? format(endDate, "yyyy-MM-dd") : ""}
-                                        onChange={(e) => {
-                                            const date = e.target.value ? new Date(e.target.value) : undefined;
-                                            if (date && isDateInCourseRange(date) && (!startDate || date > startDate)) {
-                                                setEndDate(date);
-                                            }
-                                        }}
-                                        min={startDate ? format(new Date(startDate.getTime() + 86400000), "yyyy-MM-dd") : (courseStartYear ? `${courseStartYear}-09-01` : undefined)}
-                                        max={courseEndYear ? `${courseEndYear}-06-30` : undefined}
-                                        className="w-full"
-                                        disabled={isLoading}
-                                    />
+                                {/* Calendar para seleccionar días festivos */}
+                                <div className="space-y-2 w-full">
+                                    <div className="flex items-center justify-between">
+                                        <Label>Días Festivos</Label>
+                                        {holidayDates.length > 0 && (
+                                            <Badge variant="secondary">{holidayDates.length} día(s)</Badge>
+                                        )}
+                                    </div>
+                                    <div className="border rounded-lg p-4 bg-muted/50 w-full flex justify-center">
+                                        <CalendarComponent
+                                            mode="multiple"
+                                            selected={holidayDates}
+                                            onSelect={(dates) => {
+                                                setHolidayDates(Array.isArray(dates) ? dates : []);
+                                            }}
+                                            disabled={(date) => {
+                                                if (!startDate || !endDate) return true;
+                                                return date < startDate || date > endDate;
+                                            }}
+                                        />
+                                    </div>
+                                    {holidayDates.length > 0 && (
+                                        <div className="space-y-2">
+                                            <p className="text-xs font-medium">Días festivos seleccionados:</p>
+                                            <div className="flex flex-wrap gap-1">
+                                                {holidayDates.map((date) => (
+                                                    <Badge key={date.toString()} variant="outline" className="text-xs">
+                                                        {format(date, "dd/MM/yyyy")}
+                                                    </Badge>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
+                                {dateError && (
+                                    <p className="text-sm text-destructive">{dateError}</p>
+                                )}
                             </div>
                         </TabsContent>
 

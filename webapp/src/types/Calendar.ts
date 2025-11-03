@@ -13,6 +13,7 @@ export interface CalendarFormData {
     semester: number;
     startDate?: Date;
     endDate?: Date;
+    holidayDates?: Date[];
     files?: File[];
     formData?: FormData;
 }

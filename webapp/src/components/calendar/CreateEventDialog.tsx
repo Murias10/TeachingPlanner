@@ -247,7 +247,7 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
                     <SelectValue placeholder="Seleccionar asignatura" />
                   </SelectTrigger>
                   <SelectContent>
-                    {subjects.map((subject) => (
+                    {subjects.sort((a, b) => a.name.localeCompare(b.name)).map((subject) => (
                       <SelectItem key={subject.id} value={subject.id}>
                         {subject.name}
                       </SelectItem>
@@ -287,23 +287,35 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
                     <div className="space-y-1 max-h-40 overflow-y-auto p-2">
                       {config.subjectId ? (
                         availableGroups.length > 0 ? (
-                          availableGroups.map((group) => (
-                            <div key={group.id} className="flex items-center gap-2">
-                              <Checkbox
-                                id={`group-${group.id}`}
-                                checked={config.groupIds?.includes(group.id) || false}
-                                onCheckedChange={(checked) => {
-                                  const newIds = checked
-                                    ? [...(config.groupIds || []), group.id]
-                                    : (config.groupIds || []).filter(id => id !== group.id);
-                                  setConfig({ ...config, groupIds: newIds });
-                                }}
-                              />
-                              <Label htmlFor={`group-${group.id}`} className="text-xs cursor-pointer m-0 flex-1">
-                                Grupo {group.number}
-                              </Label>
-                            </div>
-                          ))
+                          availableGroups.sort((a, b) => {
+                            const langPrefixA = a.language === 'EN' ? 'I-' : '';
+                            const langPrefixB = b.language === 'EN' ? 'I-' : '';
+                            const subject = subjects.find(s => s.id === config.subjectId);
+                            const labelA = `${subject?.acronym}.${a.type}.${langPrefixA}${a.number}`;
+                            const labelB = `${subject?.acronym}.${b.type}.${langPrefixB}${b.number}`;
+                            return labelA.localeCompare(labelB);
+                          }).map((group) => {
+                            const langPrefix = group.language === 'EN' ? 'I-' : '';
+                            const subject = subjects.find(s => s.id === config.subjectId);
+                            const groupLabel = `${subject?.acronym}.${group.type}.${langPrefix}${group.number}`;
+                            return (
+                              <div key={group.id} className="flex items-center gap-2">
+                                <Checkbox
+                                  id={`group-${group.id}`}
+                                  checked={config.groupIds?.includes(group.id) || false}
+                                  onCheckedChange={(checked) => {
+                                    const newIds = checked
+                                      ? [...(config.groupIds || []), group.id]
+                                      : (config.groupIds || []).filter(id => id !== group.id);
+                                    setConfig({ ...config, groupIds: newIds });
+                                  }}
+                                />
+                                <Label htmlFor={`group-${group.id}`} className="text-xs cursor-pointer m-0 flex-1">
+                                  {groupLabel}
+                                </Label>
+                              </div>
+                            );
+                          })
                         ) : (
                           <p className="text-xs text-muted-foreground">Sin grupos disponibles para esta asignatura</p>
                         )
@@ -342,7 +354,7 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
                   >
                     <div className="space-y-1 max-h-40 overflow-y-auto p-2">
                       {classrooms.length > 0 ? (
-                        classrooms.map((classroom) => (
+                        classrooms.sort((a, b) => a.code.localeCompare(b.code)).map((classroom) => (
                           <div key={classroom.id} className="flex items-center gap-2">
                             <Checkbox
                               id={`classroom-${classroom.id}`}

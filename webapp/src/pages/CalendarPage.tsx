@@ -92,8 +92,6 @@ export default function CalendarPage() {
 
     const { setItems } = useBreadcrumbContext();
 
-    console.log('Params:', { acronym, startYear, endYear, semester });
-
     const { data, isLoading, calendarId, course } = useCalendarByCourseAndSemester(
         acronym || null,
         startYear || null,
@@ -101,10 +99,7 @@ export default function CalendarPage() {
         semester || null
     );
 
-    // Debug: Log when course changes
-    useEffect(() => {
-        console.log('CalendarPage - course:', course, 'idDegree:', course?.idDegree);
-    }, [course]);
+
 
     // Estado de filtros
     const [filters, setFilters] = useState<FilterValues>({
@@ -299,7 +294,7 @@ export default function CalendarPage() {
         }
 
         try {
-            console.log('Exporting calendar:', calendarId);
+
 
             // Llamar al endpoint de exportación
             const response = await fetch(`${VITE_GATEWAY_API_URL}/calendar/${calendarId}/export`);
@@ -339,7 +334,7 @@ export default function CalendarPage() {
             // Liberar el URL del blob
             window.URL.revokeObjectURL(url);
 
-            console.log('Calendar exported successfully');
+
         } catch (error) {
             console.error('Error exporting calendar:', error);
             // TODO: Mostrar mensaje de error al usuario
@@ -536,60 +531,60 @@ export default function CalendarPage() {
 
                         {/* Calendario */}
                         <div className="flex-1 p-4 overflow-hidden bg-white rounded-b-2xl">
-                    {events.length > 0 ? (
-                        <Calendar
-                            defaultView="work_week"
-                            views={['week', 'work_week', 'day', 'month']}
-                            localizer={localizer}
-                            events={events}
-                            max={maxDate}
-                            min={minDate}
-                            startAccessor="start"
-                            endAccessor="end"
-                            culture="es"
-                            style={{ height: '100%', width: '100%' }}
-                            components={calendarComponents}
-                            eventPropGetter={(event) => {
-                                const calendarEvent = event.resource as CalendarEvent;
+                            {events.length > 0 ? (
+                                <Calendar
+                                    defaultView="work_week"
+                                    views={['week', 'work_week', 'day', 'month']}
+                                    localizer={localizer}
+                                    events={events}
+                                    max={maxDate}
+                                    min={minDate}
+                                    startAccessor="start"
+                                    endAccessor="end"
+                                    culture="es"
+                                    style={{ height: '100%', width: '100%' }}
+                                    components={calendarComponents}
+                                    eventPropGetter={(event) => {
+                                        const calendarEvent = event.resource as CalendarEvent;
 
-                                // Obtener el color basado en la asignatura
-                                const backgroundColor = calendarEvent?.cancelled
-                                    ? '#ef4444'
-                                    : getSubjectColor(calendarEvent?.subject?.acronym);
+                                        // Obtener el color basado en la asignatura
+                                        const backgroundColor = calendarEvent?.cancelled
+                                            ? '#ef4444'
+                                            : getSubjectColor(calendarEvent?.subject?.acronym);
 
-                                return {
-                                    style: {
-                                        backgroundColor: backgroundColor,
-                                        opacity: calendarEvent?.cancelled ? 0.6 : 1,
-                                        border: '1px solid white',
-                                        borderRadius: '10px',
-                                    }
-                                };
-                            }}
-                            messages={{
-                                week: 'Semana',
-                                work_week: 'Semana laboral',
-                                day: 'Día',
-                                month: 'Mes',
-                                previous: 'Anterior',
-                                next: 'Siguiente',
-                                today: 'Hoy',
-                                agenda: 'Agenda',
-                                date: 'Fecha',
-                                time: 'Hora',
-                                event: 'Evento',
-                                noEventsInRange: 'No hay eventos en este rango',
-                                showMore: (total) => `+ Ver más (${total})`
-                            }}
-                        />
-                    ) : (
-                        <div className="flex items-center justify-center h-full">
-                            <div className="text-center">
-                                <p className="text-muted-foreground mb-2">No hay eventos que coincidan con los filtros seleccionados</p>
-                                <p className="text-sm text-muted-foreground/70">Intenta ajustar los filtros</p>
-                            </div>
-                        </div>
-                    )}
+                                        return {
+                                            style: {
+                                                backgroundColor: backgroundColor,
+                                                opacity: calendarEvent?.cancelled ? 0.6 : 1,
+                                                border: '1px solid white',
+                                                borderRadius: '10px',
+                                            }
+                                        };
+                                    }}
+                                    messages={{
+                                        week: 'Semana',
+                                        work_week: 'Semana laboral',
+                                        day: 'Día',
+                                        month: 'Mes',
+                                        previous: 'Anterior',
+                                        next: 'Siguiente',
+                                        today: 'Hoy',
+                                        agenda: 'Agenda',
+                                        date: 'Fecha',
+                                        time: 'Hora',
+                                        event: 'Evento',
+                                        noEventsInRange: 'No hay eventos en este rango',
+                                        showMore: (total) => `+ Ver más (${total})`
+                                    }}
+                                />
+                            ) : (
+                                <div className="flex items-center justify-center h-full">
+                                    <div className="text-center">
+                                        <p className="text-muted-foreground mb-2">No hay eventos que coincidan con los filtros seleccionados</p>
+                                        <p className="text-sm text-muted-foreground/70">Intenta ajustar los filtros</p>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -600,7 +595,7 @@ export default function CalendarPage() {
                 open={isCreateEventDialogOpen}
                 onOpenChange={setIsCreateEventDialogOpen}
                 onSave={handleSaveEvent}
-                degreeId={course?.idDegree}
+                degreeId={course?.degree?.id}
                 calendarEvents={data?.events}
             />
 

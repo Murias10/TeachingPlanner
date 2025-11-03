@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Dialog, DialogContent, DialogHeader } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -127,18 +127,61 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
             <div className="p-2 bg-accent rounded-lg">
               <Repeat className="w-5 h-5" />
             </div>
-            <div>
-              <h2 className="text-lg font-semibold">Crear evento</h2>
-            </div>
+            <DialogTitle className="text-lg font-semibold">Crear evento</DialogTitle>
           </div>
         </DialogHeader>
 
         <div className="overflow-y-auto flex-1 px-6 py-3">
-          <div className={config.frequency === 'no-repeat' ? 'space-y-2' : 'space-y-3'}>
-            {/* Time Selection */}
+          <div className="space-y-3">
+            {/* Frequency Selection */}
             <div className="space-y-1">
-              <Label className="text-xs font-semibold">Horario</Label>
+              <Label className="text-xs font-semibold">Frecuencia</Label>
+              <Select value={config.frequency} onValueChange={(value) => handleFrequencyChange(value as FrequencyType)}>
+                <SelectTrigger className="h-8 text-xs w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="no-repeat">No se repite</SelectItem>
+                  <SelectItem value="daily">Diariamente</SelectItem>
+                  <SelectItem value="weekly">Semanalmente</SelectItem>
+                  <SelectItem value="monthly">Mensualmente</SelectItem>
+                  <SelectItem value="yearly">Anualmente</SelectItem>
+                  <SelectItem value="custom">Personalizado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Date, Start Time, End Time in same row */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Fecha y Horario</Label>
               <div className="flex gap-2">
+                {/* Date Selection */}
+                {config.frequency === 'no-repeat' && (
+                  <Popover modal={true}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="h-8 px-3 text-xs justify-between font-normal flex-1"
+                      >
+                        {config.eventDate ? format(new Date(config.eventDate), 'dd/MM/yyyy', { locale: es }) : 'Fecha'}
+                        <ChevronDownIcon className="w-3 h-3" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={config.eventDate ? new Date(config.eventDate) : new Date()}
+                        onSelect={(date) => {
+                          if (date) {
+                            setConfig({ ...config, eventDate: format(date, 'yyyy-MM-dd') });
+                          }
+                        }}
+                        locale={es}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                )}
+
                 {/* Start Time */}
                 <Popover open={openStartTime} onOpenChange={setOpenStartTime} modal={true}>
                   <PopoverTrigger asChild>
@@ -187,158 +230,107 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
               </div>
             </div>
 
-            {/* Frequency Selection */}
+            {/* Subject Selection - Always visible */}
             <div className="space-y-1">
-              <Label className="text-xs font-semibold">Frecuencia</Label>
-              <Select value={config.frequency} onValueChange={(value) => handleFrequencyChange(value as FrequencyType)}>
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue />
+              <Label className="text-xs font-semibold">Asignatura</Label>
+              {isLoadingSubjects ? (
+                <div className="h-8 text-xs flex items-center text-muted-foreground">
+                  Cargando asignaturas...
+                </div>
+              ) : subjects.length === 0 ? (
+                <div className="h-8 text-xs flex items-center text-muted-foreground">
+                  No hay asignaturas disponibles
+                </div>
+              ) : (
+                <Select value={config.subjectId || ''} onValueChange={(value) => setConfig({ ...config, subjectId: value })}>
+                  <SelectTrigger className="h-8 text-xs w-full">
+                    <SelectValue placeholder="Seleccionar asignatura" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {subjects.map((subject) => (
+                      <SelectItem key={subject.id} value={subject.id}>
+                        {subject.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            {/* Event Type Selection - Always visible */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Tipo de Evento</Label>
+              <Select value={eventType} onValueChange={(value) => setEventType(value as 'T' | 'S' | 'L')}>
+                <SelectTrigger className="h-8 text-xs w-full">
+                  <SelectValue placeholder="Seleccionar tipo de evento" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="no-repeat">No se repite</SelectItem>
-                  <SelectItem value="daily">Diariamente</SelectItem>
-                  <SelectItem value="weekly">Semanalmente</SelectItem>
-                  <SelectItem value="monthly">Mensualmente</SelectItem>
-                  <SelectItem value="yearly">Anualmente</SelectItem>
-                  <SelectItem value="custom">Personalizado</SelectItem>
+                  <SelectItem value="T">Teoría</SelectItem>
+                  <SelectItem value="S">Seminario</SelectItem>
+                  <SelectItem value="L">Laboratorio</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Puntual Event Fields - Only show when frequency is 'no-repeat' */}
-            {config.frequency === 'no-repeat' && (
-              <div className="space-y-2 p-2 border border-primary/20 rounded bg-accent/20">
-                {/* Date Selection */}
-                <div className="space-y-1">
-                  <Label className="text-xs font-semibold">Fecha</Label>
-                  <Popover modal={true}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        className="h-8 px-3 text-xs justify-between font-normal w-full"
-                      >
-                        {config.eventDate ? format(new Date(config.eventDate), 'dd/MM/yyyy', { locale: es }) : 'Seleccionar fecha'}
-                        <ChevronDownIcon className="w-3 h-3" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={config.eventDate ? new Date(config.eventDate) : new Date()}
-                        onSelect={(date) => {
-                          if (date) {
-                            setConfig({ ...config, eventDate: format(date, 'yyyy-MM-dd') });
-                          }
-                        }}
-                        locale={es}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                {/* Subject Selection */}
-                <div className="space-y-1">
-                  <Label className="text-xs font-semibold">Asignatura</Label>
-                  {isLoadingSubjects ? (
-                    <div className="h-8 text-xs flex items-center text-muted-foreground">
-                      Cargando asignaturas...
-                    </div>
-                  ) : subjects.length === 0 ? (
-                    <div className="h-8 text-xs flex items-center text-muted-foreground">
-                      No hay asignaturas disponibles
-                    </div>
+            {/* Groups Selection - Always visible */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Grupos</Label>
+              <div className="space-y-1 max-h-24 overflow-y-auto border border-primary/20 rounded p-2">
+                {config.subjectId ? (
+                  availableGroups.length > 0 ? (
+                    availableGroups.map((group) => (
+                      <div key={group.id} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`group-${group.id}`}
+                          checked={config.groupIds?.includes(group.id) || false}
+                          onCheckedChange={(checked) => {
+                            const newIds = checked
+                              ? [...(config.groupIds || []), group.id]
+                              : (config.groupIds || []).filter(id => id !== group.id);
+                            setConfig({ ...config, groupIds: newIds });
+                          }}
+                        />
+                        <Label htmlFor={`group-${group.id}`} className="text-xs cursor-pointer m-0 flex-1">
+                          Grupo {group.number}
+                        </Label>
+                      </div>
+                    ))
                   ) : (
-                    <Select value={config.subjectId || ''} onValueChange={(value) => setConfig({ ...config, subjectId: value })}>
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue placeholder="Seleccionar asignatura" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {subjects.map((subject) => (
-                          <SelectItem key={subject.id} value={subject.id}>
-                            {subject.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
-
-                {/* Event Type Selection */}
-                <div className="space-y-1">
-                  <Label className="text-xs font-semibold">Tipo de Evento</Label>
-                  <Select value={eventType} onValueChange={(value) => setEventType(value as 'T' | 'S' | 'L')}>
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="T">Teoría (T)</SelectItem>
-                      <SelectItem value="S">Seminario (S)</SelectItem>
-                      <SelectItem value="L">Laboratorio (L)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Groups Selection */}
-                <div className="space-y-1">
-                  <Label className="text-xs font-semibold">Grupos</Label>
-                  <div className="space-y-1 max-h-24 overflow-y-auto border border-primary/20 rounded p-2">
-                    {config.subjectId ? (
-                      availableGroups.length > 0 ? (
-                        availableGroups.map((group) => (
-                          <div key={group.id} className="flex items-center gap-2">
-                            <Checkbox
-                              id={`group-${group.id}`}
-                              checked={config.groupIds?.includes(group.id) || false}
-                              onCheckedChange={(checked) => {
-                                const newIds = checked
-                                  ? [...(config.groupIds || []), group.id]
-                                  : (config.groupIds || []).filter(id => id !== group.id);
-                                setConfig({ ...config, groupIds: newIds });
-                              }}
-                            />
-                            <Label htmlFor={`group-${group.id}`} className="text-xs cursor-pointer m-0 flex-1">
-                              Grupo {group.number}
-                            </Label>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-xs text-muted-foreground">Sin grupos disponibles para esta asignatura</p>
-                      )
-                    ) : (
-                      <p className="text-xs text-muted-foreground">Selecciona una asignatura primero</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Classrooms Selection */}
-                <div className="space-y-1">
-                  <Label className="text-xs font-semibold">Aulas</Label>
-                  <div className="space-y-1 max-h-24 overflow-y-auto border border-primary/20 rounded p-2">
-                    {classrooms.length > 0 ? (
-                      classrooms.map((classroom) => (
-                        <div key={classroom.id} className="flex items-center gap-2">
-                          <Checkbox
-                            id={`classroom-${classroom.id}`}
-                            checked={config.classroomIds?.includes(classroom.id) || false}
-                            onCheckedChange={(checked) => {
-                              const newIds = checked
-                                ? [...(config.classroomIds || []), classroom.id]
-                                : (config.classroomIds || []).filter(id => id !== classroom.id);
-                              setConfig({ ...config, classroomIds: newIds });
-                            }}
-                          />
-                          <Label htmlFor={`classroom-${classroom.id}`} className="text-xs cursor-pointer m-0 flex-1">
-                            {classroom.code}
-                          </Label>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-xs text-muted-foreground">Cargando aulas...</p>
-                    )}
-                  </div>
-                </div>
+                    <p className="text-xs text-muted-foreground">Sin grupos disponibles para esta asignatura</p>
+                  )
+                ) : (
+                  <p className="text-xs text-muted-foreground">Selecciona una asignatura primero</p>
+                )}
               </div>
-            )}
+            </div>
+
+            {/* Classrooms Selection - Always visible */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Aulas</Label>
+              <div className="space-y-1 max-h-24 overflow-y-auto border border-primary/20 rounded p-2">
+                {classrooms.length > 0 ? (
+                  classrooms.map((classroom) => (
+                    <div key={classroom.id} className="flex items-center gap-2">
+                      <Checkbox
+                        id={`classroom-${classroom.id}`}
+                        checked={config.classroomIds?.includes(classroom.id) || false}
+                        onCheckedChange={(checked) => {
+                          const newIds = checked
+                            ? [...(config.classroomIds || []), classroom.id]
+                            : (config.classroomIds || []).filter(id => id !== classroom.id);
+                          setConfig({ ...config, classroomIds: newIds });
+                        }}
+                      />
+                      <Label htmlFor={`classroom-${classroom.id}`} className="text-xs cursor-pointer m-0 flex-1">
+                        {classroom.code}
+                      </Label>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-muted-foreground">Cargando aulas...</p>
+                )}
+              </div>
+            </div>
 
             {/* Custom Options */}
             {showCustom && (

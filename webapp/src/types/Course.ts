@@ -2,6 +2,7 @@
 // types/Course.ts
 // ============================================
 import { Calendar } from "@/types/Calendar";
+import { Degree } from "@/types/Degree";
 
 export interface CourseFormData {
     startYear: string;
@@ -17,7 +18,7 @@ export enum CourseState {
 
 export interface Course {
     id: string;
-    idDegree: string;
+    degree: Degree;
     startYear: number;
     endYear: number;
     state: CourseState;

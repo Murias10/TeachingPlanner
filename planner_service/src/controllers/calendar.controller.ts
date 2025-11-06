@@ -2643,8 +2643,21 @@ export const createPuntualEvent = async (req: Request, res: Response) => {
             return;
         }
 
-        // Buscar o crear el día
+        // Validar que la fecha esté dentro del rango del calendario
         const eventDateObj = new Date(eventDate);
+        const calendarStartDate = new Date(calendar.start);
+        const calendarEndDate = new Date(calendar.end);
+
+        if (eventDateObj < calendarStartDate || eventDateObj > calendarEndDate) {
+            res.status(400).json({
+                status: 'error',
+                message: `Event date must be between ${calendar.start} and ${calendar.end}`,
+                data: null
+            });
+            return;
+        }
+
+        // Buscar el día (no crear uno nuevo)
         let day = await dayRepo.findOne({
             where: {
                 date: eventDateObj,
@@ -2653,28 +2666,30 @@ export const createPuntualEvent = async (req: Request, res: Response) => {
             relations: ['puntualEvents', 'puntualEvents.groups', 'puntualEvents.classrooms']
         });
 
+        // Si el día no existe, no se puede crear el evento
         if (!day) {
-            day = dayRepo.create({
-                date: eventDateObj,
-                calendar: calendar,
-                lective: true,
-                dayCharacter: 'Lectivo',
-                comment: ''
+            res.status(400).json({
+                status: 'error',
+                message: 'The selected date does not exist in the calendar. Events can only be created on existing calendar days.',
+                data: null
             });
-            day = await dayRepo.save(day);
-        } else {
-            // Reload para obtener las relaciones
-            day = await dayRepo.findOne({
-                where: { id: day.id },
-                relations: ['puntualEvents', 'puntualEvents.groups', 'puntualEvents.classrooms']
-            }) || day;
+            return;
         }
 
         // Validación de conflictos: verificar si hay eventos en el mismo horario con el mismo grupo o aula
+        console.log('[Conflict Detection] Checking for conflicts');
+        console.log('[Conflict Detection] New event time:', startTime, '-', endTime);
+        console.log('[Conflict Detection] GroupIds:', groupIds);
+        console.log('[Conflict Detection] ClassroomIds:', classroomIds);
+        console.log('[Conflict Detection] Existing events on this day:', day.puntualEvents?.length || 0);
+
         const conflictingEvents = day.puntualEvents?.filter(event => {
             const eventStart = event.startTime;
             const eventEnd = event.endTime;
             const hasTimeOverlap = startTime < eventEnd && endTime > eventStart;
+
+            console.log(`[Conflict Detection] Checking event ${event.id}: ${eventStart}-${eventEnd}`);
+            console.log(`[Conflict Detection]   Time overlap: ${hasTimeOverlap}`);
 
             if (!hasTimeOverlap) return false;
 
@@ -2683,8 +2698,12 @@ export const createPuntualEvent = async (req: Request, res: Response) => {
             // Verificar si comparte aula
             const sharesClassroom = event.classrooms?.some(c => classroomIds.includes(c.id)) || classroomIds.length === 0;
 
+            console.log(`[Conflict Detection]   Shares group: ${sharesGroup}, Shares classroom: ${sharesClassroom}`);
+
             return sharesGroup && sharesClassroom;
         });
+
+        console.log('[Conflict Detection] Total conflicts found:', conflictingEvents?.length || 0);
 
         if (conflictingEvents && conflictingEvents.length > 0) {
             res.status(409).json({

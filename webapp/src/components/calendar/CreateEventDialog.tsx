@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -70,6 +70,18 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
     return Array.from(groupsSet).map(g => JSON.parse(g) as Group);
   }, [config.subjectId, calendarEvents, eventType]);
 
+  // Validate that all required fields are filled
+  const isFormValid = useMemo(() => {
+    return (
+      config.subjectId &&
+      config.groupIds &&
+      config.groupIds.length > 0 &&
+      config.classroomIds &&
+      config.classroomIds.length > 0 &&
+      eventType
+    );
+  }, [config.subjectId, config.groupIds, config.classroomIds, eventType]);
+
   const weekDays: { value: WeekDay; label: string }[] = [
     { value: 'L', label: 'L' },
     { value: 'M', label: 'M' },
@@ -129,6 +141,7 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
             </div>
             <DialogTitle className="text-lg font-semibold">Crear evento</DialogTitle>
           </div>
+          <DialogDescription className="hidden">Diálogo para crear un nuevo evento en el calendario</DialogDescription>
         </DialogHeader>
 
         <div className="overflow-y-auto flex-1 px-6 py-3">
@@ -516,6 +529,7 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
           </Button>
           <Button
             onClick={handleSave}
+            disabled={!isFormValid}
             className="h-8 text-xs"
           >
             Crear

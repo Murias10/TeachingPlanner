@@ -226,6 +226,26 @@
                     }
                 }
             }
+        },
+        "puntualEvent": {
+            "error": {
+                "400": {
+                    "title": "Fecha no disponible",
+                    "description": "La fecha seleccionada no existe en el calendario. Los eventos solo pueden crearse en días del calendario existentes."
+                },
+                "409": {
+                    "title": "Conflicto de horario",
+                    "description": "Ya existe un evento en el mismo horario para el grupo o aula seleccionado."
+                },
+                "default": {
+                    "title": "Error al crear el evento",
+                    "description": "No se pudo crear el evento puntual. Por favor, inténtalo de nuevo mas tarde."
+                }
+            },
+            "success": {
+                "title": "Evento creado",
+                "description": "El evento puntual fue creado correctamente."
+            }
         }
     },
     "toolbar": {

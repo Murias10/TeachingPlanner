@@ -41,7 +41,7 @@ export function useCalendarByCourseAndSemester(
     }, [course, semester]);
 
     // Paso 4: Obtener los eventos del calendario
-    const { data, isLoading: isLoadingEvents, error: eventsError } = useEventsCalendar(calendarId);
+    const { data, isLoading: isLoadingEvents, error: eventsError, refetch } = useEventsCalendar(calendarId);
 
     // Combinar estados de carga y errores
     const isLoading = isLoadingCourses || isLoadingEvents;
@@ -52,6 +52,7 @@ export function useCalendarByCourseAndSemester(
         isLoading,
         error,
         calendarId,
-        course
+        course,
+        refetch
     };
 }

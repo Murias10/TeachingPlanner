@@ -92,7 +92,7 @@ export default function CalendarPage() {
 
     const { setItems } = useBreadcrumbContext();
 
-    const { data, isLoading, calendarId, course } = useCalendarByCourseAndSemester(
+    const { data, isLoading, calendarId, course, refetch } = useCalendarByCourseAndSemester(
         acronym || null,
         startYear || null,
         endYear || null,
@@ -294,8 +294,6 @@ export default function CalendarPage() {
         }
 
         try {
-
-
             // Llamar al endpoint de exportación
             const response = await fetch(`${VITE_GATEWAY_API_URL}/calendar/${calendarId}/export`);
 
@@ -346,14 +344,11 @@ export default function CalendarPage() {
     };
 
     const handleDeleteEvents = () => {
-        console.log('Deleting events:', selectedEventIds);
         // TODO: Implement delete functionality
         setSelectedEventIds([]);
     };
 
     const handleSaveEvent = (config: RecurrenceConfig) => {
-        console.log('Creating event with config:', config);
-
         // Only handle puntual events for now
         if (config.frequency !== 'no-repeat') {
             triggerAlert({
@@ -374,11 +369,21 @@ export default function CalendarPage() {
             return;
         }
 
-        // Validar que al menos un grupo o aula esté seleccionado
+        // Validar que al menos un grupo esté seleccionado
         if (!config.groupIds || config.groupIds.length === 0) {
             triggerAlert({
                 title: 'Error',
                 description: 'Por favor selecciona al menos un grupo',
+                variant: 'destructive'
+            });
+            return;
+        }
+
+        // Validar que al menos un aula esté seleccionada
+        if (!config.classroomIds || config.classroomIds.length === 0) {
+            triggerAlert({
+                title: 'Error',
+                description: 'Por favor selecciona al menos un aula',
                 variant: 'destructive'
             });
             return;
@@ -407,17 +412,20 @@ export default function CalendarPage() {
             {
                 onSuccess: () => {
                     triggerAlert({
-                        title: 'Éxito',
-                        description: 'Evento puntual creado correctamente',
+                        title: t('alerts.puntualEvent.success.title'),
+                        description: t('alerts.puntualEvent.success.description'),
                         variant: 'success'
                     });
                     setIsCreateEventDialogOpen(false);
-                    // Refetch calendar events
+                    refetch();
                 },
-                onError: (error) => {
+                onError: (error: Error & { statusCode?: number }) => {
+                    const statusCode = error.statusCode || 500;
+                    const errorKey = statusCode === 400 || statusCode === 409 ? statusCode.toString() : 'default';
+
                     triggerAlert({
-                        title: 'Error',
-                        description: error.message || 'Error al crear el evento',
+                        title: t(`alerts.puntualEvent.error.${errorKey}.title`),
+                        description: t(`alerts.puntualEvent.error.${errorKey}.description`),
                         variant: 'destructive'
                     });
                 }
@@ -425,18 +433,15 @@ export default function CalendarPage() {
         );
     };
 
-    const handleEditEvent = (event: CalendarEvent) => {
-        console.log('Editing event:', event);
+    const handleEditEvent = () => {
         // TODO: Implement event editing logic
     };
 
-    const handleDeleteEvent = (event: CalendarEvent) => {
-        console.log('Deleting event:', event);
+    const handleDeleteEvent = () => {
         // TODO: Implement event deletion logic
     };
 
-    const handleDuplicateEvent = (event: CalendarEvent) => {
-        console.log('Duplicating event:', event);
+    const handleDuplicateEvent = () => {
         // TODO: Implement event duplication logic
     };
 
@@ -445,8 +450,7 @@ export default function CalendarPage() {
         setIsEventDetailsDrawerOpen(true);
     };
 
-    const handleToggleCancellation = (event: CalendarEvent) => {
-        console.log('Toggling cancellation for event:', event);
+    const handleToggleCancellation = () => {
         // TODO: Implement toggle cancellation logic
     };
 
@@ -539,6 +543,7 @@ export default function CalendarPage() {
                                     events={events}
                                     max={maxDate}
                                     min={minDate}
+                                    defaultDate={data?.startDate ? new Date(data.startDate) : new Date()}
                                     startAccessor="start"
                                     endAccessor="end"
                                     culture="es"

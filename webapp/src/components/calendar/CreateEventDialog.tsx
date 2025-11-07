@@ -26,9 +26,12 @@ interface CreateEventDialogProps {
   onSave: (config: RecurrenceConfig) => void;
   degreeId?: string;
   calendarEvents?: CalendarEvent[];
+  initialDate?: string | null;
+  initialStartTime?: string | null;
+  initialEndTime?: string | null;
 }
 
-const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChange, onSave, degreeId, calendarEvents = [] }) => {
+const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChange, onSave, degreeId, calendarEvents = [], initialDate, initialStartTime, initialEndTime }) => {
   const [config, setConfig] = useState<RecurrenceConfig>({
     frequency: 'no-repeat',
     interval: 1,
@@ -48,6 +51,25 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
   const [eventType, setEventType] = useState<string>('T');
   const [openStartTime, setOpenStartTime] = useState(false);
   const [openEndTime, setOpenEndTime] = useState(false);
+
+  // Actualizar config cuando cambien los props iniciales
+  React.useEffect(() => {
+    const newConfig: RecurrenceConfig = {
+      frequency: 'no-repeat',
+      interval: 1,
+      weekDays: [],
+      endsType: 'never',
+      endsOnDate: '',
+      endsAfterOccurrences: 1,
+      startTime: initialStartTime || '09:00',
+      endTime: initialEndTime || '10:00',
+      eventDate: initialDate || format(new Date(), 'yyyy-MM-dd'),
+      subjectId: undefined,
+      groupIds: [],
+      classroomIds: [],
+    };
+    setConfig(newConfig);
+  }, [initialDate, initialStartTime, initialEndTime]);
   const { data: classrooms = [] } = useClassrooms();
   const { data: subjects = [], isLoading: isLoadingSubjects } = useSubjectsByDegreeId(degreeId || null);
 
@@ -176,14 +198,14 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
                         variant="outline"
                         className="h-8 px-3 text-xs justify-between font-normal flex-1"
                       >
-                        {config.eventDate ? format(new Date(config.eventDate), 'dd/MM/yyyy', { locale: es }) : 'Fecha'}
+                        {config.eventDate && !isNaN(new Date(config.eventDate).getTime()) ? format(new Date(config.eventDate), 'dd/MM/yyyy', { locale: es }) : 'Fecha'}
                         <ChevronDownIcon className="w-3 h-3" />
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
-                        selected={config.eventDate ? new Date(config.eventDate) : new Date()}
+                        selected={config.eventDate && !isNaN(new Date(config.eventDate).getTime()) ? new Date(config.eventDate) : new Date()}
                         onSelect={(date) => {
                           if (date) {
                             setConfig({ ...config, eventDate: format(date, 'yyyy-MM-dd') });

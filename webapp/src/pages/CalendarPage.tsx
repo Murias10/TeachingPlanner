@@ -115,6 +115,9 @@ export default function CalendarPage() {
     // Estado para el diálogo de crear evento
     const [isCreateEventDialogOpen, setIsCreateEventDialogOpen] = useState(false);
     const [selectedEventIds, setSelectedEventIds] = useState<string[]>([]);
+    const [dragStartDate, setDragStartDate] = useState<string | null>(null);
+    const [dragStartTime, setDragStartTime] = useState<string | null>(null);
+    const [dragEndTime, setDragEndTime] = useState<string | null>(null);
 
     // Estado para el drawer de detalles del evento
     const [isEventDetailsDrawerOpen, setIsEventDetailsDrawerOpen] = useState(false);
@@ -340,6 +343,21 @@ export default function CalendarPage() {
     };
 
     const handleCreateEvent = () => {
+        setDragStartDate(null);
+        setDragStartTime(null);
+        setDragEndTime(null);
+        setIsCreateEventDialogOpen(true);
+    };
+
+    const handleSelectSlot = (slotInfo: { start: Date; end: Date }) => {
+        // Convertir la fecha seleccionada a formato YYYY-MM-DD
+        const selectedDate = moment(slotInfo.start).format('YYYY-MM-DD');
+        const startTime = moment(slotInfo.start).format('HH:mm');
+        const endTime = moment(slotInfo.end).format('HH:mm');
+
+        setDragStartDate(selectedDate);
+        setDragStartTime(startTime);
+        setDragEndTime(endTime);
         setIsCreateEventDialogOpen(true);
     };
 
@@ -549,6 +567,8 @@ export default function CalendarPage() {
                                     culture="es"
                                     style={{ height: '100%', width: '100%' }}
                                     components={calendarComponents}
+                                    onSelectSlot={handleSelectSlot}
+                                    selectable
                                     eventPropGetter={(event) => {
                                         const calendarEvent = event.resource as CalendarEvent;
 
@@ -602,6 +622,9 @@ export default function CalendarPage() {
                 onSave={handleSaveEvent}
                 degreeId={course?.degree?.id}
                 calendarEvents={data?.events}
+                initialDate={dragStartDate}
+                initialStartTime={dragStartTime}
+                initialEndTime={dragEndTime}
             />
 
             {/* Event Details Drawer */}

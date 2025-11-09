@@ -12,6 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { TimePicker } from '@/components/ui/time-picker';
+import { Textarea } from '@/components/ui/textarea';
 import { es } from 'date-fns/locale';
 import { format } from 'date-fns';
 import type { RecurrenceConfig, FrequencyType, WeekDay, EndsType } from '@/types/RecurrenceConfig';
@@ -45,6 +46,7 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
     subjectId: undefined,
     groupIds: [],
     classroomIds: [],
+    comment: '',
   });
 
   const [showCustom, setShowCustom] = useState(false);
@@ -67,6 +69,7 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
       subjectId: undefined,
       groupIds: [],
       classroomIds: [],
+      comment: '',
     };
     setConfig(newConfig);
   }, [initialDate, initialStartTime, initialEndTime]);
@@ -529,6 +532,20 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
                     </div>
                   </RadioGroup>
                 </div>
+              </div>
+            )}
+
+            {/* Comment Field - Only visible when frequency is 'no-repeat' */}
+            {config.frequency === 'no-repeat' && (
+              <div className="space-y-1">
+                <Label htmlFor="comment" className="text-xs font-semibold">Comentario</Label>
+                <Textarea
+                  id="comment"
+                  placeholder="Añade un comentario sobre este evento..."
+                  value={config.comment}
+                  onChange={(e) => setConfig({ ...config, comment: e.target.value })}
+                  className="h-20 text-xs resize-none"
+                />
               </div>
             )}
 

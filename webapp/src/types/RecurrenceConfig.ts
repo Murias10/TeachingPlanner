@@ -16,4 +16,5 @@ export interface RecurrenceConfig {
   subjectId?: string;
   groupIds?: string[];
   classroomIds?: string[];
+  comment: string; // Comment field for puntual events
 }

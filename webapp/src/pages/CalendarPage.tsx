@@ -440,7 +440,8 @@ export default function CalendarPage() {
                 endTime: config.endTime,
                 subjectId: config.subjectId,
                 groupIds: config.groupIds,
-                classroomIds: config.classroomIds || []
+                classroomIds: config.classroomIds || [],
+                comment: config.comment
             },
             {
                 onSuccess: () => {

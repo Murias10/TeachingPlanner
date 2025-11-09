@@ -10,6 +10,7 @@ export interface CreatePuntualEventPayload {
     subjectId?: string;
     groupIds?: string[];
     classroomIds?: string[];
+    comment: string;
 }
 
 export interface CreatePuntualEventResponse {

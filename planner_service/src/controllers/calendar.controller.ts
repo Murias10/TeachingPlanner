@@ -2612,7 +2612,7 @@ export const exportCalendar = async (req: Request, res: Response) => {
 
 export const createPuntualEvent = async (req: Request, res: Response) => {
     try {
-        const { calendarId, eventDate, startTime, endTime, subjectId, groupIds = [], classroomIds = [] } = req.body;
+        const { calendarId, eventDate, startTime, endTime, subjectId, groupIds = [], classroomIds = [], comment = '' } = req.body;
 
         // Validaciones
         if (!calendarId || !eventDate || !startTime || !endTime) {
@@ -2736,7 +2736,7 @@ export const createPuntualEvent = async (req: Request, res: Response) => {
             startTime: startTime,
             endTime: endTime,
             cancelled: false,
-            comment: '',
+            comment: comment || '',
             groups: groups,
             classrooms: classrooms
         });

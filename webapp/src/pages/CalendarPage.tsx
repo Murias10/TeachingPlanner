@@ -17,8 +17,11 @@ import { ProtectedComponent } from "@/components/ProtectedComponent";
 import { CalendarEventWrapper } from "@/components/calendar/CalendarEventWrapper";
 import VITE_GATEWAY_API_URL from "@/config/api";
 import { EventDetailsDrawer } from "@/components/calendar/EventDetailsDrawer";
+import { DeleteEventConfirmationDialog } from "@/components/calendar/DeleteEventConfirmationDialog";
 import { useCreatePuntualEvent } from "@/hooks/calendar/useCreatePuntualEvent";
+import { useDeletePuntualEvent } from "@/hooks/calendar/useDeletePuntualEvent";
 import { useFloatingAlert } from "@/hooks/useFloatingAlert";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Configurar moment para usar español y que la semana empiece en lunes
 moment.locale('es', {
@@ -85,7 +88,10 @@ export default function CalendarPage() {
 
     const { t } = useTranslation()
     const { triggerAlert } = useFloatingAlert();
+    const { user } = useAuth();
     const { mutate: createPuntualEvent } = useCreatePuntualEvent();
+    const { deletePuntualEvent, isDeleting: isDeletingEvent } = useDeletePuntualEvent();
+    const isAdmin = user?.role === 'ADMIN';
 
     // Extraer el acrónimo de la URL
     const { acronym, startYear, endYear, semester } = useParams<{ acronym: string, startYear: string, endYear: string, semester: string }>()
@@ -122,6 +128,10 @@ export default function CalendarPage() {
     // Estado para el drawer de detalles del evento
     const [isEventDetailsDrawerOpen, setIsEventDetailsDrawerOpen] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | undefined>(undefined);
+
+    // Estado para el diálogo de eliminación de evento
+    const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);
+    const [eventToDelete, setEventToDelete] = useState<CalendarEvent | undefined>(undefined);
 
     useEffect(() => {
         setItems([
@@ -350,6 +360,11 @@ export default function CalendarPage() {
     };
 
     const handleSelectSlot = (slotInfo: { start: Date; end: Date }) => {
+        // Solo permitir drag and drop a ADMIN
+        if (!isAdmin) {
+            return;
+        }
+
         // Convertir la fecha seleccionada a formato YYYY-MM-DD
         const selectedDate = moment(slotInfo.start).format('YYYY-MM-DD');
         const startTime = moment(slotInfo.start).format('HH:mm');
@@ -455,8 +470,37 @@ export default function CalendarPage() {
         // TODO: Implement event editing logic
     };
 
-    const handleDeleteEvent = () => {
-        // TODO: Implement event deletion logic
+    const handleDeleteEvent = (event: CalendarEvent) => {
+        // Solo permitir eliminar eventos puntuales
+        if (event.type === 'periodic') {
+            console.log('Periodic events deletion not yet implemented');
+            return;
+        }
+
+        setEventToDelete(event);
+        setIsDeleteConfirmationOpen(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!eventToDelete || !eventToDelete.puntualEventId) return;
+
+        const result = await deletePuntualEvent(eventToDelete.puntualEventId, refetch);
+
+        if (result.success) {
+            triggerAlert({
+                title: 'Evento eliminado',
+                description: 'El evento ha sido eliminado correctamente',
+                variant: 'success'
+            });
+            setIsDeleteConfirmationOpen(false);
+            setEventToDelete(undefined);
+        } else {
+            triggerAlert({
+                title: 'Error al eliminar',
+                description: result.message || 'No se pudo eliminar el evento',
+                variant: 'destructive'
+            });
+        }
     };
 
     const handleDuplicateEvent = () => {
@@ -568,7 +612,7 @@ export default function CalendarPage() {
                                     style={{ height: '100%', width: '100%' }}
                                     components={calendarComponents}
                                     onSelectSlot={handleSelectSlot}
-                                    selectable
+                                    selectable={isAdmin}
                                     eventPropGetter={(event) => {
                                         const calendarEvent = event.resource as CalendarEvent;
 
@@ -632,6 +676,15 @@ export default function CalendarPage() {
                 open={isEventDetailsDrawerOpen}
                 onOpenChange={setIsEventDetailsDrawerOpen}
                 event={selectedEvent}
+            />
+
+            {/* Delete Event Confirmation Dialog */}
+            <DeleteEventConfirmationDialog
+                open={isDeleteConfirmationOpen}
+                onOpenChange={setIsDeleteConfirmationOpen}
+                onConfirm={handleConfirmDelete}
+                isLoading={isDeletingEvent}
+                subjectName={eventToDelete?.subject?.name || 'esta asignatura'}
             />
         </>
     );

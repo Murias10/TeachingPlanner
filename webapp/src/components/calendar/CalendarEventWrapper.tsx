@@ -8,6 +8,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { Edit, Trash2, Copy, Calendar, XCircle, CheckCircle } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface CalendarEventWrapperProps {
   event: {
@@ -29,7 +30,9 @@ export function CalendarEventWrapper({
   onViewDetails,
   onToggleCancellation,
 }: CalendarEventWrapperProps) {
+  const { user } = useAuth();
   const calendarEvent = event.resource;
+  const isAdmin = user?.role === 'ADMIN';
 
   if (!calendarEvent) {
     return <div className="h-full w-full">{event.title}</div>;
@@ -59,6 +62,20 @@ export function CalendarEventWrapper({
     e.preventDefault();
     onToggleCancellation?.(calendarEvent);
   };
+
+  // Si no es ADMIN, mostrar solo el contenido sin menú contextual
+  if (!isAdmin) {
+    return (
+      <div className="h-full w-full px-1 py-0.5">
+        <div className="text-xs font-medium">{event.title}</div>
+        {calendarEvent.classrooms.length > 0 && (
+          <div className="text-xs opacity-90">
+            {calendarEvent.classrooms.map(c => c.code).join(', ')}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <ContextMenu>

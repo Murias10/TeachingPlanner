@@ -564,3 +564,27 @@ export const createPuntualEvent = (req: Request, res: Response, next: NextFuncti
             next(error);
         });
 }
+
+export const deletePuntualEvent = (req: Request, res: Response, next: NextFunction) => {
+    const { eventId } = req.params;
+
+    fetch(`http://planner_service:5001/calendar/puntual-event/${eventId}`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+        .then((response) => {
+            // Copiar headers de respuesta
+            response.headers.forEach((value, key) => {
+                res.setHeader(key, value);
+            });
+
+            return response.json().then((body) => {
+                res.status(response.status).json(body);
+            });
+        })
+        .catch((error) => {
+            next(error);
+        });
+}

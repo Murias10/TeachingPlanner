@@ -2760,3 +2760,52 @@ export const createPuntualEvent = async (req: Request, res: Response) => {
         });
     }
 };
+
+export const deletePuntualEvent = async (req: Request, res: Response) => {
+    try {
+        const { eventId } = req.params;
+
+        // Validaciones
+        if (!eventId) {
+            res.status(400).json({
+                status: 'error',
+                message: 'Missing required field: eventId',
+                data: null
+            });
+            return;
+        }
+
+        const puntualEventRepo = AppDataSource.getRepository(PuntualEvent);
+
+        // Buscar el evento puntual
+        const puntualEvent = await puntualEventRepo.findOne({
+            where: { id: eventId }
+        });
+
+        if (!puntualEvent) {
+            res.status(404).json({
+                status: 'error',
+                message: 'Puntual event not found',
+                data: null
+            });
+            return;
+        }
+
+        // Eliminar el evento
+        await puntualEventRepo.remove(puntualEvent);
+
+        res.status(200).json({
+            status: 'success',
+            message: 'Puntual event deleted successfully',
+            data: null
+        });
+
+    } catch (error) {
+        console.error('Error deleting puntual event:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error deleting puntual event',
+            data: error instanceof Error ? error.message : error
+        });
+    }
+};

@@ -2,6 +2,18 @@ import { NextFunction, Request, Response } from 'express';
 import FormData from 'form-data';
 import axios from 'axios';
 
+/**
+ * Helper function to create headers for proxied requests
+ * Passes through the Authorization header if present
+ */
+function getProxyHeaders(req: Request, additionalHeaders: Record<string, string> = {}): Record<string, string> {
+    const headers: Record<string, string> = { ...additionalHeaders };
+    if (req.headers.authorization) {
+        headers.authorization = req.headers.authorization;
+    }
+    return headers;
+}
+
 
 export const getDegrees = (_req: Request, res: Response, next: NextFunction) => {
     fetch('http://planner_service:5001/degrees')
@@ -42,7 +54,7 @@ export const createDegree = async (req: Request, res: Response, next: NextFuncti
 
     fetch("http://planner_service:5001/degree", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getProxyHeaders(req, { "Content-Type": "application/json" }),
         body: JSON.stringify({ name, acronym })
     })
         .then(async (response) => {
@@ -63,7 +75,7 @@ export const updateDegree = async (req: Request, res: Response, next: NextFuncti
 
     fetch(`http://planner_service:5001/degree/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: getProxyHeaders(req, { "Content-Type": "application/json" }),
         body: JSON.stringify({ name, acronym })
     })
         .then(async (response) => {
@@ -82,7 +94,8 @@ export const deleteDegree = async (req: Request, res: Response, next: NextFuncti
     const { id } = req.params;
 
     fetch(`http://planner_service:5001/degree/${id}`, {
-        method: "DELETE"
+        method: "DELETE",
+        headers: getProxyHeaders(req)
     })
         .then(async (response) => {
             response.headers.forEach((value, key) => {
@@ -151,7 +164,8 @@ export const deleteSubject = async (req: Request, res: Response, next: NextFunct
     const { id } = req.params;
 
     fetch(`http://planner_service:5001/subject/${id}`, {
-        method: "DELETE"
+        method: "DELETE",
+        headers: getProxyHeaders(req)
     })
         .then(async (response) => {
             response.headers.forEach((value, key) => {
@@ -171,7 +185,7 @@ export const createSubject = async (req: Request, res: Response, next: NextFunct
 
     fetch("http://planner_service:5001/subject", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getProxyHeaders(req, { "Content-Type": "application/json" }),
         body: JSON.stringify({ acronym, year, name, siesCode, semester, degree }) // ✅ reenviamos datos
     })
         .then(async (response) => {
@@ -192,7 +206,7 @@ export const updateSubject = async (req: Request, res: Response, next: NextFunct
 
     fetch(`http://planner_service:5001/subject/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: getProxyHeaders(req, { "Content-Type": "application/json" }),
         body: JSON.stringify({ acronym, year, name, siesCode, semester })
     })
         .then(async (response) => {
@@ -264,7 +278,7 @@ export const createCourse = async (req: Request, res: Response, next: NextFuncti
 
     fetch("http://planner_service:5001/course", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getProxyHeaders(req, { "Content-Type": "application/json" }),
         body: JSON.stringify({ startYear, endYear, state, degree })
     })
         .then(async (response) => {
@@ -285,7 +299,7 @@ export const updateCourse = async (req: Request, res: Response, next: NextFuncti
 
     fetch(`http://planner_service:5001/course/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: getProxyHeaders(req, { "Content-Type": "application/json" }),
         body: JSON.stringify({ startYear, endYear, state })
     })
         .then(async (response) => {
@@ -304,7 +318,8 @@ export const deleteCourse = async (req: Request, res: Response, next: NextFuncti
     const { id } = req.params;
 
     fetch(`http://planner_service:5001/course/${id}`, {
-        method: "DELETE"
+        method: "DELETE",
+        headers: getProxyHeaders(req)
     })
         .then(async (response) => {
             response.headers.forEach((value, key) => {
@@ -340,7 +355,7 @@ export const createClassroom = async (req: Request, res: Response, next: NextFun
 
     fetch("http://planner_service:5001/classroom", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getProxyHeaders(req, { "Content-Type": "application/json" }),
         body: JSON.stringify({ code, gisUrl }) // ✅ reenviamos datos
     })
         .then(async (response) => {
@@ -362,7 +377,7 @@ export const updateClassroom = async (req: Request, res: Response, next: NextFun
 
     fetch(`http://planner_service:5001/classroom/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: getProxyHeaders(req, { "Content-Type": "application/json" }),
         body: JSON.stringify({ code, gisUrl })
     })
         .then(async (response) => {
@@ -381,7 +396,8 @@ export const deleteClassroom = async (req: Request, res: Response, next: NextFun
     const { id } = req.params;
 
     fetch(`http://planner_service:5001/classroom/${id}`, {
-        method: "DELETE"
+        method: "DELETE",
+        headers: getProxyHeaders(req)
     })
         .then(async (response) => {
             response.headers.forEach((value, key) => {
@@ -399,7 +415,7 @@ export const createCalendar = async (req: Request, res: Response, next: NextFunc
     const { idCourse, semester, start, end } = req.body;
     fetch("http://planner_service:5001/calendar", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getProxyHeaders(req, { "Content-Type": "application/json" }),
         body: JSON.stringify({ idCourse, semester, start, end })
     })
         .then(async (response) => {
@@ -441,11 +457,12 @@ export const createCalendarWithImport = async (req: Request, res: Response) => {
         console.log('Forwarding to planner service...');
 
         // Usar axios para reenviar correctamente
+        const headers = getProxyHeaders(req, formData.getHeaders());
         const response = await axios.post(
             'http://planner_service:5001/calendar/import',
             formData,
             {
-                headers: formData.getHeaders(),
+                headers,
                 maxContentLength: Infinity,
                 maxBodyLength: Infinity,
             }
@@ -492,7 +509,8 @@ export const deleteCalendar = async (req: Request, res: Response, next: NextFunc
     const { id } = req.params;
 
     fetch(`http://planner_service:5001/calendar/${id}`, {
-        method: "DELETE"
+        method: "DELETE",
+        headers: getProxyHeaders(req)
     })
         .then(async (response) => {
             response.headers.forEach((value, key) => {
@@ -545,9 +563,7 @@ export const exportCalendar = (req: Request, res: Response, next: NextFunction) 
 export const createPuntualEvent = (req: Request, res: Response, next: NextFunction) => {
     fetch('http://planner_service:5001/calendar/puntual-event', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
+        headers: getProxyHeaders(req, { 'Content-Type': 'application/json' }),
         body: JSON.stringify(req.body)
     })
         .then((response) => {
@@ -570,9 +586,7 @@ export const deletePuntualEvent = (req: Request, res: Response, next: NextFuncti
 
     fetch(`http://planner_service:5001/calendar/puntual-event/${eventId}`, {
         method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json',
-        }
+        headers: getProxyHeaders(req, { 'Content-Type': 'application/json' })
     })
         .then((response) => {
             // Copiar headers de respuesta

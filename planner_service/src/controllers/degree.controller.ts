@@ -1,8 +1,10 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { AppDataSource } from '@/config/data-source';
 import { Degree } from '@/entities/degree.entity';
+import { AuditedRequest } from '@/types/audit.types';
+import { getUserEmailFromRequest } from '@/utils/audit.utils';
 
-export const getDegrees = async (_req: Request, res: Response) => {
+export const getDegrees = async (_req: AuditedRequest, res: Response) => {
     try {
         const degrees = await AppDataSource.getRepository(Degree).find();
 
@@ -23,7 +25,7 @@ export const getDegrees = async (_req: Request, res: Response) => {
     }
 };
 
-export const getDegreeByAcronym = async (req: Request, res: Response) => {
+export const getDegreeByAcronym = async (req: AuditedRequest, res: Response) => {
     const { acronym } = req.params;
     try {
         const degree = await AppDataSource.getRepository(Degree).findOneBy({ acronym });
@@ -52,7 +54,7 @@ export const getDegreeByAcronym = async (req: Request, res: Response) => {
     }
 }
 
-export const createDegree = async (req: Request, res: Response) => {
+export const createDegree = async (req: AuditedRequest, res: Response) => {
     const { name, acronym } = req.body;
 
     // Validaciones
@@ -96,7 +98,9 @@ export const createDegree = async (req: Request, res: Response) => {
             return;
         }
 
-        const degree = degreeRepo.create({ name, acronym });
+        const userEmail = getUserEmailFromRequest(req);
+        console.log('🔍 Create Degree - User email from request:', userEmail, 'req.user:', req.user);
+        const degree = degreeRepo.create({ name, acronym, createdBy: userEmail });
         const savedDegree = await degreeRepo.save(degree);
 
         res.status(201).json({
@@ -116,7 +120,7 @@ export const createDegree = async (req: Request, res: Response) => {
     }
 };
 
-export const updateDegree = async (req: Request, res: Response) => {
+export const updateDegree = async (req: AuditedRequest, res: Response) => {
     try {
         const { id } = req.params;
         const { name, acronym } = req.body;
@@ -190,6 +194,10 @@ export const updateDegree = async (req: Request, res: Response) => {
         // Actualizar los campos
         degree.name = name;
         degree.acronym = acronym;
+        const userEmail = getUserEmailFromRequest(req);
+        console.log('🔍 Update Degree - User email from request:', userEmail, 'req.user:', req.user);
+        degree.updatedBy = userEmail;
+        degree.updatedAt = new Date();
 
         // Guardar los cambios
         const updatedDegree = await degreeRepo.save(degree);
@@ -213,7 +221,7 @@ export const updateDegree = async (req: Request, res: Response) => {
     }
 };
 
-export const deleteDegree = async (req: Request, res: Response) => {
+export const deleteDegree = async (req: AuditedRequest, res: Response) => {
     try {
         const { id } = req.params;
 

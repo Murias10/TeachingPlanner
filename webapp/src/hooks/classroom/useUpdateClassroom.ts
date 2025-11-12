@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import VITE_GATEWAY_API_URL from '@/config/api';
+import { getAuthHeaders } from '@/utils/authHeaders';
 
 interface UpdateClassroomFormData {
     classroomId: string;
@@ -27,9 +28,7 @@ export const useUpdateClassroom = () => {
 
             const response = await fetch(`${VITE_GATEWAY_API_URL}/classroom/${formData.classroomId}`, {
                 method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify(payload),
             });
 

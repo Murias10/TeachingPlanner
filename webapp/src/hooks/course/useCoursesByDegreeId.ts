@@ -16,6 +16,6 @@ export function useCoursesByDegreeId(degreeId: string | null) {
             const body = await res.json()
             return body.data.courses
         },
-        staleTime: 5 * 60_000, // 5 minutos
+        // Usar el staleTime por defecto (0) definido en queryClient
     })
 }

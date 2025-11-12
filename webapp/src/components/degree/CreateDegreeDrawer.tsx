@@ -64,7 +64,7 @@ export function CreateDegreeDrawer({ open, onOpenChange, onSave }: CreateDegreeD
                             id="degree-acronym"
                             name="degree-acronym"
                             value={acronym}
-                            onChange={(e) => setAcronym(e.target.value)}
+                            onChange={(e) => setAcronym(e.target.value.toUpperCase())}
                             placeholder="Ej: MIW"
                         />
                     </div>

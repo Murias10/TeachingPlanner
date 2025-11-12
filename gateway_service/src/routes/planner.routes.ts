@@ -58,9 +58,9 @@ router.delete('/classroom/:id', deleteClassroom);
 
 router.get('/courses', getCourses);
 
-router.get('/courses/degree/:id', getCoursesByDegreeId);
-
 router.get('/courses/degree/acronym/:acronym', getCoursesByDegreeAcronym);
+
+router.get('/courses/degree/:id', getCoursesByDegreeId);
 
 router.post('/course', createCourse);
 

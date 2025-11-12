@@ -1,5 +1,6 @@
 // hooks/calendar/useDeletePuntualEvent.ts
 import { useState } from 'react';
+import { getAuthHeaders } from '@/utils/authHeaders';
 import VITE_GATEWAY_API_URL from "@/config/api"
 
 interface DeletePuntualEventResult {
@@ -21,7 +22,8 @@ export const useDeletePuntualEvent = () => {
 
         try {
             const response = await fetch(`${VITE_GATEWAY_API_URL}/calendar/puntual-event/${eventId}`, {
-                method: "DELETE"
+                method: "DELETE",
+                headers: getAuthHeaders()
             });
 
             if (!response.ok) {

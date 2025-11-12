@@ -332,56 +332,99 @@ export default function CoursePage() {
     }, [calendarDrawerData]);
 
     // Guardar nuevo calendario
-    const handleSaveCalendar = useCallback(async (formData: CalendarFormData) => {
+    const handleSaveCalendar = useCallback(async (formData: CalendarFormData): Promise<void> => {
         if (!calendarDrawerData) return;
 
-        try {
-            if (formData.files?.length && formData.formData) {
-                // Modo importación
-                await importCalendar({
-                    courseId: formData.courseId,
-                    degreeId: calendarDrawerData.degreeId,
-                    semester: formData.semester,
-                    files: formData.files,
-                });
-            } else {
-                // Modo manual
+        if (formData.files?.length && formData.formData) {
+            // Modo importación - usar mutation con onSuccess
+            return new Promise((resolve, reject) => {
+                importCalendar(
+                    {
+                        courseId: formData.courseId,
+                        degreeId: calendarDrawerData.degreeId,
+                        semester: formData.semester,
+                        files: formData.files!,
+                    },
+                    {
+                        onSuccess: () => {
+                            handleCloseCalendarDrawer();
+
+                            triggerAlert({
+                                title: t("alerts.calendar.success.create.title"),
+                                description: t("alerts.calendar.success.create.description", {
+                                    semester: formData.semester,
+                                    year: calendarDrawerData.courseYear
+                                }),
+                                variant: "success"
+                            });
+
+                            refetch();
+                            resolve();
+                        },
+                        onError: (error) => {
+                            console.error('Error importing calendar:', error);
+
+                            let errorMessage = t("alerts.calendar.error.create.description");
+
+                            if (error instanceof Error) {
+                                if (error.message.includes('already exists')) {
+                                    errorMessage = t("alerts.calendar.error.create.conflict.description");
+                                } else if (error.message.includes('Course not found')) {
+                                    errorMessage = t("alerts.calendar.error.create.course.description");
+                                } else {
+                                    errorMessage = error.message;
+                                }
+                            }
+
+                            triggerAlert({
+                                title: t("alerts.calendar.error.create.title"),
+                                description: errorMessage,
+                                variant: "destructive"
+                            });
+                            reject(error);
+                        }
+                    }
+                );
+            });
+        } else {
+            // Modo manual
+            try {
                 await createManualCalendar(formData);
-            }
 
-            handleCloseCalendarDrawer();
+                handleCloseCalendarDrawer();
 
-            triggerAlert({
-                title: t("alerts.calendar.success.create.title"),
-                description: t("alerts.calendar.success.create.description", {
-                    semester: formData.semester,
-                    year: calendarDrawerData.courseYear
-                }),
-                variant: "success"
-            });
+                triggerAlert({
+                    title: t("alerts.calendar.success.create.title"),
+                    description: t("alerts.calendar.success.create.description", {
+                        semester: formData.semester,
+                        year: calendarDrawerData.courseYear
+                    }),
+                    variant: "success"
+                });
 
-            refetch();
+                refetch();
+            } catch (error) {
+                console.error('Error creating calendar:', error);
 
-        } catch (error) {
-            console.error('Error creating calendar:', error);
+                let errorMessage = t("alerts.calendar.error.create.description");
 
-            let errorMessage = t("alerts.calendar.error.create.description");
-
-            if (error instanceof Error) {
-                if (error.message.includes('already exists')) {
-                    errorMessage = t("alerts.calendar.error.create.conflict.description");
-                } else if (error.message.includes('Course not found')) {
-                    errorMessage = t("alerts.calendar.error.create.course.description");
-                } else {
-                    errorMessage = error.message;
+                if (error instanceof Error) {
+                    if (error.message.includes('already exists')) {
+                        errorMessage = t("alerts.calendar.error.create.conflict.description");
+                    } else if (error.message.includes('Course not found')) {
+                        errorMessage = t("alerts.calendar.error.create.course.description");
+                    } else {
+                        errorMessage = error.message;
+                    }
                 }
-            }
 
-            triggerAlert({
-                title: t("alerts.calendar.error.create.title"),
-                description: errorMessage,
-                variant: "destructive"
-            });
+                triggerAlert({
+                    title: t("alerts.calendar.error.create.title"),
+                    description: errorMessage,
+                    variant: "destructive"
+                });
+                throw error;
+            }
         }
     }, [importCalendar, createManualCalendar, triggerAlert, t, refetch, calendarDrawerData, handleCloseCalendarDrawer]);
 

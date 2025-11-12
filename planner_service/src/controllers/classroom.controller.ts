@@ -1,11 +1,13 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { AppDataSource } from '@/config/data-source';
 import { Classroom } from '@/entities/classroom.entity';
 import { PeriodicEvent } from '@/entities/periodic_event.entity';
 import { PuntualEvent } from '@/entities/puntual_event.entity';
 import { validate as isUUID } from "uuid";
+import { AuditedRequest } from '@/types/audit.types';
+import { getUserEmailFromRequest } from '@/utils/audit.utils';
 
-export const getClassrooms = async (_req: Request, res: Response) => {
+export const getClassrooms = async (_req: AuditedRequest, res: Response) => {
 
     try {
         const classrooms = await AppDataSource.getRepository(Classroom).find();
@@ -25,7 +27,7 @@ export const getClassrooms = async (_req: Request, res: Response) => {
 };
 
 
-export const createClassroom = async (req: Request, res: Response) => {
+export const createClassroom = async (req: AuditedRequest, res: Response) => {
     const { code, gisUrl } = req.body;
 
     // Validaciones
@@ -66,7 +68,8 @@ export const createClassroom = async (req: Request, res: Response) => {
             return;
         }
 
-        const classroom = classroomRepo.create({ code, gisUrl });
+        const userEmail = getUserEmailFromRequest(req);
+        const classroom = classroomRepo.create({ code, gisUrl, createdBy: userEmail });
         const savedClassroom = await classroomRepo.save(classroom);
 
         res.status(201).json({
@@ -87,7 +90,7 @@ export const createClassroom = async (req: Request, res: Response) => {
 };
 
 
-export const deleteClassroom = async (req: Request, res: Response) => {
+export const deleteClassroom = async (req: AuditedRequest, res: Response) => {
     try {
         const { id } = req.params;
 
@@ -148,7 +151,7 @@ export const deleteClassroom = async (req: Request, res: Response) => {
     }
 };
 
-export const updateClassroom = async (req: Request, res: Response) => {
+export const updateClassroom = async (req: AuditedRequest, res: Response) => {
     try {
         const { id } = req.params;
         const { code, gisUrl } = req.body;
@@ -193,6 +196,8 @@ export const updateClassroom = async (req: Request, res: Response) => {
 
         // Actualizar solo el gisUrl (el code no se puede modificar)
         classroom.gisUrl = gisUrl;
+        classroom.updatedBy = getUserEmailFromRequest(req);
+        classroom.updatedAt = new Date();
 
         await classroomRepo.save(classroom);
 

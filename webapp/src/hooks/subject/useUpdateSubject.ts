@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import VITE_GATEWAY_API_URL from '@/config/api';
+import { getAuthHeaders } from '@/utils/authHeaders';
 
 interface UpdateSubjectFormData {
     subjectId: string;
@@ -33,9 +34,7 @@ export const useUpdateSubject = () => {
 
             const response = await fetch(`${VITE_GATEWAY_API_URL}/subject/${formData.subjectId}`, {
                 method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify(payload),
             });
 

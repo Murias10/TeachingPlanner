@@ -1,19 +1,15 @@
 // ============================================
 // hooks/calendar/useImportCalendar.ts
 // ============================================
-import { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ImportCalendarData, ImportResult } from '@/types/Calendar';
 import VITE_GATEWAY_API_URL from '@/config/api';
 
 export const useImportCalendar = () => {
-    const [isImporting, setIsImporting] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const queryClient = useQueryClient();
 
-    const importCalendar = async (data: ImportCalendarData): Promise<ImportResult> => {
-        setIsImporting(true);
-        setError(null);
-
-        try {
+    const mutation = useMutation<ImportResult, Error, ImportCalendarData>({
+        mutationFn: async (data: ImportCalendarData): Promise<ImportResult> => {
             console.log('=== DEBUG INFO ===');
             console.log('courseId:', data.courseId);
             console.log('degreeId:', data.degreeId);
@@ -52,19 +48,24 @@ export const useImportCalendar = () => {
 
             const result = await response.json();
             return result.data;
-
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Unknown import error';
-            setError(errorMessage);
-            throw err;
-        } finally {
-            setIsImporting(false);
-        }
-    };
+        },
+        onSuccess: async () => {
+            // Invalidar caches relacionados
+            await queryClient.invalidateQueries({
+                queryKey: ['courses']
+            });
+            await queryClient.invalidateQueries({
+                queryKey: ['calendar-events']
+            });
+            await queryClient.invalidateQueries({
+                queryKey: ['subjects']
+            });
+        },
+    });
 
     return {
-        importCalendar,
-        isImporting,
-        error
+        importCalendar: mutation.mutate,
+        isImporting: mutation.isPending,
+        error: mutation.error?.message || null
     };
 };

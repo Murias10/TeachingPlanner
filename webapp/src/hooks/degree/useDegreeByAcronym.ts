@@ -15,6 +15,6 @@ export function useDegreeByAcronym(acronym: string | null) {
             const body = await res.json();
             return body.data
         },
-        staleTime: 5 * 60_000, // 5 minutos
+        // Usar el staleTime por defecto (0) definido en queryClient
     });
 }

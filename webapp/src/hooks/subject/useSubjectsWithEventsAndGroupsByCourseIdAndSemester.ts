@@ -16,6 +16,6 @@ export function useSubjectsWithEventsAndGroupsByCourseAndSemester(courseId: stri
             return body.data.subjects
         },
         enabled: !!courseId && !!semester, // Solo ejecuta la query si ambos parámetros están disponibles
-        staleTime: 5 * 60_000,
+        // Usar el staleTime por defecto (0) definido en queryClient
     })
 }

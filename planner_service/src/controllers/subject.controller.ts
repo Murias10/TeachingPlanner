@@ -1,10 +1,12 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { AppDataSource } from '@/config/data-source';
 import { Subject } from '@/entities/subject.entity';
 import { Degree } from '@/entities/degree.entity';
 import { validate as isValidUUID } from 'uuid';
+import { AuditedRequest } from '@/types/audit.types';
+import { getUserEmailFromRequest } from '@/utils/audit.utils';
 
-export const createSubject = async (req: Request, res: Response) => {
+export const createSubject = async (req: AuditedRequest, res: Response) => {
     try {
         const { acronym, year, name, siesCode, semester, degree } = req.body;
 
@@ -92,13 +94,15 @@ export const createSubject = async (req: Request, res: Response) => {
         }
 
         // Crear y guardar la nueva asignatura - asegurar conversión a números
+        const userEmail = getUserEmailFromRequest(req);
         const subject = subjectRepo.create({
             acronym,
             year: yearNum,     // Asegurar que se guarde como número
             name,
             siesCode,
             semester: semesterNum, // Asegurar que se guarde como número
-            degree: existingDegree // Usar la entidad completa encontrada
+            degree: existingDegree, // Usar la entidad completa encontrada
+            createdBy: userEmail
         });
 
         await subjectRepo.save(subject);
@@ -118,7 +122,7 @@ export const createSubject = async (req: Request, res: Response) => {
     }
 };
 
-export const updateSubject = async (req: Request, res: Response) => {
+export const updateSubject = async (req: AuditedRequest, res: Response) => {
     try {
         const { id } = req.params;
         const { acronym, year, name, siesCode, semester } = req.body;
@@ -223,6 +227,8 @@ export const updateSubject = async (req: Request, res: Response) => {
         subject.name = name;
         subject.siesCode = siesCode;
         subject.semester = Number(semester);
+        subject.updatedBy = getUserEmailFromRequest(req);
+        subject.updatedAt = new Date();
 
         await subjectRepo.save(subject);
 
@@ -241,7 +247,7 @@ export const updateSubject = async (req: Request, res: Response) => {
     }
 };
 
-export const deleteSubject = async (req: Request, res: Response) => {
+export const deleteSubject = async (req: AuditedRequest, res: Response) => {
     try {
         const { id } = req.params;
 
@@ -281,7 +287,7 @@ export const deleteSubject = async (req: Request, res: Response) => {
     }
 };
 
-export const getSubjects = async (_req: Request, res: Response) => {
+export const getSubjects = async (_req: AuditedRequest, res: Response) => {
     try {
         const subjects = await AppDataSource.getRepository(Subject).find();
         res.status(200).json({
@@ -301,7 +307,7 @@ export const getSubjects = async (_req: Request, res: Response) => {
 };
 
 
-export const getSubjectsByDegreeId = async (req: Request, res: Response) => {
+export const getSubjectsByDegreeId = async (req: AuditedRequest, res: Response) => {
     const degreeId = req.params.id;
 
     // Validación de tipo y formato
@@ -380,7 +386,7 @@ export const getSubjectsByDegreeId = async (req: Request, res: Response) => {
 }
 
 
-export const getSubjectsWithEventsAndGroupsByCourseAndSemester = async (req: Request, res: Response) => {
+export const getSubjectsWithEventsAndGroupsByCourseAndSemester = async (req: AuditedRequest, res: Response) => {
     const { courseId, semester } = req.params;
 
     if (!courseId || !semester) {

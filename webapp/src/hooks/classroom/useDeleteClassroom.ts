@@ -1,5 +1,6 @@
 import { useCallback } from "react"
 import VITE_GATEWAY_API_URL from '@/config/api';
+import { getAuthHeaders } from '@/utils/authHeaders';
 
 // Tipos para mejor type safety
 interface DeleteResponse {
@@ -17,9 +18,7 @@ export const useDeleteClassroom = () => {
         try {
             const res = await fetch(`${VITE_GATEWAY_API_URL}/classroom/${classroomId}`, {
                 method: "DELETE",
-                headers: {
-                    "Content-Type": "application/json"
-                }
+                headers: getAuthHeaders()
             });
 
             // Verificar si la respuesta es válida antes de parsear JSON

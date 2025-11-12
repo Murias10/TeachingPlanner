@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import VITE_GATEWAY_API_URL from '@/config/api';
+import { getAuthHeaders } from '@/utils/authHeaders';
 
 // Tipos para mejor type safety
 interface UpdateDegreeResponse {
@@ -19,8 +20,8 @@ export const useUpdateDegree = () => {
         try {
             const response = await fetch(`${VITE_GATEWAY_API_URL}/degree/${degreeId}`, {
                 method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name, acronym })
+                headers: getAuthHeaders({ "Content-Type": "application/json" }),
+                body: JSON.stringify({ name, acronym: acronym.toUpperCase() })
             });
 
             // Intentar parsear la respuesta JSON

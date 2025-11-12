@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import VITE_GATEWAY_API_URL from "@/config/api";
+import { getAuthHeaders } from '@/utils/authHeaders';
 
 interface DeleteResult {
     success: boolean;
@@ -14,6 +15,7 @@ export function useDeleteSubject() {
             try {
                 const response = await fetch(`${VITE_GATEWAY_API_URL}/subject/${subjectId}`, {
                     method: "DELETE",
+                    headers: getAuthHeaders()
                 });
 
                 if (response.ok) {

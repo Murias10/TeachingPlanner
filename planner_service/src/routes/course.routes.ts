@@ -3,8 +3,8 @@ import { getCoursesByDegreeId, getCourses, deleteCourse, getCoursesByDegreeAcron
 
 const router = Router();
 
-router.get('/courses/degree/:id', getCoursesByDegreeId);
 router.get('/courses/degree/acronym/:acronym', getCoursesByDegreeAcronym);
+router.get('/courses/degree/:id', getCoursesByDegreeId);
 router.get('/courses', getCourses);
 router.post('/course', createCourse);
 router.patch('/course/:id', updateCourse);

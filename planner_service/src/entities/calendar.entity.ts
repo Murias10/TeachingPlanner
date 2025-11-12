@@ -1,6 +1,5 @@
 import {
     Entity,
-    PrimaryGeneratedColumn,
     Column,
     ManyToOne,
     OneToMany,
@@ -8,32 +7,40 @@ import {
     Unique,
     Check,
 } from 'typeorm';
+import { AuditedEntity } from '@/entities/audited.entity';
 import { Course } from '@/entities/course.entity';
 import { Day } from '@/entities/day.entity';
 import { PeriodicEvent } from '@/entities/periodic_event.entity';
 
+/**
+ * Calendar entity representing an academic calendar for a specific course and semester
+ * Inherits audit tracking from AuditedEntity (created_at, created_by, updated_at, updated_by)
+ */
 @Entity('CALENDARS')
 @Unique('UQ_CALENDAR_UNIQUE', ['course', 'semester'])
 @Check('CHK_SEMESTER', '"SEMESTER" IN (1, 2)')
-export class Calendar {
-    @PrimaryGeneratedColumn('uuid', { name: 'ID' })
-    id!: string
-
+export class Calendar extends AuditedEntity {
+    /** Start date of the calendar */
     @Column('timestamp', { name: 'START' })
     start!: Date;
 
+    /** End date of the calendar */
     @Column('timestamp', { name: 'END' })
     end!: Date;
 
+    /** Semester number (1 or 2) */
     @Column('smallint', { name: 'SEMESTER' })
     semester!: number;
 
+    /** Days contained in this calendar */
     @OneToMany(() => Day, (day) => day.calendar)
     days!: Day[];
 
+    /** Periodic events in this calendar */
     @OneToMany(() => PeriodicEvent, (periodicEvent) => periodicEvent.calendar)
     periodicEvents!: PeriodicEvent[]
 
+    /** Course this calendar belongs to */
     @ManyToOne(() => Course, (course) => course.calendars, {
         onDelete: 'CASCADE',
     })

@@ -16,6 +16,6 @@ export function useEventsCalendar(calendarId: string | null) {
             return body.data;
         },
         enabled: !!calendarId,
-        staleTime: 5 * 60_000,
+        // Usar el staleTime por defecto (0) definido en queryClient
     });
 }

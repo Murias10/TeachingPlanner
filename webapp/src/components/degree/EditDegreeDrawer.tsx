@@ -120,12 +120,12 @@ export function EditDegreeDrawer({ open, onOpenChange, onSave, degreeData }: Edi
                             name="edit-degree-acronym"
                             value={acronym}
                             onChange={(e) => {
-                                const value = e.target.value;
+                                const value = e.target.value.toUpperCase();
                                 if (/^[A-Z]*$/.test(value)) {
                                     setAcronym(value);
                                 }
                             }}
-                            placeholder="Ej: II (solo letras mayúsculas)"
+                            placeholder="Ej: II"
                             disabled={isLoading}
                         />
                     </div>

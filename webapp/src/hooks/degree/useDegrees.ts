@@ -11,6 +11,6 @@ export function useDegrees() {
             const body = await res.json()
             return body.data.degrees
         },
-        staleTime: 5 * 60_000,
+        // Usar el staleTime por defecto (0) definido en queryClient
     })
 }

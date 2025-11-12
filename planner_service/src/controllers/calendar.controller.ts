@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { AppDataSource } from '@/config/data-source';
 import { Calendar } from '@/entities/calendar.entity';
 import { Course } from '@/entities/course.entity';
@@ -11,9 +11,12 @@ import { Group } from '@/entities/group.entity';
 import { Day } from '@/entities/day.entity';
 import { PeriodicEvent } from '@/entities/periodic_event.entity';
 import { PuntualEvent } from '@/entities/puntual_event.entity';
+import { AuditedRequest } from '@/types/audit.types';
+import { getUserEmailFromRequest } from '@/utils/audit.utils';
+// @ts-ignore - archiver doesn't have type definitions
 import archiver from 'archiver';
 
-export const getCalendars = async (_req: Request, res: Response) => {
+export const getCalendars = async (_req: AuditedRequest, res: Response) => {
     try {
         const calendars = await AppDataSource.getRepository(Calendar).find();
         res.status(200).json({
@@ -30,7 +33,7 @@ export const getCalendars = async (_req: Request, res: Response) => {
     }
 };
 
-export const getCalendarById = async (req: Request, res: Response) => {
+export const getCalendarById = async (req: AuditedRequest, res: Response) => {
     try {
         const { id } = req.params;
 
@@ -61,7 +64,7 @@ export const getCalendarById = async (req: Request, res: Response) => {
     }
 };
 
-export const createCalendar = async (req: Request, res: Response) => {
+export const createCalendar = async (req: AuditedRequest, res: Response) => {
     const { idCourse, semester, start, end } = req.body;
 
     // Validaciones
@@ -136,11 +139,13 @@ export const createCalendar = async (req: Request, res: Response) => {
             return;
         }
 
+        const userEmail = getUserEmailFromRequest(req);
         const calendar = calendarRepo.create({
             course: { id: idCourse },
             semester,
             start: startDate,
-            end: endDate
+            end: endDate,
+            createdBy: userEmail
         });
 
         const savedCalendar = await calendarRepo.save(calendar);
@@ -162,7 +167,7 @@ export const createCalendar = async (req: Request, res: Response) => {
     }
 };
 
-export const deleteCalendar = async (req: Request, res: Response) => {
+export const deleteCalendar = async (req: AuditedRequest, res: Response) => {
     try {
         const calendarId = req.params.id?.trim();
 
@@ -241,7 +246,7 @@ const upload = multer({
 // Middleware para múltiples archivos
 export const uploadFiles = upload.array('files', 10);
 
-export const createCalendarWithImport = async (req: Request, res: Response) => {
+export const createCalendarWithImport = async (req: AuditedRequest, res: Response) => {
     try {
         const { courseId, semester } = req.body;
         const files = req.files as Express.Multer.File[];
@@ -294,9 +299,12 @@ export const createCalendarWithImport = async (req: Request, res: Response) => {
             return;
         }
 
+        // Obtener email del usuario autenticado
+        const userEmail = getUserEmailFromRequest(req);
+
         // Procesar archivos importados
         // El calendario se creará automáticamente en processCalendarioFile
-        const result = await processImportedFiles(files, courseId, parseInt(semester));
+        const result = await processImportedFiles(files, courseId, parseInt(semester), userEmail);
         const importResult = result.importResult;
 
         // Verificar si el calendario fue creado exitosamente
@@ -356,7 +364,7 @@ const decodeFileContent = (file: Express.Multer.File): string => {
 };
 
 // Función para procesar archivos importados
-const processImportedFiles = async (files: Express.Multer.File[], courseId: string, semester: number) => {
+const processImportedFiles = async (files: Express.Multer.File[], courseId: string, semester: number, userEmail: string | null) => {
     const importResult: any = {};
 
     // Definir el orden de procesamiento
@@ -383,27 +391,27 @@ const processImportedFiles = async (files: Express.Multer.File[], courseId: stri
 
         switch (file.originalname) {
             case 'ubicaciones.txt':
-                const classroomsResult = await processUbicacionesFile(content);
+                const classroomsResult = await processUbicacionesFile(content, userEmail);
                 importResult.classrooms = classroomsResult;
                 break;
 
             case 'asignaturas.txt':
-                const subjectsResult = await processAsignaturasFile(content, courseId, semester);
+                const subjectsResult = await processAsignaturasFile(content, courseId, semester, userEmail);
                 importResult.asignaturas = subjectsResult;
                 break;
 
             case 'calendario.txt':
-                const calendarResult = await processCalendarioFile(content, courseId, semester);
+                const calendarResult = await processCalendarioFile(content, courseId, semester, userEmail);
                 importResult.calendario = calendarResult;
                 break;
 
             case 'horarios.txt':
-                const horariosResult = await processHorariosFile(content, courseId, semester);
+                const horariosResult = await processHorariosFile(content, courseId, semester, userEmail);
                 importResult.horarios = horariosResult;
                 break;
 
             case 'excepciones.txt':
-                const excepcionesResult = await processExcepcionesFile(content, courseId, semester);
+                const excepcionesResult = await processExcepcionesFile(content, courseId, semester, userEmail);
                 importResult.excepciones = excepcionesResult;
                 break;
 
@@ -417,7 +425,7 @@ const processImportedFiles = async (files: Express.Multer.File[], courseId: stri
 };
 
 // Procesar archivo ubicaciones.txt línea por línea
-const processUbicacionesFile = async (content: string) => {
+const processUbicacionesFile = async (content: string, userEmail: string | null) => {
     const classroomRepo = AppDataSource.getRepository(Classroom);
     const lines = content.split('\n');
     const processedClassrooms = [];
@@ -460,6 +468,8 @@ const processUbicacionesFile = async (content: string) => {
                 // Actualizar URL si es diferente
                 if (classroom.gisUrl !== gisUrl) {
                     classroom.gisUrl = gisUrl;
+                    classroom.updatedBy = userEmail;
+                    classroom.updatedAt = new Date();
                     await classroomRepo.save(classroom);
                     processedClassrooms.push({
                         code,
@@ -479,7 +489,7 @@ const processUbicacionesFile = async (content: string) => {
                 }
             } else {
                 // Crear nueva aula
-                classroom = classroomRepo.create({ code, gisUrl });
+                classroom = classroomRepo.create({ code, gisUrl, createdBy: userEmail });
                 await classroomRepo.save(classroom);
                 processedClassrooms.push({
                     code,
@@ -510,7 +520,7 @@ const processUbicacionesFile = async (content: string) => {
     return result;
 };
 // Procesar archivo asignaturas.txt línea por línea
-const processAsignaturasFile = async (content: string, courseId: string, semester: number) => {
+const processAsignaturasFile = async (content: string, courseId: string, semester: number, userEmail: string | null) => {
     const subjectRepo = AppDataSource.getRepository(Subject);
     const courseRepo = AppDataSource.getRepository(Course);
     const groupRepo = AppDataSource.getRepository(Group);
@@ -662,7 +672,8 @@ const processAsignaturasFile = async (content: string, courseId: string, semeste
                     year,
                     degree: course.degree,
                     semester: semester,
-                    siesCode: siesCode
+                    siesCode: siesCode,
+                    createdBy: userEmail
                 });
                 await subjectRepo.save(subject);
                 isNewSubject = true;
@@ -697,7 +708,8 @@ const processAsignaturasFile = async (content: string, courseId: string, semeste
                                 number: groupNumber,
                                 type: groupConfig.type,
                                 language: groupConfig.language,
-                                subject: subject
+                                subject: subject,
+                                createdBy: userEmail
                             });
                             await groupRepo.save(group);
                             totalGroupsCreated++;
@@ -753,7 +765,7 @@ const processAsignaturasFile = async (content: string, courseId: string, semeste
     return result;
 };
 // Procesar archivo calendario.txt línea por línea
-const processCalendarioFile = async (content: string, courseId: string, semester: number) => {
+const processCalendarioFile = async (content: string, courseId: string, semester: number, userEmail: string | null) => {
     const dayRepo = AppDataSource.getRepository(Day);
     const calendarRepo = AppDataSource.getRepository(Calendar);
     const courseRepo = AppDataSource.getRepository(Course);
@@ -884,6 +896,8 @@ const processCalendarioFile = async (content: string, courseId: string, semester
             }
 
             if (calendarUpdated) {
+                calendar.updatedBy = userEmail;
+                calendar.updatedAt = new Date();
                 await calendarRepo.save(calendar);
                 calendarAction = 'updated';
                 console.log(`Calendar updated with new dates`);
@@ -897,7 +911,8 @@ const processCalendarioFile = async (content: string, courseId: string, semester
                 course: course,
                 semester: semester,
                 start: startDate,
-                end: endDate
+                end: endDate,
+                createdBy: userEmail
             });
             await calendarRepo.save(calendar);
             calendarAction = 'created';
@@ -1027,7 +1042,8 @@ const processCalendarioFile = async (content: string, courseId: string, semester
                     lective,
                     dayCharacter,
                     comment,
-                    calendar
+                    calendar,
+                    createdBy: userEmail
                 });
                 await dayRepo.save(day);
                 processedDays.push({
@@ -1065,7 +1081,7 @@ const processCalendarioFile = async (content: string, courseId: string, semester
     return result;
 };
 // Procesar archivo horarios.txt línea por línea
-const processHorariosFile = async (content: string, courseId: string, semester: number) => {
+const processHorariosFile = async (content: string, courseId: string, semester: number, userEmail: string | null) => {
     const periodicEventRepo = AppDataSource.getRepository(PeriodicEvent);
     const groupRepo = AppDataSource.getRepository(Group);
     const subjectRepo = AppDataSource.getRepository(Subject);
@@ -1356,7 +1372,8 @@ const processHorariosFile = async (content: string, courseId: string, semester: 
                     eventCharacter,
                     planifiedHours,
                     groups: [group],
-                    classrooms: [classroom]
+                    classrooms: [classroom],
+                    createdBy: userEmail
                 });
 
                 await periodicEventRepo.save(periodicEvent);
@@ -1398,7 +1415,7 @@ const processHorariosFile = async (content: string, courseId: string, semester: 
 };
 
 // Procesar archivo excepciones.txt línea por línea
-const processExcepcionesFile = async (content: string, courseId: string, semester: number) => {
+const processExcepcionesFile = async (content: string, courseId: string, semester: number, userEmail: string | null) => {
     const puntualEventRepo = AppDataSource.getRepository(PuntualEvent);
     const groupRepo = AppDataSource.getRepository(Group);
     const subjectRepo = AppDataSource.getRepository(Subject);
@@ -1708,7 +1725,8 @@ const processExcepcionesFile = async (content: string, courseId: string, semeste
                     cancelled: cancelled,
                     comment: comment,
                     groups: [group],
-                    classrooms: [classroom]
+                    classrooms: [classroom],
+                    createdBy: userEmail
                 });
 
                 await puntualEventRepo.save(puntualEvent);
@@ -1771,7 +1789,7 @@ function isCancelledEvent(
     return cancelledEventsIndex.has(key);
 }
 
-export const getCalendarEvents = async (req: Request, res: Response) => {
+export const getCalendarEvents = async (req: AuditedRequest, res: Response) => {
     try {
         const { id } = req.params;
 
@@ -2247,7 +2265,7 @@ function getWeekNumber(date: Date, startDate: Date): number {
  * Exporta un calendario a formato ZIP con archivos TXT
  * GET /calendar/:id/export
  */
-export const exportCalendar = async (req: Request, res: Response) => {
+export const exportCalendar = async (req: AuditedRequest, res: Response) => {
     try {
         const { id } = req.params;
 
@@ -2568,7 +2586,7 @@ export const exportCalendar = async (req: Request, res: Response) => {
         });
 
         // Manejar errores del archiver
-        archive.on('error', (err) => {
+        archive.on('error', (err: any) => {
             console.error('Error creating archive:', err);
             res.status(500).json({
                 status: 'error',
@@ -2610,7 +2628,7 @@ export const exportCalendar = async (req: Request, res: Response) => {
     }
 };
 
-export const createPuntualEvent = async (req: Request, res: Response) => {
+export const createPuntualEvent = async (req: AuditedRequest, res: Response) => {
     try {
         const { calendarId, eventDate, startTime, endTime, subjectId, groupIds = [], classroomIds = [], comment = '' } = req.body;
 
@@ -2730,6 +2748,9 @@ export const createPuntualEvent = async (req: Request, res: Response) => {
             ? await classroomRepo.find({ where: { id: In(classroomIds) } })
             : [];
 
+        // Obtener usuario autenticado
+        const userEmail = getUserEmailFromRequest(req);
+
         // Crear el evento puntual
         const puntualEvent = puntualEventRepo.create({
             day: day,
@@ -2738,7 +2759,8 @@ export const createPuntualEvent = async (req: Request, res: Response) => {
             cancelled: false,
             comment: comment || '',
             groups: groups,
-            classrooms: classrooms
+            classrooms: classrooms,
+            createdBy: userEmail
         });
 
         const savedEvent = await puntualEventRepo.save(puntualEvent);
@@ -2761,7 +2783,7 @@ export const createPuntualEvent = async (req: Request, res: Response) => {
     }
 };
 
-export const deletePuntualEvent = async (req: Request, res: Response) => {
+export const deletePuntualEvent = async (req: AuditedRequest, res: Response) => {
     try {
         const { eventId } = req.params;
 
@@ -2790,6 +2812,12 @@ export const deletePuntualEvent = async (req: Request, res: Response) => {
             });
             return;
         }
+
+        // Setear updatedBy y updatedAt antes de eliminar (para mantener registro de quién lo eliminó y cuándo)
+        const userEmail = getUserEmailFromRequest(req);
+        puntualEvent.updatedBy = userEmail;
+        puntualEvent.updatedAt = new Date();
+        await puntualEventRepo.save(puntualEvent);
 
         // Eliminar el evento
         await puntualEventRepo.remove(puntualEvent);

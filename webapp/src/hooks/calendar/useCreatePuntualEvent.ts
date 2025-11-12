@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { useRef } from "react";
+import { getAuthHeaders } from '@/utils/authHeaders';
 import VITE_GATEWAY_API_URL from "@/config/api";
 
 export interface CreatePuntualEventPayload {
@@ -35,9 +36,7 @@ export function useCreatePuntualEvent() {
         mutationFn: async (payload: CreatePuntualEventPayload) => {
             const res = await fetch(`${VITE_GATEWAY_API_URL}/calendar/puntual-event`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify(payload),
             });
 

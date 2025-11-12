@@ -1,11 +1,13 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { AppDataSource } from '@/config/data-source';
 import { Course } from '@/entities/course.entity';
 import { validate as isUUID } from "uuid";
 import { Calendar } from '@/entities/calendar.entity';
 import { Degree } from '@/entities/degree.entity';
+import { AuditedRequest } from '@/types/audit.types';
+import { getUserEmailFromRequest } from '@/utils/audit.utils';
 
-export const getCourses = async (_req: Request, res: Response) => {
+export const getCourses = async (_req: AuditedRequest, res: Response) => {
     try {
         const courses = await AppDataSource.getRepository(Course).find({
             relations: ['calendars']
@@ -32,7 +34,7 @@ export const getCourses = async (_req: Request, res: Response) => {
     }
 }
 
-export const getCoursesByDegreeId = async (req: Request, res: Response) => {
+export const getCoursesByDegreeId = async (req: AuditedRequest, res: Response) => {
     const degreeId = req.params.id?.trim();
 
     // Validación básica
@@ -77,7 +79,7 @@ export const getCoursesByDegreeId = async (req: Request, res: Response) => {
     }
 };
 
-export const getCoursesByDegreeAcronym = async (req: Request, res: Response) => {
+export const getCoursesByDegreeAcronym = async (req: AuditedRequest, res: Response) => {
     const acronym = req.params.acronym?.trim();
 
     // Validación básica
@@ -148,7 +150,7 @@ export const getCoursesByDegreeAcronym = async (req: Request, res: Response) => 
     }
 };
 
-export const createCourse = async (req: Request, res: Response) => {
+export const createCourse = async (req: AuditedRequest, res: Response) => {
     try {
         const { startYear, endYear, state, degree } = req.body;
 
@@ -207,11 +209,13 @@ export const createCourse = async (req: Request, res: Response) => {
             return
         }
 
+        const userEmail = getUserEmailFromRequest(req);
         const course = courseRepo.create({
             startYear: Number(startYear),
             endYear: Number(endYear),
             state,
-            degree: existingDegree
+            degree: existingDegree,
+            createdBy: userEmail
         });
 
         await courseRepo.save(course);
@@ -232,7 +236,7 @@ export const createCourse = async (req: Request, res: Response) => {
     }
 }
 
-export const deleteCourse = async (req: Request, res: Response) => {
+export const deleteCourse = async (req: AuditedRequest, res: Response) => {
     try {
         const { id } = req.params;
 
@@ -287,7 +291,7 @@ export const deleteCourse = async (req: Request, res: Response) => {
     }
 };
 
-export const updateCourse = async (req: Request, res: Response) => {
+export const updateCourse = async (req: AuditedRequest, res: Response) => {
     try {
         const { id } = req.params;
         const { startYear, endYear, state } = req.body;
@@ -339,6 +343,8 @@ export const updateCourse = async (req: Request, res: Response) => {
         course.startYear = Number(startYear);
         course.endYear = Number(endYear);
         course.state = state;
+        course.updatedBy = getUserEmailFromRequest(req);
+        course.updatedAt = new Date();
 
         await courseRepo.save(course);
 

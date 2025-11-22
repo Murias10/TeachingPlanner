@@ -29,10 +29,10 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
               className="h-9 gap-2"
             >
               <Download className="w-4 h-4" />
-              <span className="hidden sm:inline text-xs">Exportar</span>
+              <span className="hidden sm:inline text-xs">Exportar .txt</span>
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Exportar calendario</TooltipContent>
+          <TooltipContent>Exportar calendario como archivos .txt</TooltipContent>
         </Tooltip>
 
         {/* Create Event Button */}

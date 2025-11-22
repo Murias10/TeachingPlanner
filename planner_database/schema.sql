@@ -171,3 +171,28 @@ USE planner_db;
 -- ('g1h2i3j4-9012-34bc-def0-567890123456', 'g1h2i3j4-9012-34bc-def0-567890123456'),
 -- ('g1h2i3j4-9012-34bc-def0-567890123457', 'g1h2i3j4-9012-34bc-def0-567890123457'),
 -- ('g1h2i3j4-9012-34bc-def0-567890123458', 'g1h2i3j4-9012-34bc-def0-567890123458');
+-- Tabla para solicitudes de eventos de profesores
+
+-- CREATE TABLE IF NOT EXISTS EVENT_REQUESTS (
+--     ID VARCHAR(36) PRIMARY KEY,
+--     TEACHER_ID VARCHAR(255) NOT NULL COMMENT 'Email del profesor que solicita',
+--     CALENDAR_ID VARCHAR(36) NOT NULL,
+--     EVENT_TYPE ENUM('PUNTUAL', 'PERIODIC') NOT NULL COMMENT 'Tipo de evento solicitado',
+--     EVENT_DATA JSON NOT NULL COMMENT 'Datos completos del evento',
+--     STATUS ENUM('PENDING', 'APPROVED', 'REJECTED') NOT NULL DEFAULT 'PENDING',
+--     REVIEWED_BY VARCHAR(255) COMMENT 'Email del admin que revisa',
+--     REVIEWED_AT TIMESTAMP NULL,
+--     COMMENTS TEXT,
+--     CREATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     UPDATED_AT TIMESTAMP NULL,
+--     CREATED_BY VARCHAR(255) NOT NULL,
+--     UPDATED_BY VARCHAR(255),
+
+--     INDEX idx_status (STATUS),
+--     INDEX idx_status_calendar (STATUS, CALENDAR_ID),
+--     INDEX idx_teacher (TEACHER_ID),
+--     INDEX idx_calendar (CALENDAR_ID),
+--     INDEX idx_created_at (CREATED_AT DESC),
+
+--     CONSTRAINT fk_calendar_id FOREIGN KEY (CALENDAR_ID) REFERENCES CALENDARS(ID) ON DELETE CASCADE
+-- );

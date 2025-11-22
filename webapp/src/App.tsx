@@ -13,6 +13,7 @@ import DegreePage from "@/pages/DegreePage";
 import AppLayout from "@/components/AppLayout";
 import CoursePage from "@/pages/CoursePage";
 import CalendarPage from "@/pages/CalendarPage";
+import SolicitudPage from "@/pages/SolicitudPage";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Route, Routes, Navigate } from "react-router-dom";
@@ -35,6 +36,7 @@ export default function App() {
                         <Route path="degrees/:acronym/courses" element={<CoursePage />} />
                         <Route path="degrees/:acronym/courses/:startYear/:endYear/semester/:semester/groups" element={<GroupPage />} />
                         <Route path="degrees/:acronym/courses/:startYear/:endYear/semester/:semester/calendar" element={<CalendarPage />} />
+                        <Route path="degrees/:acronym/courses/:startYear/:endYear/semester/:semester/calendar/solicitudes" element={<SolicitudPage />} />
                         <Route path="degrees/:acronym/subjects" element={<SubjectPage />} />
                         <Route path="classrooms" element={<ClassroomPage />} />
 

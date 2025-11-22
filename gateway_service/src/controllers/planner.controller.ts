@@ -602,3 +602,108 @@ export const deletePuntualEvent = (req: Request, res: Response, next: NextFuncti
             next(error);
         });
 }
+// ============================================
+// Event Request Controllers (Proxy to planner_service)
+// ============================================
+
+export const createEventRequest = (req: Request, res: Response, next: NextFunction) => {
+    fetch('http://planner_service:5001/event-request', {
+        method: 'POST',
+        headers: getProxyHeaders(req, { 'Content-Type': 'application/json' }),
+        body: JSON.stringify(req.body)
+    })
+        .then((response) => {
+            response.headers.forEach((value, key) => {
+                res.setHeader(key, value);
+            });
+            return response.json().then((body) => {
+                res.status(response.status).json(body);
+            });
+        })
+        .catch((error) => {
+            next(error);
+        });
+};
+
+export const getEventRequests = (req: Request, res: Response, next: NextFunction) => {
+    const query = new URLSearchParams(req.query as Record<string, string>).toString();
+    const url = query ? `http://planner_service:5001/event-requests?${query}` : 'http://planner_service:5001/event-requests';
+
+    fetch(url, {
+        method: 'GET',
+        headers: getProxyHeaders(req)
+    })
+        .then((response) => {
+            response.headers.forEach((value, key) => {
+                res.setHeader(key, value);
+            });
+            return response.json().then((body) => {
+                res.status(response.status).json(body);
+            });
+        })
+        .catch((error) => {
+            next(error);
+        });
+};
+
+export const getEventRequestById = (req: Request, res: Response, next: NextFunction) => {
+    const { id } = req.params;
+
+    fetch(`http://planner_service:5001/event-request/${id}`, {
+        method: 'GET',
+        headers: getProxyHeaders(req)
+    })
+        .then((response) => {
+            response.headers.forEach((value, key) => {
+                res.setHeader(key, value);
+            });
+            return response.json().then((body) => {
+                res.status(response.status).json(body);
+            });
+        })
+        .catch((error) => {
+            next(error);
+        });
+};
+
+export const approveEventRequest = (req: Request, res: Response, next: NextFunction) => {
+    const { id } = req.params;
+
+    fetch(`http://planner_service:5001/event-request/${id}/approve`, {
+        method: 'PATCH',
+        headers: getProxyHeaders(req, { 'Content-Type': 'application/json' }),
+        body: JSON.stringify(req.body)
+    })
+        .then((response) => {
+            response.headers.forEach((value, key) => {
+                res.setHeader(key, value);
+            });
+            return response.json().then((body) => {
+                res.status(response.status).json(body);
+            });
+        })
+        .catch((error) => {
+            next(error);
+        });
+};
+
+export const rejectEventRequest = (req: Request, res: Response, next: NextFunction) => {
+    const { id } = req.params;
+
+    fetch(`http://planner_service:5001/event-request/${id}/reject`, {
+        method: 'PATCH',
+        headers: getProxyHeaders(req, { 'Content-Type': 'application/json' }),
+        body: JSON.stringify(req.body)
+    })
+        .then((response) => {
+            response.headers.forEach((value, key) => {
+                res.setHeader(key, value);
+            });
+            return response.json().then((body) => {
+                res.status(response.status).json(body);
+            });
+        })
+        .catch((error) => {
+            next(error);
+        });
+};

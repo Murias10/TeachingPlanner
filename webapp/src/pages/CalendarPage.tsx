@@ -8,12 +8,11 @@ import { CalendarEvent } from "@/types/CalendarEvent";
 import ClassFilter, { FilterValues } from "@/components/ClassFilter";
 import { BookOpen, DoorOpen, Languages, Users } from "lucide-react";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import CalendarToolbar from "@/components/calendar/CalendarToolbar";
 import CreateEventDialog from "@/components/calendar/CreateEventDialog";
 import type { RecurrenceConfig } from "@/types/RecurrenceConfig";
-import { ProtectedComponent } from "@/components/ProtectedComponent";
 import { CalendarEventWrapper } from "@/components/calendar/CalendarEventWrapper";
 import VITE_GATEWAY_API_URL from "@/config/api";
 import { EventDetailsDrawer } from "@/components/calendar/EventDetailsDrawer";
@@ -22,6 +21,11 @@ import { useCreatePuntualEvent } from "@/hooks/calendar/useCreatePuntualEvent";
 import { useDeletePuntualEvent } from "@/hooks/calendar/useDeletePuntualEvent";
 import { useFloatingAlert } from "@/hooks/useFloatingAlert";
 import { useAuth } from "@/contexts/AuthContext";
+import { SolicitudEventoDrawer } from "@/components/event-request/SolicitudEventoDrawer";
+import { useCrearSolicitud } from "@/hooks/event-request/useCrearSolicitud";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Bell } from "lucide-react";
 
 // Configurar moment para usar español y que la semana empiece en lunes
 moment.locale('es', {
@@ -87,10 +91,12 @@ const getSubjectColor = (subjectAcronym: string | undefined): string => {
 export default function CalendarPage() {
 
     const { t } = useTranslation()
+    const navigate = useNavigate();
     const { triggerAlert } = useFloatingAlert();
     const { user } = useAuth();
     const { mutate: createPuntualEvent } = useCreatePuntualEvent();
     const { deletePuntualEvent, isDeleting: isDeletingEvent } = useDeletePuntualEvent();
+    const crearSolicitud = useCrearSolicitud();
     const isAdmin = user?.role === 'ADMIN';
 
     // Extraer el acrónimo de la URL
@@ -132,6 +138,9 @@ export default function CalendarPage() {
     // Estado para el diálogo de eliminación de evento
     const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);
     const [eventToDelete, setEventToDelete] = useState<CalendarEvent | undefined>(undefined);
+
+    // Estado para solicitud de eventos
+    const [isSolicitudDrawerOpen, setIsSolicitudDrawerOpen] = useState(false);
 
     useEffect(() => {
         setItems([
@@ -517,6 +526,27 @@ export default function CalendarPage() {
         // TODO: Implement toggle cancellation logic
     };
 
+    // Event request handler for creating a new request
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const handleSolicitud = async (calendarIdParam: string, eventType: string, eventData: any) => {
+        const result = await crearSolicitud(calendarIdParam, eventType, eventData);
+
+        if (result.success) {
+            triggerAlert({
+                title: 'Solicitud enviada',
+                description: 'Tu solicitud de evento ha sido enviada para aprobación',
+                variant: 'success'
+            });
+            setIsSolicitudDrawerOpen(false);
+        } else {
+            triggerAlert({
+                title: 'Error',
+                description: result.message || 'Error al enviar la solicitud',
+                variant: 'destructive'
+            });
+        }
+    };
+
     // Custom event component with context menu
     const EventComponent = ({ event }: { event: MyEvent }) => (
         <CalendarEventWrapper
@@ -557,16 +587,44 @@ export default function CalendarPage() {
         <>
             <section className="h-full bg-muted/50 overflow-hidden flex flex-col">
                 {/* Toolbar */}
-                <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
-                    <div className="px-4 py-3 border-b bg-card">
+                <div className="px-4 py-3 border-b bg-card flex justify-between items-center">
+                    {isAdmin && (
                         <CalendarToolbar
                             onExport={handleExportCalendar}
                             onCreateEvent={handleCreateEvent}
                             onDeleteEvents={handleDeleteEvents}
                             selectedCount={selectedEventIds.length}
                         />
-                    </div>
-                </ProtectedComponent>
+                    )}
+                    {isAdmin && (
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => navigate(`/degrees/${acronym}/courses/${startYear}/${endYear}/semester/${semester}/calendar/solicitudes`)}
+                                        className="h-9 gap-2"
+                                    >
+                                        <Bell className="w-4 h-4" />
+                                        <span className="hidden sm:inline text-xs">Solicitudes</span>
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Ver solicitudes de eventos pendientes</TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    )}
+                    {user?.role === 'TEACHER' && (
+                        <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => setIsSolicitudDrawerOpen(true)}
+                            className="h-9 gap-2 ml-auto"
+                        >
+                            <span className="hidden sm:inline text-xs">Solicitar Evento</span>
+                        </Button>
+                    )}
+                </div>
 
                 {/* Main content */}
                 <div className="flex-1 overflow-hidden flex">
@@ -687,6 +745,16 @@ export default function CalendarPage() {
                 isLoading={isDeletingEvent}
                 subjectName={eventToDelete?.subject?.name || 'esta asignatura'}
             />
+
+            {/* Event Request Drawer - Solo para TEACHER */}
+            {!isAdmin && (
+                <SolicitudEventoDrawer
+                    open={isSolicitudDrawerOpen}
+                    onOpenChange={setIsSolicitudDrawerOpen}
+                    onSave={handleSolicitud}
+                    calendars={calendarId ? [{ id: calendarId }] : []}
+                />
+            )}
         </>
     );
 }

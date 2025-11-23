@@ -27,7 +27,12 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { CheckCircle, XCircle, Clock, RefreshCw } from "lucide-react";
+import { CheckCircle, XCircle, Clock, RefreshCw, Check, X } from "lucide-react";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import moment from "moment";
 
 interface EventRequest {
@@ -266,22 +271,32 @@ const SolicitudPage = () => {
                                             <TableCell className="text-right">
                                                 {solicitud.status === 'PENDING' && (
                                                     <div className="flex justify-end gap-2">
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            onClick={() => handleOpenActionDialog(solicitud, 'approve')}
-                                                            className="text-green-600 hover:text-green-700"
-                                                        >
-                                                            Aprobar
-                                                        </Button>
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            onClick={() => handleOpenActionDialog(solicitud, 'reject')}
-                                                            className="text-red-600 hover:text-red-700"
-                                                        >
-                                                            Rechazar
-                                                        </Button>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    onClick={() => handleOpenActionDialog(solicitud, 'approve')}
+                                                                    className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
+                                                                >
+                                                                    <Check className="h-4 w-4" />
+                                                                </Button>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>Aprobar</TooltipContent>
+                                                        </Tooltip>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    onClick={() => handleOpenActionDialog(solicitud, 'reject')}
+                                                                    className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                                                                >
+                                                                    <X className="h-4 w-4" />
+                                                                </Button>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>Rechazar</TooltipContent>
+                                                        </Tooltip>
                                                     </div>
                                                 )}
                                                 {solicitud.status !== 'PENDING' && (

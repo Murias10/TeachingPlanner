@@ -3,6 +3,7 @@ import {
     Tooltip,
     TooltipContent,
     TooltipTrigger,
+    TooltipProvider,
 } from "@/components/ui/tooltip"
 import { CirclePlus, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -17,41 +18,42 @@ export function SubjectToolbar({ deleteSelectedSubjects, selectedIds, onCreateCl
     const { t } = useTranslation();
 
     return (
-        <section className="flex items-center justify-between bg-muted/50 p-4 rounded-xl mt-2 mx-2 gap-4">
-            <div className="flex-1 flex justify-end">
-                <>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                variant="destructive"
-                                size="lg"
-                                className="mr-2"
-                                onClick={deleteSelectedSubjects}
-                                disabled={!selectedIds?.length}
-                            >
-                                <Trash2 /> {t("toolbar.subjects.delete.selected")}
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            {t("toolbar.subjects.delete.selected")}
-                        </TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                variant="outline"
-                                size="lg"
-                                onClick={onCreateClick}
-                            >
-                                <CirclePlus />{t("toolbar.subjects.create")}
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            {t("toolbar.subjects.create")}
-                        </TooltipContent>
-                    </Tooltip>
-                </>
+        <TooltipProvider>
+            <div className="flex gap-2 items-center justify-end">
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-9 gap-2"
+                            onClick={onCreateClick}
+                        >
+                            <CirclePlus className="w-4 h-4" />
+                            <span className="hidden sm:inline text-xs">{t("toolbar.subjects.create")}</span>
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        {t("toolbar.subjects.create")}
+                    </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            variant="destructive"
+                            size="sm"
+                            className="h-9 gap-2"
+                            onClick={deleteSelectedSubjects}
+                            disabled={!selectedIds?.length}
+                        >
+                            <Trash2 className="w-4 h-4" />
+                            <span className="hidden sm:inline text-xs">{t("toolbar.subjects.delete.selected")}</span>
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        {t("toolbar.subjects.delete.selected")}
+                    </TooltipContent>
+                </Tooltip>
             </div>
-        </section>
+        </TooltipProvider>
     )
 }

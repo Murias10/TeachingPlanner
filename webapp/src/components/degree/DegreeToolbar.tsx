@@ -3,6 +3,7 @@ import {
     Tooltip,
     TooltipContent,
     TooltipTrigger,
+    TooltipProvider,
 } from "@/components/ui/tooltip"
 import { CirclePlus, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -17,44 +18,46 @@ export function DegreeToolbar({ deleteSelectedDegrees, selectedIds, onCreateClic
     const { t } = useTranslation();
 
     return (
-        <section className="flex items-center justify-between bg-muted/50 p-4 rounded-xl mt-2 mx-2 gap-4">
-            <div className="flex-1 flex justify-end gap-2">
+        <TooltipProvider>
+            <div className="flex gap-2 items-center justify-end">
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            variant="outline"
+                            onClick={onCreateClick}
+                            size="sm"
+                            className="h-9 gap-2"
+                        >
+                            <CirclePlus className="w-4 h-4" />
+                            <span className="hidden sm:inline text-xs">
+                                {t("toolbar.degrees.create")}
+                            </span>
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        {t("toolbar.degrees.create")}
+                    </TooltipContent>
+                </Tooltip>
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <Button
                             variant="destructive"
                             onClick={deleteSelectedDegrees}
                             disabled={!selectedIds?.length}
-                            className="lg:size-auto size-10 lg:px-4"
+                            size="sm"
+                            className="h-9 gap-2"
                         >
-                            <Trash2 className="lg:mr-2" />
-                            <span className="hidden lg:inline">
+                            <Trash2 className="w-4 h-4" />
+                            <span className="hidden sm:inline text-xs">
                                 {t("toolbar.degrees.delete.selected")}
                             </span>
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                        <p>{t("toolbar.degrees.delete.selected")}</p>
-                    </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button
-                            variant="outline"
-                            onClick={onCreateClick}
-                            className="lg:size-auto size-10 lg:px-4"
-                        >
-                            <CirclePlus className="lg:mr-2" />
-                            <span className="hidden lg:inline">
-                                {t("toolbar.degrees.create")}
-                            </span>
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>{t("toolbar.degrees.create")}</p>
+                        {t("toolbar.degrees.delete.selected")}
                     </TooltipContent>
                 </Tooltip>
             </div>
-        </section>
+        </TooltipProvider>
     )
 }

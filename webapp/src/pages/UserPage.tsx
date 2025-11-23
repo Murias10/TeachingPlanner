@@ -154,16 +154,18 @@ const UserPage = () => {
 
     return (
         <>
-            <section className="space-y-4 mx-2">
+            <section className="h-full bg-background overflow-hidden flex flex-col">
                 {/* Toolbar */}
-                <UserToolbar
-                    selectedIds={selectedIds}
-                    deleteSelectedUsers={handleDeleteSelectedUsers}
-                    onCreateClick={() => setCreateDrawerOpen(true)}
-                />
+                <div className="px-4 py-3 border-b bg-background flex justify-end items-center">
+                    <UserToolbar
+                        selectedIds={selectedIds}
+                        deleteSelectedUsers={handleDeleteSelectedUsers}
+                        onCreateClick={() => setCreateDrawerOpen(true)}
+                    />
+                </div>
 
                 {/* Table */}
-                <div className="bg-card rounded-xl p-4">
+                <div className="flex-1 overflow-auto px-4 py-0 flex items-center justify-center">
                     <UserTable
                         users={users}
                         deleteUser={handleDeleteClick}

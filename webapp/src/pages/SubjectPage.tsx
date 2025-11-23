@@ -315,29 +315,35 @@ export default function SubjectPage() {
     return (
         <>
             <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
-                <SubjectToolbar
-                    deleteSelectedSubjects={handleDeleteSelectedSubjects}
-                    selectedIds={selectedIds}
-                    onCreateClick={() => setDrawerOpen(true)}
-                />
-            </ProtectedComponent>
-
-            <section className="h-full rounded-xl bg-muted/50 flex items-center justify-center m-2">
-                <div className="min-w-[400px] w-2/3">
-                    {isSubjectsLoading ? (
-                        <LoadingSpinner />
-                    ) : (
-                        <SubjectTable
-                            subjects={subjects}
-                            deleteSubject={handleDeleteClick}
-                            setSelectedIds={setSelectedIds}
-                            isAdmin={isAdmin}
-                            onViewSubject={handleViewClick}
-                            onEditSubject={handleEditClick}
+                <section className="h-full bg-background overflow-hidden flex flex-col">
+                    {/* Toolbar */}
+                    <div className="px-4 py-3 border-b bg-background flex justify-end items-center">
+                        <SubjectToolbar
+                            deleteSelectedSubjects={handleDeleteSelectedSubjects}
+                            selectedIds={selectedIds}
+                            onCreateClick={() => setDrawerOpen(true)}
                         />
-                    )}
-                </div>
-            </section>
+                    </div>
+
+                    {/* Table */}
+                    <div className="flex-1 overflow-auto px-4 py-0 flex items-center justify-center">
+                        {isSubjectsLoading ? (
+                            <div className="h-full flex items-center justify-center p-10">
+                                <LoadingSpinner />
+                            </div>
+                        ) : (
+                            <SubjectTable
+                                subjects={subjects}
+                                deleteSubject={handleDeleteClick}
+                                setSelectedIds={setSelectedIds}
+                                isAdmin={isAdmin}
+                                onViewSubject={handleViewClick}
+                                onEditSubject={handleEditClick}
+                            />
+                        )}
+                    </div>
+                </section>
+            </ProtectedComponent>
 
             <CreateSubjectDrawer
                 open={drawerOpen && !!degree}

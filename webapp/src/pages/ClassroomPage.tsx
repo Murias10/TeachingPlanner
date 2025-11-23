@@ -214,7 +214,7 @@ export default function ClassroomPage() {
         }
 
         // Manejo de errores de edición
-        let errorMessage = result.message || t("alerts.classroom.error.edit.description");
+        const errorMessage = result.message || t("alerts.classroom.error.edit.description");
 
         triggerAlert({
             title: t("alerts.classroom.error.edit.title"),
@@ -257,28 +257,34 @@ export default function ClassroomPage() {
     return (
         <>
             <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
-                <ClassroomToolbar
-                    deleteSelectedClassrooms={handleDeleteSelectedClassrooms}
-                    selectedIds={selectedIds}
-                    onCreateClick={() => setDrawerOpen(true)}
-                />
-            </ProtectedComponent>
-
-            <section className="h-full rounded-xl bg-muted/50 flex items-center justify-center m-2">
-                <div className="min-w-[400px] w-2/3">
-                    {isLoading ? (
-                        <LoadingSpinner />
-                    ) : (
-                        <ClassroomTable
-                            classrooms={classrooms}
-                            deleteClassroom={handleDeleteClick}
-                            setSelectedIds={setSelectedIds}
-                            isAdmin={isAdmin}
-                            onEditClassroom={handleEditClick}
+                <section className="h-full bg-background overflow-hidden flex flex-col">
+                    {/* Toolbar */}
+                    <div className="px-4 py-3 border-b bg-background flex justify-end items-center">
+                        <ClassroomToolbar
+                            deleteSelectedClassrooms={handleDeleteSelectedClassrooms}
+                            selectedIds={selectedIds}
+                            onCreateClick={() => setDrawerOpen(true)}
                         />
-                    )}
-                </div>
-            </section>
+                    </div>
+
+                    {/* Table */}
+                    <div className="flex-1 overflow-auto px-4 py-0 flex items-center justify-center">
+                        {isLoading ? (
+                            <div className="h-full flex items-center justify-center p-10">
+                                <LoadingSpinner />
+                            </div>
+                        ) : (
+                            <ClassroomTable
+                                classrooms={classrooms}
+                                deleteClassroom={handleDeleteClick}
+                                setSelectedIds={setSelectedIds}
+                                isAdmin={isAdmin}
+                                onEditClassroom={handleEditClick}
+                            />
+                        )}
+                    </div>
+                </section>
+            </ProtectedComponent>
 
             <CreateClassroomDrawer
                 open={drawerOpen}

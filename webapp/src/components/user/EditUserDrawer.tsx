@@ -4,7 +4,6 @@ import {
     DrawerClose,
     DrawerContent,
     DrawerDescription,
-    DrawerFooter,
     DrawerHeader,
     DrawerTitle,
 } from "@/components/ui/drawer";
@@ -81,7 +80,7 @@ export function EditUserDrawer({ open, onOpenChange, user, onSuccess }: EditUser
 
     return (
         <Drawer open={open} onOpenChange={onOpenChange}>
-            <DrawerContent>
+            <DrawerContent className="flex flex-col max-h-screen">
                 <DrawerHeader>
                     <DrawerTitle>Editar Usuario</DrawerTitle>
                     <DrawerDescription>
@@ -89,36 +88,37 @@ export function EditUserDrawer({ open, onOpenChange, user, onSuccess }: EditUser
                     </DrawerDescription>
                 </DrawerHeader>
 
-                <div className="px-4 space-y-4 max-w-md mx-auto w-full">
-                    <div className="space-y-2">
+                {/* Contenido desplazable */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                    <div className="space-y-2 max-w-sm mx-auto w-full">
                         <Label>Email</Label>
                         <div className="p-2 bg-muted rounded text-sm">
                             {user.email}
                         </div>
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-2 max-w-sm mx-auto w-full">
                         <Label>Nombre</Label>
                         <div className="p-2 bg-muted rounded text-sm">
                             {user.name}
                         </div>
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-2 max-w-sm mx-auto w-full">
                         <Label>Primer Apellido</Label>
                         <div className="p-2 bg-muted rounded text-sm">
                             {user.firstSurname}
                         </div>
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-2 max-w-sm mx-auto w-full">
                         <Label>Segundo Apellido</Label>
                         <div className="p-2 bg-muted rounded text-sm">
                             {user.secondSurname}
                         </div>
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-2 max-w-sm mx-auto w-full">
                         <Label htmlFor="role">Rol *</Label>
                         <Select value={role} onValueChange={setRole}>
                             <SelectTrigger id="role" disabled={isSubmitting}>
@@ -132,19 +132,20 @@ export function EditUserDrawer({ open, onOpenChange, user, onSuccess }: EditUser
                     </div>
                 </div>
 
-                <DrawerFooter>
+                {/* Botones */}
+                <div className="p-4 flex justify-end space-x-2 border-t">
+                    <DrawerClose asChild>
+                        <Button variant="outline" disabled={isSubmitting}>
+                            Cancelar
+                        </Button>
+                    </DrawerClose>
                     <Button
                         onClick={handleSubmit}
                         disabled={isSubmitting}
                     >
                         {isSubmitting ? "Actualizando..." : "Actualizar Usuario"}
                     </Button>
-                    <DrawerClose asChild>
-                        <Button variant="outline" disabled={isSubmitting}>
-                            Cancelar
-                        </Button>
-                    </DrawerClose>
-                </DrawerFooter>
+                </div>
             </DrawerContent>
         </Drawer>
     );

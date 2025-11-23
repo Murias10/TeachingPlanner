@@ -249,28 +249,32 @@ export default function DegreePage() {
     return (
         <>
             <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
-                <DegreeToolbar
-                    deleteSelectedDegrees={handleDeleteSelectedDegrees}
-                    selectedIds={selectedIds}
-                    onCreateClick={() => setDrawerOpen(true)}
-                />
-            </ProtectedComponent>
-
-            <section className="h-full rounded-xl bg-muted/50 flex items-center justify-center m-2">
-                <div className="min-w-[400px] w-2/3">
-                    {isLoading ? (
-                        <LoadingSpinner />
-                    ) : (
-                        <DegreeTable
-                            degrees={degrees}
-                            deleteDegree={handleDeleteClick}
-                            editDegree={handleEditClick}
-                            setSelectedIds={setSelectedIds}
-                            isAdmin={isAdmin}
+                <section className="h-full bg-background overflow-hidden flex flex-col">
+                    {/* Toolbar */}
+                    <div className="px-4 py-3 border-b bg-background flex justify-end items-center">
+                        <DegreeToolbar
+                            deleteSelectedDegrees={handleDeleteSelectedDegrees}
+                            selectedIds={selectedIds}
+                            onCreateClick={() => setDrawerOpen(true)}
                         />
-                    )}
-                </div>
-            </section>
+                    </div>
+
+                    {/* Table */}
+                    <div className="flex-1 overflow-auto px-4 py-0 flex items-center justify-center">
+                        {isLoading ? (
+                            <LoadingSpinner />
+                        ) : (
+                            <DegreeTable
+                                degrees={degrees}
+                                deleteDegree={handleDeleteClick}
+                                editDegree={handleEditClick}
+                                setSelectedIds={setSelectedIds}
+                                isAdmin={isAdmin}
+                            />
+                        )}
+                    </div>
+                </section>
+            </ProtectedComponent>
 
             <CreateDegreeDrawer
                 open={drawerOpen}

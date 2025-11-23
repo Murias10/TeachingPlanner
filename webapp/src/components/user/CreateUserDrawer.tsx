@@ -4,7 +4,6 @@ import {
     DrawerClose,
     DrawerContent,
     DrawerDescription,
-    DrawerFooter,
     DrawerHeader,
     DrawerTitle,
 } from "@/components/ui/drawer";
@@ -126,7 +125,7 @@ export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDr
 
     return (
         <Drawer open={open} onOpenChange={onOpenChange}>
-            <DrawerContent>
+            <DrawerContent className="flex flex-col max-h-screen">
                 <DrawerHeader>
                     <DrawerTitle>Crear Nuevo Usuario</DrawerTitle>
                     <DrawerDescription>
@@ -134,8 +133,9 @@ export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDr
                     </DrawerDescription>
                 </DrawerHeader>
 
-                <div className="px-4 space-y-4 max-w-md mx-auto w-full">
-                    <div className="space-y-2">
+                {/* Contenido desplazable */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                    <div className="space-y-2 max-w-sm mx-auto w-full">
                         <Label htmlFor="name">Nombre *</Label>
                         <Input
                             id="name"
@@ -146,7 +146,7 @@ export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDr
                         />
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-2 max-w-sm mx-auto w-full">
                         <Label htmlFor="firstSurname">Primer Apellido *</Label>
                         <Input
                             id="firstSurname"
@@ -157,7 +157,7 @@ export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDr
                         />
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-2 max-w-sm mx-auto w-full">
                         <Label htmlFor="secondSurname">Segundo Apellido *</Label>
                         <Input
                             id="secondSurname"
@@ -168,7 +168,7 @@ export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDr
                         />
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-2 max-w-sm mx-auto w-full">
                         <Label htmlFor="email">Email *</Label>
                         <Input
                             id="email"
@@ -180,7 +180,7 @@ export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDr
                         />
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-2 max-w-sm mx-auto w-full">
                         <Label htmlFor="password">Contraseña *</Label>
                         <Input
                             id="password"
@@ -192,7 +192,7 @@ export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDr
                         />
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-2 max-w-sm mx-auto w-full">
                         <Label htmlFor="role">Rol *</Label>
                         <Select value={formData.role} onValueChange={(value) => handleInputChange("role", value)}>
                             <SelectTrigger id="role" disabled={isSubmitting}>
@@ -206,19 +206,20 @@ export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDr
                     </div>
                 </div>
 
-                <DrawerFooter>
+                {/* Botones */}
+                <div className="p-4 flex justify-end space-x-2 border-t">
+                    <DrawerClose asChild>
+                        <Button variant="outline" disabled={isSubmitting}>
+                            Cancelar
+                        </Button>
+                    </DrawerClose>
                     <Button
                         onClick={handleSubmit}
                         disabled={isSubmitting}
                     >
                         {isSubmitting ? "Creando..." : "Crear Usuario"}
                     </Button>
-                    <DrawerClose asChild>
-                        <Button variant="outline" disabled={isSubmitting}>
-                            Cancelar
-                        </Button>
-                    </DrawerClose>
-                </DrawerFooter>
+                </div>
             </DrawerContent>
         </Drawer>
     );

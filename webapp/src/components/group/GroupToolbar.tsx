@@ -1,16 +1,35 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+    TooltipProvider,
+} from "@/components/ui/tooltip"
+import { ChevronsRight } from "lucide-react";
 
 export function GroupToolbar() {
     return (
-        <section className="flex items-center justify-between bg-muted/50 p-4 rounded-xl mt-2 mx-2 gap-4" >
-            <div className="flex-1 flex justify-end">
+        <TooltipProvider>
+            <div className="flex gap-2 items-center justify-end">
                 <Link to="calendar">
-                    <Button variant="outline" size="lg">
-                        Ver Calendario +
-                    </Button>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-9 gap-2"
+                            >
+                                <span className="hidden sm:inline text-xs">Ver Calendario</span>
+                                <ChevronsRight className="w-4 h-4" />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            Ver Calendario
+                        </TooltipContent>
+                    </Tooltip>
                 </Link>
             </div>
-        </section>
+        </TooltipProvider>
     )
 }

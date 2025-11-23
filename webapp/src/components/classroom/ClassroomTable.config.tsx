@@ -7,7 +7,8 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { ArrowUpDown, Trash2, Pencil, ExternalLink } from "lucide-react"
+import { ArrowUpDown, ExternalLink } from "lucide-react"
+import { EditDeleteTableButtons } from "@/components/common/EditDeleteTableButtons"
 import { Classroom } from "@/types/Classroom"
 import { Link } from "react-router-dom"
 import { TFunction } from "i18next"
@@ -73,7 +74,7 @@ export const columns = ({ deleteClassroom, isAdmin = false, onEditClassroom }: C
                 const classroom = row.original
 
                 return (
-                    <div className="flex justify-end space-x-2">
+                    <div className="flex justify-end items-center gap-2">
                         <Link to={`https://${classroom.gisUrl}`} target="_blank" className="flex items-center">
                             <Tooltip>
                                 <TooltipTrigger asChild>
@@ -88,32 +89,11 @@ export const columns = ({ deleteClassroom, isAdmin = false, onEditClassroom }: C
                         </Link>
 
                         <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button variant="outline" size="icon" className="size-10" onClick={() => onEditClassroom?.(classroom)}>
-                                        <Pencil />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>{t("table.classrooms.actions.edit")}</p>
-                                </TooltipContent>
-                            </Tooltip>
+                            <EditDeleteTableButtons
+                                onEdit={() => onEditClassroom?.(classroom)}
+                                onDelete={() => deleteClassroom(classroom.id)}
+                            />
                         </ProtectedComponent>
-
-                        <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button variant="destructive" size="icon" className="size-10" onClick={() => deleteClassroom(classroom.id)}>
-                                        <Trash2 />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>{t("table.classrooms.actions.delete")}</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        </ProtectedComponent>
-
-
                     </div>
                 )
             },

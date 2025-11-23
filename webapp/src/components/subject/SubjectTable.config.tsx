@@ -9,7 +9,8 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { ArrowUpDown, Trash2, Pencil, Eye } from "lucide-react"
+import { ArrowUpDown, Eye } from "lucide-react"
+import { EditDeleteTableButtons } from "@/components/common/EditDeleteTableButtons"
 import { TFunction } from "i18next"
 import { Subject } from "@/types/Subject"
 
@@ -151,7 +152,7 @@ export const columns = ({ deleteSubject, isAdmin = false, onViewSubject, onEditS
                 const subject = row.original
 
                 return (
-                    <div className="flex justify-end space-x-2">
+                    <div className="flex justify-end items-center gap-2">
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button variant="outline" size="icon" className="size-10" onClick={() => onViewSubject?.(subject)}>
@@ -164,29 +165,10 @@ export const columns = ({ deleteSubject, isAdmin = false, onViewSubject, onEditS
                         </Tooltip>
 
                         <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button variant="outline" size="icon" className="size-10" onClick={() => onEditSubject?.(subject)}>
-                                        <Pencil />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>{t("table.subjects.actions.edit")}</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        </ProtectedComponent>
-
-                        <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button variant="destructive" size="icon" className="size-10" onClick={() => deleteSubject(subject.id)}>
-                                        <Trash2 />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>{t("table.subjects.actions.delete")}</p>
-                                </TooltipContent>
-                            </Tooltip>
+                            <EditDeleteTableButtons
+                                onEdit={() => onEditSubject?.(subject)}
+                                onDelete={() => deleteSubject(subject.id)}
+                            />
                         </ProtectedComponent>
                     </div>
                 )

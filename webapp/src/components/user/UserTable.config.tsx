@@ -132,10 +132,12 @@ export const columns = ({ deleteUser, editUser, isAdmin = false }: ColumnExtraPr
             id: "actions",
             enableHiding: false,
             cell: ({ row }) => (
-                <UserTableButtons
-                    onDelete={() => deleteUser(row.original.id)}
-                    onEdit={() => editUser?.(row.original)}
-                />
+                <div className="flex justify-end items-center gap-2">
+                    <UserTableButtons
+                        onDelete={() => deleteUser(row.original.id)}
+                        onEdit={() => editUser?.(row.original)}
+                    />
+                </div>
             ),
         });
     }

@@ -38,3 +38,17 @@ export interface JwtPayload {
     iat?: number;
     exp?: number;
 }
+
+export interface ForgotPasswordDTO {
+    email: string;
+}
+
+export interface VerifyOTPDTO {
+    email: string;
+    otp: string;
+}
+
+export interface ResetPasswordDTO {
+    resetToken: string;
+    newPassword: string;
+}

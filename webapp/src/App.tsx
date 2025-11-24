@@ -14,6 +14,7 @@ import AppLayout from "@/components/AppLayout";
 import CoursePage from "@/pages/CoursePage";
 import CalendarPage from "@/pages/CalendarPage";
 import SolicitudPage from "@/pages/SolicitudPage";
+import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Route, Routes, Navigate } from "react-router-dom";
@@ -27,6 +28,7 @@ export default function App() {
                     <Route path="/" element={<Start />} />
                     <Route path="login" element={<LoginPage />} />
                     <Route path="register" element={<RegisterPage />} />
+                    <Route path="forgot-password" element={<ForgotPasswordPage />} />
 
                     {/* Layout con header + sidebar */}
                     <Route element={<AppLayout />}>

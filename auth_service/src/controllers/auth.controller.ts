@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { AuthService } from '@/services/auth.service';
-import { ApiResponse, LoginDTO, RegisterDTO, JwtPayload } from '@/types/auth.types';
+import { PasswordResetService } from '@/services/password-reset.service';
+import { ApiResponse, LoginDTO, RegisterDTO, JwtPayload, ForgotPasswordDTO, VerifyOTPDTO, ResetPasswordDTO } from '@/types/auth.types';
 
 interface AuthRequest extends Request {
     user?: JwtPayload;
@@ -8,9 +9,11 @@ interface AuthRequest extends Request {
 
 export class AuthController {
     private authService: AuthService;
+    private passwordResetService: PasswordResetService;
 
     constructor() {
         this.authService = new AuthService();
+        this.passwordResetService = new PasswordResetService();
     }
 
     login = async (req: Request, res: Response): Promise<void> => {
@@ -128,5 +131,84 @@ export class AuthController {
         };
 
         res.json(response);
+    };
+
+    forgotPassword = async (req: Request, res: Response): Promise<void> => {
+        try {
+            const { email }: ForgotPasswordDTO = req.body;
+
+            if (!email) {
+                res.status(400).json({
+                    success: false,
+                    message: 'Email is required'
+                });
+                return;
+            }
+
+            const result = await this.passwordResetService.requestPasswordReset(email);
+
+            res.json({
+                success: true,
+                message: result.message
+            });
+        } catch (error: any) {
+            res.status(400).json({
+                success: false,
+                message: error.message || 'Failed to request password reset'
+            });
+        }
+    };
+
+    verifyOTP = async (req: Request, res: Response): Promise<void> => {
+        try {
+            const { email, otp }: VerifyOTPDTO = req.body;
+
+            if (!email || !otp) {
+                res.status(400).json({
+                    success: false,
+                    message: 'Email and OTP are required'
+                });
+                return;
+            }
+
+            const result = await this.passwordResetService.verifyOTP(email, otp);
+
+            res.json({
+                success: true,
+                message: 'OTP verified successfully',
+                data: result
+            });
+        } catch (error: any) {
+            res.status(400).json({
+                success: false,
+                message: error.message || 'OTP verification failed'
+            });
+        }
+    };
+
+    resetPassword = async (req: Request, res: Response): Promise<void> => {
+        try {
+            const { resetToken, newPassword }: ResetPasswordDTO = req.body;
+
+            if (!resetToken || !newPassword) {
+                res.status(400).json({
+                    success: false,
+                    message: 'Reset token and new password are required'
+                });
+                return;
+            }
+
+            const result = await this.passwordResetService.resetPassword(resetToken, newPassword);
+
+            res.json({
+                success: true,
+                message: result.message
+            });
+        } catch (error: any) {
+            res.status(400).json({
+                success: false,
+                message: error.message || 'Password reset failed'
+            });
+        }
     };
 }

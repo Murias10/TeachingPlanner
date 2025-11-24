@@ -104,3 +104,63 @@ export const logout = (req: Request, res: Response, next: NextFunction) => {
             next(error);
         });
 };
+
+export const forgotPassword = (req: Request, res: Response, next: NextFunction) => {
+    fetch(`${AUTH_SERVICE_URL}/auth/forgot-password`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(req.body)
+    })
+        .then(async (response) => {
+            response.headers.forEach((value, key) => {
+                res.setHeader(key, value);
+            });
+            const body = await response.json();
+            res.status(response.status).json(body);
+        })
+        .catch((error) => {
+            next(error);
+        });
+};
+
+export const verifyOTP = (req: Request, res: Response, next: NextFunction) => {
+    fetch(`${AUTH_SERVICE_URL}/auth/verify-otp`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(req.body)
+    })
+        .then(async (response) => {
+            response.headers.forEach((value, key) => {
+                res.setHeader(key, value);
+            });
+            const body = await response.json();
+            res.status(response.status).json(body);
+        })
+        .catch((error) => {
+            next(error);
+        });
+};
+
+export const resetPassword = (req: Request, res: Response, next: NextFunction) => {
+    fetch(`${AUTH_SERVICE_URL}/auth/reset-password`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(req.body)
+    })
+        .then(async (response) => {
+            response.headers.forEach((value, key) => {
+                res.setHeader(key, value);
+            });
+            const body = await response.json();
+            res.status(response.status).json(body);
+        })
+        .catch((error) => {
+            next(error);
+        });
+};

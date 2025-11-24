@@ -13,6 +13,11 @@ router.post('/auth/register', validateRegister, authController.register);
 router.post('/auth/validate', authController.validateToken);
 router.post('/auth/logout', authController.logout);
 
+// Rutas de recuperación de contraseña
+router.post('/auth/forgot-password', authController.forgotPassword);
+router.post('/auth/verify-otp', authController.verifyOTP);
+router.post('/auth/reset-password', authController.resetPassword);
+
 // Rutas protegidas
 router.get('/auth/profile', authenticateToken, authController.getProfile);
 

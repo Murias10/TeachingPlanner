@@ -509,9 +509,9 @@ export default function CoursePage() {
 
     return (
         <>
-            <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
-                <section className="h-full bg-background overflow-hidden flex flex-col">
-                    {/* Toolbar */}
+            <section className="h-full bg-background overflow-hidden flex flex-col">
+                {/* Toolbar */}
+                <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
                     <div className="px-4 py-3 border-b bg-background flex justify-end items-center">
                         <CourseToolbar
                             setOpenDrawer={setOpenDrawer}
@@ -519,30 +519,30 @@ export default function CoursePage() {
                             selectedIds={selectedIds}
                         />
                     </div>
+                </ProtectedComponent>
 
-                    {/* Table */}
-                    <div className="flex-1 overflow-auto px-4 py-0 flex items-center justify-center">
-                        {isCoursesLoading || isDegreeLoading ? (
-                            <div className="h-full flex items-center justify-center p-10">
-                                <LoadingSpinner />
-                            </div>
-                        ) : (
-                            <CourseTable
-                                courses={filteredCourses}
-                                deleteCourse={handleDeleteCourse}
-                                deleteCalendar={handleDeleteCalendarWithConfirmation}
-                                createCalendar={handleCreateCalendar}
-                                onEditCourse={(course) => {
-                                    setEditCourseData(course);
-                                    setOpenEditDrawer(true);
-                                }}
-                                setSelectedIds={setSelectedIds}
-                                isAdmin={isAdmin}
-                            />
-                        )}
-                    </div>
-                </section>
-            </ProtectedComponent>
+                {/* Table */}
+                <div className="flex-1 overflow-auto px-4 py-0 flex items-center justify-center">
+                    {isCoursesLoading || isDegreeLoading ? (
+                        <div className="h-full flex items-center justify-center p-10">
+                            <LoadingSpinner />
+                        </div>
+                    ) : (
+                        <CourseTable
+                            courses={filteredCourses}
+                            deleteCourse={handleDeleteCourse}
+                            deleteCalendar={handleDeleteCalendarWithConfirmation}
+                            createCalendar={handleCreateCalendar}
+                            onEditCourse={(course) => {
+                                setEditCourseData(course);
+                                setOpenEditDrawer(true);
+                            }}
+                            setSelectedIds={setSelectedIds}
+                            isAdmin={isAdmin}
+                        />
+                    )}
+                </div>
+            </section>
 
             <CreateCourseDrawer
                 open={openDrawer && !!degree?.id}

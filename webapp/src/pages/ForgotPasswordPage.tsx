@@ -23,7 +23,7 @@ export default function ForgotPasswordPage() {
     const navigate = useNavigate();
 
     const apiClient = axios.create({
-        baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080'
+        baseURL: import.meta.env.VITE_GATEWAY_API_URL || 'http://localhost:8080'
     });
 
     const startCooldown = () => {
@@ -64,10 +64,10 @@ export default function ForgotPasswordPage() {
                 setCurrentStep('otp');
                 startCooldown();
             }
-        } catch (error: any) {
+        } catch {
             triggerAlert({
                 title: 'Error',
-                description: error.response?.data?.message || 'Error al solicitar código',
+                description: 'Error al solicitar código',
                 variant: 'destructive'
             });
         } finally {
@@ -100,10 +100,10 @@ export default function ForgotPasswordPage() {
                     variant: 'success'
                 });
             }
-        } catch (error: any) {
+        } catch {
             triggerAlert({
                 title: 'Error',
-                description: error.response?.data?.message || 'Código incorrecto',
+                description: 'Código incorrecto',
                 variant: 'destructive'
             });
         } finally {
@@ -158,10 +158,10 @@ export default function ForgotPasswordPage() {
                     navigate('/login');
                 }, 1500);
             }
-        } catch (error: any) {
+        } catch {
             triggerAlert({
                 title: 'Error',
-                description: error.response?.data?.message || 'Error al actualizar contraseña',
+                description: 'Error al actualizar contraseña',
                 variant: 'destructive'
             });
         } finally {
@@ -250,7 +250,7 @@ export default function ForgotPasswordPage() {
                                 disabled={otpCooldown > 0 || isLoading}
                                 onClick={() => {
                                     setOtp('');
-                                    handleRequestOTP(new Event('submit') as any);
+                                    handleRequestOTP(new Event('submit') as unknown as React.FormEvent);
                                 }}
                             >
                                 {otpCooldown > 0 ? `Reenviar en ${otpCooldown}s` : 'Reenviar Código'}

@@ -314,9 +314,9 @@ export default function SubjectPage() {
 
     return (
         <>
-            <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
-                <section className="h-full bg-background overflow-hidden flex flex-col">
-                    {/* Toolbar */}
+            <section className="h-full bg-background overflow-hidden flex flex-col">
+                {/* Toolbar */}
+                <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
                     <div className="px-4 py-3 border-b bg-background flex justify-end items-center">
                         <SubjectToolbar
                             deleteSelectedSubjects={handleDeleteSelectedSubjects}
@@ -324,26 +324,26 @@ export default function SubjectPage() {
                             onCreateClick={() => setDrawerOpen(true)}
                         />
                     </div>
+                </ProtectedComponent>
 
-                    {/* Table */}
-                    <div className="flex-1 overflow-auto px-4 py-0 flex items-center justify-center">
-                        {isSubjectsLoading ? (
-                            <div className="h-full flex items-center justify-center p-10">
-                                <LoadingSpinner />
-                            </div>
-                        ) : (
-                            <SubjectTable
-                                subjects={subjects}
-                                deleteSubject={handleDeleteClick}
-                                setSelectedIds={setSelectedIds}
-                                isAdmin={isAdmin}
-                                onViewSubject={handleViewClick}
-                                onEditSubject={handleEditClick}
-                            />
-                        )}
-                    </div>
-                </section>
-            </ProtectedComponent>
+                {/* Table */}
+                <div className="flex-1 overflow-auto px-4 py-0 flex items-center justify-center">
+                    {isSubjectsLoading ? (
+                        <div className="h-full flex items-center justify-center p-10">
+                            <LoadingSpinner />
+                        </div>
+                    ) : (
+                        <SubjectTable
+                            subjects={subjects}
+                            deleteSubject={handleDeleteClick}
+                            setSelectedIds={setSelectedIds}
+                            isAdmin={isAdmin}
+                            onViewSubject={handleViewClick}
+                            onEditSubject={handleEditClick}
+                        />
+                    )}
+                </div>
+            </section>
 
             <CreateSubjectDrawer
                 open={drawerOpen && !!degree}

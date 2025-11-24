@@ -256,9 +256,9 @@ export default function ClassroomPage() {
 
     return (
         <>
-            <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
-                <section className="h-full bg-background overflow-hidden flex flex-col">
-                    {/* Toolbar */}
+            <section className="h-full bg-background overflow-hidden flex flex-col">
+                {/* Toolbar */}
+                <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
                     <div className="px-4 py-3 border-b bg-background flex justify-end items-center">
                         <ClassroomToolbar
                             deleteSelectedClassrooms={handleDeleteSelectedClassrooms}
@@ -266,25 +266,25 @@ export default function ClassroomPage() {
                             onCreateClick={() => setDrawerOpen(true)}
                         />
                     </div>
+                </ProtectedComponent>
 
-                    {/* Table */}
-                    <div className="flex-1 overflow-auto px-4 py-0 flex items-center justify-center">
-                        {isLoading ? (
-                            <div className="h-full flex items-center justify-center p-10">
-                                <LoadingSpinner />
-                            </div>
-                        ) : (
-                            <ClassroomTable
-                                classrooms={classrooms}
-                                deleteClassroom={handleDeleteClick}
-                                setSelectedIds={setSelectedIds}
-                                isAdmin={isAdmin}
-                                onEditClassroom={handleEditClick}
-                            />
-                        )}
-                    </div>
-                </section>
-            </ProtectedComponent>
+                {/* Table */}
+                <div className="flex-1 overflow-auto px-4 py-0 flex items-center justify-center">
+                    {isLoading ? (
+                        <div className="h-full flex items-center justify-center p-10">
+                            <LoadingSpinner />
+                        </div>
+                    ) : (
+                        <ClassroomTable
+                            classrooms={classrooms}
+                            deleteClassroom={handleDeleteClick}
+                            setSelectedIds={setSelectedIds}
+                            isAdmin={isAdmin}
+                            onEditClassroom={handleEditClick}
+                        />
+                    )}
+                </div>
+            </section>
 
             <CreateClassroomDrawer
                 open={drawerOpen}

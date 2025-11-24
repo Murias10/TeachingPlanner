@@ -22,7 +22,7 @@ import { Route, Routes, Navigate } from "react-router-dom";
 export default function App() {
     return (
         <AuthProvider>
-            <div className="[--header-height:calc(var(--spacing-14))]">
+            <div className="[--header-height:calc(theme(spacing.14))]">
                 <Routes>
                     {/* Página inicial sin sidebar */}
                     <Route path="/" element={<Start />} />

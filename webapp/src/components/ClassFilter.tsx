@@ -88,6 +88,13 @@ export default function ClassFilter({
       };
       return typeMap[value] || value;
     }
+    if (category === 'idioma') {
+      const languageMap: Record<string, string> = {
+        'ES': 'Español',
+        'EN': 'Inglés'
+      };
+      return languageMap[value] || value;
+    }
     return value;
   };
 

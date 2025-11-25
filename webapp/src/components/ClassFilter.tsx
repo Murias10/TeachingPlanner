@@ -78,6 +78,19 @@ export default function ClassFilter({
     });
   };
 
+  const getDisplayLabel = (category: FilterCategory, value: string): string => {
+    if (category === 'tipoGrupo') {
+      const typeMap: Record<string, string> = {
+        'L': 'Laboratorio',
+        'S': 'Seminario',
+        'T': 'Tutoría',
+        'TG': 'Tutoría Grupal'
+      };
+      return typeMap[value] || value;
+    }
+    return value;
+  };
+
   const totalActiveFilters = Object.values(filters).reduce((sum, arr) => sum + arr.length, 0);
 
   // Vista colapsada (solo botón)
@@ -214,7 +227,7 @@ export default function ClassFilter({
                             className="pointer-events-none"
                           />
                           <span className="text-sm flex-1 text-left text-foreground">
-                            {option}
+                            {getDisplayLabel(category, option)}
                           </span>
                           {filters[category].includes(option) && (
                             <Check className="w-4 h-4 text-foreground" />
@@ -240,7 +253,7 @@ export default function ClassFilter({
                       className="px-2 py-1 flex items-center gap-1 cursor-pointer hover:bg-secondary/80 transition-colors"
                       onClick={() => toggleFilter(category as FilterCategory, value)}
                     >
-                      {value}
+                      {getDisplayLabel(category as FilterCategory, value)}
                       <X className="w-3 h-3" />
                     </Badge>
                   ))

@@ -263,43 +263,9 @@ export default function CalendarPage() {
         });
     }, [filteredEvents]);
 
-    // Calcular el rango de horas dinámicamente basado en los eventos filtrados
-    const { minHour, maxHour } = useMemo(() => {
-        if (filteredEvents.length === 0) {
-            // Sin eventos, usar valores predeterminados
-            return { minHour: 8, maxHour: 21 };
-        }
-
-        let earliestHour = 23;
-        let latestHour = 0;
-
-        filteredEvents.forEach(event => {
-            // Parsear la hora de inicio (formato "HH:MM")
-            const [startHour, startMinute] = event.startTime.split(':').map(Number);
-
-            // Calcular la hora de fin sumando la duración
-            const startTotalMinutes = startHour * 60 + startMinute;
-            const endTotalMinutes = startTotalMinutes + (event.duration * 60);
-            const endHour = Math.floor(endTotalMinutes / 60);
-            const endMinute = endTotalMinutes % 60;
-
-            // Actualizar la hora más temprana
-            if (startHour < earliestHour || (startHour === earliestHour && startMinute > 0)) {
-                earliestHour = startHour;
-            }
-
-            // Actualizar la hora más tardía (considerar minutos si existen)
-            const finalEndHour = endMinute > 0 ? endHour + 1 : endHour;
-            if (finalEndHour > latestHour) {
-                latestHour = finalEndHour;
-            }
-        });
-
-        return {
-            minHour: earliestHour,
-            maxHour: latestHour
-        };
-    }, [filteredEvents]);
+    // Rango de horas fijo: 9 AM a 9 PM
+    const minHour = 9;
+    const maxHour = 21;
 
     const minDate = data?.startDate
         ? moment(data.startDate).hour(minHour).minute(0).toDate()

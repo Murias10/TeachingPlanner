@@ -3,7 +3,6 @@ import { Filter, X, ChevronRight, ChevronDown, Check, ChevronLeft } from 'lucide
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 
 type FilterCategory = 'tipoGrupo' | 'asignatura' | 'aula' | 'idioma';
@@ -127,10 +126,10 @@ export default function ClassFilter({
   // Vista expandida
   return (
     <aside className={cn(
-      "w-80 border-r bg-background/50 flex flex-col transition-all duration-300",
+      "w-72 border-r bg-background/50 flex flex-col transition-all duration-300 overflow-hidden",
       "h-full"
     )}>
-      <div className="p-6 border-b bg-card flex-shrink-0">
+      <div className="p-6 border-b bg-card shrink-0">
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-3">
             <Filter className="w-5 h-5 text-foreground" />
@@ -163,90 +162,92 @@ export default function ClassFilter({
         )}
       </div>
 
-      <ScrollArea className="flex-1">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="px-4 py-4 space-y-2">
-          {filterOptions.map(({ category, label, options, icon: Icon }) => {
-            const isExpanded = expandedCategory === category;
-            const selectedCount = filters[category].length;
+            {filterOptions.map(({ category, label, options, icon: Icon }) => {
+              const isExpanded = expandedCategory === category;
+              const selectedCount = filters[category].length;
 
-            return (
-              <div key={category} className="border rounded-lg overflow-hidden bg-card">
-                <button
-                  className="w-full flex items-center justify-between p-3 hover:bg-accent hover:text-accent-foreground transition-colors"
-                  onClick={() => toggleCategory(category)}
-                >
-                  <div className="flex items-center gap-3">
-                    <Icon className="w-4 h-4 text-muted-foreground" />
-                    <div className="text-left">
-                      <div className="font-medium text-sm text-foreground">{label}</div>
+              return (
+                <div key={category} className="border rounded-lg overflow-hidden bg-card">
+                  <button
+                    className="w-full flex items-center justify-between p-3 hover:bg-accent hover:text-accent-foreground transition-colors"
+                    onClick={() => toggleCategory(category)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon className="w-4 h-4 text-muted-foreground" />
+                      <div className="text-left">
+                        <div className="font-medium text-sm text-foreground">{label}</div>
+                        {selectedCount > 0 && (
+                          <div className="text-xs text-muted-foreground mt-0.5">
+                            {selectedCount} de {options.length}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
                       {selectedCount > 0 && (
-                        <div className="text-xs text-muted-foreground mt-0.5">
-                          {selectedCount} de {options.length}
-                        </div>
+                        <Badge variant="secondary" className="text-xs">
+                          {selectedCount}
+                        </Badge>
+                      )}
+                      {isExpanded ? (
+                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
                       )}
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {selectedCount > 0 && (
-                      <Badge variant="secondary" className="text-xs">
-                        {selectedCount}
-                      </Badge>
-                    )}
-                    {isExpanded ? (
-                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                    ) : (
-                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                    )}
-                  </div>
-                </button>
+                  </button>
 
-                {isExpanded && (
-                  <div className="border-t">
-                    <div className="p-2 bg-muted/50 flex gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 text-xs flex-1"
-                        onClick={() => selectAll(category, options)}
-                      >
-                        <Check className="w-3 h-3 mr-1" />
-                        Todas
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 text-xs flex-1"
-                        onClick={() => clearCategory(category)}
-                      >
-                        <X className="w-3 h-3 mr-1" />
-                        Ninguna
-                      </Button>
-                    </div>
-                    <div className="p-2 space-y-1">
-                      {options.map(option => (
-                        <button
-                          key={option}
-                          className="w-full flex items-center gap-3 p-2 hover:bg-accent hover:text-accent-foreground rounded transition-colors"
-                          onClick={() => toggleFilter(category, option)}
+                  {isExpanded && (
+                    <div className="border-t max-h-72 flex flex-col overflow-hidden">
+                      <div className="p-2 bg-muted/50 flex gap-2 shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs flex-1"
+                          onClick={() => selectAll(category, options)}
                         >
-                          <Checkbox
-                            checked={filters[category].includes(option)}
-                            className="pointer-events-none"
-                          />
-                          <span className="text-sm flex-1 text-left text-foreground">
-                            {getDisplayLabel(category, option)}
-                          </span>
-                          {filters[category].includes(option) && (
-                            <Check className="w-4 h-4 text-foreground" />
-                          )}
-                        </button>
-                      ))}
+                          <Check className="w-3 h-3 mr-1" />
+                          Todas
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs flex-1"
+                          onClick={() => clearCategory(category)}
+                        >
+                          <X className="w-3 h-3 mr-1" />
+                          Ninguna
+                        </Button>
+                      </div>
+                      <div className="flex-1 min-h-0 overflow-y-auto">
+                        <div className="p-2 space-y-1">
+                          {options.map(option => (
+                            <button
+                              key={option}
+                              className="w-full flex items-center gap-3 p-2 hover:bg-accent hover:text-accent-foreground rounded transition-colors min-h-10"
+                              onClick={() => toggleFilter(category, option)}
+                            >
+                              <Checkbox
+                                checked={filters[category].includes(option)}
+                                className="pointer-events-none shrink-0"
+                              />
+                              <span className="text-sm flex-1 text-left text-foreground truncate">
+                                {getDisplayLabel(category, option)}
+                              </span>
+                              {filters[category].includes(option) && (
+                                <Check className="w-4 h-4 text-foreground shrink-0" />
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                  )}
+                </div>
+              );
+            })}
 
           {totalActiveFilters > 0 && (
             <div className="mt-4 p-4 bg-card border rounded-lg">
@@ -269,7 +270,7 @@ export default function ClassFilter({
             </div>
           )}
         </div>
-      </ScrollArea>
+      </div>
     </aside>
   );
 }

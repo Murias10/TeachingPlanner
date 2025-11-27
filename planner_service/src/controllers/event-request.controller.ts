@@ -5,7 +5,6 @@ import { EventRequest } from '@/entities/event-request.entity';
 import { Calendar } from '@/entities/calendar.entity';
 import { Day } from '@/entities/day.entity';
 import { PuntualEvent } from '@/entities/puntual_event.entity';
-import { PeriodicEvent } from '@/entities/periodic_event.entity';
 import { Group } from '@/entities/group.entity';
 import { Classroom } from '@/entities/classroom.entity';
 import { AuditedRequest } from '@/types/audit.types';
@@ -24,6 +23,15 @@ export const createEventRequest = async (req: AuditedRequest, res: Response) => 
         const userEmail = getUserEmailFromRequest(req);
 
         // Validations
+        if (!userEmail) {
+            res.status(401).json({
+                status: 'error',
+                message: 'User email not found in request',
+                data: null,
+            });
+            return;
+        }
+
         if (!calendarId || !eventType || !eventData) {
             res.status(400).json({
                 status: 'error',
@@ -289,25 +297,76 @@ export const rejectEventRequest = async (req: AuditedRequest, res: Response) => 
  */
 async function createPuntualEventFromRequest(eventRequest: EventRequest): Promise<string> {
     const { calendarId, eventData } = eventRequest;
-    const { dayId, startTime, endTime, groupIds = [], classroomIds = [], comment = '' } = eventData;
+    const { dayId, eventDate, startTime, endTime, groupIds = [], classroomIds = [], comment = '' } = eventData;
 
-    if (!dayId || !startTime || !endTime) {
-        throw new Error('Missing required fields for PUNTUAL event: dayId, startTime, endTime');
+    if (!startTime || !endTime) {
+        throw new Error('Missing required fields for PUNTUAL event: startTime, endTime');
+    }
+
+    // Use either dayId or eventDate to find the day
+    if (!dayId && !eventDate) {
+        throw new Error('Missing required fields for PUNTUAL event: either dayId or eventDate must be provided');
     }
 
     const dayRepo = AppDataSource.getRepository(Day);
     const puntualEventRepo = AppDataSource.getRepository(PuntualEvent);
     const groupRepo = AppDataSource.getRepository(Group);
     const classroomRepo = AppDataSource.getRepository(Classroom);
+    const calendarRepo = AppDataSource.getRepository(Calendar);
 
     // Get the day
-    const day = await dayRepo.findOne({
-        where: { id: dayId },
-        relations: ['puntualEvents', 'puntualEvents.groups', 'puntualEvents.classrooms'],
-    });
+    let day;
+    if (dayId) {
+        // If dayId is provided, use it directly
+        day = await dayRepo.findOne({
+            where: { id: dayId },
+            relations: ['puntualEvents', 'puntualEvents.groups', 'puntualEvents.classrooms'],
+        });
+    } else if (eventDate) {
+        // If eventDate is provided, find the day by date and calendar
+        const eventDateTime = new Date(eventDate);
+        const calendar = await calendarRepo.findOne({ where: { id: calendarId } });
+
+        if (!calendar) {
+            throw new Error('Calendar not found');
+        }
+
+        day = await dayRepo.findOne({
+            where: {
+                date: eventDateTime,
+                calendar: { id: calendarId }
+            },
+            relations: ['puntualEvents', 'puntualEvents.groups', 'puntualEvents.classrooms', 'calendar'],
+        });
+    }
 
     if (!day) {
-        throw new Error('Day not found');
+        throw new Error('Day not found for the provided date or dayId');
+    }
+
+    // Validate conflicts: check if there are events at the same time with the same group or classroom
+    const conflictingEvents = day.puntualEvents?.filter(event => {
+        const eventStart = event.startTime;
+        const eventEnd = event.endTime;
+        const hasTimeOverlap = startTime < eventEnd && endTime > eventStart;
+
+        if (!hasTimeOverlap) return false;
+
+        // Check if shares group
+        const sharesGroup = event.groups?.some(g => groupIds.includes(g.id)) || groupIds.length === 0;
+        // Check if shares classroom
+        const sharesClassroom = event.classrooms?.some(c => classroomIds.includes(c.id)) || classroomIds.length === 0;
+
+        return sharesGroup && sharesClassroom;
+    });
+
+    if (conflictingEvents && conflictingEvents.length > 0) {
+        const conflictDetails = conflictingEvents.map(e => ({
+            id: e.id,
+            startTime: e.startTime,
+            endTime: e.endTime
+        }));
+        throw new Error(`Time conflict: Same group/classroom already has an event at this time. Conflicts: ${JSON.stringify(conflictDetails)}`);
     }
 
     // Get groups and classrooms
@@ -332,48 +391,21 @@ async function createPuntualEventFromRequest(eventRequest: EventRequest): Promis
 
 /**
  * Helper function to create a PERIODIC_EVENT from an event request
+ * Note: For now, PERIODIC events from solicitations are not supported
+ * This is a placeholder for future implementation
  */
 async function createPeriodicEventFromRequest(eventRequest: EventRequest): Promise<string> {
-    const { calendarId, eventData } = eventRequest;
-    const { startTime, endTime, weekDay, eventCharacter, groupIds = [], classroomIds = [], plannedHours = 0 } = eventData;
+    const { eventData } = eventRequest;
+    const { startTime, endTime, frequency } = eventData;
 
-    if (!startTime || !endTime || weekDay === undefined || eventCharacter === undefined) {
-        throw new Error('Missing required fields for PERIODIC event: startTime, endTime, weekDay, eventCharacter');
+    if (!startTime || !endTime) {
+        throw new Error('Missing required fields for PERIODIC event: startTime, endTime');
     }
 
-    const calendarRepo = AppDataSource.getRepository(Calendar);
-    const periodicEventRepo = AppDataSource.getRepository(PeriodicEvent);
-    const groupRepo = AppDataSource.getRepository(Group);
-    const classroomRepo = AppDataSource.getRepository(Classroom);
-
-    // Get the calendar
-    const calendar = await calendarRepo.findOne({ where: { id: calendarId } });
-
-    if (!calendar) {
-        throw new Error('Calendar not found');
+    if (!frequency) {
+        throw new Error('Missing required field for PERIODIC event: frequency');
     }
 
-    // Get groups and classrooms
-    const groups = groupIds.length > 0 ? await groupRepo.find({ where: { id: In(groupIds) } }) : [];
-    const classrooms = classroomIds.length > 0 ? await classroomRepo.find({ where: { id: In(classroomIds) } }) : [];
-
-    // Extract year from calendar (assuming calendar has start date)
-    const year = new Date(calendar.start).getFullYear();
-
-    // Create the event
-    const periodicEvent = periodicEventRepo.create({
-        calendar,
-        startTime,
-        endTime,
-        weekDay,
-        eventCharacter,
-        year,
-        plannedHours,
-        groups,
-        classrooms,
-        createdBy: eventRequest.teacherId,
-    });
-
-    const savedEvent = await periodicEventRepo.save(periodicEvent);
-    return savedEvent.id;
+    // For now, throw an error as PERIODIC events from solicitations are not yet implemented
+    throw new Error('PERIODIC events from solicitations are not yet implemented. Only PUNTUAL event requests are supported.');
 }

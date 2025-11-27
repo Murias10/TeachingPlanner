@@ -224,9 +224,9 @@ export default function ClassFilter({
                     <div className="flex-1 min-h-0 overflow-y-auto">
                       <div className="p-2 space-y-1">
                         {options.map(option => (
-                          <button
+                          <div
                             key={option}
-                            className="w-full flex items-center gap-3 p-2 hover:bg-accent hover:text-accent-foreground rounded transition-colors min-h-10"
+                            className="w-full flex items-center gap-3 p-2 hover:bg-accent hover:text-accent-foreground rounded transition-colors min-h-10 cursor-pointer"
                             onClick={() => toggleFilter(category, option)}
                           >
                             <Checkbox
@@ -239,7 +239,7 @@ export default function ClassFilter({
                             {filters[category].includes(option) && (
                               <Check className="w-4 h-4 text-foreground shrink-0" />
                             )}
-                          </button>
+                          </div>
                         ))}
                       </div>
                     </div>

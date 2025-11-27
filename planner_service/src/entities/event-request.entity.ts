@@ -1,6 +1,6 @@
 import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
-import { AuditedEntity } from './audited.entity';
-import { Calendar } from './calendar.entity';
+import { AuditedEntity } from '@/entities/audited.entity';
+import { Calendar } from '@/entities/calendar.entity';
 
 /**
  * EventRequest entity representing a request from a TEACHER to create an event

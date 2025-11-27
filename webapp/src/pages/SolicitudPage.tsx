@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, Navigate } from "react-router-dom";
 import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext";
 import { useTranslation } from "react-i18next";
@@ -7,10 +7,10 @@ import { useListarSolicitudes } from "@/hooks/event-request/useListarSolicitudes
 import { useAprobarSolicitud } from "@/hooks/event-request/useAprobarSolicitud";
 import { useRechazarSolicitud } from "@/hooks/event-request/useRechazarSolicitud";
 import { useFloatingAlert } from "@/hooks/useFloatingAlert";
+import { useDegreeByAcronym } from "@/hooks/degree/useDegreeByAcronym";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import {
     Dialog,
     DialogContent,
@@ -19,20 +19,8 @@ import {
     DialogTitle,
     DialogFooter,
 } from "@/components/ui/dialog";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
-import { CheckCircle, XCircle, Clock, RefreshCw, Check, X } from "lucide-react";
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { RefreshCw } from "lucide-react";
+import { SolicitudTable } from "@/components/solicitud/SolicitudTable";
 import moment from "moment";
 
 interface EventRequest {
@@ -40,7 +28,7 @@ interface EventRequest {
     teacherId: string;
     calendarId: string;
     eventType: 'PUNTUAL' | 'PERIODIC';
-    eventData: Record<string, any>;
+    eventData: Record<string, undefined>;
     status: 'PENDING' | 'APPROVED' | 'REJECTED';
     reviewedBy?: string;
     reviewedAt?: string;
@@ -59,6 +47,7 @@ const SolicitudPage = () => {
     const aprobarSolicitud = useAprobarSolicitud();
     const rechazarSolicitud = useRechazarSolicitud();
     const { acronym, startYear, endYear, semester } = useParams<{ acronym: string, startYear: string, endYear: string, semester: string }>();
+    const { data: degree } = useDegreeByAcronym(acronym || null);
 
     const [solicitudes, setSolicitudes] = useState<EventRequest[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -69,24 +58,7 @@ const SolicitudPage = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [statusFilter, setStatusFilter] = useState<'all' | 'PENDING' | 'APPROVED' | 'REJECTED'>('PENDING');
 
-    // Protección: Solo ADMIN puede acceder
-    if (user?.role !== 'ADMIN') {
-        return <Navigate to="/home" replace />;
-    }
-
-    // Cargar solicitudes al montar el componente
-    useEffect(() => {
-        setItems([
-            { label: t("breadcrumb.home"), href: "/home" },
-            { label: t("breadcrumb.degrees"), href: "/degrees" },
-            { label: t("breadcrumb.courses"), href: `/degrees/${acronym}/courses` },
-            { label: t("breadcrumb.calendar"), href: `/degrees/${acronym}/courses/${startYear}/${endYear}/semester/${semester}/calendar` },
-            { label: "Solicitudes", href: "" },
-        ]);
-        cargarSolicitudes();
-    }, [setItems, t, acronym, startYear, endYear, semester]);
-
-    const cargarSolicitudes = async (filter?: 'all' | 'PENDING' | 'APPROVED' | 'REJECTED') => {
+    const cargarSolicitudes = useCallback(async (filter?: 'all' | 'PENDING' | 'APPROVED' | 'REJECTED') => {
         setIsLoading(true);
         const filterToUse = filter ?? statusFilter;
         const result = await listarSolicitudes(
@@ -103,7 +75,24 @@ const SolicitudPage = () => {
             });
         }
         setIsLoading(false);
-    };
+    }, [statusFilter, listarSolicitudes, triggerAlert]);
+
+    // Cargar solicitudes al montar el componente
+    useEffect(() => {
+        setItems([
+            { label: t("breadcrumb.home"), href: "/home" },
+            { label: t("breadcrumb.degrees"), href: "/degrees" },
+            { label: t("breadcrumb.courses"), href: `/degrees/${acronym}/courses` },
+            { label: t("breadcrumb.calendar"), href: `/degrees/${acronym}/courses/${startYear}/${endYear}/semester/${semester}/calendar` },
+            { label: "Solicitudes", href: "" },
+        ]);
+        cargarSolicitudes();
+    }, [setItems, t, acronym, startYear, endYear, semester, cargarSolicitudes]);
+
+    // Protección: Solo ADMIN puede acceder
+    if (user?.role !== 'ADMIN') {
+        return <Navigate to="/home" replace />;
+    }
 
     const handleOpenActionDialog = (solicitud: EventRequest, action: ActionType) => {
         setSelectedSolicitud(solicitud);
@@ -147,7 +136,7 @@ const SolicitudPage = () => {
                     variant: 'destructive'
                 });
             }
-        } catch (error) {
+        } catch {
             triggerAlert({
                 title: 'Error',
                 description: 'Ocurrió un error al procesar la solicitud',
@@ -158,17 +147,12 @@ const SolicitudPage = () => {
         }
     };
 
-    const getStatusBadge = (status: string) => {
-        switch (status) {
-            case 'PENDING':
-                return <Badge className="bg-yellow-500"><Clock className="w-3 h-3 mr-1" />Pendiente</Badge>;
-            case 'APPROVED':
-                return <Badge className="bg-green-500"><CheckCircle className="w-3 h-3 mr-1" />Aprobada</Badge>;
-            case 'REJECTED':
-                return <Badge className="bg-red-500"><XCircle className="w-3 h-3 mr-1" />Rechazada</Badge>;
-            default:
-                return <Badge>Desconocido</Badge>;
-        }
+    const handleApprove = (solicitud: EventRequest) => {
+        handleOpenActionDialog(solicitud, 'approve');
+    };
+
+    const handleReject = (solicitud: EventRequest) => {
+        handleOpenActionDialog(solicitud, 'reject');
     };
 
     const getEventTypeLabel = (eventType: string) => {
@@ -187,19 +171,19 @@ const SolicitudPage = () => {
 
     return (
         <>
-            <section className="h-full bg-muted/50 overflow-hidden flex flex-col">
+            <section className="h-full bg-background overflow-hidden flex flex-col">
                 {/* Header */}
-                <div className="px-8 py-6 border-b bg-card">
-                    <h1 className="text-2xl font-semibold text-foreground mb-2">
+                <div className="px-6 py-5 border-b bg-background">
+                    <h1 className="text-2xl font-semibold text-foreground mb-1">
                         Solicitudes de Eventos
                     </h1>
                     <p className="text-sm text-muted-foreground">
-                        Gestiona las solicitudes de eventos enviadas por los profesores
+                        Semestre {semester} • {degree?.name || acronym?.toUpperCase()} • {startYear}-{endYear}
                     </p>
                 </div>
 
-                {/* Toolbar con filtros */}
-                <div className="px-8 py-4 border-b bg-card flex justify-between items-center gap-4">
+                {/* Filtros */}
+                <div className="px-6 py-3 border-b bg-background flex justify-between items-center gap-4">
                     <div className="flex gap-2">
                         {(['PENDING', 'APPROVED', 'REJECTED', 'all'] as const).map((status) => (
                             <Button
@@ -221,7 +205,7 @@ const SolicitudPage = () => {
                     <button
                         onClick={() => cargarSolicitudes()}
                         disabled={isLoading}
-                        className="p-2 rounded-md hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="p-2 rounded-md hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         title="Actualizar solicitudes"
                     >
                         <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -229,87 +213,17 @@ const SolicitudPage = () => {
                 </div>
 
                 {/* Tabla de solicitudes */}
-                <div className="flex-1 overflow-auto px-8 py-6">
-                    {solicitudes.length === 0 ? (
-                        <div className="flex items-center justify-center h-full">
-                            <div className="text-center">
-                                <p className="text-muted-foreground mb-2">
-                                    No hay solicitudes para mostrar
-                                </p>
-                                <p className="text-sm text-muted-foreground/70">
-                                    Intenta cambiar los filtros o actualizar la página
-                                </p>
-                            </div>
+                <div className="flex-1 overflow-auto px-6 py-6">
+                    {isLoading && solicitudes.length === 0 ? (
+                        <div className="h-full flex items-center justify-center">
+                            <LoadingSpinner />
                         </div>
                     ) : (
-                        <div className="rounded-lg border bg-card overflow-hidden">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Profesor</TableHead>
-                                        <TableHead>Tipo de Evento</TableHead>
-                                        <TableHead>Fecha de Solicitud</TableHead>
-                                        <TableHead>Estado</TableHead>
-                                        <TableHead className="text-right">Acciones</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {solicitudes.map((solicitud) => (
-                                        <TableRow key={solicitud.id}>
-                                            <TableCell className="font-medium">
-                                                {solicitud.teacherId}
-                                            </TableCell>
-                                            <TableCell>
-                                                {getEventTypeLabel(solicitud.eventType)}
-                                            </TableCell>
-                                            <TableCell>
-                                                {moment(solicitud.createdAt).format('DD/MM/YYYY HH:mm')}
-                                            </TableCell>
-                                            <TableCell>
-                                                {getStatusBadge(solicitud.status)}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                {solicitud.status === 'PENDING' && (
-                                                    <div className="flex justify-end gap-2">
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <Button
-                                                                    variant="outline"
-                                                                    size="sm"
-                                                                    onClick={() => handleOpenActionDialog(solicitud, 'approve')}
-                                                                    className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
-                                                                >
-                                                                    <Check className="h-4 w-4" />
-                                                                </Button>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent>Aprobar</TooltipContent>
-                                                        </Tooltip>
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <Button
-                                                                    variant="outline"
-                                                                    size="sm"
-                                                                    onClick={() => handleOpenActionDialog(solicitud, 'reject')}
-                                                                    className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                                                                >
-                                                                    <X className="h-4 w-4" />
-                                                                </Button>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent>Rechazar</TooltipContent>
-                                                        </Tooltip>
-                                                    </div>
-                                                )}
-                                                {solicitud.status !== 'PENDING' && (
-                                                    <span className="text-xs text-muted-foreground">
-                                                        Procesada
-                                                    </span>
-                                                )}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
+                        <SolicitudTable
+                            solicitudes={solicitudes}
+                            onApprove={handleApprove}
+                            onReject={handleReject}
+                        />
                     )}
                 </div>
             </section>

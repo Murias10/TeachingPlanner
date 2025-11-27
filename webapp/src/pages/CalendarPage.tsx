@@ -335,8 +335,8 @@ export default function CalendarPage() {
     };
 
     const handleSelectSlot = (slotInfo: { start: Date; end: Date }) => {
-        // Solo permitir drag and drop a ADMIN
-        if (!isAdmin) {
+        // Permitir drag and drop a ADMIN (para crear eventos) y a TEACHER (para crear solicitudes)
+        if (!isAdmin && user?.role !== 'TEACHER') {
             return;
         }
 
@@ -348,7 +348,14 @@ export default function CalendarPage() {
         setDragStartDate(selectedDate);
         setDragStartTime(startTime);
         setDragEndTime(endTime);
-        setIsCreateEventDialogOpen(true);
+
+        // Si es ADMIN, abrir el diálogo de crear evento
+        // Si es TEACHER, abrir el diálogo de crear solicitud
+        if (isAdmin) {
+            setIsCreateEventDialogOpen(true);
+        } else if (user?.role === 'TEACHER') {
+            setIsSolicitudDrawerOpen(true);
+        }
     };
 
     const handleDeleteEvents = () => {
@@ -536,6 +543,9 @@ export default function CalendarPage() {
                 variant: 'success'
             });
             setIsSolicitudDrawerOpen(false);
+            setDragStartDate(null);
+            setDragStartTime(null);
+            setDragEndTime(null);
         } else {
             triggerAlert({
                 title: 'Error',
@@ -680,7 +690,7 @@ export default function CalendarPage() {
                                     style={{ height: '100%', width: '100%' }}
                                     components={calendarComponents}
                                     onSelectSlot={handleSelectSlot}
-                                    selectable={isAdmin}
+                                    selectable={isAdmin || user?.role === 'TEACHER'}
                                     eventPropGetter={(event) => {
                                         const calendarEvent = event.resource as CalendarEvent;
 
@@ -730,7 +740,14 @@ export default function CalendarPage() {
             {/* Create Event Dialog */}
             <CreateEventDialog
                 open={isCreateEventDialogOpen}
-                onOpenChange={setIsCreateEventDialogOpen}
+                onOpenChange={(open) => {
+                    setIsCreateEventDialogOpen(open);
+                    if (!open) {
+                        setDragStartDate(null);
+                        setDragStartTime(null);
+                        setDragEndTime(null);
+                    }
+                }}
                 onSave={handleSaveEvent}
                 degreeId={course?.degree?.id}
                 calendarEvents={data?.events}
@@ -759,11 +776,21 @@ export default function CalendarPage() {
             {!isAdmin && (
                 <CreateSolicitudDialog
                     open={isSolicitudDrawerOpen}
-                    onOpenChange={setIsSolicitudDrawerOpen}
+                    onOpenChange={(open) => {
+                        setIsSolicitudDrawerOpen(open);
+                        if (!open) {
+                            setDragStartDate(null);
+                            setDragStartTime(null);
+                            setDragEndTime(null);
+                        }
+                    }}
                     onSave={handleSolicitud}
                     degreeId={course?.degree?.id}
                     calendarId={calendarId || undefined}
                     calendarEvents={data?.events}
+                    initialDate={dragStartDate}
+                    initialStartTime={dragStartTime}
+                    initialEndTime={dragEndTime}
                 />
             )}
         </>

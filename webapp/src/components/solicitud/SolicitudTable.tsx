@@ -29,8 +29,6 @@ import {
     TableRow,
     TableCell,
 } from "@/components/ui/table"
-import { useEffect } from "react"
-import { useTranslation } from "react-i18next"
 
 interface EventRequest {
     id: string;
@@ -52,8 +50,6 @@ interface SolicitudTableProps {
 }
 
 export function SolicitudTable({ solicitudes, onApprove, onReject }: SolicitudTableProps) {
-    const { t } = useTranslation();
-
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
@@ -61,7 +57,7 @@ export function SolicitudTable({ solicitudes, onApprove, onReject }: SolicitudTa
 
     const table = useReactTable({
         data: solicitudes,
-        columns: defaultColumns({ onApprove, onReject }, t),
+        columns: defaultColumns({ onApprove, onReject }),
         state: {
             sorting,
             columnFilters,
@@ -156,7 +152,7 @@ export function SolicitudTable({ solicitudes, onApprove, onReject }: SolicitudTa
                         ) : (
                             <TableRow>
                                 <TableCell
-                                    colSpan={defaultColumns({ onApprove, onReject }, t).length}
+                                    colSpan={defaultColumns({ onApprove, onReject }).length}
                                     className="h-24 text-center"
                                 >
                                     No hay resultados.

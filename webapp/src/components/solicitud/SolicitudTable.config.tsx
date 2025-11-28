@@ -2,7 +2,6 @@ import { ColumnDef } from "@tanstack/react-table"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ArrowUpDown, Check, X } from "lucide-react"
-import { TFunction } from "i18next"
 import {
     Tooltip,
     TooltipContent,
@@ -45,7 +44,7 @@ const getEventTypeLabel = (eventType: string) => {
     return eventType === 'PUNTUAL' ? 'Puntual' : 'Periódica';
 };
 
-export const columns = ({ onApprove, onReject }: ColumnExtraProps, t: TFunction): ColumnDef<EventRequest>[] => [
+export const columns = ({ onApprove, onReject }: ColumnExtraProps): ColumnDef<EventRequest>[] => [
     {
         accessorKey: "teacherId",
         enableHiding: false,

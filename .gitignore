@@ -25,5 +25,10 @@ dist-ssr
 
 # Variables de entorno
 .env
+.env.sonarqube
+
+# SonarQube
+.scannerwork/
+.sonar/
 
 .claude

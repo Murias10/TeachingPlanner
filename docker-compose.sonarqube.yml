@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  sonarqube:
+    image: sonarqube:community
+    container_name: teachingplanner_sonarqube
+    environment:
+      - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+    ports:
+      - "9000:9000"
+    networks:
+      - sonarnet
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9000/api/system/status | grep -q '\"status\":\"UP\"' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  sonar-scanner:
+    image: sonarsource/sonar-scanner-cli:latest
+    container_name: teachingplanner_sonar_scanner
+    profiles:
+      - scan
+    env_file:
+      - .env.sonarqube
+    depends_on:
+      sonarqube:
+        condition: service_healthy
+    environment:
+      - SONAR_HOST_URL=http://sonarqube:9000
+    volumes:
+      - ./:/usr/src
+    working_dir: /usr/src
+    command: >
+      sh -c "
+        echo 'Esperando a que SonarQube esté completamente listo...' &&
+        sleep 10 &&
+        sonar-scanner
+      "
+    networks:
+      - sonarnet
+
+volumes:
+  sonarqube_data:
+    name: teachingplanner_sonarqube_data
+  sonarqube_extensions:
+    name: teachingplanner_sonarqube_extensions
+  sonarqube_logs:
+    name: teachingplanner_sonarqube_logs
+
+networks:
+  sonarnet:
+    name: teachingplanner_sonarnet
+    driver: bridge

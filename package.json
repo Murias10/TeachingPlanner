@@ -1,0 +1,24 @@
+{
+  "name": "teaching-planner",
+  "version": "1.0.0",
+  "description": "Teaching Planner - Sistema de gestión académica con microservicios",
+  "private": true,
+  "scripts": {
+    "sonar:start": "docker compose -f docker-compose.sonarqube.yml up -d sonarqube",
+    "sonar:stop": "docker compose -f docker-compose.sonarqube.yml down",
+    "sonar:scan": "docker compose -f docker-compose.sonarqube.yml --profile scan up sonar-scanner --abort-on-container-exit",
+    "sonar:logs": "docker compose -f docker-compose.sonarqube.yml logs -f sonarqube",
+    "sonar:logs-scanner": "docker compose -f docker-compose.sonarqube.yml logs -f sonar-scanner",
+    "sonar:clean": "docker compose -f docker-compose.sonarqube.yml down -v",
+    "sonar:restart": "npm run sonar:stop && npm run sonar:start",
+    "sonar:full": "npm run sonar:start && echo 'Esperando a que SonarQube esté listo (puede tardar 1-2 minutos)...' && sleep 90 && npm run sonar:scan"
+  },
+  "keywords": [
+    "teaching",
+    "planner",
+    "microservices",
+    "education"
+  ],
+  "author": "Teaching Planner Team",
+  "license": "ISC"
+}

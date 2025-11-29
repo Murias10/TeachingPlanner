@@ -1,434 +1,151 @@
 import { NextFunction, Request, Response } from 'express';
 import FormData from 'form-data';
 import axios from 'axios';
-
-/**
- * Helper function to create headers for proxied requests
- * Passes through the Authorization header if present
- */
-function getProxyHeaders(req: Request, additionalHeaders: Record<string, string> = {}): Record<string, string> {
-    const headers: Record<string, string> = { ...additionalHeaders };
-    if (req.headers.authorization) {
-        headers.authorization = req.headers.authorization;
-    }
-    return headers;
-}
+import { proxyRequest, proxyBinaryRequest, getProxyHeaders } from '@/utils/proxy';
+import { SERVICES } from '@/config/services';
 
 
-export const getDegrees = (_req: Request, res: Response, next: NextFunction) => {
-    fetch('http://planner_service:5001/degrees')
-        .then(async (response) => {
-            // Copia los headers del planner service
-            response.headers.forEach((value, key) => {
-                res.setHeader(key, value);
-            });
-            // Obtén el body como JSON
-            const body = await response.json();
-            res.status(response.status).json(body);
-        })
-        .catch((error) => {
-            next(error);
-        });
-}
+export const getDegrees = (_req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(_req, res, next, {
+        url: `${SERVICES.PLANNER}/degrees`,
+        method: 'GET'
+    });
 
-export const getDegreeByAcronym = (req: Request, res: Response, next: NextFunction) => {
-    const { acronym } = req.params;
-    fetch(`http://planner_service:5001/degree/acronym/${acronym}`)
-        .then(async (response) => {
-            // Copia los headers del planner service
-            response.headers.forEach((value, key) => {
-                res.setHeader(key, value);
-            });
-            // Obtén el body como JSON
-            const body = await response.json();
-            res.status(response.status).json(body);
-        })
-        .catch((error) => {
-            next(error);
-        });
-}
+export const getDegreeByAcronym = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/degree/acronym/${req.params.acronym}`,
+        method: 'GET'
+    });
 
-export const createDegree = async (req: Request, res: Response, next: NextFunction) => {
-
-    const { name, acronym } = req.body;
-
-    fetch("http://planner_service:5001/degree", {
+export const createDegree = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/degree`,
         method: "POST",
-        headers: getProxyHeaders(req, { "Content-Type": "application/json" }),
-        body: JSON.stringify({ name, acronym })
-    })
-        .then(async (response) => {
-            response.headers.forEach((value, key) => {
-                res.setHeader(key, value);
-            });
-            const body = await response.json();
-            res.status(response.status).json(body);
-        })
-        .catch((error) => {
-            next(error);
-        });
-};
+        body: req.body
+    });
 
-export const updateDegree = async (req: Request, res: Response, next: NextFunction) => {
-    const { id } = req.params;
-    const { name, acronym } = req.body;
-
-    fetch(`http://planner_service:5001/degree/${id}`, {
+export const updateDegree = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/degree/${req.params.id}`,
         method: "PATCH",
-        headers: getProxyHeaders(req, { "Content-Type": "application/json" }),
-        body: JSON.stringify({ name, acronym })
-    })
-        .then(async (response) => {
-            response.headers.forEach((value, key) => {
-                res.setHeader(key, value);
-            });
-            const body = await response.json();
-            res.status(response.status).json(body);
-        })
-        .catch((error) => {
-            next(error);
-        });
-};
+        body: req.body
+    });
 
-export const deleteDegree = async (req: Request, res: Response, next: NextFunction) => {
-    const { id } = req.params;
+export const deleteDegree = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/degree/${req.params.id}`,
+        method: "DELETE"
+    });
 
-    fetch(`http://planner_service:5001/degree/${id}`, {
-        method: "DELETE",
-        headers: getProxyHeaders(req)
-    })
-        .then(async (response) => {
-            response.headers.forEach((value, key) => {
-                res.setHeader(key, value);
-            });
-            const body = await response.json();
-            res.status(response.status).json(body);
-        })
-        .catch((error) => {
-            next(error);
-        });
-};
+export const getSubjects = (_req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(_req, res, next, {
+        url: `${SERVICES.PLANNER}/subjects`,
+        method: 'GET'
+    });
 
-export const getSubjects = (_req: Request, res: Response, next: NextFunction) => {
-    fetch('http://planner_service:5001/subjects')
-        .then(async (response) => {
-            // Copia los headers del planner service
-            response.headers.forEach((value, key) => {
-                res.setHeader(key, value);
-            });
-            // Obtén el body como JSON
-            const body = await response.json();
-            res.status(response.status).json(body);
-        })
-        .catch((error) => {
-            next(error);
-        });
-}
+export const getSubjectsByDegreeId = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/subjects/degree/${req.params.id}`,
+        method: 'GET'
+    });
 
-export const getSubjectsByDegreeId = (req: Request, res: Response, next: NextFunction) => {
-    const degreeId = req.params.id;
-    fetch(`http://planner_service:5001/subjects/degree/${degreeId}`)
-        .then(async (response) => {
-            // Copia los headers del planner service
-            response.headers.forEach((value, key) => {
-                res.setHeader(key, value);
-            });
-            // Obtén el body como JSON
-            const body = await response.json();
-            res.status(response.status).json(body);
-        })
-        .catch((error) => {
-            next(error);
-        });
-}
+export const getSubjectsWithEventsAndGroupsByCourseAndSemester = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/subjects/with-events/groups/by-course/${req.params.courseId}/semester/${req.params.semester}`,
+        method: 'GET'
+    });
 
+export const deleteSubject = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/subject/${req.params.id}`,
+        method: "DELETE"
+    });
 
-export const getSubjectsWithEventsAndGroupsByCourseAndSemester = (req: Request, res: Response, next: NextFunction) => {
-    const { courseId, semester } = req.params;
-    fetch(`http://planner_service:5001/subjects/with-events/groups/by-course/${courseId}/semester/${semester}`)
-        .then(async (response) => {
-            // Copia los headers del planner service
-            response.headers.forEach((value, key) => {
-                res.setHeader(key, value);
-            });
-            // Obtén el body como JSON
-            const body = await response.json();
-            res.status(response.status).json(body);
-        })
-        .catch((error) => {
-            next(error);
-        });
-}
-
-export const deleteSubject = async (req: Request, res: Response, next: NextFunction) => {
-    const { id } = req.params;
-
-    fetch(`http://planner_service:5001/subject/${id}`, {
-        method: "DELETE",
-        headers: getProxyHeaders(req)
-    })
-        .then(async (response) => {
-            response.headers.forEach((value, key) => {
-                res.setHeader(key, value);
-            });
-            const body = await response.json();
-            res.status(response.status).json(body);
-        })
-        .catch((error) => {
-            next(error);
-        });
-};
-
-export const createSubject = async (req: Request, res: Response, next: NextFunction) => {
-
-    const { acronym, year, name, siesCode, semester, degree } = req.body; // ✅ se recibe desde body
-
-    fetch("http://planner_service:5001/subject", {
+export const createSubject = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/subject`,
         method: "POST",
-        headers: getProxyHeaders(req, { "Content-Type": "application/json" }),
-        body: JSON.stringify({ acronym, year, name, siesCode, semester, degree }) // ✅ reenviamos datos
-    })
-        .then(async (response) => {
-            response.headers.forEach((value, key) => {
-                res.setHeader(key, value);
-            });
-            const body = await response.json();
-            res.status(response.status).json(body);
-        })
-        .catch((error) => {
-            next(error);
-        });
-};
+        body: req.body
+    });
 
-export const updateSubject = async (req: Request, res: Response, next: NextFunction) => {
-    const { id } = req.params;
-    const { acronym, year, name, siesCode, semester } = req.body;
-
-    fetch(`http://planner_service:5001/subject/${id}`, {
+export const updateSubject = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/subject/${req.params.id}`,
         method: "PATCH",
-        headers: getProxyHeaders(req, { "Content-Type": "application/json" }),
-        body: JSON.stringify({ acronym, year, name, siesCode, semester })
-    })
-        .then(async (response) => {
-            response.headers.forEach((value, key) => {
-                res.setHeader(key, value);
-            });
-            const body = await response.json();
-            res.status(response.status).json(body);
-        })
-        .catch((error) => {
-            next(error);
-        });
-};
+        body: req.body
+    });
 
 
-export const getCourses = (_req: Request, res: Response, next: NextFunction) => {
-    fetch('http://planner_service:5001/courses')
-        .then(async (response) => {
-            // Copia los headers del planner service
-            response.headers.forEach((value, key) => {
-                res.setHeader(key, value);
-            });
-            // Obtén el body como JSON
-            const body = await response.json();
-            res.status(response.status).json(body);
-        })
-        .catch((error) => {
-            next(error);
-        });
-}
+export const getCourses = (_req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(_req, res, next, {
+        url: `${SERVICES.PLANNER}/courses`,
+        method: 'GET'
+    });
 
+export const getCoursesByDegreeId = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/courses/degree/${req.params.id}`,
+        method: 'GET'
+    });
 
-export const getCoursesByDegreeId = (req: Request, res: Response, next: NextFunction) => {
-    const degreeId = req.params.id;
-    fetch(`http://planner_service:5001/courses/degree/${degreeId}`)
-        .then(async (response) => {
-            // Copia los headers del planner service
-            response.headers.forEach((value, key) => {
-                res.setHeader(key, value);
-            });
-            // Obtén el body como JSON
-            const body = await response.json();
-            res.status(response.status).json(body);
-        })
-        .catch((error) => {
-            next(error);
-        });
-}
+export const getCoursesByDegreeAcronym = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/courses/degree/acronym/${req.params.acronym}`,
+        method: 'GET'
+    });
 
-export const getCoursesByDegreeAcronym = (req: Request, res: Response, next: NextFunction) => {
-    const degreeAcronym = req.params.acronym;
-    fetch(`http://planner_service:5001/courses/degree/acronym/${degreeAcronym}`)
-        .then(async (response) => {
-            // Copia los headers del planner service
-            response.headers.forEach((value, key) => {
-                res.setHeader(key, value);
-            });
-            // Obtén el body como JSON
-            const body = await response.json();
-            res.status(response.status).json(body);
-        })
-        .catch((error) => {
-            next(error);
-        });
-}
-
-export const createCourse = async (req: Request, res: Response, next: NextFunction) => {
-    const { startYear, endYear, state, degree } = req.body;
-
-    fetch("http://planner_service:5001/course", {
+export const createCourse = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/course`,
         method: "POST",
-        headers: getProxyHeaders(req, { "Content-Type": "application/json" }),
-        body: JSON.stringify({ startYear, endYear, state, degree })
-    })
-        .then(async (response) => {
-            response.headers.forEach((value, key) => {
-                res.setHeader(key, value);
-            });
-            const body = await response.json();
-            res.status(response.status).json(body);
-        })
-        .catch((error) => {
-            next(error);
-        });
-}
+        body: req.body
+    });
 
-export const updateCourse = async (req: Request, res: Response, next: NextFunction) => {
-    const { id } = req.params;
-    const { startYear, endYear, state } = req.body;
-
-    fetch(`http://planner_service:5001/course/${id}`, {
+export const updateCourse = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/course/${req.params.id}`,
         method: "PATCH",
-        headers: getProxyHeaders(req, { "Content-Type": "application/json" }),
-        body: JSON.stringify({ startYear, endYear, state })
-    })
-        .then(async (response) => {
-            response.headers.forEach((value, key) => {
-                res.setHeader(key, value);
-            });
-            const body = await response.json();
-            res.status(response.status).json(body);
-        })
-        .catch((error) => {
-            next(error);
-        });
-}
+        body: req.body
+    });
 
-export const deleteCourse = async (req: Request, res: Response, next: NextFunction) => {
-    const { id } = req.params;
+export const deleteCourse = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/course/${req.params.id}`,
+        method: "DELETE"
+    });
 
-    fetch(`http://planner_service:5001/course/${id}`, {
-        method: "DELETE",
-        headers: getProxyHeaders(req)
-    })
-        .then(async (response) => {
-            response.headers.forEach((value, key) => {
-                res.setHeader(key, value);
-            });
-            const body = await response.json();
-            res.status(response.status).json(body);
-        })
-        .catch((error) => {
-            next(error);
-        });
-};
+export const getClassrooms = (_req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(_req, res, next, {
+        url: `${SERVICES.PLANNER}/classrooms`,
+        method: 'GET'
+    });
 
-export const getClassrooms = (_req: Request, res: Response, next: NextFunction) => {
-    fetch('http://planner_service:5001/classrooms')
-        .then(async (response) => {
-            // Copia los headers del planner service
-            response.headers.forEach((value, key) => {
-                res.setHeader(key, value);
-            });
-            // Obtén el body como JSON
-            const body = await response.json();
-            res.status(response.status).json(body);
-        })
-        .catch((error) => {
-            next(error);
-        });
-}
-
-export const createClassroom = async (req: Request, res: Response, next: NextFunction) => {
-
-    const { code, gisUrl } = req.body; // ✅ se recibe desde body
-
-    fetch("http://planner_service:5001/classroom", {
+export const createClassroom = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/classroom`,
         method: "POST",
-        headers: getProxyHeaders(req, { "Content-Type": "application/json" }),
-        body: JSON.stringify({ code, gisUrl }) // ✅ reenviamos datos
-    })
-        .then(async (response) => {
-            response.headers.forEach((value, key) => {
-                res.setHeader(key, value);
-            });
-            const body = await response.json();
-            res.status(response.status).json(body);
-        })
-        .catch((error) => {
-            next(error);
-        });
-};
+        body: req.body
+    });
 
-
-export const updateClassroom = async (req: Request, res: Response, next: NextFunction) => {
-    const { id } = req.params;
-    const { code, gisUrl } = req.body;
-
-    fetch(`http://planner_service:5001/classroom/${id}`, {
+export const updateClassroom = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/classroom/${req.params.id}`,
         method: "PATCH",
-        headers: getProxyHeaders(req, { "Content-Type": "application/json" }),
-        body: JSON.stringify({ code, gisUrl })
-    })
-        .then(async (response) => {
-            response.headers.forEach((value, key) => {
-                res.setHeader(key, value);
-            });
-            const body = await response.json();
-            res.status(response.status).json(body);
-        })
-        .catch((error) => {
-            next(error);
-        });
-};
+        body: req.body
+    });
 
-export const deleteClassroom = async (req: Request, res: Response, next: NextFunction) => {
-    const { id } = req.params;
+export const deleteClassroom = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/classroom/${req.params.id}`,
+        method: "DELETE"
+    });
 
-    fetch(`http://planner_service:5001/classroom/${id}`, {
-        method: "DELETE",
-        headers: getProxyHeaders(req)
-    })
-        .then(async (response) => {
-            response.headers.forEach((value, key) => {
-                res.setHeader(key, value);
-            });
-            const body = await response.json();
-            res.status(response.status).json(body);
-        })
-        .catch((error) => {
-            next(error);
-        });
-};
-
-export const createCalendar = async (req: Request, res: Response, next: NextFunction) => {
-    const { idCourse, semester, start, end } = req.body;
-    fetch("http://planner_service:5001/calendar", {
+export const createCalendar = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/calendar`,
         method: "POST",
-        headers: getProxyHeaders(req, { "Content-Type": "application/json" }),
-        body: JSON.stringify({ idCourse, semester, start, end })
-    })
-        .then(async (response) => {
-            response.headers.forEach((value, key) => {
-                res.setHeader(key, value);
-            });
-            const body = await response.json();
-            res.status(response.status).json(body);
-        })
-        .catch((error) => {
-            next(error);
-        });
-};
+        body: req.body
+    });
 
 export const createCalendarWithImport = async (req: Request, res: Response) => {
     try {
@@ -459,7 +176,7 @@ export const createCalendarWithImport = async (req: Request, res: Response) => {
         // Usar axios para reenviar correctamente
         const headers = getProxyHeaders(req, formData.getHeaders());
         const response = await axios.post(
-            'http://planner_service:5001/calendar/import',
+            `${SERVICES.PLANNER}/calendar/import`,
             formData,
             {
                 headers,
@@ -487,223 +204,77 @@ export const createCalendarWithImport = async (req: Request, res: Response) => {
 };
 
 
-export const getCalendarById = async (req: Request, res: Response, next: NextFunction) => {
-    const { id } = req.params;
-    fetch(`http://planner_service:5001/calendar/${id}`)
-        .then(async (response) => {
-            // Copia los headers del planner service
-            response.headers.forEach((value, key) => {
-                res.setHeader(key, value);
-            });
-            // Obtén el body como JSON
-            const body = await response.json();
-            res.status(response.status).json(body);
-        })
-        .catch((error) => {
-            next(error);
-        });
-}
+export const getCalendarById = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/calendar/${req.params.id}`,
+        method: 'GET'
+    });
 
+export const deleteCalendar = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/calendar/${req.params.id}`,
+        method: "DELETE"
+    });
 
-export const deleteCalendar = async (req: Request, res: Response, next: NextFunction) => {
-    const { id } = req.params;
+export const getCalendarEvents = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/calendar/${req.params.id}/events`,
+        method: 'GET'
+    });
 
-    fetch(`http://planner_service:5001/calendar/${id}`, {
-        method: "DELETE",
-        headers: getProxyHeaders(req)
-    })
-        .then(async (response) => {
-            response.headers.forEach((value, key) => {
-                res.setHeader(key, value);
-            });
-            const body = await response.json();
-            res.status(response.status).json(body);
-        })
-        .catch((error) => {
-            next(error);
-        });
-};
+export const exportCalendar = (req: Request, res: Response, next: NextFunction) =>
+    proxyBinaryRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/calendar/${req.params.id}/export`,
+        method: 'GET'
+    });
 
-
-export const getCalendarEvents = (req: Request, res: Response, next: NextFunction) => {
-    const { id } = req.params;
-    fetch(`http://planner_service:5001/calendar/${id}/events`)
-        .then(async (response) => {
-            // Copia los headers del planner service
-            response.headers.forEach((value, key) => {
-                res.setHeader(key, value);
-            });
-            // Obtén el body como JSON
-            const body = await response.json();
-            res.status(response.status).json(body);
-        })
-        .catch((error) => {
-            next(error);
-        });
-}
-
-export const exportCalendar = (req: Request, res: Response, next: NextFunction) => {
-    const { id } = req.params;
-    fetch(`http://planner_service:5001/calendar/${id}/export`)
-        .then(async (response) => {
-            // Copia los headers del planner service (incluyendo Content-Disposition para el filename)
-            response.headers.forEach((value, key) => {
-                res.setHeader(key, value);
-            });
-
-            // Para binarios (ZIP), obtener como buffer y enviar como blob
-            const buffer = await response.arrayBuffer();
-            res.status(response.status).send(Buffer.from(buffer));
-        })
-        .catch((error) => {
-            next(error);
-        });
-};
-
-export const createPuntualEvent = (req: Request, res: Response, next: NextFunction) => {
-    fetch('http://planner_service:5001/calendar/puntual-event', {
+export const createPuntualEvent = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/calendar/puntual-event`,
         method: 'POST',
-        headers: getProxyHeaders(req, { 'Content-Type': 'application/json' }),
-        body: JSON.stringify(req.body)
-    })
-        .then((response) => {
-            // Copiar headers de respuesta
-            response.headers.forEach((value, key) => {
-                res.setHeader(key, value);
-            });
+        body: req.body
+    });
 
-            return response.json().then((body) => {
-                res.status(response.status).json(body);
-            });
-        })
-        .catch((error) => {
-            next(error);
-        });
-}
-
-export const deletePuntualEvent = (req: Request, res: Response, next: NextFunction) => {
-    const { eventId } = req.params;
-
-    fetch(`http://planner_service:5001/calendar/puntual-event/${eventId}`, {
-        method: 'DELETE',
-        headers: getProxyHeaders(req, { 'Content-Type': 'application/json' })
-    })
-        .then((response) => {
-            // Copiar headers de respuesta
-            response.headers.forEach((value, key) => {
-                res.setHeader(key, value);
-            });
-
-            return response.json().then((body) => {
-                res.status(response.status).json(body);
-            });
-        })
-        .catch((error) => {
-            next(error);
-        });
-}
+export const deletePuntualEvent = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/calendar/puntual-event/${req.params.eventId}`,
+        method: 'DELETE'
+    });
 // ============================================
 // Event Request Controllers (Proxy to planner_service)
 // ============================================
 
-export const createEventRequest = (req: Request, res: Response, next: NextFunction) => {
-    fetch('http://planner_service:5001/event-request', {
+export const createEventRequest = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/event-request`,
         method: 'POST',
-        headers: getProxyHeaders(req, { 'Content-Type': 'application/json' }),
-        body: JSON.stringify(req.body)
-    })
-        .then((response) => {
-            response.headers.forEach((value, key) => {
-                res.setHeader(key, value);
-            });
-            return response.json().then((body) => {
-                res.status(response.status).json(body);
-            });
-        })
-        .catch((error) => {
-            next(error);
-        });
-};
+        body: req.body
+    });
 
 export const getEventRequests = (req: Request, res: Response, next: NextFunction) => {
     const query = new URLSearchParams(req.query as Record<string, string>).toString();
-    const url = query ? `http://planner_service:5001/event-requests?${query}` : 'http://planner_service:5001/event-requests';
-
-    fetch(url, {
-        method: 'GET',
-        headers: getProxyHeaders(req)
-    })
-        .then((response) => {
-            response.headers.forEach((value, key) => {
-                res.setHeader(key, value);
-            });
-            return response.json().then((body) => {
-                res.status(response.status).json(body);
-            });
-        })
-        .catch((error) => {
-            next(error);
-        });
+    return proxyRequest(req, res, next, {
+        url: query ? `${SERVICES.PLANNER}/event-requests?${query}` : `${SERVICES.PLANNER}/event-requests`,
+        method: 'GET'
+    });
 };
 
-export const getEventRequestById = (req: Request, res: Response, next: NextFunction) => {
-    const { id } = req.params;
+export const getEventRequestById = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/event-request/${req.params.id}`,
+        method: 'GET'
+    });
 
-    fetch(`http://planner_service:5001/event-request/${id}`, {
-        method: 'GET',
-        headers: getProxyHeaders(req)
-    })
-        .then((response) => {
-            response.headers.forEach((value, key) => {
-                res.setHeader(key, value);
-            });
-            return response.json().then((body) => {
-                res.status(response.status).json(body);
-            });
-        })
-        .catch((error) => {
-            next(error);
-        });
-};
-
-export const approveEventRequest = (req: Request, res: Response, next: NextFunction) => {
-    const { id } = req.params;
-
-    fetch(`http://planner_service:5001/event-request/${id}/approve`, {
+export const approveEventRequest = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/event-request/${req.params.id}/approve`,
         method: 'PATCH',
-        headers: getProxyHeaders(req, { 'Content-Type': 'application/json' }),
-        body: JSON.stringify(req.body)
-    })
-        .then((response) => {
-            response.headers.forEach((value, key) => {
-                res.setHeader(key, value);
-            });
-            return response.json().then((body) => {
-                res.status(response.status).json(body);
-            });
-        })
-        .catch((error) => {
-            next(error);
-        });
-};
+        body: req.body
+    });
 
-export const rejectEventRequest = (req: Request, res: Response, next: NextFunction) => {
-    const { id } = req.params;
-
-    fetch(`http://planner_service:5001/event-request/${id}/reject`, {
+export const rejectEventRequest = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/event-request/${req.params.id}/reject`,
         method: 'PATCH',
-        headers: getProxyHeaders(req, { 'Content-Type': 'application/json' }),
-        body: JSON.stringify(req.body)
-    })
-        .then((response) => {
-            response.headers.forEach((value, key) => {
-                res.setHeader(key, value);
-            });
-            return response.json().then((body) => {
-                res.status(response.status).json(body);
-            });
-        })
-        .catch((error) => {
-            next(error);
-        });
-};
+        body: req.body
+    });

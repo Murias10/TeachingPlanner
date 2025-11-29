@@ -47,11 +47,11 @@ export const proxyRequest = async (
     const response = await axios(axiosConfig);
 
     // Copiar headers relevantes de la respuesta
-    Object.entries(response.headers).forEach(([key, value]) => {
+    for (const [key, value] of Object.entries(response.headers)) {
       if (value && !['content-encoding', 'transfer-encoding'].includes(key.toLowerCase())) {
         res.setHeader(key, value);
       }
-    });
+    }
 
     // Enviar respuesta
     res.status(response.status).json(response.data);
@@ -59,11 +59,11 @@ export const proxyRequest = async (
     // Si es error de axios, preservar status y datos
     if (axios.isAxiosError(error)) {
       if (error.response) {
-        Object.entries(error.response.headers).forEach(([key, value]) => {
+        for (const [key, value] of Object.entries(error.response.headers)) {
           if (value && !['content-encoding', 'transfer-encoding'].includes(key.toLowerCase())) {
             res.setHeader(key, value);
           }
-        });
+        }
         res.status(error.response.status).json(error.response.data);
         return;
       }
@@ -85,7 +85,7 @@ export const proxyBinaryRequest = async (
 ) => {
   try {
     const headers: Record<string, string> = {
-      ...(options.additionalHeaders || {})
+      ...(options.additionalHeaders)
     };
 
     if (options.includeAuth !== false && req.headers.authorization) {
@@ -103,11 +103,11 @@ export const proxyBinaryRequest = async (
     const response = await axios(axiosConfig);
 
     // Copiar headers
-    Object.entries(response.headers).forEach(([key, value]) => {
+    for (const [key, value] of Object.entries(response.headers)) {
       if (value) {
         res.setHeader(key, value);
       }
-    });
+    }
 
     res.status(response.status).send(Buffer.from(response.data));
   } catch (error) {

@@ -10,7 +10,7 @@ export function createAppDataSource() {
     password: process.env.MANAGEMENT_DATABASE_PASSWORD,
     database: process.env.MANAGEMENT_DATABASE_DATABASE,
     entities: [User],
-    synchronize: true,
+    synchronize: false,
     logging: true,
   });
 }

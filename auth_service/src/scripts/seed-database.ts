@@ -43,24 +43,40 @@ export const seedDatabase = async (): Promise<void> => {
     const sqlContent = fs.readFileSync(initDataPath, 'utf-8');
 
     // Dividir por puntos y coma para obtener sentencias individuales
-    const statements = sqlContent
+    const allStatements = sqlContent
       .split(';')
       .map((stmt) => stmt.trim())
       .filter((stmt) => stmt.length > 0 && !stmt.startsWith('--'));
+
+    console.log(`📊 Total de fragmentos encontrados: ${allStatements.length}`);
+
+    // Filtrar solo los INSERT
+    const statements = allStatements.filter((stmt) => stmt.toUpperCase().startsWith('INSERT'));
+    console.log(`📊 Total de INSERT encontrados: ${statements.length}`);
+
+    // Debug: mostrar cada sentencia encontrada
+    statements.forEach((stmt, index) => {
+      const preview = stmt.substring(0, 100).replace(/\n/g, ' ');
+      console.log(`  ${index + 1}. ${preview}...`);
+    });
 
     // Ejecutar cada sentencia SQL
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
 
     try {
-      for (const statement of statements) {
+      for (let i = 0; i < statements.length; i++) {
+        const statement = statements[i];
+        console.log(`⏳ Ejecutando INSERT #${i + 1}/${statements.length}...`);
         try {
           await queryRunner.query(statement);
+          console.log(`✅ INSERT #${i + 1} completado`);
         } catch (error: any) {
           // Si es un error de duplicado (UNIQUE constraint), ignorar
           if (error.code === 'ER_DUP_ENTRY') {
-            console.log('ℹ️ Usuario ya existe (ER_DUP_ENTRY), saltando...');
+            console.log(`ℹ️ INSERT #${i + 1}: Usuario ya existe (ER_DUP_ENTRY), saltando...`);
           } else {
+            console.error(`❌ Error en INSERT #${i + 1}:`, error.message);
             throw error;
           }
         }

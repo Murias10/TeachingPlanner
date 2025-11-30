@@ -60,7 +60,7 @@ export class AuthController {
         }
     };
 
-    validateToken = async (req: AuthRequest, res: Response): Promise<void> => {
+    validateToken = async (req: Request, res: Response): Promise<void> => {
         try {
             const token = req.headers.authorization?.split(' ')[1];
 

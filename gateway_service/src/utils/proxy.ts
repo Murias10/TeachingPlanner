@@ -9,6 +9,55 @@ interface ProxyRequestOptions {
   additionalHeaders?: Record<string, string>;
 }
 
+// Headers que no deben ser copiados de la respuesta del servidor
+const EXCLUDED_HEADERS = new Set(['content-encoding', 'transfer-encoding']);
+
+/**
+ * Construir headers para la request
+ */
+const buildRequestHeaders = (
+  req: Request,
+  options: ProxyRequestOptions
+): Record<string, string> => {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...options.additionalHeaders
+  };
+
+  if (options.includeAuth !== false && req.headers.authorization) {
+    headers.authorization = req.headers.authorization;
+  }
+
+  return headers;
+};
+
+/**
+ * Copiar headers relevantes de la respuesta
+ */
+const copyResponseHeaders = (
+  responseHeaders: Record<string, any>,
+  res: Response
+): void => {
+  for (const [key, value] of Object.entries(responseHeaders)) {
+    if (value && !EXCLUDED_HEADERS.has(key.toLowerCase())) {
+      res.setHeader(key, value);
+    }
+  }
+};
+
+/**
+ * Manejar error de axios
+ */
+const handleAxiosError = (error: any, res: Response, next: NextFunction): void => {
+  if (axios.isAxiosError(error) && error.response) {
+    copyResponseHeaders(error.response.headers, res);
+    res.status(error.response.status).json(error.response.data);
+    return;
+  }
+
+  next(error);
+};
+
 /**
  * Centralizado proxy request handler
  * Maneja:
@@ -24,18 +73,8 @@ export const proxyRequest = async (
   options: ProxyRequestOptions
 ) => {
   try {
-    // Construir headers
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      ...(options.additionalHeaders || {})
-    };
+    const headers = buildRequestHeaders(req, options);
 
-    // Incluir Authorization si está disponible y se solicita
-    if (options.includeAuth !== false && req.headers.authorization) {
-      headers.authorization = req.headers.authorization;
-    }
-
-    // Configurar opciones de axios
     const axiosConfig: AxiosRequestConfig = {
       method: options.method || 'GET',
       url: options.url,
@@ -43,35 +82,31 @@ export const proxyRequest = async (
       ...(options.body && { data: options.body })
     };
 
-    // Realizar la request
     const response = await axios(axiosConfig);
 
-    // Copiar headers relevantes de la respuesta
-    for (const [key, value] of Object.entries(response.headers)) {
-      if (value && !['content-encoding', 'transfer-encoding'].includes(key.toLowerCase())) {
-        res.setHeader(key, value);
-      }
-    }
-
-    // Enviar respuesta
+    copyResponseHeaders(response.headers, res);
     res.status(response.status).json(response.data);
   } catch (error) {
-    // Si es error de axios, preservar status y datos
-    if (axios.isAxiosError(error)) {
-      if (error.response) {
-        for (const [key, value] of Object.entries(error.response.headers)) {
-          if (value && !['content-encoding', 'transfer-encoding'].includes(key.toLowerCase())) {
-            res.setHeader(key, value);
-          }
-        }
-        res.status(error.response.status).json(error.response.data);
-        return;
-      }
-    }
-
-    // Pasar al error handler
-    next(error);
+    handleAxiosError(error, res, next);
   }
+};
+
+/**
+ * Construir headers para binary request
+ */
+const buildBinaryRequestHeaders = (
+  req: Request,
+  options: ProxyRequestOptions
+): Record<string, string> => {
+  const headers: Record<string, string> = {
+    ...options.additionalHeaders
+  };
+
+  if (options.includeAuth !== false && req.headers.authorization) {
+    headers.authorization = req.headers.authorization;
+  }
+
+  return headers;
 };
 
 /**
@@ -84,13 +119,7 @@ export const proxyBinaryRequest = async (
   options: ProxyRequestOptions
 ) => {
   try {
-    const headers: Record<string, string> = {
-      ...(options.additionalHeaders)
-    };
-
-    if (options.includeAuth !== false && req.headers.authorization) {
-      headers.authorization = req.headers.authorization;
-    }
+    const headers = buildBinaryRequestHeaders(req, options);
 
     const axiosConfig: AxiosRequestConfig = {
       method: options.method || 'GET',
@@ -102,20 +131,10 @@ export const proxyBinaryRequest = async (
 
     const response = await axios(axiosConfig);
 
-    // Copiar headers
-    for (const [key, value] of Object.entries(response.headers)) {
-      if (value) {
-        res.setHeader(key, value);
-      }
-    }
-
+    copyResponseHeaders(response.headers, res);
     res.status(response.status).send(Buffer.from(response.data));
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response) {
-      res.status(error.response.status).json(error.response.data);
-      return;
-    }
-    next(error);
+    handleAxiosError(error, res, next);
   }
 };
 

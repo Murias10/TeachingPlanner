@@ -21,7 +21,7 @@ export function createAppDataSource() {
     entities: [Degree, Course, Calendar, Classroom, Subject, Group, Day, PuntualEvent, PeriodicEvent, EventRequest],
     migrations: ['src/migrations/*.ts'],
     migrationsRun: true,
-    synchronize: true,
+    synchronize: false,
     logging: true,
   });
 }

@@ -33,6 +33,8 @@ services:
         condition: service_healthy
     environment:
       - SONAR_HOST_URL=http://sonarqube:9000
+      - SONAR_BRANCH_NAME=${SONAR_BRANCH_NAME:-develop}
+      - SONAR_BRANCH_TARGET=${SONAR_BRANCH_TARGET:-main}
     volumes:
       - ./:/usr/src
     working_dir: /usr/src
@@ -40,6 +42,7 @@ services:
       sh -c "
         echo 'Esperando a que SonarQube esté completamente listo...' &&
         sleep 10 &&
+        echo 'Escaneando rama: ${SONAR_BRANCH_NAME:-develop} contra ${SONAR_BRANCH_TARGET:-main}' &&
         sonar-scanner
       "
     networks:

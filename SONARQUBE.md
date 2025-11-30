@@ -73,6 +73,8 @@ npm run sonar:scan
 ```
 Ejecuta el análisis de código de todos los microservicios. Requiere que el archivo `.env.sonarqube` tenga el token configurado.
 
+**Nota:** Por defecto escanea la rama `develop` y la compara contra `main`. Ver sección de **Análisis por Ramas** para más opciones.
+
 #### Ver Logs de SonarQube
 ```bash
 npm run sonar:logs
@@ -136,6 +138,128 @@ npm run sonar:full
 ```bash
 # Puedes dejar SonarQube corriendo o apagarlo:
 npm run sonar:stop
+```
+
+## Análisis por Ramas
+
+SonarQube puede analizar diferentes ramas del proyecto y mostrar comparativas. Esto es útil para validar código antes de hacer merge.
+
+### Configuración
+
+El archivo `.env.sonarqube` contiene:
+
+```env
+SONAR_BRANCH_NAME=develop          # Rama a analizar
+SONAR_BRANCH_TARGET=main           # Rama para comparación
+```
+
+### Uso
+
+#### Escanear develop (por defecto)
+
+```bash
+# Por defecto escanea develop comparado contra main
+npm run sonar:scan
+```
+
+**Resultado en SonarQube:**
+- Rama escaneada: `develop`
+- Comparada contra: `main`
+- Verás: nuevos issues, cambios en duplicación, cobertura, etc.
+
+#### Escanear otra rama
+
+Para escanear una rama diferente, modifica `.env.sonarqube`:
+
+```env
+SONAR_BRANCH_NAME=feature/nueva-funcionalidad
+SONAR_BRANCH_TARGET=develop
+```
+
+Luego ejecuta:
+
+```bash
+npm run sonar:scan
+```
+
+#### Escanear sin comparación
+
+Para analizar una rama sin comparar:
+
+```env
+SONAR_BRANCH_NAME=main
+# Comenta o elimina la línea de SONAR_BRANCH_TARGET
+```
+
+### Ejemplo: Flujo de desarrollo
+
+**Día 1: Trabajas en develop**
+```bash
+# Cambias a develop
+git checkout develop
+
+# Haces cambios y los subes
+# ...
+
+# Escaneas
+npm run sonar:scan
+
+# SonarQube muestra:
+# - Rama: develop
+# - vs main
+# - Nuevos issues: 2
+# - Complejidad: 13 (OK)
+```
+
+**Día 2: Arreglas issues**
+```bash
+# Arreglas los problemas encontrados
+# Escaneas nuevamente
+npm run sonar:scan
+
+# SonarQube muestra:
+# - Nuevos issues: 0 ✓
+```
+
+**Día 3: Merge a main**
+```bash
+# Una vez todo está limpio en develop:
+git checkout main
+git merge develop
+git push
+
+# Escaneas main para confirmar
+SONAR_BRANCH_NAME=main npm run sonar:scan
+```
+
+### En SonarQube
+
+Después de escanear, verás en http://localhost:9000:
+
+- **Selector de ramas** en la parte superior (main, develop, etc.)
+- **Comparativa:** "Nuevos issues vs main"
+- **Métricas por rama:**
+  - Duplicación de código
+  - Cobertura de tests
+  - Deuda técnica
+  - Complejidad
+
+### Checklist antes de hacer merge a main
+
+```bash
+# 1. Escanea develop
+npm run sonar:scan
+
+# 2. En SonarQube (http://localhost:9000) verifica:
+□ Nuevos issues vs main: 0 (o aceptables)
+□ Duplicación: < 30%
+□ Cobertura de tests: > 70%
+□ Complejidad: < 15 por función
+
+# 3. Si todo está ✓:
+git checkout main
+git merge develop
+git push
 ```
 
 ## Configuración del Proyecto

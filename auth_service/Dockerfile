@@ -23,6 +23,9 @@ COPY --from=builder /app/package.json /app/package-lock.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 
+# Copiar archivo de inicialización de datos
+COPY --from=builder /app/init-data.sql ./init-data.sql
+
 # Expone el puerto de la API
 EXPOSE 3000
 

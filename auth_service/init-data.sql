@@ -1,0 +1,62 @@
+-- ========================================
+-- Inicialización de datos predeterminados
+-- ========================================
+-- Este script se ejecuta DESPUÉS de que
+-- TypeORM cree las tablas (con synchronize: true)
+-- ========================================
+
+USE management_db;
+
+-- ========================================
+-- Insertar usuarios predeterminados
+-- ========================================
+-- Contraseña: 123456 (hasheada con bcrypt, 10 salt rounds)
+-- Hash: $2b$10$ZXn7KSmOPPns0cdhN6c2ZeNVCDFXTvYadGW2iw5oz61M3HkrROg9O
+
+INSERT INTO USERS (ID, NAME, FIRST_SURNAME, SECOND_SURNAME, ROLE, EMAIL, PASSWORD)
+VALUES (
+  '550e8400-e29b-41d4-a716-446655440000',
+  'Diego',
+  'Murias',
+  'Suárez',
+  'ADMIN',
+  'uo290009@uniovi.es',
+  '$2b$10$ZXn7KSmOPPns0cdhN6c2ZeNVCDFXTvYadGW2iw5oz61M3HkrROg9O'
+)
+ON DUPLICATE KEY UPDATE EMAIL=EMAIL;
+
+INSERT INTO USERS (ID, NAME, FIRST_SURNAME, SECOND_SURNAME, ROLE, EMAIL, PASSWORD)
+VALUES (
+  '550e8400-e29b-41d4-a716-446655440001',
+  'Juan Ramón',
+  'Perez',
+  'Perez',
+  'ADMIN',
+  'jrpp@uniovi.es',
+  '$2b$10$ZXn7KSmOPPns0cdhN6c2ZeNVCDFXTvYadGW2iw5oz61M3HkrROg9O'
+)
+ON DUPLICATE KEY UPDATE EMAIL=EMAIL;
+
+INSERT INTO USERS (ID, NAME, FIRST_SURNAME, SECOND_SURNAME, ROLE, EMAIL, PASSWORD)
+VALUES (
+  '550e8400-e29b-41d4-a716-446655440002',
+  'Fernando',
+  'Álvarez',
+  'García',
+  'ADMIN',
+  'falvarez@uniovi.es',
+  '$2b$10$ZXn7KSmOPPns0cdhN6c2ZeNVCDFXTvYadGW2iw5oz61M3HkrROg9O'
+)
+ON DUPLICATE KEY UPDATE EMAIL=EMAIL;
+
+INSERT INTO USERS (ID, NAME, FIRST_SURNAME, SECOND_SURNAME, ROLE, EMAIL, PASSWORD)
+VALUES (
+  '550e8400-e29b-41d4-a716-446655440003',
+  'Diego',
+  'Murias',
+  'Suárez',
+  'TEACHER',
+  'teacher@uniovi.es',
+  '$2b$10$ZXn7KSmOPPns0cdhN6c2ZeNVCDFXTvYadGW2iw5oz61M3HkrROg9O'
+)
+ON DUPLICATE KEY UPDATE EMAIL=EMAIL;

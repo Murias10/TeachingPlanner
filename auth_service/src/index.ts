@@ -1,11 +1,15 @@
 import app from '@/app';
 import { connectToManagementDatabase } from '@/config/data-source';
 import authRouter from '@/routes/auth.routes';
+import { seedDatabase } from '@/scripts/seed-database';
 
 const port = process.env.AUTH_SERVICE_PORT;
 
 const startServer = async () => {
     await connectToManagementDatabase();
+
+    // Ejecutar seed de datos después de que las tablas se creen
+    await seedDatabase();
 
     app.use(authRouter);
 

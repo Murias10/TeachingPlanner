@@ -668,17 +668,29 @@ export default function CalendarPage() {
         }
     };
 
-    const handleDuplicateEvent = () => {
-        // TODO: Implement event duplication logic
-    };
-
     const handleViewEventDetails = (event: CalendarEvent) => {
         setSelectedEvent(event);
         setIsEventDetailsDrawerOpen(true);
     };
 
-    const handleToggleCancellation = () => {
-        // TODO: Implement toggle cancellation logic
+    const handleApproveRequest = (event: CalendarEvent) => {
+        // TODO: Implement approve request logic
+        console.log('Approve request:', event);
+    };
+
+    const handleRejectRequest = (event: CalendarEvent) => {
+        // TODO: Implement reject request logic
+        console.log('Reject request:', event);
+    };
+
+    const handleReviewRequest = (event: CalendarEvent) => {
+        // TODO: Implement review request logic
+        console.log('Review request:', event);
+    };
+
+    const handleDeleteRequest = (event: CalendarEvent) => {
+        // TODO: Implement delete request logic
+        console.log('Delete request:', event);
     };
 
     // Event request handler for creating a new request
@@ -743,9 +755,11 @@ export default function CalendarPage() {
             event={event}
             onEdit={handleEditEvent}
             onDelete={handleDeleteEvent}
-            onDuplicate={handleDuplicateEvent}
             onViewDetails={handleViewEventDetails}
-            onToggleCancellation={handleToggleCancellation}
+            onApproveRequest={handleApproveRequest}
+            onRejectRequest={handleRejectRequest}
+            onReviewRequest={handleReviewRequest}
+            onDeleteRequest={handleDeleteRequest}
         />
     );
 

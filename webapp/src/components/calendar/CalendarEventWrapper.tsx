@@ -7,7 +7,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { Edit, Trash2, Copy, Calendar, XCircle, CheckCircle } from "lucide-react";
+import { Edit, Trash2, Calendar, XCircle, CheckCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface CalendarEventWrapperProps {
@@ -17,22 +17,28 @@ interface CalendarEventWrapperProps {
   };
   onEdit?: (event: CalendarEvent) => void;
   onDelete?: (event: CalendarEvent) => void;
-  onDuplicate?: (event: CalendarEvent) => void;
   onViewDetails?: (event: CalendarEvent) => void;
-  onToggleCancellation?: (event: CalendarEvent) => void;
+  onApproveRequest?: (event: CalendarEvent) => void;
+  onRejectRequest?: (event: CalendarEvent) => void;
+  onReviewRequest?: (event: CalendarEvent) => void;
+  onDeleteRequest?: (event: CalendarEvent) => void;
 }
 
 export function CalendarEventWrapper({
   event,
   onEdit,
   onDelete,
-  onDuplicate,
   onViewDetails,
-  onToggleCancellation,
+  onApproveRequest,
+  onRejectRequest,
+  onReviewRequest,
+  onDeleteRequest,
 }: CalendarEventWrapperProps) {
   const { user } = useAuth();
   const calendarEvent = event.resource;
   const isAdmin = user?.role === 'ADMIN';
+  const isTeacher = user?.role === 'TEACHER';
+  const isPendingRequest = calendarEvent?.isPending === true;
 
   if (!calendarEvent) {
     return <div className="h-full w-full">{event.title}</div>;
@@ -48,88 +54,137 @@ export function CalendarEventWrapper({
     onDelete?.(calendarEvent);
   };
 
-  const handleDuplicate = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    onDuplicate?.(calendarEvent);
-  };
-
   const handleViewDetails = (e: React.MouseEvent<HTMLDivElement>) => {
     e.preventDefault();
     onViewDetails?.(calendarEvent);
   };
 
-  const handleToggleCancellation = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleApproveRequest = (e: React.MouseEvent<HTMLDivElement>) => {
     e.preventDefault();
-    onToggleCancellation?.(calendarEvent);
+    onApproveRequest?.(calendarEvent);
   };
 
-  // Si no es ADMIN, mostrar solo el contenido sin menú contextual
-  if (!isAdmin) {
+  const handleRejectRequest = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    onRejectRequest?.(calendarEvent);
+  };
+
+  const handleReviewRequest = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    onReviewRequest?.(calendarEvent);
+  };
+
+  const handleDeleteRequest = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    onDeleteRequest?.(calendarEvent);
+  };
+
+  // Renderizar contenido del evento sin menú contextual para non-admin o en solicitudes pendientes para teacher
+  const renderEventContent = () => (
+    <div className="h-full w-full px-1 py-0.5">
+      <div className="text-xs font-medium">{event.title}</div>
+      {calendarEvent.classrooms.length > 0 && (
+        <div className="text-xs opacity-90">
+          {calendarEvent.classrooms.map(c => c.code).join(', ')}
+        </div>
+      )}
+    </div>
+  );
+
+  // Si no es ADMIN ni TEACHER, mostrar solo el contenido sin menú contextual
+  if (!isAdmin && !isTeacher) {
+    return renderEventContent();
+  }
+
+  // Si es una solicitud pendiente y el usuario es ADMIN
+  if (isPendingRequest && isAdmin) {
     return (
-      <div className="h-full w-full px-1 py-0.5">
-        <div className="text-xs font-medium">{event.title}</div>
-        {calendarEvent.classrooms.length > 0 && (
-          <div className="text-xs opacity-90">
-            {calendarEvent.classrooms.map(c => c.code).join(', ')}
-          </div>
-        )}
-      </div>
+      <ContextMenu>
+        <ContextMenuTrigger className="h-full w-full cursor-pointer">
+          {renderEventContent()}
+        </ContextMenuTrigger>
+        <ContextMenuContent className="w-56">
+          <ContextMenuItem onClick={handleViewDetails}>
+            <Calendar />
+            Ver detalles
+          </ContextMenuItem>
+
+          <ContextMenuSeparator />
+
+          <ContextMenuItem onClick={handleApproveRequest}>
+            <CheckCircle className="text-green-600" />
+            Aprobar solicitud
+          </ContextMenuItem>
+
+          <ContextMenuItem onClick={handleReviewRequest}>
+            <Edit />
+            Revisar solicitud
+          </ContextMenuItem>
+
+          <ContextMenuItem variant="destructive" onClick={handleRejectRequest}>
+            <XCircle className="text-red-600" />
+            Rechazar solicitud
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
     );
   }
 
-  return (
-    <ContextMenu>
-      <ContextMenuTrigger className="h-full w-full cursor-pointer">
-        <div className="h-full w-full px-1 py-0.5">
-          <div className="text-xs font-medium">{event.title}</div>
-          {calendarEvent.classrooms.length > 0 && (
-            <div className="text-xs opacity-90">
-              {calendarEvent.classrooms.map(c => c.code).join(', ')}
-            </div>
-          )}
-        </div>
-      </ContextMenuTrigger>
-      <ContextMenuContent className="w-56">
-        <ContextMenuItem onClick={handleViewDetails}>
-          <Calendar />
-          Ver detalles
-        </ContextMenuItem>
+  // Si es una solicitud pendiente y el usuario es TEACHER
+  if (isPendingRequest && isTeacher) {
+    return (
+      <ContextMenu>
+        <ContextMenuTrigger className="h-full w-full cursor-pointer">
+          {renderEventContent()}
+        </ContextMenuTrigger>
+        <ContextMenuContent className="w-56">
+          <ContextMenuItem onClick={handleViewDetails}>
+            <Calendar />
+            Ver detalles
+          </ContextMenuItem>
 
-        <ContextMenuSeparator />
+          <ContextMenuSeparator />
 
-        <ContextMenuItem onClick={handleEdit}>
-          <Edit />
-          Editar evento
-        </ContextMenuItem>
+          <ContextMenuItem variant="destructive" onClick={handleDeleteRequest}>
+            <Trash2 />
+            Eliminar solicitud
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
+    );
+  }
 
-        <ContextMenuItem onClick={handleDuplicate}>
-          <Copy />
-          Duplicar evento
-        </ContextMenuItem>
+  // Si es un evento regular y el usuario es ADMIN
+  if (isAdmin && !isPendingRequest) {
+    return (
+      <ContextMenu>
+        <ContextMenuTrigger className="h-full w-full cursor-pointer">
+          {renderEventContent()}
+        </ContextMenuTrigger>
+        <ContextMenuContent className="w-56">
+          <ContextMenuItem onClick={handleViewDetails}>
+            <Calendar />
+            Ver detalles
+          </ContextMenuItem>
 
-        <ContextMenuSeparator />
+          <ContextMenuSeparator />
 
-        <ContextMenuItem onClick={handleToggleCancellation}>
-          {calendarEvent.cancelled ? (
-            <>
-              <CheckCircle />
-              Reactivar evento
-            </>
-          ) : (
-            <>
-              <XCircle />
-              Cancelar evento
-            </>
-          )}
-        </ContextMenuItem>
+          <ContextMenuItem onClick={handleEdit}>
+            <Edit />
+            Editar evento
+          </ContextMenuItem>
 
-        <ContextMenuSeparator />
+          <ContextMenuSeparator />
 
-        <ContextMenuItem variant="destructive" onClick={handleDelete}>
-          <Trash2 />
-          Eliminar evento
-        </ContextMenuItem>
-      </ContextMenuContent>
-    </ContextMenu>
-  );
+          <ContextMenuItem variant="destructive" onClick={handleDelete}>
+            <Trash2 />
+            Eliminar evento
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
+    );
+  }
+
+  // Para otros casos (TEACHER con evento regular, etc)
+  return renderEventContent();
 }

@@ -5,6 +5,7 @@ import {
     getEventRequestById,
     approveEventRequest,
     rejectEventRequest,
+    deleteEventRequest,
 } from '@/controllers/event-request.controller';
 import { authenticateToken } from '@/middleware/auth.middleware';
 import { requireRole } from '@/middleware/require-role.middleware';
@@ -66,6 +67,17 @@ router.patch(
     authenticateToken,
     requireRole(['ADMIN']),
     rejectEventRequest
+);
+
+/**
+ * DELETE /event-request/:id
+ * Delete an event request (TEACHER only - can only delete own PENDING requests)
+ */
+router.delete(
+    '/event-request/:id',
+    authenticateToken,
+    requireRole(['TEACHER']),
+    deleteEventRequest
 );
 
 export default router;

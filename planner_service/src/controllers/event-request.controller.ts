@@ -390,6 +390,66 @@ async function createPuntualEventFromRequest(eventRequest: EventRequest): Promis
 }
 
 /**
+ * Delete an event request (TEACHER only - can only delete own requests)
+ */
+export const deleteEventRequest = async (req: AuditedRequest, res: Response) => {
+    try {
+        const { id } = req.params;
+        const userEmail = getUserEmailFromRequest(req);
+
+        // Get the request
+        const eventRequest = await eventRequestService.findById(id);
+
+        if (!eventRequest) {
+            res.status(404).json({
+                status: 'error',
+                message: 'Event request not found',
+                data: null,
+            });
+            return;
+        }
+
+        // Check if user is the owner of the request (only TEACHER who created it can delete)
+        if (eventRequest.teacherId !== userEmail) {
+            res.status(403).json({
+                status: 'error',
+                message: 'You can only delete your own event requests',
+                data: null,
+            });
+            return;
+        }
+
+        // Can only delete PENDING requests
+        if (eventRequest.status !== 'PENDING') {
+            res.status(400).json({
+                status: 'error',
+                message: `Cannot delete a request with status: ${eventRequest.status}. Only PENDING requests can be deleted.`,
+                data: null,
+            });
+            return;
+        }
+
+        // Delete the request
+        await eventRequestService.delete(id);
+
+        res.status(200).json({
+            status: 'success',
+            message: 'Event request deleted successfully',
+            data: {
+                requestId: id,
+            },
+        });
+    } catch (error) {
+        console.error('Error deleting event request:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error deleting event request',
+            data: error instanceof Error ? error.message : error,
+        });
+    }
+};
+
+/**
  * Helper function to create a PERIODIC_EVENT from an event request
  * Note: For now, PERIODIC events from solicitations are not supported
  * This is a placeholder for future implementation

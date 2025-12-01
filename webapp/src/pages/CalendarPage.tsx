@@ -24,6 +24,7 @@ import { useDeletePuntualEvent } from "@/hooks/calendar/useDeletePuntualEvent";
 import { useFloatingAlert } from "@/hooks/useFloatingAlert";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCrearSolicitud } from "@/hooks/event-request/useCrearSolicitud";
+import { useDeleteRequest } from "@/hooks/event-request/useDeleteRequest";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Bell } from "lucide-react";
@@ -101,6 +102,7 @@ export default function CalendarPage() {
     const { mutate: createPuntualEvent } = useCreatePuntualEvent();
     const { deletePuntualEvent, isDeleting: isDeletingEvent } = useDeletePuntualEvent();
     const crearSolicitud = useCrearSolicitud();
+    const deleteRequest = useDeleteRequest();
     const isAdmin = user?.role === 'ADMIN';
 
     // Extraer el acrónimo de la URL
@@ -116,7 +118,7 @@ export default function CalendarPage() {
     );
 
     // Obtener eventos de solicitudes pendientes
-    const { data: pendingData, isLoading: isLoadingPending } = usePendingRequestsAsEvents(calendarId);
+    const { data: pendingData, isLoading: isLoadingPending, refetch: refetchPendingRequests } = usePendingRequestsAsEvents(calendarId);
 
     // Combinar eventos normales con eventos pendientes
     const allEvents = useMemo(() => {
@@ -688,9 +690,31 @@ export default function CalendarPage() {
         console.log('Review request:', event);
     };
 
-    const handleDeleteRequest = (event: CalendarEvent) => {
-        // TODO: Implement delete request logic
-        console.log('Delete request:', event);
+    const handleDeleteRequest = async (event: CalendarEvent) => {
+        if (!event.requestId) {
+            triggerAlert({
+                title: 'Error',
+                description: 'No se pudo identificar la solicitud',
+                variant: 'destructive'
+            });
+            return;
+        }
+
+        const result = await deleteRequest(event.requestId, refetchPendingRequests);
+
+        if (result.success) {
+            triggerAlert({
+                title: 'Solicitud eliminada',
+                description: 'Tu solicitud ha sido eliminada exitosamente',
+                variant: 'success'
+            });
+        } else {
+            triggerAlert({
+                title: 'Error',
+                description: result.message || 'Error al eliminar la solicitud',
+                variant: 'destructive'
+            });
+        }
     };
 
     // Event request handler for creating a new request

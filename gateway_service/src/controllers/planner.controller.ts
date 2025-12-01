@@ -284,3 +284,9 @@ export const rejectEventRequest = (req: Request, res: Response, next: NextFuncti
         method: 'PATCH',
         body: req.body
     });
+
+export const deleteEventRequest = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/event-request/${req.params.id}`,
+        method: 'DELETE'
+    });

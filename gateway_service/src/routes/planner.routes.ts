@@ -1,6 +1,6 @@
 import express from 'express';
 import multer from 'multer';
-import { getDegrees, getCourses, getCoursesByDegreeId, getCoursesByDegreeAcronym, getSubjects, getSubjectsByDegreeId, getSubjectsWithEventsAndGroupsByCourseAndSemester, getClassrooms, createClassroom, deleteClassroom, updateClassroom, createDegree, deleteDegree, deleteSubject, createSubject, updateSubject, deleteCourse, deleteCalendar, getDegreeByAcronym, createCourse, createCalendar, getCalendarById, createCalendarWithImport, getCalendarEvents, getPendingRequestsAsEvents, exportCalendar, updateCourse, updateDegree, createPuntualEvent, deletePuntualEvent, createEventRequest, getEventRequests, getEventRequestById, approveEventRequest, rejectEventRequest } from '@/controllers/planner.controller';
+import { getDegrees, getCourses, getCoursesByDegreeId, getCoursesByDegreeAcronym, getSubjects, getSubjectsByDegreeId, getSubjectsWithEventsAndGroupsByCourseAndSemester, getClassrooms, createClassroom, deleteClassroom, updateClassroom, createDegree, deleteDegree, deleteSubject, createSubject, updateSubject, deleteCourse, deleteCalendar, getDegreeByAcronym, createCourse, createCalendar, getCalendarById, createCalendarWithImport, getCalendarEvents, getPendingRequestsAsEvents, exportCalendar, updateCourse, updateDegree, createPuntualEvent, deletePuntualEvent, createEventRequest, getEventRequests, getEventRequestById, approveEventRequest, rejectEventRequest, deleteEventRequest } from '@/controllers/planner.controller';
 
 // Configurar multer para el gateway
 const storage = multer.memoryStorage();
@@ -99,5 +99,7 @@ router.get('/event-request/:id', getEventRequestById);
 router.patch('/event-request/:id/approve', approveEventRequest);
 
 router.patch('/event-request/:id/reject', rejectEventRequest);
+
+router.delete('/event-request/:id', deleteEventRequest);
 
 export default router;

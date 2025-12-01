@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Spinner } from "@/components/ui/spinner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import {
@@ -255,23 +256,23 @@ export const CreateCalendarDrawer = ({
                         </div>
 
                         {/* Tab Manual */}
-                        <TabsContent value="manual" className="space-y-6 mt-6">
-                            <div className="max-w-2xl mx-auto space-y-4">
+                        <TabsContent value="manual" className="space-y-4 mt-6 flex flex-col h-full">
+                            <div className="w-full space-y-4 flex flex-col h-full">
                                 {/* Date Pickers en la misma fila */}
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-2 gap-3">
                                     {/* Date Picker para fecha de inicio */}
-                                    <div className="space-y-2">
-                                        <Label>
+                                    <div className="space-y-1.5">
+                                        <Label className="text-xs font-semibold">
                                             {t("drawer.calendar.create.tabs.manual.start.date")}
                                         </Label>
                                         <Popover modal={true}>
                                             <PopoverTrigger asChild>
                                                 <Button
                                                     variant="outline"
-                                                    className="w-full justify-start text-left font-normal"
+                                                    className="w-full justify-start text-left font-normal text-xs h-9"
                                                     disabled={isLoading}
                                                 >
-                                                    {startDate ? format(startDate, "dd/MM/yyyy") : "Seleccionar fecha"}
+                                                    {startDate ? format(startDate, "dd/MM/yyyy") : t("drawer.calendar.create.tabs.manual.select.date")}
                                                     <ChevronDownIcon className="ml-auto h-4 w-4" />
                                                 </Button>
                                             </PopoverTrigger>
@@ -291,18 +292,18 @@ export const CreateCalendarDrawer = ({
                                     </div>
 
                                     {/* Date Picker para fecha de fin */}
-                                    <div className="space-y-2">
-                                        <Label>
+                                    <div className="space-y-1.5">
+                                        <Label className="text-xs font-semibold">
                                             {t("drawer.calendar.create.tabs.manual.end.date")}
                                         </Label>
                                         <Popover modal={true}>
                                             <PopoverTrigger asChild>
                                                 <Button
                                                     variant="outline"
-                                                    className="w-full justify-start text-left font-normal"
+                                                    className="w-full justify-start text-left font-normal text-xs h-9"
                                                     disabled={!startDate || isLoading}
                                                 >
-                                                    {endDate ? format(endDate, "dd/MM/yyyy") : "Seleccionar fecha"}
+                                                    {endDate ? format(endDate, "dd/MM/yyyy") : t("drawer.calendar.create.tabs.manual.select.date")}
                                                     <ChevronDownIcon className="ml-auto h-4 w-4" />
                                                 </Button>
                                             </PopoverTrigger>
@@ -323,86 +324,72 @@ export const CreateCalendarDrawer = ({
                                 </div>
 
                                 {/* Calendar para seleccionar días festivos */}
-                                <div className="space-y-2 w-full">
+                                <div className="space-y-2 flex flex-col min-h-0 flex-1">
                                     <div className="flex items-center justify-between">
-                                        <Label>Días Festivos</Label>
+                                        <h4 className="text-xs font-semibold">
+                                            {t("drawer.calendar.create.tabs.manual.holidays")}
+                                        </h4>
                                         {holidayDates.length > 0 && (
-                                            <Badge variant="secondary">{holidayDates.length} día(s)</Badge>
+                                            <Badge variant="outline" className="text-xs">
+                                                {holidayDates.length}
+                                            </Badge>
                                         )}
                                     </div>
-                                    <div className="border rounded-lg p-4 bg-muted/50 w-full flex justify-center">
-                                        <CalendarComponent
-                                            mode="multiple"
-                                            selected={holidayDates}
-                                            onSelect={(dates) => {
-                                                setHolidayDates(Array.isArray(dates) ? dates : []);
-                                            }}
-                                            disabled={(date) => {
-                                                if (!startDate || !endDate) return true;
-                                                return date < startDate || date > endDate;
-                                            }}
-                                        />
-                                    </div>
-                                    {holidayDates.length > 0 && (
-                                        <div className="space-y-2">
-                                            <p className="text-xs font-medium">Días festivos seleccionados:</p>
-                                            <div className="flex flex-wrap gap-1">
-                                                {holidayDates.map((date) => (
-                                                    <Badge key={date.toString()} variant="outline" className="text-xs">
-                                                        {format(date, "dd/MM/yyyy")}
-                                                    </Badge>
-                                                ))}
+                                    {startDate && endDate ? (
+                                        <>
+                                            <div className="border rounded-lg bg-muted/30 flex justify-center overflow-y-auto flex-1 min-h-0">
+                                                <CalendarComponent
+                                                    mode="multiple"
+                                                    selected={holidayDates}
+                                                    onSelect={(dates) => {
+                                                        setHolidayDates(Array.isArray(dates) ? dates : []);
+                                                    }}
+                                                    disabled={(date) => {
+                                                        if (!startDate || !endDate) return true;
+                                                        return date < startDate || date > endDate;
+                                                    }}
+                                                />
                                             </div>
+                                            {holidayDates.length > 0 && (
+                                                <div className="space-y-1.5 overflow-y-auto">
+                                                    <p className="text-xs font-medium text-muted-foreground">
+                                                        {t("drawer.calendar.create.tabs.manual.selected.holidays")}
+                                                    </p>
+                                                    <div className="flex flex-wrap gap-1.5">
+                                                        {holidayDates.map((date) => (
+                                                            <Badge key={date.toString()} variant="secondary" className="text-xs">
+                                                                {format(date, "dd/MM/yyyy")}
+                                                            </Badge>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <div className="flex items-center justify-center flex-1 text-center">
+                                            <p className="text-xs text-muted-foreground">
+                                                {t("drawer.calendar.create.tabs.manual.select.dates.first")}
+                                            </p>
                                         </div>
                                     )}
                                 </div>
 
                                 {dateError && (
-                                    <p className="text-sm text-destructive">{dateError}</p>
+                                    <div className="rounded-md bg-destructive/10 p-2.5 border border-destructive/30">
+                                        <p className="text-xs text-destructive">{dateError}</p>
+                                    </div>
                                 )}
                             </div>
                         </TabsContent>
 
                         {/* Tab Import */}
-                        <TabsContent value="import" className="space-y-4 mt-6">
-                            {/* Lista de archivos requeridos */}
-                            <div className="space-y-2 max-w-sm mx-auto">
-                                <h4 className="text-sm font-medium">
-                                    {t("drawer.calendar.create.tabs.import.required.files")}:
-                                </h4>
-                                <div className="grid gap-1.5">
-                                    {REQUIRED_FILES.map((file) => {
-                                        const uploaded = getFileStatus(file.name);
-                                        return (
-                                            <div key={file.name} className="flex items-center gap-2 p-2 rounded border text-sm">
-                                                {uploaded ? (
-                                                    <CheckCircle className="h-3.5 w-3.5 text-green-600 flex-shrink-0" />
-                                                ) : (
-                                                    <div className="h-3.5 w-3.5 rounded-full border-2 border-gray-300 flex-shrink-0" />
-                                                )}
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-xs font-medium">{file.name}</p>
-                                                    <p className="text-xs text-muted-foreground truncate">
-                                                        {file.description}
-                                                    </p>
-                                                </div>
-                                                {uploaded && (
-                                                    <Badge variant="secondary" className="text-xs">
-                                                        {(uploaded.size / 1024).toFixed(1)} KB
-                                                    </Badge>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-
-                            {/* Área de drop/upload */}
-                            <div className="max-w-sm mx-auto">
+                        <TabsContent value="import" className="space-y-4 mt-6 flex flex-col h-full">
+                            <div className="w-full space-y-4 flex flex-col h-full">
+                                {/* Área de drop/upload */}
                                 <div
-                                    className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors ${isDragOver
+                                    className={`relative border-2 border-dashed rounded-lg p-3 py-4 text-center transition-all ${isDragOver
                                         ? 'border-primary bg-primary/5'
-                                        : 'border-gray-300 hover:border-gray-400'
+                                        : 'border-muted-foreground/30 hover:border-primary/50'
                                         }`}
                                     onDrop={handleDrop}
                                     onDragOver={(e) => {
@@ -420,60 +407,77 @@ export const CreateCalendarDrawer = ({
                                         disabled={isLoading}
                                     />
 
-                                    <div className="space-y-2">
-                                        <div className="mx-auto w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-                                            <Upload className="h-5 w-5 text-gray-600" />
+                                    <div className="space-y-1">
+                                        <div className="mx-auto w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                            <Upload className="h-4 w-4 text-primary" />
                                         </div>
                                         <div>
-                                            <p className="text-sm font-medium">
+                                            <p className="text-xs font-semibold">
                                                 {t("drawer.calendar.create.tabs.import.drop.title")}
                                             </p>
-                                            <p className="text-xs text-muted-foreground mt-1">
+                                            <p className="text-xs text-muted-foreground mt-0.5">
                                                 {t("drawer.calendar.create.tabs.import.drop.description")}
                                             </p>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            {/* Lista de archivos subidos */}
-                            {uploadedFiles.length > 0 && (
-                                <div className="space-y-2 max-w-sm mx-auto">
-                                    <h4 className="text-sm font-medium">
-                                        {t("drawer.calendar.create.tabs.import.uploaded.files")} ({uploadedFiles.length})
-                                    </h4>
-                                    <div className="space-y-1.5">
-                                        {uploadedFiles.map((file) => {
-                                            const isProcessable = file.name === 'ubicaciones.txt';
+                                {/* Lista única de archivos */}
+                                <div className="space-y-2 flex flex-col min-h-0">
+                                    <div className="flex items-center justify-between">
+                                        <h4 className="text-xs font-semibold">
+                                            {t("drawer.calendar.create.tabs.import.required.files")}
+                                        </h4>
+                                        <Badge variant="outline" className="text-xs">
+                                            {uploadedFiles.length}/{REQUIRED_FILES.length}
+                                        </Badge>
+                                    </div>
+                                    <div className="space-y-1 overflow-y-auto pr-1 flex-1">
+                                        {REQUIRED_FILES.map((file) => {
+                                            const uploaded = getFileStatus(file.name);
                                             return (
-                                                <div key={file.name} className={`flex items-center gap-2 p-2 rounded-lg text-sm ${isProcessable ? 'bg-green-50 border border-green-200' : 'bg-gray-50'
-                                                    }`}>
-                                                    <FileText className={`h-3.5 w-3.5 flex-shrink-0 ${isProcessable ? 'text-green-600' : 'text-gray-600'}`} />
+                                                <div
+                                                    key={file.name}
+                                                    className={`flex items-center gap-2 p-2 rounded-md border text-xs transition-colors ${
+                                                        uploaded
+                                                            ? 'bg-green-50 border-green-200'
+                                                            : 'bg-muted/30 border-muted-foreground/20'
+                                                    }`}
+                                                >
+                                                    {uploaded ? (
+                                                        <CheckCircle className="h-4 w-4 text-green-600 shrink-0" />
+                                                    ) : (
+                                                        <div className="h-4 w-4 rounded-full border border-muted-foreground/30 shrink-0" />
+                                                    )}
                                                     <div className="flex-1 min-w-0">
-                                                        <div className="flex items-center gap-2">
-                                                            <p className={`text-xs font-medium truncate ${isProcessable ? 'text-green-900' : ''}`}>
-                                                                {file.name}
-                                                            </p>
-                                                        </div>
-                                                        <p className={`text-xs ${isProcessable ? 'text-green-700' : 'text-muted-foreground'}`}>
-                                                            {(file.size / 1024).toFixed(1)} KB
+                                                        <p className={`text-xs font-medium leading-tight ${uploaded ? 'text-green-900' : 'text-foreground'}`}>
+                                                            {file.name}
+                                                        </p>
+                                                        <p className={`text-xs leading-tight ${uploaded ? 'text-green-700' : 'text-muted-foreground'}`}>
+                                                            {file.description}
                                                         </p>
                                                     </div>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => removeFile(file.name)}
-                                                        disabled={isLoading}
-                                                    >
-                                                        <X className="h-4 w-4" />
-                                                    </Button>
+                                                    {uploaded && (
+                                                        <div className="flex items-center gap-2 shrink-0">
+                                                            <span className="text-xs font-medium text-green-600">
+                                                                {(uploaded.size / 1024).toFixed(1)}KB
+                                                            </span>
+                                                            <Button
+                                                                variant="ghost"
+                                                                onClick={() => removeFile(file.name)}
+                                                                disabled={isLoading}
+                                                                className="h-6 w-6 p-0 hover:bg-green-100"
+                                                            >
+                                                                <X className="h-3 w-3" />
+                                                            </Button>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             );
                                         })}
                                     </div>
                                 </div>
-                            )}
-
+                            </div>
                         </TabsContent>
                     </Tabs>
                 </div>
@@ -493,6 +497,7 @@ export const CreateCalendarDrawer = ({
                         disabled={!isFormValid || isLoading}
                         onClick={handleSave}
                     >
+                        {isLoading && <Spinner className="mr-2 h-4 w-4" />}
                         {t("drawer.calendar.create.save")}
                     </Button>
                 </div>

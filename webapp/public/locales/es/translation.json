@@ -383,12 +383,17 @@
                     "manual": {
                         "title": "Manual",
                         "start.date": "Fecha de inicio",
-                        "end.date": "Fecha de fin"
+                        "end.date": "Fecha de fin",
+                        "select.date": "Seleccionar fecha",
+                        "holidays": "Días festivos",
+                        "selected.holidays": "Días festivos seleccionados:",
+                        "select.dates.first": "Selecciona las fechas de inicio y fin para ver el calendario"
                     },
                     "import": {
                         "title": "Importar",
                         "required.files": "Archivos requeridos",
                         "uploaded.files": "Archivos subidos",
+                        "no.files": "Sin archivos subidos",
                         "drop": {
                             "description": "Solo archivos .txt",
                             "title": "Arrastra archivos aquí o haz clic para seleccionar"

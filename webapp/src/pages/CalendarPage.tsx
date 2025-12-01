@@ -142,6 +142,43 @@ export default function CalendarPage() {
     // Estado para solicitud de eventos
     const [isSolicitudDrawerOpen, setIsSolicitudDrawerOpen] = useState(false);
 
+    // Estado para controlar la fecha actual del calendario
+    const [currentDate, setCurrentDate] = useState<Date>(new Date());
+
+    // Función helper para limitar fecha dentro de los rangos del calendario
+    const constrainDateToCalendar = (date: Date): Date => {
+        if (!data?.startDate || !data?.endDate) return date;
+
+        const start = moment(data.startDate);
+        const end = moment(data.endDate);
+        const target = moment(date);
+
+        if (target.isBefore(start)) return start.toDate();
+        if (target.isAfter(end)) return end.toDate();
+        return date;
+    };
+
+    // Actualizar la fecha cuando se carguen los datos del calendario
+    useEffect(() => {
+        if (!data?.startDate || !data?.endDate) return;
+
+        const today = moment();
+        const start = moment(data.startDate);
+        const end = moment(data.endDate);
+
+        // Si hoy está dentro del rango, mostrar hoy; si no, el inicio
+        const initialDate = today.isBetween(start, end, 'day', '[]')
+            ? today.toDate()
+            : start.toDate();
+
+        setCurrentDate(initialDate);
+    }, [data?.startDate, data?.endDate]);
+
+    // Función para controlar la navegación del calendario
+    const handleNavigate = (newDate: Date) => {
+        setCurrentDate(constrainDateToCalendar(newDate));
+    };
+
     useEffect(() => {
         setItems([
             { label: t("breadcrumb.home"), href: "/home" },
@@ -683,7 +720,8 @@ export default function CalendarPage() {
                                     events={events}
                                     max={maxDate}
                                     min={minDate}
-                                    defaultDate={data?.startDate ? new Date(data.startDate) : new Date()}
+                                    date={currentDate}
+                                    onNavigate={handleNavigate}
                                     startAccessor="start"
                                     endAccessor="end"
                                     culture="es"

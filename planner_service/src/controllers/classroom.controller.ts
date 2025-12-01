@@ -10,7 +10,11 @@ import { getUserEmailFromRequest } from '@/utils/audit.utils';
 export const getClassrooms = async (_req: AuditedRequest, res: Response) => {
 
     try {
-        const classrooms = await AppDataSource.getRepository(Classroom).find();
+        const classrooms = await AppDataSource.getRepository(Classroom).find({
+            order: {
+                code: 'ASC'
+            }
+        });
         res.status(200).json({
             status: 'success',
             message: 'Classrooms fetched successfully',

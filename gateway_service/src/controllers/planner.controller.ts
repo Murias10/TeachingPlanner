@@ -222,6 +222,12 @@ export const getCalendarEvents = (req: Request, res: Response, next: NextFunctio
         method: 'GET'
     });
 
+export const getPendingRequestsAsEvents = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/calendar/${req.params.id}/pending-requests`,
+        method: 'GET'
+    });
+
 export const exportCalendar = (req: Request, res: Response, next: NextFunction) =>
     proxyBinaryRequest(req, res, next, {
         url: `${SERVICES.PLANNER}/calendar/${req.params.id}/export`,

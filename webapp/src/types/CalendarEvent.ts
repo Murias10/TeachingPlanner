@@ -18,6 +18,9 @@ export interface CalendarEvent {
     dayCharacter: string;
     dayComment: string;
     comment?: string;
+    isPending?: boolean; // Indica si es un evento de una solicitud pendiente
+    requestId?: string; // ID de la solicitud original (si isPending === true)
+    teacherId?: string; // Email del profesor que solicitó el evento (si isPending === true)
 }
 
 export interface CalendarEventsResponse {

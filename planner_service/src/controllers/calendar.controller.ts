@@ -11,6 +11,7 @@ import { Group } from '@/entities/group.entity';
 import { Day } from '@/entities/day.entity';
 import { PeriodicEvent } from '@/entities/periodic_event.entity';
 import { PuntualEvent } from '@/entities/puntual_event.entity';
+import { EventRequest } from '@/entities/event-request.entity';
 import { AuditedRequest } from '@/types/audit.types';
 import { getUserEmailFromRequest } from '@/utils/audit.utils';
 // @ts-ignore - archiver doesn't have type definitions
@@ -2249,6 +2250,194 @@ export const getCalendarEvents = async (req: AuditedRequest, res: Response) => {
         res.status(500).json({
             status: 'error',
             message: 'Error fetching calendar events',
+            data: error instanceof Error ? error.message : error
+        });
+    }
+};
+
+// Helper: Calcular duración en horas entre dos tiempos
+function calculateDuration(startTime: string, endTime: string): number {
+    const [startHour, startMin] = startTime.split(':').map(Number);
+    const [endHour, endMin] = endTime.split(':').map(Number);
+    const durationMinutes = (endHour * 60 + endMin) - (startHour * 60 + startMin);
+    return durationMinutes / 60;
+}
+
+// Helper: Obtener grupos y aulas desde los IDs
+async function fetchGroupsAndClassrooms(groupIds: string[] | undefined, classroomIds: string[] | undefined, groupRepo: any, classroomRepo: any) {
+    const groups = groupIds ? await groupRepo.find({
+        where: { id: In(groupIds) },
+        relations: ['subject']
+    }) : [];
+
+    const classrooms = classroomIds ? await classroomRepo.find({
+        where: { id: In(classroomIds) }
+    }) : [];
+
+    return { groups, classrooms };
+}
+
+// Helper: Formatear grupos y aulas para el response
+function formatEventData(groups: any[], classrooms: any[], request: any, startTime: string, endTime: string, date: string) {
+    return {
+        duration: calculateDuration(startTime, endTime),
+        subject: groups[0]?.subject ? {
+            id: groups[0].subject.id,
+            acronym: groups[0].subject.acronym,
+            name: groups[0].subject.name
+        } : null,
+        groups: groups.map(group => ({
+            id: group.id,
+            number: group.number,
+            type: group.type,
+            language: group.language
+        })),
+        classrooms: classrooms.map(classroom => ({
+            id: classroom.id,
+            code: classroom.code,
+            gisUrl: classroom.gisUrl
+        })),
+        cancelled: false,
+        isPending: true,
+        requestId: request.id,
+        teacherId: request.teacherId,
+        startTime,
+        endTime,
+        date
+    };
+}
+
+/**
+ * Obtiene las solicitudes pendientes de eventos para un calendario como eventos "preview"
+ * GET /calendar/:id/pending-requests
+ */
+export const getPendingRequestsAsEvents = async (req: AuditedRequest, res: Response) => {
+    try {
+        const { id } = req.params;
+
+        // Validar que el ID sea un UUID válido
+        if (!isValidUUID(id)) {
+            res.status(400).json({
+                status: 'error',
+                message: 'Invalid UUID format for calendar ID',
+                data: null
+            });
+            return;
+        }
+
+        const calendarRepo = AppDataSource.getRepository(Calendar);
+        const eventRequestRepo = AppDataSource.getRepository(EventRequest);
+        const dayRepo = AppDataSource.getRepository(Day);
+        const groupRepo = AppDataSource.getRepository(Group);
+        const classroomRepo = AppDataSource.getRepository(Classroom);
+
+        // Verificar que el calendario existe
+        const calendar = await calendarRepo.findOne({
+            where: { id }
+        });
+
+        if (!calendar) {
+            res.status(404).json({
+                status: 'error',
+                message: 'Calendar not found',
+                data: null
+            });
+            return;
+        }
+
+        // Obtener todas las solicitudes pendientes para este calendario
+        const pendingRequests = await eventRequestRepo.find({
+            where: {
+                calendarId: id,
+                status: 'PENDING'
+            },
+            order: { createdAt: 'DESC' }
+        });
+
+        console.log(`Found ${pendingRequests.length} pending requests for calendar ${id}`);
+
+        const pendingEvents: any[] = [];
+
+        // Procesar cada solicitud pendiente
+        for (const request of pendingRequests) {
+            const eventData = request.eventData;
+
+            // Procesar solicitudes PUNTUALES
+            if (request.eventType === 'PUNTUAL') {
+                const { eventDate, startTime, endTime, groupIds, classroomIds, comment } = eventData;
+
+                const { groups, classrooms } = await fetchGroupsAndClassrooms(groupIds, classroomIds, groupRepo, classroomRepo);
+
+                pendingEvents.push({
+                    id: `request-${request.id}`,
+                    type: 'puntual',
+                    comment: comment || null,
+                    ...formatEventData(groups, classrooms, request, startTime, endTime, new Date(eventDate).toISOString())
+                });
+            }
+
+            // Procesar solicitudes PERIÓDICAS
+            if (request.eventType === 'PERIODIC') {
+                const { startTime, endTime, groupIds, classroomIds, weekDays, endsType, endsOnDate, endsAfterOccurrences } = eventData;
+
+                const { groups, classrooms } = await fetchGroupsAndClassrooms(groupIds, classroomIds, groupRepo, classroomRepo);
+
+                const days = await dayRepo.find({
+                    where: { calendar: { id } },
+                    order: { date: 'ASC' }
+                });
+
+                const dayMap: { [key: string]: number } = {
+                    'sunday': 0, 'monday': 1, 'tuesday': 2, 'wednesday': 3, 'thursday': 4, 'friday': 5, 'saturday': 6
+                };
+
+                let occurrenceCount = 0;
+                const maxOccurrences = endsType === 'after' ? endsAfterOccurrences : Infinity;
+                const endDate = endsType === 'on' ? new Date(endsOnDate) : new Date(calendar.end);
+
+                for (const day of days) {
+                    if (occurrenceCount >= maxOccurrences || day.date > endDate) break;
+
+                    const dayOfWeek = day.date.getDay();
+                    const matchesWeekDay = weekDays?.some((wd: string) => dayMap[wd.toLowerCase()] === dayOfWeek);
+
+                    if (matchesWeekDay && day.lective) {
+                        pendingEvents.push({
+                            id: `request-${request.id}-${day.date.toISOString().split('T')[0]}`,
+                            type: 'periodic',
+                            ...formatEventData(groups, classrooms, request, startTime, endTime, day.date.toISOString())
+                        });
+                        occurrenceCount++;
+                    }
+                }
+            }
+        }
+
+        // Ordenar eventos por fecha y hora
+        pendingEvents.sort((a, b) => {
+            const dateCompare = new Date(a.date).getTime() - new Date(b.date).getTime();
+            if (dateCompare !== 0) return dateCompare;
+            return a.startTime.localeCompare(b.startTime);
+        });
+
+        console.log(`Generated ${pendingEvents.length} pending events from ${pendingRequests.length} requests`);
+
+        res.status(200).json({
+            status: 'success',
+            message: 'Pending request events fetched successfully',
+            data: {
+                calendarId: calendar.id,
+                totalRequests: pendingRequests.length,
+                totalEvents: pendingEvents.length,
+                events: pendingEvents
+            }
+        });
+
+    } catch (error) {
+        console.error('Error fetching pending request events:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error fetching pending request events',
             data: error instanceof Error ? error.message : error
         });
     }

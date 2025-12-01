@@ -4,6 +4,7 @@ import { Calendar, momentLocalizer, Components } from "react-big-calendar";
 import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { useCalendarByCourseAndSemester } from "@/hooks/calendar/useCalendarByCourseAndSemester";
+import { usePendingRequestsAsEvents } from "@/hooks/calendar/usePendingRequestsAsEvents";
 import { CalendarEvent } from "@/types/CalendarEvent";
 import ClassFilter, { FilterValues } from "@/components/ClassFilter";
 import { BookOpen, DoorOpen, Languages, Users, FileText } from "lucide-react";
@@ -111,7 +112,15 @@ export default function CalendarPage() {
         semester || null
     );
 
+    // Obtener eventos de solicitudes pendientes
+    const { data: pendingData, isLoading: isLoadingPending } = usePendingRequestsAsEvents(calendarId);
 
+    // Combinar eventos normales con eventos pendientes
+    const allEvents = useMemo(() => {
+        const normalEvents = data?.events || [];
+        const pendingEvents = pendingData?.events || [];
+        return [...normalEvents, ...pendingEvents];
+    }, [data?.events, pendingData?.events]);
 
     // Estado de filtros
     const [filters, setFilters] = useState<FilterValues>({
@@ -190,14 +199,14 @@ export default function CalendarPage() {
 
     // Extraer opciones únicas de los eventos
     const filterOptions = useMemo(() => {
-        if (!data?.events) return [];
+        if (allEvents.length === 0) return [];
 
         const uniqueTypes = new Set<string>();
         const uniqueSubjects = new Set<string>();
         const uniqueClassrooms = new Set<string>();
         const uniqueLanguages = new Set<string>();
 
-        data.events.forEach(event => {
+        allEvents.forEach(event => {
             event.groups.forEach(group => {
                 uniqueTypes.add(group.type);
                 uniqueLanguages.add(group.language);
@@ -238,13 +247,13 @@ export default function CalendarPage() {
                 icon: Languages
             }
         ];
-    }, [data?.events]);
+    }, [allEvents]);
 
     // Filtrar eventos según los filtros activos
     const filteredEvents = useMemo(() => {
-        if (!data?.events) return [];
+        if (allEvents.length === 0) return [];
 
-        return data.events.filter(event => {
+        return allEvents.filter(event => {
             const hasActiveFilters = Object.values(filters).some(arr => arr.length > 0);
             if (!hasActiveFilters) return true;
 
@@ -277,7 +286,7 @@ export default function CalendarPage() {
 
             return true;
         });
-    }, [data?.events, filters]);
+    }, [allEvents, filters]);
 
     // Transformar eventos filtrados al formato de react-big-calendar
     const events: MyEvent[] = useMemo(() => {
@@ -608,7 +617,7 @@ export default function CalendarPage() {
         event: EventComponent,
     };
 
-    if (isLoading) {
+    if (isLoading || isLoadingPending) {
         return (
             <section className="h-full rounded-xl bg-muted/50 flex items-center justify-center m-2 p-10">
                 <div className="flex items-center justify-center h-full">
@@ -618,7 +627,7 @@ export default function CalendarPage() {
         );
     }
 
-    if (!data || !data.events.length) {
+    if (!data || allEvents.length === 0) {
         return (
             <section className="h-full rounded-xl bg-muted/50 flex items-center justify-center m-2 p-10">
                 <div className="flex items-center justify-center h-full">
@@ -733,15 +742,26 @@ export default function CalendarPage() {
                                         const calendarEvent = event.resource as CalendarEvent;
 
                                         // Obtener el color basado en la asignatura
-                                        const backgroundColor = calendarEvent?.cancelled
-                                            ? '#ef4444'
-                                            : getSubjectColor(calendarEvent?.subject?.acronym);
+                                        let backgroundColor = getSubjectColor(calendarEvent?.subject?.acronym);
+                                        let opacity = 1;
+                                        let border = '1px solid white';
+
+                                        // Eventos cancelados
+                                        if (calendarEvent?.cancelled) {
+                                            backgroundColor = '#ef4444';
+                                            opacity = 0.6;
+                                        }
+                                        // Eventos pendientes (solicitudes)
+                                        else if (calendarEvent?.isPending) {
+                                            opacity = 0.5;
+                                            border = '2px dashed #6b7280';
+                                        }
 
                                         return {
                                             style: {
-                                                backgroundColor: backgroundColor,
-                                                opacity: calendarEvent?.cancelled ? 0.6 : 1,
-                                                border: '1px solid white',
+                                                backgroundColor,
+                                                opacity,
+                                                border,
                                                 borderRadius: '10px',
                                             }
                                         };

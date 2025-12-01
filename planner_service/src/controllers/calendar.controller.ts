@@ -16,10 +16,13 @@ import { AuditedRequest } from '@/types/audit.types';
 import { getUserEmailFromRequest } from '@/utils/audit.utils';
 // @ts-ignore - archiver doesn't have type definitions
 import archiver from 'archiver';
+import { ValidationService } from '@/services/validation.service';
+import { CalendarFormattingService } from '@/services/calendar-formatting.service';
+import { CalendarRepositoryService } from '@/services/calendar-repository.service';
 
 export const getCalendars = async (_req: AuditedRequest, res: Response) => {
     try {
-        const calendars = await AppDataSource.getRepository(Calendar).find();
+        const calendars = await CalendarRepositoryService.getAllCalendars();
         res.status(200).json({
             status: 'success',
             message: 'Calendars fetched successfully',
@@ -38,9 +41,16 @@ export const getCalendarById = async (req: AuditedRequest, res: Response) => {
     try {
         const { id } = req.params;
 
-        const calendar = await AppDataSource.getRepository(Calendar).findOne({
-            where: { id }
-        });
+        if (!ValidationService.validateUUID(id)) {
+            res.status(400).json({
+                status: 'error',
+                message: 'Invalid UUID format for calendar ID',
+                data: null
+            });
+            return;
+        }
+
+        const calendar = await CalendarRepositoryService.getCalendarById(id);
 
         if (!calendar) {
             res.status(404).json({
@@ -2257,54 +2267,20 @@ export const getCalendarEvents = async (req: AuditedRequest, res: Response) => {
 
 // Helper: Calcular duración en horas entre dos tiempos
 function calculateDuration(startTime: string, endTime: string): number {
-    const [startHour, startMin] = startTime.split(':').map(Number);
-    const [endHour, endMin] = endTime.split(':').map(Number);
-    const durationMinutes = (endHour * 60 + endMin) - (startHour * 60 + startMin);
-    return durationMinutes / 60;
+    // DEPRECADO: Usar CalendarFormattingService.calculateDuration() en su lugar
+    return CalendarFormattingService.calculateDuration(startTime, endTime);
 }
 
 // Helper: Obtener grupos y aulas desde los IDs
+// DEPRECADO: Usar CalendarRepositoryService.fetchGroupsAndClassrooms() en su lugar
 async function fetchGroupsAndClassrooms(groupIds: string[] | undefined, classroomIds: string[] | undefined, groupRepo: any, classroomRepo: any) {
-    const groups = groupIds ? await groupRepo.find({
-        where: { id: In(groupIds) },
-        relations: ['subject']
-    }) : [];
-
-    const classrooms = classroomIds ? await classroomRepo.find({
-        where: { id: In(classroomIds) }
-    }) : [];
-
-    return { groups, classrooms };
+    return await CalendarRepositoryService.fetchGroupsAndClassrooms(groupIds, classroomIds);
 }
 
 // Helper: Formatear grupos y aulas para el response
+// DEPRECADO: Usar CalendarFormattingService.formatEventData() en su lugar
 function formatEventData(groups: any[], classrooms: any[], request: any, startTime: string, endTime: string, date: string) {
-    return {
-        duration: calculateDuration(startTime, endTime),
-        subject: groups[0]?.subject ? {
-            id: groups[0].subject.id,
-            acronym: groups[0].subject.acronym,
-            name: groups[0].subject.name
-        } : null,
-        groups: groups.map(group => ({
-            id: group.id,
-            number: group.number,
-            type: group.type,
-            language: group.language
-        })),
-        classrooms: classrooms.map(classroom => ({
-            id: classroom.id,
-            code: classroom.code,
-            gisUrl: classroom.gisUrl
-        })),
-        cancelled: false,
-        isPending: true,
-        requestId: request.id,
-        teacherId: request.teacherId,
-        startTime,
-        endTime,
-        date
-    };
+    return CalendarFormattingService.formatEventData(groups, classrooms, request, startTime, endTime, date);
 }
 
 /**

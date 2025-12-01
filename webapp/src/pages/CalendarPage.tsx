@@ -7,7 +7,7 @@ import { useCalendarByCourseAndSemester } from "@/hooks/calendar/useCalendarByCo
 import { usePendingRequestsAsEvents } from "@/hooks/calendar/usePendingRequestsAsEvents";
 import { CalendarEvent } from "@/types/CalendarEvent";
 import ClassFilter, { FilterValues } from "@/components/ClassFilter";
-import { BookOpen, DoorOpen, Languages, Users, FileText } from "lucide-react";
+import { FileText, BookOpen, DoorOpen, Languages, Users } from "lucide-react";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -28,6 +28,8 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Bell } from "lucide-react";
 import { generateGoogleCalendarCSV, downloadCSV } from "@/utils/csvExport";
+import { generateGroupId } from "@/utils/groupFormatUtils";
+import { sortAlphabetically, sortGruposByAcronymTypeNumber } from "@/utils/filterSortingUtils";
 
 // Configurar moment para usar español y que la semana empiece en lunes
 moment.locale('es', {
@@ -127,6 +129,7 @@ export default function CalendarPage() {
     const [filters, setFilters] = useState<FilterValues>({
         tipoGrupo: [],
         asignatura: [],
+        grupos: [],
         aula: [],
         idioma: []
     });
@@ -198,6 +201,72 @@ export default function CalendarPage() {
         ]);
     }, [setItems, acronym, t]);
 
+    // Calcular grupos disponibles basado en asignaturas y tipos seleccionados
+    const availableGrupos = useMemo(() => {
+        if (allEvents.length === 0) return new Set<string>();
+
+        const grupos = new Set<string>();
+
+        allEvents.forEach(event => {
+            // Si hay asignaturas seleccionadas, solo usar esas
+            const shouldIncludeBySubject = filters.asignatura.length === 0 ||
+                filters.asignatura.includes(event.subject?.acronym || '');
+
+            if (shouldIncludeBySubject && event.subject?.acronym) {
+                event.groups.forEach(group => {
+                    // Si hay tipos seleccionados, solo usar esos
+                    const shouldIncludeByType = filters.tipoGrupo.length === 0 ||
+                        filters.tipoGrupo.includes(group.type);
+
+                    if (shouldIncludeByType && event.subject?.acronym) {
+                        const groupId = generateGroupId(
+                            event.subject.acronym,
+                            group.number,
+                            group.type,
+                            group.language === 'EN'
+                        );
+                        grupos.add(groupId);
+                    }
+                });
+            }
+        });
+
+        return grupos;
+    }, [allEvents, filters.asignatura, filters.tipoGrupo]);
+
+    // Sincronización bidireccional: Si desmarco una asignatura, desmarcar sus grupos
+    useEffect(() => {
+        const groupsToRemove = filters.grupos.filter(groupId => {
+            const parts = groupId.split('-');
+            const subjectAcronym = parts[0];
+            return !filters.asignatura.length || !filters.asignatura.includes(subjectAcronym);
+        });
+
+        if (groupsToRemove.length > 0) {
+            setFilters(prev => ({
+                ...prev,
+                grupos: prev.grupos.filter(g => !groupsToRemove.includes(g))
+            }));
+        }
+    }, [filters.asignatura]);
+
+    // Sincronización bidireccional: Si se desmarcan todos los grupos de una asignatura, desmarcar la asignatura
+    useEffect(() => {
+        if (filters.asignatura.length === 0 || filters.grupos.length === 0) return;
+
+        const subjectsWithGroups = new Set(filters.grupos.map(g => g.split('-')[0]));
+        const subjectsToRemove = filters.asignatura.filter(
+            subject => !subjectsWithGroups.has(subject)
+        );
+
+        if (subjectsToRemove.length > 0) {
+            setFilters(prev => ({
+                ...prev,
+                asignatura: prev.asignatura.filter(s => !subjectsToRemove.includes(s))
+            }));
+        }
+    }, [filters.grupos]);
+
     // Extraer opciones únicas de los eventos
     const filterOptions = useMemo(() => {
         if (allEvents.length === 0) return [];
@@ -226,29 +295,35 @@ export default function CalendarPage() {
             {
                 category: 'tipoGrupo' as const,
                 label: 'Tipo de Grupo',
-                options: Array.from(uniqueTypes).sort(),
+                options: sortAlphabetically(Array.from(uniqueTypes)),
                 icon: Users
             },
             {
                 category: 'asignatura' as const,
                 label: 'Asignatura',
-                options: Array.from(uniqueSubjects).sort(),
+                options: sortAlphabetically(Array.from(uniqueSubjects)),
                 icon: BookOpen
+            },
+            {
+                category: 'grupos' as const,
+                label: 'Grupos',
+                options: sortGruposByAcronymTypeNumber(Array.from(availableGrupos)),
+                icon: Users
             },
             {
                 category: 'aula' as const,
                 label: 'Aula',
-                options: Array.from(uniqueClassrooms).sort(),
+                options: sortAlphabetically(Array.from(uniqueClassrooms)),
                 icon: DoorOpen
             },
             {
                 category: 'idioma' as const,
                 label: 'Idioma',
-                options: Array.from(uniqueLanguages).sort(),
+                options: sortAlphabetically(Array.from(uniqueLanguages)),
                 icon: Languages
             }
         ];
-    }, [allEvents]);
+    }, [allEvents, availableGrupos]);
 
     // Filtrar eventos según los filtros activos
     const filteredEvents = useMemo(() => {
@@ -258,6 +333,7 @@ export default function CalendarPage() {
             const hasActiveFilters = Object.values(filters).some(arr => arr.length > 0);
             if (!hasActiveFilters) return true;
 
+            // Filtro por tipo de grupo
             if (filters.tipoGrupo.length > 0) {
                 const hasMatchingType = event.groups.some(group =>
                     filters.tipoGrupo.includes(group.type)
@@ -265,12 +341,28 @@ export default function CalendarPage() {
                 if (!hasMatchingType) return false;
             }
 
+            // Filtro por asignatura
             if (filters.asignatura.length > 0) {
                 if (!event.subject?.acronym || !filters.asignatura.includes(event.subject.acronym)) {
                     return false;
                 }
             }
 
+            // Filtro por grupos
+            if (filters.grupos.length > 0) {
+                const hasMatchingGroup = event.groups.some(group => {
+                    const groupId = generateGroupId(
+                        event.subject?.acronym || '',
+                        group.number,
+                        group.type,
+                        group.language === 'EN'
+                    );
+                    return filters.grupos.includes(groupId);
+                });
+                if (!hasMatchingGroup) return false;
+            }
+
+            // Filtro por aula
             if (filters.aula.length > 0) {
                 const hasMatchingClassroom = event.classrooms.some(classroom =>
                     filters.aula.includes(classroom.code)
@@ -278,6 +370,7 @@ export default function CalendarPage() {
                 if (!hasMatchingClassroom) return false;
             }
 
+            // Filtro por idioma
             if (filters.idioma.length > 0) {
                 const hasMatchingLanguage = event.groups.some(group =>
                     filters.idioma.includes(group.language)

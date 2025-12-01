@@ -4,12 +4,15 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
+import { formatGroupForDisplay, getGroupAcronym } from '@/utils/groupFormatUtils';
+import { GROUP_TYPE_LABELS, LANGUAGE_LABELS } from '@/constants/groupTypes';
 
-type FilterCategory = 'tipoGrupo' | 'asignatura' | 'aula' | 'idioma';
+type FilterCategory = 'tipoGrupo' | 'asignatura' | 'grupos' | 'aula' | 'idioma';
 
 export interface FilterValues {
   tipoGrupo: string[];
   asignatura: string[];
+  grupos: string[];
   aula: string[];
   idioma: string[];
 }
@@ -37,6 +40,20 @@ export default function ClassFilter({
   onToggleCollapse
 }: ClassFilterProps) {
   const [expandedCategory, setExpandedCategory] = useState<FilterCategory | null>(null);
+
+  const getGroupState = (groupId: string): 'disabled' | 'unchecked' | 'checked' => {
+    const subjectAcronym = getGroupAcronym(groupId);
+
+    if (filters.asignatura.length > 0 && !filters.asignatura.includes(subjectAcronym)) {
+      return 'disabled';
+    }
+
+    if (filters.grupos.includes(groupId)) {
+      return 'checked';
+    }
+
+    return 'unchecked';
+  };
 
   const toggleCategory = (category: FilterCategory) => {
     setExpandedCategory(prev => prev === category ? null : category);
@@ -72,6 +89,7 @@ export default function ClassFilter({
     onFiltersChange({
       tipoGrupo: [],
       asignatura: [],
+      grupos: [],
       aula: [],
       idioma: []
     });
@@ -79,20 +97,13 @@ export default function ClassFilter({
 
   const getDisplayLabel = (category: FilterCategory, value: string): string => {
     if (category === 'tipoGrupo') {
-      const typeMap: Record<string, string> = {
-        'L': 'Laboratorio',
-        'S': 'Seminario',
-        'T': 'Teoría',
-        'TG': 'Tutoría Grupal'
-      };
-      return typeMap[value] || value;
+      return GROUP_TYPE_LABELS[value as keyof typeof GROUP_TYPE_LABELS] || value;
     }
     if (category === 'idioma') {
-      const languageMap: Record<string, string> = {
-        'ES': 'Español',
-        'EN': 'Inglés'
-      };
-      return languageMap[value] || value;
+      return LANGUAGE_LABELS[value as keyof typeof LANGUAGE_LABELS] || value;
+    }
+    if (category === 'grupos') {
+      return formatGroupForDisplay(value);
     }
     return value;
   };
@@ -223,24 +234,44 @@ export default function ClassFilter({
                     </div>
                     <div className="flex-1 min-h-0 overflow-y-auto">
                       <div className="p-2 space-y-1">
-                        {options.map(option => (
-                          <div
-                            key={option}
-                            className="w-full flex items-center gap-3 p-2 hover:bg-accent hover:text-accent-foreground rounded transition-colors min-h-10 cursor-pointer"
-                            onClick={() => toggleFilter(category, option)}
-                          >
-                            <Checkbox
-                              checked={filters[category].includes(option)}
-                              className="pointer-events-none shrink-0"
-                            />
-                            <span className="text-sm flex-1 text-left text-foreground truncate">
-                              {getDisplayLabel(category, option)}
-                            </span>
-                            {filters[category].includes(option) && (
-                              <Check className="w-4 h-4 text-foreground shrink-0" />
-                            )}
-                          </div>
-                        ))}
+                        {options.map(option => {
+                          const groupState = category === 'grupos' ? getGroupState(option) : null;
+                          const isDisabled = groupState === 'disabled';
+                          const isChecked = filters[category].includes(option);
+
+                          return (
+                            <div
+                              key={option}
+                              className={cn(
+                                "w-full flex items-center gap-3 p-2 rounded transition-colors min-h-10",
+                                isDisabled
+                                  ? "opacity-50 cursor-not-allowed bg-muted/30"
+                                  : "hover:bg-accent hover:text-accent-foreground cursor-pointer"
+                              )}
+                              onClick={() => !isDisabled && toggleFilter(category, option)}
+                            >
+                              <Checkbox
+                                checked={isChecked}
+                                disabled={isDisabled}
+                                className="pointer-events-none shrink-0"
+                              />
+                              <span className={cn(
+                                "text-sm flex-1 text-left truncate",
+                                isDisabled ? "text-muted-foreground" : "text-foreground"
+                              )}>
+                                {getDisplayLabel(category, option)}
+                              </span>
+                              {isChecked && (
+                                <Check className="w-4 h-4 text-foreground shrink-0" />
+                              )}
+                              {isDisabled && category === 'grupos' && (
+                                <Badge variant="outline" className="text-xs">
+                                  No disponible
+                                </Badge>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>

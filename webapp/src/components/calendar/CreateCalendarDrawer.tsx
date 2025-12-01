@@ -25,7 +25,6 @@ import {
 import {
     Calendar,
     Upload,
-    FileText,
     X,
     CheckCircle,
     ChevronDownIcon

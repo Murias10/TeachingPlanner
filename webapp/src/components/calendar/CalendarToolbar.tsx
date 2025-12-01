@@ -1,9 +1,10 @@
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Download, Plus, Trash2 } from 'lucide-react';
+import { Download, Plus, Trash2, FileSpreadsheet } from 'lucide-react';
 
 interface CalendarToolbarProps {
   onExport?: () => void;
+  onExportCSV?: () => void;
   onCreateEvent?: () => void;
   onDeleteEvents?: () => void;
   selectedCount?: number;
@@ -11,6 +12,7 @@ interface CalendarToolbarProps {
 
 const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
   onExport,
+  onExportCSV,
   onCreateEvent,
   onDeleteEvents,
   selectedCount = 0,
@@ -19,7 +21,7 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
   return (
     <TooltipProvider>
       <div className="flex gap-2 items-center justify-end">
-        {/* Export Button */}
+        {/* Export TXT Button */}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -33,6 +35,22 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
             </Button>
           </TooltipTrigger>
           <TooltipContent>Exportar calendario como archivos .txt</TooltipContent>
+        </Tooltip>
+
+        {/* Export CSV Button */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onExportCSV}
+              className="h-9 gap-2"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              <span className="hidden sm:inline text-xs">Exportar .csv</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Exportar eventos filtrados como CSV para Google Calendar</TooltipContent>
         </Tooltip>
 
         {/* Create Event Button */}

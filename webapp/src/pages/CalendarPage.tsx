@@ -27,6 +27,7 @@ import { useCrearSolicitud } from "@/hooks/event-request/useCrearSolicitud";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Bell } from "lucide-react";
+import { generateGoogleCalendarCSV, downloadCSV } from "@/utils/csvExport";
 
 // Configurar moment para usar español y que la semana empiece en lunes
 moment.locale('es', {
@@ -373,6 +374,48 @@ export default function CalendarPage() {
         }
     };
 
+    const handleExportToCSV = () => {
+        try {
+            // Filtrar eventos pendientes y cancelados (solo exportar eventos normales activos)
+            const eventsToExport = filteredEvents.filter(
+                event => !event.isPending && !event.cancelled
+            );
+
+            if (eventsToExport.length === 0) {
+                console.warn('No hay eventos para exportar');
+                triggerAlert({
+                    title: 'Sin eventos',
+                    description: 'No hay eventos para exportar con los filtros actuales',
+                    variant: 'warning'
+                });
+                return;
+            }
+
+            // Generar CSV en formato de Google Calendar
+            const csvContent = generateGoogleCalendarCSV(eventsToExport);
+
+            // Generar nombre del archivo descriptivo
+            const filename = `${acronym}_${startYear}-${endYear}_S${semester}_calendar.csv`;
+
+            // Descargar archivo
+            downloadCSV(csvContent, filename);
+
+            triggerAlert({
+                title: 'Exportación exitosa',
+                description: `Se han exportado ${eventsToExport.length} eventos a CSV para Google Calendar`,
+                variant: 'success'
+            });
+
+        } catch (error) {
+            console.error('Error exporting calendar to CSV:', error);
+            triggerAlert({
+                title: 'Error al exportar',
+                description: error instanceof Error ? error.message : 'Error desconocido al exportar el calendario',
+                variant: 'destructive'
+            });
+        }
+    };
+
     const handleCreateEvent = () => {
         setDragStartDate(null);
         setDragStartTime(null);
@@ -646,6 +689,7 @@ export default function CalendarPage() {
                         {isAdmin && (
                             <CalendarToolbar
                                 onExport={handleExportCalendar}
+                                onExportCSV={handleExportToCSV}
                                 onCreateEvent={handleCreateEvent}
                                 onDeleteEvents={handleDeleteEvents}
                                 selectedCount={selectedEventIds.length}

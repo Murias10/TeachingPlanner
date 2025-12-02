@@ -1106,3 +1106,89 @@ export const deletePuntualEvent = async (req: AuditedRequest, res: Response) => 
         });
     }
 };
+
+export const createPeriodicEvent = async (req: AuditedRequest, res: Response) => {
+    try {
+        const { calendarId, weekDay, startTime, endTime, planifiedHours, groupIds = [], classroomIds = [] } = req.body;
+
+        // Validaciones
+        if (!calendarId || !weekDay || !startTime || !endTime || !planifiedHours) {
+            res.status(400).json({
+                status: 'error',
+                message: 'Missing required fields: calendarId, weekDay, startTime, endTime, planifiedHours',
+                data: null
+            });
+            return;
+        }
+
+        const calendarRepo = AppDataSource.getRepository(Calendar);
+        const periodicEventRepo = AppDataSource.getRepository(PeriodicEvent);
+        const groupRepo = AppDataSource.getRepository(Group);
+        const classroomRepo = AppDataSource.getRepository(Classroom);
+
+        // Verificar que el calendario existe
+        const calendar = await calendarRepo.findOne({
+            where: { id: calendarId }
+        });
+
+        if (!calendar) {
+            res.status(404).json({
+                status: 'error',
+                message: 'Calendar not found',
+                data: null
+            });
+            return;
+        }
+
+        // Obtener los grupos con su relación de subject
+        const groups = groupIds.length > 0
+            ? await groupRepo.find({
+                where: { id: In(groupIds) },
+                relations: ['subject']
+              })
+            : [];
+
+        // Obtener las aulas
+        const classrooms = classroomIds.length > 0
+            ? await classroomRepo.find({ where: { id: In(classroomIds) } })
+            : [];
+
+        // Obtener usuario autenticado
+        const userEmail = getUserEmailFromRequest(req);
+
+        // Obtener el año del primer grupo (ya que todos pertenecen a la misma asignatura/año)
+        const groupYear = groups.length > 0 && groups[0].subject ? groups[0].subject.year : new Date(calendar.start).getFullYear();
+
+        // Crear el evento periódico
+        const periodicEvent = periodicEventRepo.create({
+            calendar: calendar,
+            weekDay: weekDay,
+            startTime: startTime,
+            endTime: endTime,
+            planifiedHours: planifiedHours,
+            eventCharacter: 'N', // Por defecto para eventos creados por profesores
+            year: groupYear,
+            groups: groups,
+            classrooms: classrooms,
+            createdBy: userEmail
+        });
+
+        const savedEvent = await periodicEventRepo.save(periodicEvent);
+
+        res.status(201).json({
+            status: 'success',
+            message: 'Periodic event created successfully',
+            data: {
+                event: savedEvent
+            }
+        });
+
+    } catch (error) {
+        console.error('Error creating periodic event:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error creating periodic event',
+            data: error instanceof Error ? error.message : error
+        });
+    }
+};

@@ -42,6 +42,7 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
     endsAfterOccurrences: 1,
     startTime: '09:00',
     endTime: '10:00',
+    planifiedHours: 0,
     eventDate: format(new Date(), 'yyyy-MM-dd'),
     subjectId: undefined,
     groupIds: [],
@@ -65,6 +66,7 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
       endsAfterOccurrences: 1,
       startTime: initialStartTime || '09:00',
       endTime: initialEndTime || '10:00',
+      planifiedHours: 0,
       eventDate: initialDate || format(new Date(), 'yyyy-MM-dd'),
       subjectId: undefined,
       groupIds: [],
@@ -73,6 +75,16 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
     };
     setConfig(newConfig);
   }, [initialDate, initialStartTime, initialEndTime]);
+
+  // Clear group and classroom selections when event type changes
+  React.useEffect(() => {
+    setConfig(prev => ({
+      ...prev,
+      groupIds: [],
+      classroomIds: []
+    }));
+  }, [eventType]);
+
   const { data: classrooms = [] } = useClassrooms();
   const { data: subjects = [], isLoading: isLoadingSubjects } = useSubjectsByDegreeId(degreeId || null);
 
@@ -97,7 +109,7 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
 
   // Validate that all required fields are filled
   const isFormValid = useMemo(() => {
-    return (
+    const baseValid = (
       config.subjectId &&
       config.groupIds &&
       config.groupIds.length > 0 &&
@@ -105,7 +117,20 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
       config.classroomIds.length > 0 &&
       eventType
     );
-  }, [config.subjectId, config.groupIds, config.classroomIds, eventType]);
+
+    if (!baseValid) return false;
+
+    // Additional validation based on frequency
+    if (config.frequency === 'no-repeat') {
+      return !!config.eventDate;
+    }
+
+    if (config.frequency === 'weekly') {
+      return config.weekDays && config.weekDays.length > 0 && config.planifiedHours > 0;
+    }
+
+    return true;
+  }, [config.subjectId, config.groupIds, config.classroomIds, eventType, config.frequency, config.eventDate, config.weekDays, config.planifiedHours]);
 
   const weekDays: { value: WeekDay; label: string }[] = [
     { value: 'L', label: 'L' },
@@ -133,10 +158,7 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
 
   const getSummary = (): string => {
     if (config.frequency === 'no-repeat') return 'No se repite';
-    if (config.frequency === 'daily') return 'Diariamente';
     if (config.frequency === 'weekly') return 'Semanalmente';
-    if (config.frequency === 'monthly') return 'Mensualmente';
-    if (config.frequency === 'yearly') return 'Anualmente';
 
     let summary = '';
     if (config.frequency === 'custom' && config.interval > 0) {
@@ -180,10 +202,7 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="no-repeat">No se repite</SelectItem>
-                  <SelectItem value="daily">Diariamente</SelectItem>
                   <SelectItem value="weekly">Semanalmente</SelectItem>
-                  <SelectItem value="monthly">Mensualmente</SelectItem>
-                  <SelectItem value="yearly">Anualmente</SelectItem>
                   <SelectItem value="custom">Personalizado</SelectItem>
                 </SelectContent>
               </Select>
@@ -191,9 +210,11 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
 
             {/* Date, Start Time, End Time in same row */}
             <div className="space-y-1">
-              <Label className="text-xs font-semibold">Fecha y Horario</Label>
+              <Label className="text-xs font-semibold">
+                {config.frequency === 'weekly' ? 'Día y Horario' : 'Fecha y Horario'}
+              </Label>
               <div className="flex gap-2">
-                {/* Date Selection */}
+                {/* Date Selection - for no-repeat */}
                 {config.frequency === 'no-repeat' && (
                   <Popover modal={true}>
                     <PopoverTrigger asChild>
@@ -218,6 +239,25 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
                       />
                     </PopoverContent>
                   </Popover>
+                )}
+
+                {/* Weekday Selection - for weekly */}
+                {config.frequency === 'weekly' && (
+                  <Select
+                    value={config.weekDays[0] || ''}
+                    onValueChange={(value) => setConfig({ ...config, weekDays: [value as WeekDay] })}
+                  >
+                    <SelectTrigger className="h-8 px-3 text-xs font-normal flex-1">
+                      <SelectValue placeholder="Seleccionar día" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="L">Lunes</SelectItem>
+                      <SelectItem value="M">Martes</SelectItem>
+                      <SelectItem value="X">Miércoles</SelectItem>
+                      <SelectItem value="J">Jueves</SelectItem>
+                      <SelectItem value="V">Viernes</SelectItem>
+                    </SelectContent>
+                  </Select>
                 )}
 
                 {/* Start Time */}
@@ -267,6 +307,23 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
                 </Popover>
               </div>
             </div>
+
+            {/* Planified Hours - Only visible when frequency is 'weekly' */}
+            {config.frequency === 'weekly' && (
+              <div className="space-y-1">
+                <Label htmlFor="planified-hours" className="text-xs font-semibold">Horas Planificadas</Label>
+                <Input
+                  id="planified-hours"
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  value={config.planifiedHours || ''}
+                  onChange={(e) => setConfig({ ...config, planifiedHours: parseFloat(e.target.value) || 0 })}
+                  placeholder="Ej: 30"
+                  className="h-8 text-xs"
+                />
+              </div>
+            )}
 
             {/* Subject Selection - Always visible */}
             <div className="space-y-1">
@@ -421,7 +478,7 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
             {/* Event Type Selection - Always visible */}
             <div className="space-y-1">
               <Label className="text-xs font-semibold">Tipo de Evento</Label>
-              <Select value={eventType} onValueChange={(value) => setEventType(value as 'T' | 'S' | 'L')}>
+              <Select value={eventType} onValueChange={(value) => setEventType(value as 'T' | 'S' | 'L' | 'TG')}>
                 <SelectTrigger className="h-8 text-xs w-full">
                   <SelectValue placeholder="Seleccionar tipo de evento" />
                 </SelectTrigger>
@@ -429,6 +486,7 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
                   <SelectItem value="T">Teoría</SelectItem>
                   <SelectItem value="S">Seminario</SelectItem>
                   <SelectItem value="L">Laboratorio</SelectItem>
+                  <SelectItem value="TG">Tutorías Grupales</SelectItem>
                 </SelectContent>
               </Select>
             </div>

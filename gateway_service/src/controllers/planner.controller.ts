@@ -241,6 +241,13 @@ export const createPuntualEvent = (req: Request, res: Response, next: NextFuncti
         body: req.body
     });
 
+export const createPeriodicEvent = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/calendar/periodic-event`,
+        method: 'POST',
+        body: req.body
+    });
+
 export const deletePuntualEvent = (req: Request, res: Response, next: NextFunction) =>
     proxyRequest(req, res, next, {
         url: `${SERVICES.PLANNER}/calendar/puntual-event/${req.params.eventId}`,

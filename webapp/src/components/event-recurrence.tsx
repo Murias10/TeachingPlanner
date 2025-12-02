@@ -61,11 +61,8 @@ const EventRecurrenceSelector: React.FC = () => {
 
   const getSummary = (): string => {
     if (config.frequency === 'no-repeat') return 'No se repite';
-    if (config.frequency === 'daily') return 'Diariamente';
     if (config.frequency === 'weekly') return 'Semanalmente';
-    if (config.frequency === 'monthly') return 'Mensualmente';
-    if (config.frequency === 'yearly') return 'Anualmente';
-    
+
     let summary = '';
     if (config.frequency === 'custom' && config.interval > 0) {
       summary = `Cada ${config.interval > 1 ? config.interval : ''} `;
@@ -148,10 +145,7 @@ const EventRecurrenceSelector: React.FC = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="no-repeat">No se repite</SelectItem>
-                <SelectItem value="daily">Diariamente</SelectItem>
                 <SelectItem value="weekly">Semanalmente</SelectItem>
-                <SelectItem value="monthly">Mensualmente</SelectItem>
-                <SelectItem value="yearly">Anualmente</SelectItem>
                 <SelectItem value="custom">Personalizado...</SelectItem>
               </SelectContent>
             </Select>

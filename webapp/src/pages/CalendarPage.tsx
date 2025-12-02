@@ -20,6 +20,7 @@ import VITE_GATEWAY_API_URL from "@/config/api";
 import { EventDetailsDrawer } from "@/components/calendar/EventDetailsDrawer";
 import { DeleteEventConfirmationDialog } from "@/components/calendar/DeleteEventConfirmationDialog";
 import { useCreatePuntualEvent } from "@/hooks/calendar/useCreatePuntualEvent";
+import { useCreatePeriodicEvent } from "@/hooks/calendar/useCreatePeriodicEvent";
 import { useDeletePuntualEvent } from "@/hooks/calendar/useDeletePuntualEvent";
 import { useFloatingAlert } from "@/hooks/useFloatingAlert";
 import { useAuth } from "@/contexts/AuthContext";
@@ -100,6 +101,7 @@ export default function CalendarPage() {
     const { triggerAlert } = useFloatingAlert();
     const { user } = useAuth();
     const { mutate: createPuntualEvent } = useCreatePuntualEvent();
+    const { mutate: createPeriodicEvent } = useCreatePeriodicEvent();
     const { deletePuntualEvent, isDeleting: isDeletingEvent } = useDeletePuntualEvent();
     const crearSolicitud = useCrearSolicitud();
     const deleteRequest = useDeleteRequest();
@@ -548,27 +550,7 @@ export default function CalendarPage() {
     };
 
     const handleSaveEvent = (config: RecurrenceConfig) => {
-        // Only handle puntual events for now
-        if (config.frequency !== 'no-repeat') {
-            triggerAlert({
-                title: 'No implementado',
-                description: 'Por el momento solo se pueden crear eventos puntuales',
-                variant: 'default'
-            });
-            return;
-        }
-
-        // Validar campos requeridos
-        if (!config.eventDate || !config.subjectId) {
-            triggerAlert({
-                title: 'Error',
-                description: 'Por favor selecciona una fecha y una asignatura',
-                variant: 'destructive'
-            });
-            return;
-        }
-
-        // Validar que al menos un grupo esté seleccionado
+        // Validaciones comunes
         if (!config.groupIds || config.groupIds.length === 0) {
             triggerAlert({
                 title: 'Error',
@@ -597,40 +579,113 @@ export default function CalendarPage() {
             return;
         }
 
-        // Crear el evento puntual
-        createPuntualEvent(
-            {
-                calendarId,
-                eventDate: config.eventDate,
-                startTime: config.startTime,
-                endTime: config.endTime,
-                subjectId: config.subjectId,
-                groupIds: config.groupIds,
-                classroomIds: config.classroomIds || [],
-                comment: config.comment
-            },
-            {
-                onSuccess: () => {
-                    triggerAlert({
-                        title: t('alerts.puntualEvent.success.title'),
-                        description: t('alerts.puntualEvent.success.description'),
-                        variant: 'success'
-                    });
-                    setIsCreateEventDialogOpen(false);
-                    refetch();
-                },
-                onError: (error: Error & { statusCode?: number }) => {
-                    const statusCode = error.statusCode || 500;
-                    const errorKey = statusCode === 400 || statusCode === 409 ? statusCode.toString() : 'default';
-
-                    triggerAlert({
-                        title: t(`alerts.puntualEvent.error.${errorKey}.title`),
-                        description: t(`alerts.puntualEvent.error.${errorKey}.description`),
-                        variant: 'destructive'
-                    });
-                }
+        // Manejar eventos puntuales
+        if (config.frequency === 'no-repeat') {
+            if (!config.eventDate || !config.subjectId) {
+                triggerAlert({
+                    title: 'Error',
+                    description: 'Por favor selecciona una fecha y una asignatura',
+                    variant: 'destructive'
+                });
+                return;
             }
-        );
+
+            createPuntualEvent(
+                {
+                    calendarId,
+                    eventDate: config.eventDate,
+                    startTime: config.startTime,
+                    endTime: config.endTime,
+                    subjectId: config.subjectId,
+                    groupIds: config.groupIds,
+                    classroomIds: config.classroomIds || [],
+                    comment: config.comment
+                },
+                {
+                    onSuccess: () => {
+                        triggerAlert({
+                            title: t('alerts.puntualEvent.success.title'),
+                            description: t('alerts.puntualEvent.success.description'),
+                            variant: 'success'
+                        });
+                        setIsCreateEventDialogOpen(false);
+                        refetch();
+                    },
+                    onError: (error: Error & { statusCode?: number }) => {
+                        const statusCode = error.statusCode || 500;
+                        const errorKey = statusCode === 400 || statusCode === 409 ? statusCode.toString() : 'default';
+
+                        triggerAlert({
+                            title: t(`alerts.puntualEvent.error.${errorKey}.title`),
+                            description: t(`alerts.puntualEvent.error.${errorKey}.description`),
+                            variant: 'destructive'
+                        });
+                    }
+                }
+            );
+            return;
+        }
+
+        // Manejar eventos periódicos semanales
+        if (config.frequency === 'weekly') {
+            if (!config.weekDays || config.weekDays.length === 0) {
+                triggerAlert({
+                    title: 'Error',
+                    description: 'Por favor selecciona un día de la semana',
+                    variant: 'destructive'
+                });
+                return;
+            }
+
+            if (config.planifiedHours <= 0) {
+                triggerAlert({
+                    title: 'Error',
+                    description: 'Por favor especifica las horas planificadas',
+                    variant: 'destructive'
+                });
+                return;
+            }
+
+            createPeriodicEvent(
+                {
+                    calendarId,
+                    weekDay: config.weekDays[0],
+                    startTime: config.startTime,
+                    endTime: config.endTime,
+                    planifiedHours: config.planifiedHours,
+                    groupIds: config.groupIds,
+                    classroomIds: config.classroomIds || []
+                },
+                {
+                    onSuccess: () => {
+                        triggerAlert({
+                            title: 'Éxito',
+                            description: 'Evento periódico creado correctamente',
+                            variant: 'success'
+                        });
+                        setIsCreateEventDialogOpen(false);
+                        refetch();
+                    },
+                    onError: (error: Error & { statusCode?: number }) => {
+                        const errorMessage = error.message || 'Error al crear el evento periódico';
+
+                        triggerAlert({
+                            title: 'Error',
+                            description: errorMessage,
+                            variant: 'destructive'
+                        });
+                    }
+                }
+            );
+            return;
+        }
+
+        // Otras opciones no implementadas
+        triggerAlert({
+            title: 'No implementado',
+            description: 'Por el momento solo se pueden crear eventos puntuales y periódicos semanales',
+            variant: 'default'
+        });
     };
 
     const handleEditEvent = () => {
@@ -752,7 +807,15 @@ export default function CalendarPage() {
             };
         }
 
-        const result = await crearSolicitud(calendarIdParam, config.frequency === 'no-repeat' ? 'PUNTUAL' : 'PERIODIC', eventData);
+        const result = await crearSolicitud(
+            calendarIdParam,
+            config.frequency === 'no-repeat' ? 'PUNTUAL' : 'PERIODIC',
+            eventData,
+            () => {
+                refetch();
+                refetchPendingRequests();
+            }
+        );
 
         if (result.success) {
             triggerAlert({

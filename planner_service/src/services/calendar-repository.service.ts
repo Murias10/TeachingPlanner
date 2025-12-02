@@ -2,6 +2,8 @@ import { AppDataSource } from '@/config/data-source';
 import { Calendar } from '@/entities/calendar.entity';
 import { Classroom } from '@/entities/classroom.entity';
 import { Group } from '@/entities/group.entity';
+import { Day } from '@/entities/day.entity';
+import { PeriodicEvent } from '@/entities/periodic_event.entity';
 import { In } from 'typeorm';
 
 /**
@@ -23,6 +25,29 @@ export class CalendarRepositoryService {
   static async getCalendarById(id: string) {
     const calendarRepo = AppDataSource.getRepository(Calendar);
     return await calendarRepo.findOne({ where: { id } });
+  }
+
+  /**
+   * Obtiene todos los días del calendario con sus eventos
+   */
+  static async getCalendarDaysWithEvents(calendarId: string) {
+    const dayRepo = AppDataSource.getRepository(Day);
+    return await dayRepo.find({
+      where: { calendar: { id: calendarId } },
+      relations: ['puntualEvents', 'puntualEvents.groups', 'puntualEvents.groups.subject', 'puntualEvents.classrooms'],
+      order: { date: 'ASC' }
+    });
+  }
+
+  /**
+   * Obtiene todos los eventos periódicos del calendario
+   */
+  static async getCalendarPeriodicEvents(calendarId: string) {
+    const periodicEventRepo = AppDataSource.getRepository(PeriodicEvent);
+    return await periodicEventRepo.find({
+      where: { calendar: { id: calendarId } },
+      relations: ['groups', 'groups.subject', 'classrooms']
+    });
   }
 
   /**

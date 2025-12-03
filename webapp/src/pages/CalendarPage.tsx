@@ -2,6 +2,7 @@ import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext";
 import { useEffect, useMemo, useState } from "react";
 import { Calendar, momentLocalizer, Components } from "react-big-calendar";
 import moment from "moment";
+import { format } from "date-fns";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { useCalendarByCourseAndSemester } from "@/hooks/calendar/useCalendarByCourseAndSemester";
 import { usePendingRequestsAsEvents } from "@/hooks/calendar/usePendingRequestsAsEvents";
@@ -128,6 +129,11 @@ export default function CalendarPage() {
         const pendingEvents = pendingData?.events || [];
         return [...normalEvents, ...pendingEvents];
     }, [data?.events, pendingData?.events]);
+
+    // Obtener fechas lectivas
+    const lectiveDates = useMemo(() => {
+        return new Set(data?.lectiveDates || []);
+    }, [data?.lectiveDates]);
 
     // Estado de filtros
     const [filters, setFilters] = useState<FilterValues>({
@@ -528,6 +534,17 @@ export default function CalendarPage() {
 
         // Convertir la fecha seleccionada a formato YYYY-MM-DD
         const selectedDate = moment(slotInfo.start).format('YYYY-MM-DD');
+
+        // Validar que el día sea lectivo
+        if (!lectiveDates.has(selectedDate)) {
+            triggerAlert({
+                title: 'Día no lectivo',
+                description: 'No puedes crear eventos en días no lectivos',
+                variant: 'destructive'
+            });
+            return;
+        }
+
         const startTime = moment(slotInfo.start).format('HH:mm');
         const endTime = moment(slotInfo.end).format('HH:mm');
 
@@ -585,6 +602,16 @@ export default function CalendarPage() {
                 triggerAlert({
                     title: 'Error',
                     description: 'Por favor selecciona una fecha y una asignatura',
+                    variant: 'destructive'
+                });
+                return;
+            }
+
+            // Validar que el día sea lectivo
+            if (!lectiveDates.has(config.eventDate)) {
+                triggerAlert({
+                    title: 'Error',
+                    description: 'No puedes crear eventos en días no lectivos',
                     variant: 'destructive'
                 });
                 return;
@@ -854,6 +881,35 @@ export default function CalendarPage() {
         event: EventComponent,
     };
 
+    // Función para estilizar días no lectivos
+    const dayPropGetter = (date: Date) => {
+        const dateKey = format(date, 'yyyy-MM-dd');
+
+        // Solo oscurecer si la fecha está dentro del rango del calendario
+        // y NO está en lectiveDates (es decir, es no lectivo)
+        if (data?.startDate && data?.endDate) {
+            const eventDate = new Date(dateKey);
+            const calendarStart = new Date(data.startDate);
+            const calendarEnd = new Date(data.endDate);
+
+            // Verificar que esté dentro del rango
+            if (eventDate >= calendarStart && eventDate <= calendarEnd) {
+                // Si NO está en lectiveDates, es no lectivo - oscurece
+                if (!lectiveDates.has(dateKey)) {
+                    return {
+                        style: {
+                            backgroundColor: '#d0d0d0',
+                            opacity: 1,
+                            borderLeft: '3px solid #999999',
+                            color: '#000000',
+                        }
+                    };
+                }
+            }
+        }
+        return {};
+    };
+
     if (isLoading || isLoadingPending) {
         return (
             <section className="h-full rounded-xl bg-muted/50 flex items-center justify-center m-2 p-10">
@@ -1004,6 +1060,7 @@ export default function CalendarPage() {
                                             }
                                         };
                                     }}
+                                    dayPropGetter={dayPropGetter}
                                     messages={{
                                         week: 'Semana',
                                         work_week: 'Semana laboral',
@@ -1050,6 +1107,7 @@ export default function CalendarPage() {
                 initialDate={dragStartDate}
                 initialStartTime={dragStartTime}
                 initialEndTime={dragEndTime}
+                lectiveDates={lectiveDates}
             />
 
             {/* Event Details Drawer */}
@@ -1087,6 +1145,7 @@ export default function CalendarPage() {
                     initialDate={dragStartDate}
                     initialStartTime={dragStartTime}
                     initialEndTime={dragEndTime}
+                    lectiveDates={lectiveDates}
                 />
             )}
         </>

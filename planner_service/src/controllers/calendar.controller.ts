@@ -365,6 +365,16 @@ export const getCalendarEvents = async (req: AuditedRequest, res: Response) => {
             return;
         }
 
+        // Obtener días lectivos
+        const dayRepo = AppDataSource.getRepository(Day);
+        const lectiveDays = await dayRepo.find({
+            where: { calendar: { id }, lective: true }
+        });
+
+        const lectiveDates = lectiveDays.map(day =>
+            day.date.toISOString().split('T')[0]
+        );
+
         const allEvents = await CalendarEventsService.generateCalendarEvents(id);
 
         allEvents.sort((a, b) => {
@@ -382,7 +392,8 @@ export const getCalendarEvents = async (req: AuditedRequest, res: Response) => {
                 startDate: calendar.start.toISOString(),
                 endDate: calendar.end.toISOString(),
                 totalEvents: allEvents.length,
-                events: allEvents
+                events: allEvents,
+                lectiveDates: lectiveDates
             }
         });
 
@@ -958,6 +969,16 @@ export const createPuntualEvent = async (req: AuditedRequest, res: Response) => 
             res.status(400).json({
                 status: 'error',
                 message: 'The selected date does not exist in the calendar. Events can only be created on existing calendar days.',
+                data: null
+            });
+            return;
+        }
+
+        // Validar que el día sea un día lectivo
+        if (!day.lective) {
+            res.status(400).json({
+                status: 'error',
+                message: 'Cannot create events on non-lective days. Please select a lective day.',
                 data: null
             });
             return;

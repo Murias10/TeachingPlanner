@@ -31,6 +31,7 @@ interface CreateSolicitudDialogProps {
   initialDate?: string | null;
   initialStartTime?: string | null;
   initialEndTime?: string | null;
+  lectiveDates?: Set<string>;
 }
 
 const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
@@ -42,7 +43,8 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
   calendarEvents = [],
   initialDate,
   initialStartTime,
-  initialEndTime
+  initialEndTime,
+  lectiveDates = new Set()
 }) => {
   const [config, setConfig] = useState<RecurrenceConfig>({
     frequency: 'no-repeat',
@@ -249,6 +251,7 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
                           }
                         }}
                         locale={es}
+                        disabled={(date) => !lectiveDates.has(format(date, 'yyyy-MM-dd'))}
                       />
                     </PopoverContent>
                   </Popover>

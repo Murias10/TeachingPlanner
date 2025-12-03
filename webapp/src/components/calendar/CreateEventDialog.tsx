@@ -30,9 +30,10 @@ interface CreateEventDialogProps {
   initialDate?: string | null;
   initialStartTime?: string | null;
   initialEndTime?: string | null;
+  lectiveDates?: Set<string>;
 }
 
-const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChange, onSave, degreeId, calendarEvents = [], initialDate, initialStartTime, initialEndTime }) => {
+const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChange, onSave, degreeId, calendarEvents = [], initialDate, initialStartTime, initialEndTime, lectiveDates = new Set() }) => {
   const [config, setConfig] = useState<RecurrenceConfig>({
     frequency: 'no-repeat',
     interval: 1,
@@ -236,6 +237,7 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
                           }
                         }}
                         locale={es}
+                        disabled={(date) => !lectiveDates.has(format(date, 'yyyy-MM-dd'))}
                       />
                     </PopoverContent>
                   </Popover>

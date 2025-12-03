@@ -30,6 +30,7 @@ export interface CalendarEventsResponse {
     endDate: string;
     totalEvents: number;
     events: CalendarEvent[];
+    lectiveDates: string[]; // Array de fechas en formato YYYY-MM-DD que SÍ son lectivas
 }
 
 export interface ApiResponse<T> {

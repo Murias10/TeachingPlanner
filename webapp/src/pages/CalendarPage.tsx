@@ -881,31 +881,20 @@ export default function CalendarPage() {
         event: EventComponent,
     };
 
-    // Función para estilizar días no lectivos
+    // Función para estilizar días no lectivos y días fuera del rango
     const dayPropGetter = (date: Date) => {
         const dateKey = format(date, 'yyyy-MM-dd');
 
-        // Solo oscurecer si la fecha está dentro del rango del calendario
-        // y NO está en lectiveDates (es decir, es no lectivo)
-        if (data?.startDate && data?.endDate) {
-            const eventDate = new Date(dateKey);
-            const calendarStart = new Date(data.startDate);
-            const calendarEnd = new Date(data.endDate);
-
-            // Verificar que esté dentro del rango
-            if (eventDate >= calendarStart && eventDate <= calendarEnd) {
-                // Si NO está en lectiveDates, es no lectivo - oscurece
-                if (!lectiveDates.has(dateKey)) {
-                    return {
-                        style: {
-                            backgroundColor: '#d0d0d0',
-                            opacity: 1,
-                            borderLeft: '3px solid #999999',
-                            color: '#000000',
-                        }
-                    };
+        // Colorear si NO está en lectiveDates (incluye días no lectivos + días fuera del rango)
+        if (!lectiveDates.has(dateKey)) {
+            return {
+                style: {
+                    backgroundColor: '#d0d0d0',
+                    opacity: 1,
+                    borderLeft: '3px solid #999999',
+                    color: '#000000',
                 }
-            }
+            };
         }
         return {};
     };

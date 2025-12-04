@@ -707,6 +707,47 @@ export default function CalendarPage() {
             return;
         }
 
+        // Manejar eventos periódicos con frecuencia personalizada
+        if (config.frequency === 'custom') {
+            if (!config.customStartDate || !config.customFrequencyUnit || config.interval <= 0) {
+                triggerAlert({
+                    title: 'Error',
+                    description: 'Por favor completa todos los campos de la frecuencia personalizada',
+                    variant: 'destructive'
+                });
+                return;
+            }
+
+            if (config.customFrequencyUnit === 'week' && (!config.weekDays || config.weekDays.length === 0)) {
+                triggerAlert({
+                    title: 'Error',
+                    description: 'Por favor selecciona al menos un día de la semana',
+                    variant: 'destructive'
+                });
+                return;
+            }
+
+            // TODO: Implementar lógica de creación de eventos periódicos con frecuencia personalizada
+            console.log('Creating custom frequency periodic event:', {
+                calendarId,
+                customStartDate: config.customStartDate,
+                customFrequencyUnit: config.customFrequencyUnit,
+                interval: config.interval,
+                weekDays: config.weekDays,
+                startTime: config.startTime,
+                endTime: config.endTime,
+                groupIds: config.groupIds,
+                classroomIds: config.classroomIds
+            });
+
+            triggerAlert({
+                title: 'Funcionalidad en desarrollo',
+                description: 'La creación de eventos con frecuencia personalizada está siendo implementada',
+                variant: 'default'
+            });
+            return;
+        }
+
         // Otras opciones no implementadas
         triggerAlert({
             title: 'No implementado',

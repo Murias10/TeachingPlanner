@@ -15,7 +15,7 @@ import { TimePicker } from '@/components/ui/time-picker';
 import { Textarea } from '@/components/ui/textarea';
 import { es } from 'date-fns/locale';
 import { format } from 'date-fns';
-import type { RecurrenceConfig, FrequencyType, WeekDay, EndsType } from '@/types/RecurrenceConfig';
+import type { RecurrenceConfig, FrequencyType, WeekDay, EndsType, CustomFrequencyUnit } from '@/types/RecurrenceConfig';
 import type { CalendarEvent } from '@/types/CalendarEvent';
 import type { Group } from '@/types/Group';
 import { useClassrooms } from '@/hooks/classroom/useClassrooms';
@@ -45,13 +45,15 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
     endTime: '10:00',
     planifiedHours: 0,
     eventDate: format(new Date(), 'yyyy-MM-dd'),
+    customStartDate: format(new Date(), 'yyyy-MM-dd'),
+    customFrequencyUnit: 'week',
+    customMonthlyPattern: '',
     subjectId: undefined,
     groupIds: [],
     classroomIds: [],
     comment: '',
   });
 
-  const [showCustom, setShowCustom] = useState(false);
   const [eventType, setEventType] = useState<string>('T');
   const [openStartTime, setOpenStartTime] = useState(false);
   const [openEndTime, setOpenEndTime] = useState(false);
@@ -69,6 +71,9 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
       endTime: initialEndTime || '10:00',
       planifiedHours: 0,
       eventDate: initialDate || format(new Date(), 'yyyy-MM-dd'),
+      customStartDate: initialDate || format(new Date(), 'yyyy-MM-dd'),
+      customFrequencyUnit: 'week',
+      customMonthlyPattern: '',
       subjectId: undefined,
       groupIds: [],
       classroomIds: [],
@@ -130,8 +135,12 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
       return config.weekDays && config.weekDays.length > 0 && config.planifiedHours > 0;
     }
 
+    if (config.frequency === 'custom') {
+      return !!config.customStartDate && !!config.customFrequencyUnit && config.interval > 0 && config.weekDays && config.weekDays.length > 0;
+    }
+
     return true;
-  }, [config.subjectId, config.groupIds, config.classroomIds, eventType, config.frequency, config.eventDate, config.weekDays, config.planifiedHours]);
+  }, [config.subjectId, config.groupIds, config.classroomIds, eventType, config.frequency, config.eventDate, config.weekDays, config.planifiedHours, config.customStartDate, config.customFrequencyUnit, config.interval]);
 
   const weekDays: { value: WeekDay; label: string }[] = [
     { value: 'L', label: 'L' },
@@ -145,7 +154,6 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
 
   const handleFrequencyChange = (value: FrequencyType) => {
     setConfig({ ...config, frequency: value });
-    setShowCustom(value === 'custom');
   };
 
   const toggleWeekDay = (day: WeekDay) => {
@@ -161,17 +169,26 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
     if (config.frequency === 'no-repeat') return 'No se repite';
     if (config.frequency === 'weekly') return 'Semanalmente';
 
-    let summary = '';
-    if (config.frequency === 'custom' && config.interval > 0) {
-      summary = `Cada ${config.interval > 1 ? config.interval : ''} `;
-      if (showCustom) {
-        summary += 'semana';
-        if (config.weekDays.length > 0) {
-          summary += ` los ${config.weekDays.join(', ')}`;
-        }
+    if (config.frequency === 'custom' && config.interval > 0 && config.customFrequencyUnit) {
+      let unitLabel = '';
+      if (config.customFrequencyUnit === 'day') {
+        unitLabel = config.interval === 1 ? 'día' : 'días';
+      } else if (config.customFrequencyUnit === 'week') {
+        unitLabel = config.interval === 1 ? 'semana' : 'semanas';
+      } else if (config.customFrequencyUnit === 'month') {
+        unitLabel = config.interval === 1 ? 'mes' : 'meses';
       }
+
+      let summary = `Cada ${config.interval} ${unitLabel}`;
+
+      if (config.customFrequencyUnit === 'week' && config.weekDays.length > 0) {
+        summary += ` los ${config.weekDays.join(', ')}`;
+      }
+
+      return summary;
     }
-    return summary || 'Personalizado';
+
+    return 'Personalizado';
   };
 
   const handleSave = () => {
@@ -212,7 +229,7 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
             {/* Date, Start Time, End Time in same row */}
             <div className="space-y-1">
               <Label className="text-xs font-semibold">
-                {config.frequency === 'weekly' ? 'Día y Horario' : 'Fecha y Horario'}
+                {config.frequency === 'weekly' ? 'Día y Horario' : config.frequency === 'custom' ? 'Fecha Inicio y Horario' : 'Fecha y Horario'}
               </Label>
               <div className="flex gap-2">
                 {/* Date Selection - for no-repeat */}
@@ -260,6 +277,34 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
                       <SelectItem value="V">Viernes</SelectItem>
                     </SelectContent>
                   </Select>
+                )}
+
+                {/* Date Selection - for custom */}
+                {config.frequency === 'custom' && (
+                  <Popover modal={true}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="h-8 px-3 text-xs justify-between font-normal flex-1"
+                      >
+                        {config.customStartDate && !isNaN(new Date(config.customStartDate).getTime()) ? format(new Date(config.customStartDate), 'dd/MM/yyyy', { locale: es }) : 'Fecha'}
+                        <ChevronDownIcon className="w-3 h-3" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={config.customStartDate && !isNaN(new Date(config.customStartDate).getTime()) ? new Date(config.customStartDate) : new Date()}
+                        onSelect={(date) => {
+                          if (date) {
+                            setConfig({ ...config, customStartDate: format(date, 'yyyy-MM-dd') });
+                          }
+                        }}
+                        locale={es}
+                        disabled={(date) => !lectiveDates.has(format(date, 'yyyy-MM-dd'))}
+                      />
+                    </PopoverContent>
+                  </Popover>
                 )}
 
                 {/* Start Time */}
@@ -359,29 +404,22 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
               {/* Groups Selection - Always visible */}
               <div className="space-y-1 flex-1">
                 <Label className="text-xs font-semibold">Grupos</Label>
-                <div className="relative">
-                  <button
-                    type="button"
-                    className="h-8 px-3 text-xs w-full border border-input bg-background rounded-md flex items-center justify-between hover:bg-accent"
-                    onClick={() => {
-                      const dropdown = document.getElementById('groups-dropdown');
-                      if (dropdown) {
-                        dropdown.classList.toggle('hidden');
-                      }
-                    }}
-                  >
-                    <span>
-                      {config.groupIds && config.groupIds.length > 0
-                        ? `${config.groupIds.length} grupo(s) seleccionado(s)`
-                        : 'Seleccionar grupos'}
-                    </span>
-                    <ChevronDownIcon className="w-3 h-3" />
-                  </button>
-                  <div
-                    id="groups-dropdown"
-                    className="hidden absolute top-full left-0 right-0 mt-1 bg-background border border-input rounded-md shadow-lg z-50"
-                  >
-                    <div className="space-y-1 max-h-40 overflow-y-auto p-2">
+                <Popover modal={true}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="h-8 px-3 text-xs justify-between font-normal w-full"
+                    >
+                      <span>
+                        {config.groupIds && config.groupIds.length > 0
+                          ? `${config.groupIds.length} grupo(s) seleccionado(s)`
+                          : 'Seleccionar grupos'}
+                      </span>
+                      <ChevronDownIcon className="w-3 h-3" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="p-2 w-auto" align="start">
+                    <div className="space-y-1 max-h-40 overflow-y-auto min-w-48">
                       {config.subjectId ? (
                         availableGroups.length > 0 ? (
                           availableGroups.sort((a, b) => {
@@ -420,36 +458,29 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
                         <p className="text-xs text-muted-foreground">Selecciona una asignatura primero</p>
                       )}
                     </div>
-                  </div>
-                </div>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               {/* Classrooms Selection - Always visible */}
               <div className="space-y-1 flex-1">
                 <Label className="text-xs font-semibold">Aulas</Label>
-                <div className="relative">
-                  <button
-                    type="button"
-                    className="h-8 px-3 text-xs w-full border border-input bg-background rounded-md flex items-center justify-between hover:bg-accent"
-                    onClick={() => {
-                      const dropdown = document.getElementById('classrooms-dropdown');
-                      if (dropdown) {
-                        dropdown.classList.toggle('hidden');
-                      }
-                    }}
-                  >
-                    <span>
-                      {config.classroomIds && config.classroomIds.length > 0
-                        ? `${config.classroomIds.length} aula(s) seleccionada(s)`
-                        : 'Seleccionar aulas'}
-                    </span>
-                    <ChevronDownIcon className="w-3 h-3" />
-                  </button>
-                  <div
-                    id="classrooms-dropdown"
-                    className="hidden absolute top-full left-0 right-0 mt-1 bg-background border border-input rounded-md shadow-lg z-50"
-                  >
-                    <div className="space-y-1 max-h-40 overflow-y-auto p-2">
+                <Popover modal={true}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="h-8 px-3 text-xs justify-between font-normal w-full"
+                    >
+                      <span>
+                        {config.classroomIds && config.classroomIds.length > 0
+                          ? `${config.classroomIds.length} aula(s) seleccionada(s)`
+                          : 'Seleccionar aulas'}
+                      </span>
+                      <ChevronDownIcon className="w-3 h-3" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="p-2 w-auto" align="start">
+                    <div className="space-y-1 max-h-40 overflow-y-auto min-w-48">
                       {classrooms.length > 0 ? (
                         classrooms.sort((a, b) => a.code.localeCompare(b.code)).map((classroom) => (
                           <div key={classroom.id} className="flex items-center gap-2">
@@ -472,8 +503,8 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
                         <p className="text-xs text-muted-foreground">Cargando aulas...</p>
                       )}
                     </div>
-                  </div>
-                </div>
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
 
@@ -493,54 +524,107 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
               </Select>
             </div>
 
-            {/* Custom Options */}
-            {showCustom && (
+            {/* Custom Frequency Options - Only visible for custom frequency */}
+            {config.frequency === 'custom' && (
               <div className="space-y-3 p-3 border border-primary/20 rounded bg-accent/20">
-                <div className="space-y-2">
-                  <Label className="text-xs font-semibold">Intervalo</Label>
-                  <Input
-                    type="number"
-                    min="1"
-                    value={config.interval}
-                    onChange={(e) => setConfig({ ...config, interval: parseInt(e.target.value) || 1 })}
-                    className="h-8 text-xs"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-xs font-semibold">Días</Label>
-                  <div className="flex gap-1">
-                    {weekDays.map((day) => (
-                      <Button
-                        key={day.value}
-                        variant={config.weekDays.includes(day.value) ? 'default' : 'outline'}
-                        size="sm"
-                        className="h-7 w-7 p-0 text-xs"
-                        onClick={() => toggleWeekDay(day.value)}
-                      >
-                        {day.label}
-                      </Button>
-                    ))}
+                {/* Frequency Unit Selection */}
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold">Repetir cada</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      min="1"
+                      value={config.interval}
+                      onChange={(e) => setConfig({ ...config, interval: parseInt(e.target.value) || 1 })}
+                      className="h-8 text-xs w-16"
+                    />
+                    <Select
+                      value={config.customFrequencyUnit || 'week'}
+                      onValueChange={(value) => setConfig({ ...config, customFrequencyUnit: value as CustomFrequencyUnit, weekDays: [] })}
+                    >
+                      <SelectTrigger className="h-8 px-3 text-xs font-normal flex-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="day">
+                          {config.interval === 1 ? 'día' : 'días'}
+                        </SelectItem>
+                        <SelectItem value="week">
+                          {config.interval === 1 ? 'semana' : 'semanas'}
+                        </SelectItem>
+                        <SelectItem value="month">
+                          {config.interval === 1 ? 'mes' : 'meses'}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
+                {/* Weekday Selection - Only for weekly custom frequency */}
+                {config.customFrequencyUnit === 'week' && (
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold">Días</Label>
+                    <div className="grid grid-cols-5 gap-1">
+                      {weekDays.filter(day => day.value !== 'S' && day.value !== 'D').map((day) => (
+                        <Button
+                          key={day.value}
+                          variant={config.weekDays.includes(day.value) ? 'default' : 'outline'}
+                          className="h-8 text-xs font-semibold flex-1"
+                          onClick={() => toggleWeekDay(day.value)}
+                        >
+                          {day.label}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Month Pattern Selection - Only for monthly custom frequency */}
+                {config.customFrequencyUnit === 'month' && (
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold">Patrón Mensual</Label>
+                    <Select
+                      value={config.customMonthlyPattern || 'day-of-month'}
+                      onValueChange={(value) => setConfig({ ...config, customMonthlyPattern: value })}
+                    >
+                      <SelectTrigger className="h-8 px-3 text-xs font-normal w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="day-of-month">
+                          Cada mes el {config.customStartDate ? new Date(config.customStartDate).getDate() : '?'}
+                        </SelectItem>
+                        <SelectItem value="weekday-of-month">
+                          {config.customStartDate ? (() => {
+                            const date = new Date(config.customStartDate);
+                            const dayOfWeek = date.toLocaleDateString('es-ES', { weekday: 'long' });
+                            const week = Math.ceil(date.getDate() / 7);
+                            const weekNames = ['primer', 'segundo', 'tercer', 'cuarto', 'quinto'];
+                            return `Cada mes el ${weekNames[week - 1]} ${dayOfWeek}`;
+                          })() : '?'}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
                 {/* Finalización */}
-                <div className="space-y-1">
+                <div className="space-y-2">
                   <Label className="text-xs font-semibold">Finaliza</Label>
                   <RadioGroup
                     value={config.endsType}
                     onValueChange={(value: EndsType) => setConfig({ ...config, endsType: value })}
-                    className="space-y-1"
+                    className="space-y-2"
                   >
-                    <div className={`flex items-center space-x-2 p-2 rounded border transition-all cursor-pointer ${config.endsType === 'never' ? 'border-primary bg-primary/10' : 'border-primary/20 bg-accent/20'
+                    <div className={`flex items-center gap-2 p-2 rounded border transition-all cursor-pointer ${config.endsType === 'never' ? 'border-primary bg-primary/10' : 'border-primary/20 bg-accent/20'
                       }`}>
                       <RadioGroupItem value="never" id="never" />
-                      <Label htmlFor="never" className="text-xs cursor-pointer m-0">
+                      <Label htmlFor="never" className="text-xs cursor-pointer m-0 flex-1">
                         Nunca
                       </Label>
                     </div>
 
-                    <div className={`flex items-center space-x-2 p-2 rounded border transition-all cursor-pointer ${config.endsType === 'on' ? 'border-primary bg-primary/10' : 'border-primary/20 bg-accent/20'
+                    <div className={`flex items-center gap-2 p-2 rounded border transition-all cursor-pointer ${config.endsType === 'on' ? 'border-primary bg-primary/10' : 'border-primary/20 bg-accent/20'
                       }`}>
                       <RadioGroupItem value="on" id="on" />
                       <Label htmlFor="on" className="text-xs cursor-pointer m-0">
@@ -550,7 +634,7 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
                         <PopoverTrigger asChild disabled={config.endsType !== 'on'}>
                           <Button
                             variant="ghost"
-                            className="h-6 px-2 text-xs flex-1 justify-between font-normal"
+                            className="h-7 px-2 text-xs flex-1 justify-between font-normal"
                           >
                             {config.endsOnDate ? format(new Date(config.endsOnDate), 'dd/MM/yyyy', { locale: es }) : 'Seleccionar fecha'}
                             <ChevronDownIcon className="w-3 h-3" />
@@ -566,13 +650,16 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
                               }
                             }}
                             locale={es}
-                            disabled={(date) => date < new Date()}
+                            disabled={(date) => {
+                              const startDate = config.customStartDate ? new Date(config.customStartDate) : new Date();
+                              return date < startDate;
+                            }}
                           />
                         </PopoverContent>
                       </Popover>
                     </div>
 
-                    <div className={`flex items-center space-x-2 p-2 rounded border transition-all cursor-pointer ${config.endsType === 'after' ? 'border-primary bg-primary/10' : 'border-primary/20 bg-accent/20'
+                    <div className={`flex items-center gap-2 p-2 rounded border transition-all cursor-pointer ${config.endsType === 'after' ? 'border-primary bg-primary/10' : 'border-primary/20 bg-accent/20'
                       }`}>
                       <RadioGroupItem value="after" id="after" />
                       <Label htmlFor="after" className="text-xs cursor-pointer m-0">
@@ -581,14 +668,15 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
                       <Input
                         type="number"
                         min="1"
+                        step="0.5"
                         value={config.endsAfterOccurrences}
                         onChange={(e) =>
-                          setConfig({ ...config, endsAfterOccurrences: parseInt(e.target.value) || 1 })
+                          setConfig({ ...config, endsAfterOccurrences: parseFloat(e.target.value) || 1 })
                         }
                         disabled={config.endsType !== 'after'}
-                        className="w-12 h-7 text-xs text-center"
+                        className="h-7 text-xs text-center w-14"
                       />
-                      <span className="text-xs">eventos</span>
+                      <Label className="text-xs cursor-pointer m-0">horas</Label>
                     </div>
                   </RadioGroup>
                 </div>

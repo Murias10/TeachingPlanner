@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
+import { es } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -73,14 +74,57 @@ export const CreateCalendarDrawer = ({
     const courseStartYear = courseYear ? Number(courseYear.split('-')[0]) : undefined;
     const courseEndYear = courseYear ? Number(courseYear.split('-')[1]) : undefined;
 
-    // Calculate date limits
+    // Calculate semester date range
+    const getSemesterRange = () => {
+        if (!courseStartYear || !courseEndYear || !semester) return null;
+
+        let semesterStart: Date;
+        let semesterEnd: Date;
+
+        if (semester === 1) {
+            // Semester 1: September to end of December
+            semesterStart = new Date(courseStartYear, 8, 1);  // 1 septiembre
+            semesterEnd = new Date(courseStartYear, 11, 31); // 31 diciembre
+        } else {
+            // Semester 2: January to end of June
+            semesterStart = new Date(courseEndYear, 0, 1);    // 1 enero
+            semesterEnd = new Date(courseEndYear, 5, 30);     // 30 junio
+        }
+
+        return { semesterStart, semesterEnd };
+    };
+
+    // Calculate date limits based on semester
     const isDateInCourseRange = (date: Date) => {
-        if (!courseStartYear || !courseEndYear) return true;
+        const range = getSemesterRange();
+        if (!range) return true;
 
-        const courseStart = new Date(courseStartYear, 8, 1); // 1 septiembre
-        const courseEnd = new Date(courseEndYear, 5, 30);    // 30 junio
+        return date >= range.semesterStart && date <= range.semesterEnd;
+    };
 
-        return date >= courseStart && date <= courseEnd;
+    // Get default month to show in datepicker
+    const getDefaultMonth = () => {
+        const range = getSemesterRange();
+        if (!range) return new Date();
+
+        const today = new Date();
+        // If today is within semester range, show current month
+        if (today >= range.semesterStart && today <= range.semesterEnd) {
+            return today;
+        }
+        // Otherwise, show first month of semester
+        return range.semesterStart;
+    };
+
+    // Check if date is weekend (Saturday or Sunday)
+    const isWeekend = (date: Date) => {
+        const day = date.getDay();
+        return day === 0 || day === 6; // 0 = Sunday, 6 = Saturday
+    };
+
+    // Combined validation: must be in range AND not weekend
+    const isDateDisabled = (date: Date) => {
+        return !isDateInCourseRange(date) || isWeekend(date);
     };
 
     // Reset form when drawer closes
@@ -280,11 +324,14 @@ export const CreateCalendarDrawer = ({
                                                     mode="single"
                                                     selected={startDate}
                                                     onSelect={(date) => {
-                                                        if (date && isDateInCourseRange(date)) {
+                                                        if (date && !isDateDisabled(date)) {
                                                             setStartDate(date);
                                                         }
                                                     }}
-                                                    disabled={(date) => !isDateInCourseRange(date)}
+                                                    disabled={isDateDisabled}
+                                                    weekStartsOn={1}
+                                                    locale={es}
+                                                    defaultMonth={getDefaultMonth()}
                                                 />
                                             </PopoverContent>
                                     </Popover>
@@ -311,11 +358,14 @@ export const CreateCalendarDrawer = ({
                                                     mode="single"
                                                     selected={endDate}
                                                     onSelect={(date) => {
-                                                        if (date && isDateInCourseRange(date) && (!startDate || date > startDate)) {
+                                                        if (date && !isDateDisabled(date) && (!startDate || date > startDate)) {
                                                             setEndDate(date);
                                                         }
                                                     }}
-                                                    disabled={(date) => !isDateInCourseRange(date) || (startDate ? date <= startDate : false)}
+                                                    disabled={(date) => isDateDisabled(date) || (startDate ? date <= startDate : false)}
+                                                    weekStartsOn={1}
+                                                    locale={es}
+                                                    defaultMonth={getDefaultMonth()}
                                                 />
                                             </PopoverContent>
                                         </Popover>
@@ -345,8 +395,11 @@ export const CreateCalendarDrawer = ({
                                                     }}
                                                     disabled={(date) => {
                                                         if (!startDate || !endDate) return true;
-                                                        return date < startDate || date > endDate;
+                                                        return date < startDate || date > endDate || isWeekend(date);
                                                     }}
+                                                    weekStartsOn={1}
+                                                    locale={es}
+                                                    defaultMonth={startDate || getDefaultMonth()}
                                                 />
                                             </div>
                                             {holidayDates.length > 0 && (

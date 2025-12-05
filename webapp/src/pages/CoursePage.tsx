@@ -311,7 +311,7 @@ export default function CoursePage() {
             throw new Error('Degree ID is required');
         }
 
-        const response = await fetch(`http://localhost:8080/api/calendars`, {
+        const response = await fetch(`http://localhost:8080/calendar`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

@@ -12,7 +12,7 @@ export interface JwtPayload {
     /** Email address of the user (used for audit tracking) */
     email: string;
 
-    /** Role assigned to the user (e.g., ADMIN, TEACHER) */
+    /** Role assigned to the user (e.g., ADMIN, PROFESSOR) */
     role: string;
 
     /** Token issued at timestamp (seconds since epoch) */

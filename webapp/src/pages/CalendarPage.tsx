@@ -527,8 +527,8 @@ export default function CalendarPage() {
     };
 
     const handleSelectSlot = (slotInfo: { start: Date; end: Date }) => {
-        // Permitir drag and drop a ADMIN (para crear eventos) y a TEACHER (para crear solicitudes)
-        if (!isAdmin && user?.role !== 'TEACHER') {
+        // Permitir drag and drop a ADMIN (para crear eventos) y a PROFESSOR (para crear solicitudes)
+        if (!isAdmin && user?.role !== 'PROFESSOR') {
             return;
         }
 
@@ -553,10 +553,10 @@ export default function CalendarPage() {
         setDragEndTime(endTime);
 
         // Si es ADMIN, abrir el diálogo de crear evento
-        // Si es TEACHER, abrir el diálogo de crear solicitud
+        // Si es PROFESSOR, abrir el diálogo de crear solicitud
         if (isAdmin) {
             setIsCreateEventDialogOpen(true);
-        } else if (user?.role === 'TEACHER') {
+        } else if (user?.role === 'PROFESSOR') {
             setIsSolicitudDrawerOpen(true);
         }
     };
@@ -995,7 +995,7 @@ export default function CalendarPage() {
                         )}
                     </div>
                     <div className="flex-1" />
-                    {user?.role === 'TEACHER' && (
+                    {user?.role === 'PROFESSOR' && (
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
@@ -1061,7 +1061,7 @@ export default function CalendarPage() {
                                     style={{ height: '100%', width: '100%' }}
                                     components={calendarComponents}
                                     onSelectSlot={handleSelectSlot}
-                                    selectable={isAdmin || user?.role === 'TEACHER'}
+                                    selectable={isAdmin || user?.role === 'PROFESSOR'}
                                     eventPropGetter={(event) => {
                                         const calendarEvent = event.resource as CalendarEvent;
 
@@ -1156,7 +1156,7 @@ export default function CalendarPage() {
                 subjectName={eventToDelete?.subject?.name || 'esta asignatura'}
             />
 
-            {/* Event Request Dialog - Solo para TEACHER */}
+            {/* Event Request Dialog - Solo para PROFESSOR */}
             {!isAdmin && (
                 <CreateSolicitudDialog
                     open={isSolicitudDrawerOpen}

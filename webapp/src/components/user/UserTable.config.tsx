@@ -63,6 +63,12 @@ export const columns = ({ deleteUser, editUser, isAdmin = false }: ColumnExtraPr
     }
 
     cols.push({
+        accessorKey: "unioviUser",
+        header: "Usuario Uniovi",
+        cell: ({ row }) => row.original.unioviUser || '-',
+    });
+
+    cols.push({
         accessorKey: "email",
         enableHiding: false,
         header: ({ column }) => (

@@ -14,13 +14,16 @@
   "type": "commonjs",
   "description": "",
   "dependencies": {
+    "@types/multer": "^2.0.0",
     "bcrypt": "^6.0.0",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.2",
     "mysql": "^2.18.1",
     "reflect-metadata": "^0.2.2",
-    "typeorm": "^0.3.24"
+    "typeorm": "^0.3.24",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@swc/core": "^1.11.29",

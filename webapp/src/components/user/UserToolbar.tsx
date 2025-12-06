@@ -5,15 +5,16 @@ import {
     TooltipTrigger,
     TooltipProvider,
 } from "@/components/ui/tooltip"
-import { CirclePlus, Trash2 } from "lucide-react";
+import { CirclePlus, Trash2, FileUp } from "lucide-react";
 
 interface UserToolbarProps {
     deleteSelectedUsers?: () => void;
     selectedIds?: string[];
     onCreateClick?: () => void;
+    onImportClick?: () => void;
 }
 
-export function UserToolbar({ deleteSelectedUsers, selectedIds, onCreateClick }: UserToolbarProps) {
+export function UserToolbar({ deleteSelectedUsers, selectedIds, onCreateClick, onImportClick }: UserToolbarProps) {
 
     return (
         <TooltipProvider>
@@ -32,6 +33,22 @@ export function UserToolbar({ deleteSelectedUsers, selectedIds, onCreateClick }:
                     </TooltipTrigger>
                     <TooltipContent>
                         Crear nuevo usuario
+                    </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-9 gap-2"
+                            onClick={onImportClick}
+                        >
+                            <FileUp className="w-4 h-4" />
+                            <span className="hidden sm:inline text-xs">Importar usuarios</span>
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        Importar usuarios desde Excel
                     </TooltipContent>
                 </Tooltip>
                 <Tooltip>

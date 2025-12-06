@@ -175,7 +175,7 @@ USE planner_db;
 
 -- CREATE TABLE IF NOT EXISTS EVENT_REQUESTS (
 --     ID VARCHAR(36) PRIMARY KEY,
---     TEACHER_ID VARCHAR(255) NOT NULL COMMENT 'Email del profesor que solicita',
+--     PROFESSOR_ID VARCHAR(255) NOT NULL COMMENT 'Email del profesor que solicita',
 --     CALENDAR_ID VARCHAR(36) NOT NULL,
 --     EVENT_TYPE ENUM('PUNTUAL', 'PERIODIC') NOT NULL COMMENT 'Tipo de evento solicitado',
 --     EVENT_DATA JSON NOT NULL COMMENT 'Datos completos del evento',
@@ -190,7 +190,7 @@ USE planner_db;
 
 --     INDEX idx_status (STATUS),
 --     INDEX idx_status_calendar (STATUS, CALENDAR_ID),
---     INDEX idx_teacher (TEACHER_ID),
+--     INDEX idx_professor (PROFESSOR_ID),
 --     INDEX idx_calendar (CALENDAR_ID),
 --     INDEX idx_created_at (CREATED_AT DESC),
 

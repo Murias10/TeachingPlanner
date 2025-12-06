@@ -12,6 +12,7 @@ import { UserToolbar } from "@/components/user/UserToolbar"
 import { UserTable } from "@/components/user/UserTable"
 import { CreateUserDrawer } from "@/components/user/CreateUserDrawer"
 import { EditUserDrawer } from "@/components/user/EditUserDrawer"
+import { ImportUsersDrawer } from "@/components/user/ImportUsersDrawer"
 import { DeleteConfirmationDialog } from "@/components/DeleteConfirmationDialog"
 
 interface DeleteState {
@@ -44,6 +45,7 @@ const UserPage = () => {
     const [selectedIds, setSelectedIds] = useState<string[]>([])
     const [createDrawerOpen, setCreateDrawerOpen] = useState(false)
     const [editDrawerOpen, setEditDrawerOpen] = useState(false)
+    const [importDrawerOpen, setImportDrawerOpen] = useState(false)
     const [userToEdit, setUserToEdit] = useState<User | undefined>(undefined)
     const [deleteState, setDeleteState] = useState<DeleteState>({ type: null })
 
@@ -161,6 +163,7 @@ const UserPage = () => {
                         selectedIds={selectedIds}
                         deleteSelectedUsers={handleDeleteSelectedUsers}
                         onCreateClick={() => setCreateDrawerOpen(true)}
+                        onImportClick={() => setImportDrawerOpen(true)}
                     />
                 </div>
 
@@ -188,6 +191,12 @@ const UserPage = () => {
                 onOpenChange={setEditDrawerOpen}
                 user={userToEdit}
                 onSuccess={refetch}
+            />
+
+            <ImportUsersDrawer
+                open={importDrawerOpen}
+                onOpenChange={setImportDrawerOpen}
+                onImportComplete={refetch}
             />
 
             {/* Delete Confirmation Dialog */}

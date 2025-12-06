@@ -9,7 +9,7 @@ import {
 
 interface ProtectedComponentProps {
     children: ReactNode;
-    requiredRoles?: string[]; // ["ADMIN", "TEACHER"] - roles en MAYÚSCULAS como en la BD
+    requiredRoles?: string[]; // ["ADMIN", "PROFESSOR"] - roles en MAYÚSCULAS como en la BD
     requireAuth?: boolean;
     fallback?: ReactNode; // Qué mostrar si no tiene permisos
     hideIfNoAccess?: boolean; // true = ocultar, false = deshabilitar

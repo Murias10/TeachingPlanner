@@ -47,7 +47,7 @@ export class CalendarFormattingService {
       cancelled: false,
       isPending: true,
       requestId: request.id,
-      teacherId: request.teacherId,
+      professorId: request.professorId,
       startTime,
       endTime,
       date

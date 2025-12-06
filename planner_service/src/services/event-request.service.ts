@@ -3,7 +3,7 @@ import { EventRequest } from '../entities/event-request.entity';
 import { AppDataSource } from '../config/data-source';
 
 /**
- * Service for managing event requests from teachers
+ * Service for managing event requests from professors
  * Handles CRUD operations and business logic for event requests
  */
 export class EventRequestService {
@@ -36,7 +36,7 @@ export class EventRequestService {
     async findAll(filters?: {
         status?: 'PENDING' | 'APPROVED' | 'REJECTED';
         calendarId?: string;
-        teacherId?: string;
+        professorId?: string;
     }): Promise<EventRequest[]> {
         let query = this.eventRequestRepository.createQueryBuilder('er');
 
@@ -48,8 +48,8 @@ export class EventRequestService {
             query = query.andWhere('er.calendarId = :calendarId', { calendarId: filters.calendarId });
         }
 
-        if (filters?.teacherId) {
-            query = query.andWhere('er.teacherId = :teacherId', { teacherId: filters.teacherId });
+        if (filters?.professorId) {
+            query = query.andWhere('er.professorId = :professorId', { professorId: filters.professorId });
         }
 
         return await query.orderBy('er.createdAt', 'DESC').getMany();
@@ -71,12 +71,12 @@ export class EventRequestService {
     }
 
     /**
-     * Get event requests by teacher
+     * Get event requests by professor
      */
-    async findByTeacher(teacherId: string): Promise<EventRequest[]> {
+    async findByProfessor(professorId: string): Promise<EventRequest[]> {
         return await this.eventRequestRepository.find({
             where: {
-                teacherId,
+                professorId,
             },
             order: {
                 createdAt: 'DESC',

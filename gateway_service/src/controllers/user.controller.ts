@@ -1,7 +1,9 @@
 // controllers/user.controller.ts
 import { Request, Response, NextFunction } from "express";
-import { proxyRequest } from "@/utils/proxy";
+import { proxyRequest, getProxyHeaders } from "@/utils/proxy";
 import { SERVICES } from "@/config/services";
+import axios from "axios";
+import FormData from "form-data";
 
 export const createUser = (req: Request, res: Response, next: NextFunction) =>
     proxyRequest(req, res, next, {
@@ -34,3 +36,38 @@ export const deleteUser = (req: Request, res: Response, next: NextFunction) =>
         url: `${SERVICES.USER}/user/${req.params.id}`,
         method: 'DELETE'
     });
+
+export const importUsers = async (req: Request, res: Response) => {
+    try {
+        const file = req.file as Express.Multer.File;
+
+        if (!file) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'No file uploaded'
+            });
+        }
+
+        // Create FormData to forward to user service
+        const formData = new FormData();
+        formData.append('file', file.buffer, {
+            filename: file.originalname,
+            contentType: file.mimetype,
+        });
+
+        // Forward to user service using axios
+        const headers = getProxyHeaders(req, formData.getHeaders());
+        const response = await axios.post(
+            `${SERVICES.USER}/user/import`,
+            formData,
+            { headers }
+        );
+
+        res.status(response.status).json(response.data);
+    } catch (error: any) {
+        console.error('Error importing users:', error);
+        res.status(error.response?.status || 500).json(
+            error.response?.data || { status: 'error', message: 'Failed to import users' }
+        );
+    }
+};

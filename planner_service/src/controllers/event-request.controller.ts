@@ -14,7 +14,7 @@ import { EventRequestService } from '@/services/event-request.service';
 const eventRequestService = new EventRequestService();
 
 /**
- * Create a new event request (TEACHER only)
+ * Create a new event request (PROFESSOR only)
  * Teacher requests to create a PUNTUAL or PERIODIC event
  */
 export const createEventRequest = async (req: AuditedRequest, res: Response) => {
@@ -68,7 +68,7 @@ export const createEventRequest = async (req: AuditedRequest, res: Response) => 
             calendarId,
             eventType: eventType as 'PUNTUAL' | 'PERIODIC',
             eventData,
-            teacherId: userEmail,
+            professorId: userEmail,
             status: 'PENDING',
             createdBy: userEmail,
         });
@@ -97,12 +97,12 @@ export const createEventRequest = async (req: AuditedRequest, res: Response) => 
  */
 export const getEventRequests = async (req: AuditedRequest, res: Response) => {
     try {
-        const { status, calendarId, teacherId } = req.query;
+        const { status, calendarId, professorId } = req.query;
 
         const filters: any = {};
         if (status) filters.status = status as string;
         if (calendarId) filters.calendarId = calendarId as string;
-        if (teacherId) filters.teacherId = teacherId as string;
+        if (professorId) filters.professorId = professorId as string;
 
         const requests = await eventRequestService.findAll(filters);
 
@@ -382,7 +382,7 @@ async function createPuntualEventFromRequest(eventRequest: EventRequest): Promis
         comment: comment || '',
         groups,
         classrooms,
-        createdBy: eventRequest.teacherId,
+        createdBy: eventRequest.professorId,
     });
 
     const savedEvent = await puntualEventRepo.save(puntualEvent);
@@ -390,7 +390,7 @@ async function createPuntualEventFromRequest(eventRequest: EventRequest): Promis
 }
 
 /**
- * Delete an event request (TEACHER only - can only delete own requests)
+ * Delete an event request (PROFESSOR only - can only delete own requests)
  */
 export const deleteEventRequest = async (req: AuditedRequest, res: Response) => {
     try {
@@ -409,8 +409,8 @@ export const deleteEventRequest = async (req: AuditedRequest, res: Response) => 
             return;
         }
 
-        // Check if user is the owner of the request (only TEACHER who created it can delete)
-        if (eventRequest.teacherId !== userEmail) {
+        // Check if user is the owner of the request (only PROFESSOR who created it can delete)
+        if (eventRequest.professorId !== userEmail) {
             res.status(403).json({
                 status: 'error',
                 message: 'You can only delete your own event requests',

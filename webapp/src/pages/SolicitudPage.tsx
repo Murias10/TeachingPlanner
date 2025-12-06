@@ -25,7 +25,7 @@ import moment from "moment";
 
 interface EventRequest {
     id: string;
-    teacherId: string;
+    professorId: string;
     calendarId: string;
     eventType: 'PUNTUAL' | 'PERIODIC';
     eventData: Record<string, undefined>;
@@ -248,7 +248,7 @@ const SolicitudPage = () => {
                                 <div>
                                     <label className="text-sm font-medium">Profesor</label>
                                     <p className="text-sm text-muted-foreground mt-1">
-                                        {selectedSolicitud.teacherId}
+                                        {selectedSolicitud.professorId}
                                     </p>
                                 </div>
                                 <div>

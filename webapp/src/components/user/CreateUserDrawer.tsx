@@ -17,6 +17,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { useCreateUser } from "@/hooks/user/useCreateUser";
 import { useFloatingAlert } from "@/hooks/useFloatingAlert";
 
@@ -33,11 +34,12 @@ export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDr
 
     const [formData, setFormData] = useState({
         name: "",
+        unioviUser: "",
         firstSurname: "",
         secondSurname: "",
         email: "",
         password: "",
-        role: "TEACHER",
+        role: "PROFESSOR",
     });
 
     const handleInputChange = (field: string, value: string) => {
@@ -105,11 +107,12 @@ export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDr
             });
             setFormData({
                 name: "",
+                unioviUser: "",
                 firstSurname: "",
                 secondSurname: "",
                 email: "",
                 password: "",
-                role: "TEACHER",
+                role: "PROFESSOR",
             });
             onOpenChange(false);
             onSuccess?.();
@@ -135,6 +138,17 @@ export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDr
 
                 {/* Contenido desplazable */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                    <div className="space-y-2 max-w-sm mx-auto w-full">
+                        <Label htmlFor="unioviUser">Usuario Uniovi</Label>
+                        <Input
+                            id="unioviUser"
+                            placeholder="uo123456"
+                            value={formData.unioviUser}
+                            onChange={(e) => handleInputChange("unioviUser", e.target.value)}
+                            disabled={isSubmitting}
+                        />
+                    </div>
+
                     <div className="space-y-2 max-w-sm mx-auto w-full">
                         <Label htmlFor="name">Nombre *</Label>
                         <Input
@@ -195,12 +209,43 @@ export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDr
                     <div className="space-y-2 max-w-sm mx-auto w-full">
                         <Label htmlFor="role">Rol *</Label>
                         <Select value={formData.role} onValueChange={(value) => handleInputChange("role", value)}>
-                            <SelectTrigger id="role" disabled={isSubmitting}>
-                                <SelectValue placeholder="Selecciona un rol" />
+                            <SelectTrigger id="role" disabled={isSubmitting} className="w-full">
+                                <SelectValue placeholder="Selecciona un rol">
+                                    <div className="flex items-center gap-2">
+                                        <Badge className={formData.role === "ADMIN" ? "bg-red-100 text-red-800" : "bg-blue-100 text-blue-800"}>
+                                            {formData.role}
+                                        </Badge>
+                                        <span className="text-sm text-muted-foreground">
+                                            {formData.role === "ADMIN"
+                                                ? "Acceso completo al sistema"
+                                                : "Solicitar creación y cancelación de eventos"}
+                                        </span>
+                                    </div>
+                                </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="ADMIN">ADMIN</SelectItem>
-                                <SelectItem value="TEACHER">TEACHER</SelectItem>
+                                <SelectItem value="ADMIN">
+                                    <div className="flex items-center gap-3 py-1">
+                                        <Badge className="bg-red-100 text-red-800">ADMIN</Badge>
+                                        <div className="flex flex-col">
+                                            <span className="font-medium">ADMIN</span>
+                                            <span className="text-xs text-muted-foreground">
+                                                Acceso completo al sistema
+                                            </span>
+                                        </div>
+                                    </div>
+                                </SelectItem>
+                                <SelectItem value="PROFESSOR">
+                                    <div className="flex items-center gap-3 py-1">
+                                        <Badge className="bg-blue-100 text-blue-800">PROFESSOR</Badge>
+                                        <div className="flex flex-col">
+                                            <span className="font-medium">PROFESSOR</span>
+                                            <span className="text-xs text-muted-foreground">
+                                                Solicitar creación y cancelación de eventos
+                                            </span>
+                                        </div>
+                                    </div>
+                                </SelectItem>
                             </SelectContent>
                         </Select>
                     </div>

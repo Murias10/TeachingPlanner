@@ -37,7 +37,7 @@ export function CalendarEventWrapper({
   const { user } = useAuth();
   const calendarEvent = event.resource;
   const isAdmin = user?.role === 'ADMIN';
-  const isTeacher = user?.role === 'TEACHER';
+  const isProfessor = user?.role === 'PROFESSOR';
   const isPendingRequest = calendarEvent?.isPending === true;
 
   if (!calendarEvent) {
@@ -79,7 +79,7 @@ export function CalendarEventWrapper({
     onDeleteRequest?.(calendarEvent);
   };
 
-  // Renderizar contenido del evento sin menú contextual para non-admin o en solicitudes pendientes para teacher
+  // Renderizar contenido del evento sin menú contextual para non-admin o en solicitudes pendientes para professor
   const renderEventContent = () => (
     <div className="h-full w-full px-1 py-0.5">
       <div className="text-xs font-medium">{event.title}</div>
@@ -91,8 +91,8 @@ export function CalendarEventWrapper({
     </div>
   );
 
-  // Si no es ADMIN ni TEACHER, mostrar solo el contenido sin menú contextual
-  if (!isAdmin && !isTeacher) {
+  // Si no es ADMIN ni PROFESSOR, mostrar solo el contenido sin menú contextual
+  if (!isAdmin && !isProfessor) {
     return renderEventContent();
   }
 
@@ -130,8 +130,8 @@ export function CalendarEventWrapper({
     );
   }
 
-  // Si es una solicitud pendiente y el usuario es TEACHER
-  if (isPendingRequest && isTeacher) {
+  // Si es una solicitud pendiente y el usuario es PROFESSOR
+  if (isPendingRequest && isProfessor) {
     return (
       <ContextMenu>
         <ContextMenuTrigger className="h-full w-full cursor-pointer">
@@ -185,6 +185,6 @@ export function CalendarEventWrapper({
     );
   }
 
-  // Para otros casos (TEACHER con evento regular, etc)
+  // Para otros casos (PROFESSOR con evento regular, etc)
   return renderEventContent();
 }

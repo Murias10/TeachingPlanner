@@ -11,7 +11,7 @@ import moment from "moment"
 
 interface EventRequest {
     id: string;
-    teacherId: string;
+    professorId: string;
     calendarId: string;
     eventType: 'PUNTUAL' | 'PERIODIC';
     eventData: Record<string, any>;
@@ -46,7 +46,7 @@ const getEventTypeLabel = (eventType: string) => {
 
 export const columns = ({ onApprove, onReject }: ColumnExtraProps): ColumnDef<EventRequest>[] => [
     {
-        accessorKey: "teacherId",
+        accessorKey: "professorId",
         enableHiding: false,
         header: ({ column }) => (
             <Button
@@ -60,7 +60,7 @@ export const columns = ({ onApprove, onReject }: ColumnExtraProps): ColumnDef<Ev
                 <ArrowUpDown className="h-4 w-4" />
             </Button>
         ),
-        cell: ({ row }) => <div className="font-medium">{row.getValue("teacherId")}</div>,
+        cell: ({ row }) => <div className="font-medium">{row.getValue("professorId")}</div>,
     },
     {
         accessorKey: "eventType",

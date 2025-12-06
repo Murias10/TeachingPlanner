@@ -12,7 +12,7 @@ import { useState } from "react";
 
 interface EventRequest {
     id: string;
-    teacherId: string;
+    professorId: string;
     eventType: string;
     eventData: any;
 }
@@ -85,7 +85,7 @@ export function AprobacionEventoModal({
                 {action === null && (
                     <div className="space-y-3">
                         <div className="bg-gray-50 p-3 rounded text-sm">
-                            <p><strong>Profesor:</strong> {request.teacherId}</p>
+                            <p><strong>Profesor:</strong> {request.professorId}</p>
                             <p><strong>Tipo:</strong> {request.eventType === "PUNTUAL" ? "Puntual" : "Periódico"}</p>
                             <p><strong>Hora:</strong> {request.eventData.startTime} - {request.eventData.endTime}</p>
                         </div>

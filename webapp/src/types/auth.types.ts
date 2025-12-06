@@ -1,6 +1,7 @@
 export interface User {
     id: string;
     name: string;
+    unioviUser?: string;
     firstSurname: string;
     secondSurname: string;
     role: string;
@@ -14,6 +15,7 @@ export interface LoginCredentials {
 
 export interface RegisterData {
     name: string;
+    unioviUser?: string;
     firstSurname: string;
     secondSurname: string;
     role: string;

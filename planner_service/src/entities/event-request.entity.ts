@@ -3,16 +3,16 @@ import { AuditedEntity } from '@/entities/audited.entity';
 import { Calendar } from '@/entities/calendar.entity';
 
 /**
- * EventRequest entity representing a request from a TEACHER to create an event
+ * EventRequest entity representing a request from a PROFESSOR to create an event
  * Extends AuditedEntity for automatic audit tracking (createdAt, createdBy, updatedAt, updatedBy)
  */
 @Entity('EVENT_REQUESTS')
 export class EventRequest extends AuditedEntity {
     /**
-     * Email of the teacher who requested the event
+     * Email of the professor who requested the event
      */
-    @Column('varchar', { name: 'TEACHER_ID', length: 255 })
-    teacherId!: string;
+    @Column('varchar', { name: 'PROFESSOR_ID', length: 255 })
+    professorId!: string;
 
     /**
      * Reference to the calendar where the event should be created

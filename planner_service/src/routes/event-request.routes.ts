@@ -14,20 +14,20 @@ const router = Router();
 
 /**
  * POST /event-request
- * Create a new event request (TEACHER only)
+ * Create a new event request (PROFESSOR only)
  * Body: { calendarId, eventType, eventData }
  */
 router.post(
     '/event-request',
     authenticateToken,
-    requireRole(['TEACHER']),
+    requireRole(['PROFESSOR']),
     createEventRequest
 );
 
 /**
  * GET /event-requests
  * Get all event requests with optional filters (ADMIN only)
- * Query params: status (PENDING|APPROVED|REJECTED), calendarId, teacherId
+ * Query params: status (PENDING|APPROVED|REJECTED), calendarId, professorId
  */
 router.get(
     '/event-requests',
@@ -71,12 +71,12 @@ router.patch(
 
 /**
  * DELETE /event-request/:id
- * Delete an event request (TEACHER only - can only delete own PENDING requests)
+ * Delete an event request (PROFESSOR only - can only delete own PENDING requests)
  */
 router.delete(
     '/event-request/:id',
     authenticateToken,
-    requireRole(['TEACHER']),
+    requireRole(['PROFESSOR']),
     deleteEventRequest
 );
 

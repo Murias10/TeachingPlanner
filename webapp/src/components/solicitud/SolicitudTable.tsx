@@ -32,7 +32,7 @@ import {
 
 interface EventRequest {
     id: string;
-    teacherId: string;
+    professorId: string;
     calendarId: string;
     eventType: 'PUNTUAL' | 'PERIODIC';
     eventData: Record<string, any>;
@@ -81,7 +81,7 @@ export function SolicitudTable({ solicitudes, onApprove, onReject }: SolicitudTa
                     value={filterValue}
                     onChange={(e) => {
                         setFilterValue(e.target.value)
-                        table.getColumn("teacherId")?.setFilterValue(e.target.value)
+                        table.getColumn("professorId")?.setFilterValue(e.target.value)
                     }}
                     className="max-w-sm"
                 />

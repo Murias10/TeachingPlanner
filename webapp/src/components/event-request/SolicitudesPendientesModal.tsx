@@ -20,7 +20,7 @@ import { AprobacionEventoModal } from "./AprobacionEventoModal";
 
 interface EventRequest {
     id: string;
-    teacherId: string;
+    professorId: string;
     calendarId: string;
     eventType: string;
     status: string;
@@ -102,7 +102,7 @@ export function SolicitudesPendientesModal({
                             <TableBody>
                                 {solicitudes.map((request) => (
                                     <TableRow key={request.id}>
-                                        <TableCell className="text-sm">{request.teacherId}</TableCell>
+                                        <TableCell className="text-sm">{request.professorId}</TableCell>
                                         <TableCell className="text-sm">
                                             {request.eventType === "PUNTUAL" ? "Puntual" : "Periódico"}
                                         </TableCell>

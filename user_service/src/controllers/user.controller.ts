@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
-import { UserService } from '@/service/user.service'
+import { UserService } from '@/service/user.service';
+import { UserImportService } from '@/service/user-import.service';
 import { ApiResponse, CreateUserDTO, UpdateUserDTO } from '../types/user.types';
 
 export class UserController {
@@ -235,6 +236,86 @@ export class UserController {
             const response: ApiResponse = {
                 status: 'error',
                 message: 'Failed to update password',
+                error: error.message
+            };
+            res.status(500).json(response);
+        }
+    };
+
+    /**
+     * Preview import: Validate Excel file and return validation results
+     */
+    previewImport = async (req: Request, res: Response): Promise<void> => {
+        try {
+            if (!req.file) {
+                const response: ApiResponse = {
+                    status: 'error',
+                    message: 'No file uploaded'
+                };
+                res.status(400).json(response);
+                return;
+            }
+
+            const result = await UserImportService.parseAndValidate(req.file.buffer);
+
+            const response: ApiResponse = {
+                status: 'success',
+                message: 'File validated successfully',
+                data: result
+            };
+
+            res.json(response);
+        } catch (error: any) {
+            const response: ApiResponse = {
+                status: 'error',
+                message: 'Failed to validate file',
+                error: error.message
+            };
+            res.status(500).json(response);
+        }
+    };
+
+    /**
+     * Import users: Create users from validated data
+     */
+    importUsers = async (req: Request, res: Response): Promise<void> => {
+        try {
+            if (!req.file) {
+                const response: ApiResponse = {
+                    status: 'error',
+                    message: 'No file uploaded'
+                };
+                res.status(400).json(response);
+                return;
+            }
+
+            // First validate
+            const validation = await UserImportService.parseAndValidate(req.file.buffer);
+
+            if (validation.invalidRows.length > 0) {
+                const response: ApiResponse = {
+                    status: 'error',
+                    message: 'File contains invalid rows. Please fix errors and try again.',
+                    data: validation
+                };
+                res.status(400).json(response);
+                return;
+            }
+
+            // Then import
+            const result = await UserImportService.importUsers(validation.validRows);
+
+            const response: ApiResponse = {
+                status: 'success',
+                message: `Import completed. Created: ${result.createdCount}, Errors: ${result.errorCount}`,
+                data: result
+            };
+
+            res.json(response);
+        } catch (error: any) {
+            const response: ApiResponse = {
+                status: 'error',
+                message: 'Failed to import users',
                 error: error.message
             };
             res.status(500).json(response);

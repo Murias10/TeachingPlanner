@@ -143,6 +143,7 @@ export class UserService {
         return {
             id: user.id,
             name: user.name,
+            unioviUser: user.unioviUser,
             firstSurname: user.firstSurname,
             secondSurname: user.secondSurname,
             role: user.role,

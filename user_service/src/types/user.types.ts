@@ -1,5 +1,6 @@
 export interface CreateUserDTO {
     name: string;
+    unioviUser?: string;
     firstSurname: string;
     secondSurname: string;
     role: string;
@@ -9,6 +10,7 @@ export interface CreateUserDTO {
 
 export interface UpdateUserDTO {
     name?: string;
+    unioviUser?: string;
     firstSurname?: string;
     secondSurname?: string;
     role?: string;
@@ -18,6 +20,7 @@ export interface UpdateUserDTO {
 export interface UserResponse {
     id: string;
     name: string;
+    unioviUser?: string;
     firstSurname: string;
     secondSurname: string;
     role: string;

@@ -12,6 +12,9 @@ export class User {
   @Column('varchar', { length: 255, name: 'NAME' })
   name!: string;
 
+  @Column('varchar', { length: 255, name: 'UNIOVI_USER', nullable: true })
+  unioviUser?: string;
+
   @Column('varchar', { length: 255, name: 'FIRST_SURNAME' })
   firstSurname!: string;
 

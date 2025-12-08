@@ -11,11 +11,12 @@ interface CreateUserResponse {
 
 interface CreateUserData {
     name: string;
+    unioviUser?: string;
     firstSurname: string;
     secondSurname: string;
     role: string;
     email: string;
-    password: string;
+    sendEmail?: boolean;
 }
 
 export const useCreateUser = () => {

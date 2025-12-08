@@ -37,6 +37,13 @@ export const deleteUser = (req: Request, res: Response, next: NextFunction) =>
         method: 'DELETE'
     });
 
+export const updatePassword = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.USER}/user/${req.params.id}/password`,
+        method: 'PATCH',
+        body: req.body
+    });
+
 export const importUsers = async (req: Request, res: Response) => {
     try {
         const file = req.file as Express.Multer.File;

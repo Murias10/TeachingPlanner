@@ -3,12 +3,17 @@ import { User } from '@/entities/user.entity';
 import { AppDataSource } from '@/config/data-source';
 import { CreateUserDTO, UpdateUserDTO, UserResponse } from '../types/user.types';
 import bcrypt from 'bcrypt';
+import crypto from 'crypto';
+import { EmailService } from './email.service';
+import { appConfig } from '@/config/email.config';
 
 export class UserService {
     private userRepository: Repository<User>;
+    private emailService: EmailService;
 
     constructor() {
         this.userRepository = AppDataSource.getRepository(User);
+        this.emailService = new EmailService();
     }
 
     async createUser(userData: CreateUserDTO): Promise<UserResponse> {
@@ -22,16 +27,42 @@ export class UserService {
                 throw new Error('Email already exists');
             }
 
-            // Encriptar password
+            // Generate activation token
+            const activationToken = crypto.randomBytes(32).toString('hex');
+            const tokenExpiry = new Date(Date.now() + appConfig.activationTokenExpiry);
+
+            // Create user with temporary password (will be replaced during activation)
+            const tempPassword = crypto.randomBytes(32).toString('hex');
             const saltRounds = 10;
-            const hashedPassword = await bcrypt.hash(userData.password, saltRounds);
+            const hashedPassword = await bcrypt.hash(tempPassword, saltRounds);
 
             const user = this.userRepository.create({
-                ...userData,
-                password: hashedPassword
+                name: userData.name,
+                unioviUser: userData.unioviUser,
+                firstSurname: userData.firstSurname,
+                secondSurname: userData.secondSurname,
+                role: userData.role,
+                email: userData.email,
+                password: hashedPassword,
+                activationToken,
+                tokenExpiry,
+                isActive: false
             });
 
             const savedUser = await this.userRepository.save(user);
+
+            // Send activation email
+            try {
+                await this.emailService.sendActivationEmail(
+                    savedUser.email,
+                    savedUser.name,
+                    activationToken
+                );
+            } catch (emailError) {
+                console.error('Failed to send activation email:', emailError);
+                // Don't throw error - user is created, email can be resent
+            }
+
             return this.mapToUserResponse(savedUser);
         } catch (error) {
             throw error;

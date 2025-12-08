@@ -9,6 +9,7 @@ import ReportPage from "@/pages/ReportPage";
 import GroupPage from "@/pages/GroupPage";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
+import ActivatePage from "@/pages/ActivatePage";
 import DegreePage from "@/pages/DegreePage";
 import AppLayout from "@/components/AppLayout";
 import CoursePage from "@/pages/CoursePage";
@@ -29,6 +30,7 @@ export default function App() {
                     <Route path="login" element={<LoginPage />} />
                     <Route path="register" element={<RegisterPage />} />
                     <Route path="forgot-password" element={<ForgotPasswordPage />} />
+                    <Route path="activate" element={<ActivatePage />} />
 
                     {/* Layout con header + sidebar */}
                     <Route element={<AppLayout />}>

@@ -29,4 +29,16 @@ export class User {
 
   @Column('varchar', { length: 255, name: 'PASSWORD' })
   password!: string;
+
+  @Column('varchar', { length: 255, name: 'ACTIVATION_TOKEN', nullable: true })
+  activationToken?: string;
+
+  @Column('datetime', { name: 'TOKEN_EXPIRY', nullable: true })
+  tokenExpiry?: Date;
+
+  @Column('boolean', { name: 'IS_ACTIVE', default: false })
+  isActive!: boolean;
+
+  @Column('datetime', { name: 'RESET_TOKEN_EXPIRY', nullable: true })
+  resetTokenExpiry?: Date;
 }

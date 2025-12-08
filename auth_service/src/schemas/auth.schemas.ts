@@ -42,3 +42,16 @@ export const verifyOTPSchema = z.object({
     otp: z.string()
         .min(1, { message: 'error.otp.required' })
 });
+
+// Activate account schema
+export const activateAccountSchema = z.object({
+    token: z.string()
+        .min(1, { message: 'error.token.required' }),
+    password: z.string()
+        .min(8, { message: 'error.password.min.length' })
+        .max(128, { message: 'error.password.too.long' })
+        .regex(/[A-Z]/, { message: 'error.password.uppercase' })
+        .regex(/[a-z]/, { message: 'error.password.lowercase' })
+        .regex(/[0-9]/, { message: 'error.password.number' })
+        .regex(/[!@#$%^&*(),.?":{}|<>]/, { message: 'error.password.special' })
+});

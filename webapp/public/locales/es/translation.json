@@ -599,7 +599,25 @@
             }
         },
         "token": {
-            "required": "El token es obligatorio"
+            "required": "El token es obligatorio",
+            "invalid": "El token de activación no es válido",
+            "expired": "El token de activación ha expirado",
+            "missing": "No se proporcionó un token de activación"
+        },
+        "account": {
+            "already": {
+                "activated": "Esta cuenta ya ha sido activada"
+            }
+        },
+        "passwords": {
+            "do": {
+                "not": {
+                    "match": "Las contraseñas no coinciden"
+                }
+            }
+        },
+        "activation": {
+            "failed": "Error al activar la cuenta"
         },
         "otp": {
             "required": "El código OTP es obligatorio"
@@ -643,5 +661,32 @@
                 }
             }
         }
-    }
+    },
+    "validation": {
+        "failed": "Error de validación"
+    },
+    "activation": {
+        "title": "Activa tu cuenta",
+        "description": "Establece tu contraseña para activar tu cuenta",
+        "invalid": {
+            "token": {
+                "title": "Token inválido",
+                "description": "El enlace de activación no es válido o ha expirado. Por favor, contacta con el administrador para obtener un nuevo enlace."
+            }
+        },
+        "success": {
+            "title": "¡Cuenta activada!",
+            "description": "Tu cuenta ha sido activada correctamente. Ya puedes iniciar sesión con tu nueva contraseña."
+        },
+        "redirecting": "Redirigiendo a la página de inicio de sesión..."
+    },
+    "password": "Contraseña",
+    "confirm": {
+        "password": "Confirmar contraseña"
+    },
+    "password.requirements": "Requisitos de la contraseña",
+    "activate.account": "Activar cuenta",
+    "activating": "Activando...",
+    "go.to.login": "Ir a inicio de sesión",
+    "account.activated.successfully": "Cuenta activada exitosamente"
 }

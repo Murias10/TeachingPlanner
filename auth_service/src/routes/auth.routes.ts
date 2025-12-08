@@ -6,7 +6,8 @@ import {
     loginSchema,
     resetPasswordSchema,
     forgotPasswordSchema,
-    verifyOTPSchema
+    verifyOTPSchema,
+    activateAccountSchema
 } from '@/schemas/auth.schemas';
 
 const router = Router();
@@ -22,6 +23,9 @@ router.post('/auth/logout', authController.logout);
 router.post('/auth/forgot-password', validate(forgotPasswordSchema), authController.forgotPassword);
 router.post('/auth/verify-otp', validate(verifyOTPSchema), authController.verifyOTP);
 router.post('/auth/reset-password', validate(resetPasswordSchema), authController.resetPassword);
+
+// Ruta de activación de cuenta
+router.post('/auth/activate', validate(activateAccountSchema), authController.activateAccount);
 
 // Rutas protegidas
 router.get('/auth/profile', authenticateToken, authController.getProfile);

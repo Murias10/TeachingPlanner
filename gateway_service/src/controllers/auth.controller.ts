@@ -47,3 +47,10 @@ export const resetPassword = (req: Request, res: Response, next: NextFunction) =
         method: 'POST',
         body: req.body
     });
+
+export const activateAccount = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.AUTH}/auth/activate`,
+        method: 'POST',
+        body: req.body
+    });

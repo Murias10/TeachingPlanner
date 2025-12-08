@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 const ALLOWED_ROLES = ['ADMIN', 'PROFESSOR'] as const;
 
-// Create user schema (admin creando usuarios)
+// Create user schema (admin creando usuarios - sin password, se envía email de activación)
 export const createUserSchema = z.object({
     name: z.string()
         .min(1, { message: 'error.name.required' })
@@ -23,13 +23,6 @@ export const createUserSchema = z.object({
         .email({ message: 'error.email.invalid' })
         .max(254, { message: 'error.email.too.long' })
         .transform(e => e.trim().toLowerCase()),
-    password: z.string()
-        .min(8, { message: 'error.password.min.length' })
-        .max(128, { message: 'error.password.too.long' })
-        .regex(/[A-Z]/, { message: 'error.password.uppercase' })
-        .regex(/[a-z]/, { message: 'error.password.lowercase' })
-        .regex(/[0-9]/, { message: 'error.password.number' })
-        .regex(/[!@#$%^&*(),.?":{}|<>]/, { message: 'error.password.special' }),
     unioviUser: z.string()
         .max(255, { message: 'error.uniovi.user.too.long' })
         .trim()

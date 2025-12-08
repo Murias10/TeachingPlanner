@@ -189,4 +189,38 @@ export class AuthController {
             });
         }
     };
+
+    activateAccount = async (req: Request, res: Response): Promise<void> => {
+        try {
+            const { token, password } = req.body;
+
+            if (!token || !password) {
+                res.status(400).json({
+                    success: false,
+                    message: 'Token and password are required'
+                });
+                return;
+            }
+
+            const result = await this.authService.activateAccount(token, password);
+
+            if (!result.success) {
+                res.status(400).json({
+                    success: false,
+                    message: result.message
+                });
+                return;
+            }
+
+            res.json({
+                success: true,
+                message: result.message
+            });
+        } catch (error: any) {
+            res.status(500).json({
+                success: false,
+                message: error.message || 'Account activation failed'
+            });
+        }
+    };
 }

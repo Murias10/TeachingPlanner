@@ -1,7 +1,10 @@
 import * as XLSX from 'xlsx';
 import bcrypt from 'bcrypt';
+import crypto from 'crypto';
 import { AppDataSource } from '@/config/data-source';
 import { User } from '@/entities/user.entity';
+import { EmailService } from './email.service';
+import { appConfig } from '@/config/email.config';
 
 interface ImportUserRow {
     unioviUser: string;
@@ -38,6 +41,7 @@ interface ImportResult {
 
 export class UserImportService {
     private static userRepository = AppDataSource.getRepository(User);
+    private static emailService = new EmailService();
 
     /**
      * Parse Excel file and validate rows
@@ -154,10 +158,6 @@ export class UserImportService {
         let skippedCount = 0;
         let errorCount = 0;
 
-        // Default password for all users (must meet validation requirements)
-        const defaultPassword = 'Seresco2025@';
-        const hashedPassword = await bcrypt.hash(defaultPassword, 10);
-
         for (const userData of validRows) {
             try {
                 // Check if user already exists by email or unioviUser (skip duplicates)
@@ -187,6 +187,14 @@ export class UserImportService {
                 const firstSurname = surnames[0] || '';
                 const secondSurname = surnames.slice(1).join(' ') || '';
 
+                // Generate activation token
+                const activationToken = crypto.randomBytes(32).toString('hex');
+                const tokenExpiry = new Date(Date.now() + appConfig.activationTokenExpiry);
+
+                // Create temporary password (will be replaced during activation)
+                const tempPassword = crypto.randomBytes(32).toString('hex');
+                const hashedPassword = await bcrypt.hash(tempPassword, 10);
+
                 // Create user entity
                 const user = this.userRepository.create({
                     name: capitalizedName,
@@ -195,10 +203,26 @@ export class UserImportService {
                     secondSurname: secondSurname,
                     email: userData.email,
                     role: 'PROFESSOR', // Default role for imported users
-                    password: hashedPassword
+                    password: hashedPassword,
+                    activationToken,
+                    tokenExpiry,
+                    isActive: false
                 });
 
                 await this.userRepository.save(user);
+
+                // Send activation email
+                try {
+                    await this.emailService.sendActivationEmail(
+                        user.email,
+                        user.name,
+                        activationToken
+                    );
+                } catch (emailError) {
+                    console.error(`Failed to send activation email to ${user.email}:`, emailError);
+                    // Don't throw error - user is created, email can be resent
+                }
+
                 createdCount++;
             } catch (error) {
                 console.error(`Error creating user ${userData.email}:`, error);

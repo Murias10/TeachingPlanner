@@ -204,23 +204,14 @@ export class UserController {
     updatePassword = async (req: Request, res: Response): Promise<void> => {
         try {
             const { id } = req.params;
-            const { newPassword } = req.body;
+            const { currentPassword, newPassword } = req.body;
 
-            if (!newPassword || newPassword.length < 6) {
-                const response: ApiResponse = {
-                    status: 'error',
-                    message: 'Password must be at least 6 characters long'
-                };
-                res.status(400).json(response);
-                return;
-            }
-
-            const updated = await this.userService.updatePassword(id, newPassword);
+            const updated = await this.userService.updatePassword(id, currentPassword, newPassword);
 
             if (!updated) {
                 const response: ApiResponse = {
                     status: 'error',
-                    message: 'User not found'
+                    message: 'User not found or invalid current password'
                 };
                 res.status(404).json(response);
                 return;

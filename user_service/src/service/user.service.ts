@@ -124,8 +124,23 @@ export class UserService {
         }
     }
 
-    async updatePassword(id: string, newPassword: string): Promise<boolean> {
+    async updatePassword(id: string, currentPassword: string, newPassword: string): Promise<boolean> {
         try {
+            // Buscar usuario
+            const user = await this.userRepository.findOne({ where: { id } });
+
+            if (!user) {
+                return false;
+            }
+
+            // Verificar contraseña actual
+            const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+
+            if (!isPasswordValid) {
+                return false;
+            }
+
+            // Hash de la nueva contraseña
             const saltRounds = 10;
             const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
 

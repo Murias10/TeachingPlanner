@@ -563,5 +563,85 @@
             "next": "Siguiente",
             "previous": "Anterior"
         }
+    },
+    "validation": {
+        "failed": "Error de validación"
+    },
+    "error": {
+        "email": {
+            "required": "El email es obligatorio",
+            "invalid": "El formato del email no es válido",
+            "too": {
+                "long": "El email es demasiado largo (máximo 254 caracteres)"
+            }
+        },
+        "password": {
+            "required": "La contraseña es obligatoria",
+            "too": {
+                "long": "La contraseña es demasiado larga (máximo 128 caracteres)"
+            },
+            "min": {
+                "length": "La contraseña debe tener al menos 8 caracteres"
+            },
+            "uppercase": "La contraseña debe contener al menos una letra mayúscula",
+            "lowercase": "La contraseña debe contener al menos una letra minúscula",
+            "number": "La contraseña debe contener al menos un número",
+            "special": "La contraseña debe contener al menos un carácter especial (!@#$%^&*(),.?\":{}|<>)",
+            "same": {
+                "as": {
+                    "current": "La nueva contraseña no puede ser igual a la actual"
+                }
+            }
+        },
+        "current": {
+            "password": {
+                "required": "La contraseña actual es obligatoria"
+            }
+        },
+        "token": {
+            "required": "El token es obligatorio"
+        },
+        "otp": {
+            "required": "El código OTP es obligatorio"
+        },
+        "name": {
+            "required": "El nombre es obligatorio",
+            "too": {
+                "long": "El nombre es demasiado largo (máximo 100 caracteres)"
+            }
+        },
+        "first": {
+            "surname": {
+                "required": "El primer apellido es obligatorio",
+                "too": {
+                    "long": "El primer apellido es demasiado largo (máximo 100 caracteres)"
+                }
+            }
+        },
+        "second": {
+            "surname": {
+                "required": "El segundo apellido es obligatorio",
+                "too": {
+                    "long": "El segundo apellido es demasiado largo (máximo 100 caracteres)"
+                }
+            }
+        },
+        "role": {
+            "invalid": "El rol seleccionado no es válido"
+        },
+        "uniovi": {
+            "user": {
+                "too": {
+                    "long": "El usuario de Uniovi es demasiado largo (máximo 255 caracteres)"
+                }
+            }
+        },
+        "no": {
+            "fields": {
+                "to": {
+                    "update": "Debe proporcionar al menos un campo para actualizar"
+                }
+            }
+        }
     }
 }

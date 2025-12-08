@@ -9,13 +9,6 @@ export const login = (req: Request, res: Response, next: NextFunction) =>
         body: req.body
     });
 
-export const register = (req: Request, res: Response, next: NextFunction) =>
-    proxyRequest(req, res, next, {
-        url: `${SERVICES.AUTH}/auth/register`,
-        method: 'POST',
-        body: req.body
-    });
-
 export const validateToken = (req: Request, res: Response, next: NextFunction) =>
     proxyRequest(req, res, next, {
         url: `${SERVICES.AUTH}/auth/validate`,

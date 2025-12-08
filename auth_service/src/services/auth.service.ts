@@ -1,7 +1,7 @@
 import { Repository } from 'typeorm';
 import { User } from '@/entities/user.entity';
 import { AppDataSource } from '@/config/data-source';
-import { LoginDTO, RegisterDTO, AuthResponse, JwtPayload } from '../types/auth.types';
+import { LoginDTO, AuthResponse, JwtPayload } from '../types/auth.types';
 import bcrypt from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
 
@@ -34,36 +34,6 @@ export class AuthService {
 
         return {
             user: this.mapToUserResponse(user),
-            token
-        };
-    }
-
-    async register(registerData: RegisterDTO): Promise<AuthResponse> {
-        // Verificar si el email ya existe
-        const existingUser = await this.userRepository.findOne({
-            where: { email: registerData.email }
-        });
-
-        if (existingUser) {
-            throw new Error('Email already exists');
-        }
-
-        // Encriptar contraseña
-        const hashedPassword = await bcrypt.hash(registerData.password, 10);
-
-        // Crear usuario
-        const user = this.userRepository.create({
-            ...registerData,
-            password: hashedPassword
-        });
-
-        const savedUser = await this.userRepository.save(user);
-
-        // Generar token
-        const token = this.generateToken(savedUser);
-
-        return {
-            user: this.mapToUserResponse(savedUser),
             token
         };
     }

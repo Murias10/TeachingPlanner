@@ -154,8 +154,8 @@ export class UserImportService {
         let skippedCount = 0;
         let errorCount = 0;
 
-        // Default password for all users
-        const defaultPassword = '123456';
+        // Default password for all users (must meet validation requirements)
+        const defaultPassword = 'Seresco2025@';
         const hashedPassword = await bcrypt.hash(defaultPassword, 10);
 
         for (const userData of validRows) {

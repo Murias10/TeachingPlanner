@@ -3,15 +3,6 @@ export interface LoginDTO {
     password: string;
 }
 
-export interface RegisterDTO {
-    name: string;
-    firstSurname: string;
-    secondSurname: string;
-    role: string;
-    email: string;
-    password: string;
-}
-
 export interface AuthResponse {
     user: {
         id: string;
@@ -29,6 +20,7 @@ export interface ApiResponse<T = any> {
     message: string;
     data?: T;
     error?: string;
+    errors?: string[];
 }
 
 export interface JwtPayload {

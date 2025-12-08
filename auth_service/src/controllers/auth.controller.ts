@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { AuthService } from '@/services/auth.service';
 import { PasswordResetService } from '@/services/password-reset.service';
-import { ApiResponse, LoginDTO, RegisterDTO, JwtPayload, ForgotPasswordDTO, VerifyOTPDTO, ResetPasswordDTO } from '@/types/auth.types';
+import { ApiResponse, LoginDTO, JwtPayload, ForgotPasswordDTO, VerifyOTPDTO, ResetPasswordDTO } from '@/types/auth.types';
 
 interface AuthRequest extends Request {
     user?: JwtPayload;
@@ -35,28 +35,6 @@ export class AuthController {
                 error: error.message
             };
             res.status(401).json(response);
-        }
-    };
-
-    register = async (req: Request, res: Response): Promise<void> => {
-        try {
-            const registerData: RegisterDTO = req.body;
-            const authResponse = await this.authService.register(registerData);
-
-            const response: ApiResponse = {
-                success: true,
-                message: 'Registration successful',
-                data: authResponse
-            };
-
-            res.status(201).json(response);
-        } catch (error: any) {
-            const response: ApiResponse = {
-                success: false,
-                message: 'Registration failed',
-                error: error.message
-            };
-            res.status(400).json(response);
         }
     };
 

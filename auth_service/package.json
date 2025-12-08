@@ -21,7 +21,8 @@
     "mysql": "^2.18.1",
     "nodemailer": "^7.0.10",
     "reflect-metadata": "^0.2.2",
-    "typeorm": "^0.3.24"
+    "typeorm": "^0.3.24",
+    "zod": "^4.1.13"
   },
   "devDependencies": {
     "@swc/core": "^1.11.29",

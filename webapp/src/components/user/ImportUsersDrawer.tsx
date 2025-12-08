@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from "@/components/ui/drawer";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import {
     Table,
     TableBody,
@@ -26,6 +28,7 @@ export const ImportUsersDrawer = ({ open, onOpenChange, onImportComplete }: Impo
     const [isImporting, setIsImporting] = useState(false);
     const [validationErrors, setValidationErrors] = useState<any>(null);
     const [importResult, setImportResult] = useState<any>(null);
+    const [sendEmail, setSendEmail] = useState(false);
 
     const handleDrop = (e: React.DragEvent) => {
         e.preventDefault();
@@ -55,6 +58,7 @@ export const ImportUsersDrawer = ({ open, onOpenChange, onImportComplete }: Impo
         setValidationErrors(null);
         const formData = new FormData();
         formData.append('file', file);
+        formData.append('sendEmail', sendEmail.toString());
 
         try {
             const response = await fetch('http://localhost:8080/user/import', {
@@ -204,11 +208,30 @@ export const ImportUsersDrawer = ({ open, onOpenChange, onImportComplete }: Impo
                                     <X className="h-4 w-4" />
                                 </Button>
                             </div>
-                            <div className="mt-4 flex gap-2">
+                            <div className="mt-4 space-y-4">
+                                <div className="space-y-2">
+                                    <div className="flex items-center space-x-2">
+                                        <Checkbox
+                                            id="sendEmail"
+                                            checked={sendEmail}
+                                            onCheckedChange={(checked) => setSendEmail(checked as boolean)}
+                                            disabled={isImporting}
+                                        />
+                                        <Label
+                                            htmlFor="sendEmail"
+                                            className="text-sm font-normal cursor-pointer"
+                                        >
+                                            Enviar emails de activación
+                                        </Label>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground ml-6">
+                                        Todos los usuarios importados recibirán un correo para activar su cuenta
+                                    </p>
+                                </div>
                                 <Button
                                     onClick={handleImport}
                                     disabled={isImporting}
-                                    className="flex-1"
+                                    className="w-full"
                                 >
                                     {isImporting && <Spinner className="mr-2" />}
                                     Importar Usuarios

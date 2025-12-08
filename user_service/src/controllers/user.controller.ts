@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { validate as isValidUUID } from 'uuid';
 import { UserService } from '@/service/user.service';
 import { UserImportService } from '@/service/user-import.service';
 import { ApiResponse, CreateUserDTO, UpdateUserDTO } from '../types/user.types';
@@ -293,8 +294,11 @@ export class UserController {
                 return;
             }
 
+            // Get sendEmail parameter from body
+            const sendEmail = req.body.sendEmail === true || req.body.sendEmail === 'true';
+
             // Then import
-            const result = await UserImportService.importUsers(validation.validRows);
+            const result = await UserImportService.importUsers(validation.validRows, sendEmail);
 
             const response: ApiResponse = {
                 status: 'success',
@@ -307,6 +311,50 @@ export class UserController {
             const response: ApiResponse = {
                 status: 'error',
                 message: 'Failed to import users',
+                error: error.message
+            };
+            res.status(500).json(response);
+        }
+    };
+
+    /**
+     * Send activation email to a user
+     */
+    sendActivationEmail = async (req: Request, res: Response): Promise<void> => {
+        try {
+            const { id } = req.params;
+
+            // Validate UUID format
+            if (!isValidUUID(id)) {
+                const response: ApiResponse = {
+                    status: 'error',
+                    message: 'Invalid user ID format'
+                };
+                res.status(400).json(response);
+                return;
+            }
+
+            const result = await this.userService.sendActivationEmail(id);
+
+            if (!result.success) {
+                const response: ApiResponse = {
+                    status: 'error',
+                    message: result.message
+                };
+                res.status(400).json(response);
+                return;
+            }
+
+            const response: ApiResponse = {
+                status: 'success',
+                message: result.message
+            };
+
+            res.json(response);
+        } catch (error: any) {
+            const response: ApiResponse = {
+                status: 'error',
+                message: 'Failed to send activation email',
                 error: error.message
             };
             res.status(500).json(response);

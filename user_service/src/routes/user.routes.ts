@@ -35,6 +35,7 @@ router.delete('/user/:id', userController.deleteUser);
 router.get('/user/role/:role', userController.getUsersByRole);
 router.get('/users/search', userController.searchUsers);
 router.patch('/user/:id/password', validate(updatePasswordSchema), userController.updatePassword);
+router.post('/user/:id/send-activation', userController.sendActivationEmail);
 
 // Import endpoints
 router.post('/user/import/preview', upload.single('file'), userController.previewImport);

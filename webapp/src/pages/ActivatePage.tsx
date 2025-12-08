@@ -8,7 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { CheckCircle, XCircle, Eye, EyeOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -103,11 +103,12 @@ export default function ActivatePage() {
             } else {
                 setError(response.data.message || 'error.activation.failed');
             }
-        } catch (err: any) {
-            if (err.response?.data?.message) {
-                setError(err.response.data.message);
-            } else if (err.response?.data?.errors) {
-                setValidationErrors(err.response.data.errors.map((e: string) => t(e)));
+        } catch (err) {
+            const error = err as AxiosError<{ message?: string; errors?: string[] }>;
+            if (error.response?.data?.message) {
+                setError(error.response.data.message);
+            } else if (error.response?.data?.errors) {
+                setValidationErrors(error.response.data.errors.map((e: string) => t(e)));
             } else {
                 setError('error.activation.failed');
             }
@@ -264,7 +265,9 @@ export default function ActivatePage() {
                         >
                             {isLoading ? (
                                 <>
-                                    <LoadingSpinner className="mr-2 h-4 w-4" />
+                                    <span className="mr-2 h-4 w-4">
+                                        <LoadingSpinner />
+                                    </span>
                                     {t('activating')}
                                 </>
                             ) : (

@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext"
 import { useListUsers } from "@/hooks/user/useListUsers"
 import { useDeleteUser } from "@/hooks/user/useDeleteUser"
 import { useDeleteUsers } from "@/hooks/user/useDeleteUsers"
+import { useSendActivationEmail } from "@/hooks/user/useSendActivationEmail"
 import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
 import { User } from "@/types/auth.types"
@@ -27,6 +28,7 @@ const UserPage = () => {
     const { triggerAlert } = useFloatingAlertContext()
     const { deleteUser } = useDeleteUser()
     const { deleteUsers } = useDeleteUsers()
+    const { sendActivationEmail } = useSendActivationEmail()
 
     const isAdmin = currentUser?.role === "ADMIN"
 
@@ -144,6 +146,24 @@ const UserPage = () => {
         setEditDrawerOpen(true);
     }, []);
 
+    const handleSendActivationEmail = useCallback(async (userId: string) => {
+        const result = await sendActivationEmail(userId);
+
+        if (result.success) {
+            triggerAlert({
+                title: "Éxito",
+                description: result.message,
+                variant: "success",
+            });
+        } else {
+            triggerAlert({
+                title: "Error",
+                description: result.message,
+                variant: "destructive",
+            });
+        }
+    }, [sendActivationEmail, triggerAlert]);
+
     if (isLoading) {
         return (
             <section className="h-full rounded-xl bg-muted/50 flex items-center justify-center m-2 p-10">
@@ -173,6 +193,7 @@ const UserPage = () => {
                         users={users}
                         deleteUser={handleDeleteClick}
                         editUser={handleEditClick}
+                        sendActivationEmail={handleSendActivationEmail}
                         setSelectedIds={setSelectedIds}
                         isAdmin={isAdmin}
                     />

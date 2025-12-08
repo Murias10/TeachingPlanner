@@ -36,11 +36,12 @@ interface UserTableProps {
     users: User[];
     deleteUser: (userId: string) => void,
     editUser?: (user: User) => void,
+    sendActivationEmail?: (userId: string) => void,
     setSelectedIds: (ids: string[]) => void;
     isAdmin?: boolean;
 }
 
-export function UserTable({ users, deleteUser, editUser, setSelectedIds, isAdmin = false }: UserTableProps) {
+export function UserTable({ users, deleteUser, editUser, sendActivationEmail, setSelectedIds, isAdmin = false }: UserTableProps) {
 
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -55,7 +56,7 @@ export function UserTable({ users, deleteUser, editUser, setSelectedIds, isAdmin
 
     const table = useReactTable({
         data: users,
-        columns: defaultColumns({ deleteUser, editUser, isAdmin }),
+        columns: defaultColumns({ deleteUser, editUser, sendActivationEmail, isAdmin }),
         state: {
             sorting,
             columnFilters,

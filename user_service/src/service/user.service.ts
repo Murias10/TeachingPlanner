@@ -51,16 +51,18 @@ export class UserService {
 
             const savedUser = await this.userRepository.save(user);
 
-            // Send activation email
-            try {
-                await this.emailService.sendActivationEmail(
-                    savedUser.email,
-                    savedUser.name,
-                    activationToken
-                );
-            } catch (emailError) {
-                console.error('Failed to send activation email:', emailError);
-                // Don't throw error - user is created, email can be resent
+            // Send activation email only if sendEmail is true
+            if (userData.sendEmail) {
+                try {
+                    await this.emailService.sendActivationEmail(
+                        savedUser.email,
+                        savedUser.name,
+                        activationToken
+                    );
+                } catch (emailError) {
+                    console.error('Failed to send activation email:', emailError);
+                    // Don't throw error - user is created, email can be resent
+                }
             }
 
             return this.mapToUserResponse(savedUser);
@@ -71,7 +73,11 @@ export class UserService {
 
     async getAllUsers(): Promise<UserResponse[]> {
         try {
-            const users = await this.userRepository.find();
+            const users = await this.userRepository.find({
+                order: {
+                    unioviUser: 'ASC'
+                }
+            });
             return users.map(user => this.mapToUserResponse(user));
         } catch (error) {
             throw error;
@@ -185,6 +191,45 @@ export class UserService {
         }
     }
 
+    async sendActivationEmail(userId: string): Promise<{ success: boolean; message: string }> {
+        try {
+            const user = await this.userRepository.findOne({ where: { id: userId } });
+
+            if (!user) {
+                return { success: false, message: 'User not found' };
+            }
+
+            if (user.isActive) {
+                return { success: false, message: 'User is already active' };
+            }
+
+            // Generate new activation token
+            const activationToken = crypto.randomBytes(32).toString('hex');
+            const tokenExpiry = new Date(Date.now() + appConfig.activationTokenExpiry);
+
+            // Update user with new token
+            user.activationToken = activationToken;
+            user.tokenExpiry = tokenExpiry;
+            await this.userRepository.save(user);
+
+            // Send email
+            try {
+                await this.emailService.sendActivationEmail(
+                    user.email,
+                    user.name,
+                    activationToken
+                );
+                return { success: true, message: 'Activation email sent successfully' };
+            } catch (emailError) {
+                console.error('Failed to send activation email:', emailError);
+                return { success: false, message: 'Failed to send email' };
+            }
+        } catch (error) {
+            console.error('Error sending activation email:', error);
+            throw error;
+        }
+    }
+
     private mapToUserResponse(user: User): UserResponse {
         return {
             id: user.id,
@@ -193,7 +238,8 @@ export class UserService {
             firstSurname: user.firstSurname,
             secondSurname: user.secondSurname,
             role: user.role,
-            email: user.email
+            email: user.email,
+            isActive: user.isActive
         };
     }
 }

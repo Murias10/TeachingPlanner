@@ -153,7 +153,7 @@ export class UserImportService {
     /**
      * Import users into database
      */
-    static async importUsers(validRows: ImportUserRow[]): Promise<ImportResult> {
+    static async importUsers(validRows: ImportUserRow[], sendEmail: boolean = false): Promise<ImportResult> {
         let createdCount = 0;
         let skippedCount = 0;
         let errorCount = 0;
@@ -211,16 +211,18 @@ export class UserImportService {
 
                 await this.userRepository.save(user);
 
-                // Send activation email
-                try {
-                    await this.emailService.sendActivationEmail(
-                        user.email,
-                        user.name,
-                        activationToken
-                    );
-                } catch (emailError) {
-                    console.error(`Failed to send activation email to ${user.email}:`, emailError);
-                    // Don't throw error - user is created, email can be resent
+                // Send activation email only if sendEmail is true
+                if (sendEmail) {
+                    try {
+                        await this.emailService.sendActivationEmail(
+                            user.email,
+                            user.name,
+                            activationToken
+                        );
+                    } catch (emailError) {
+                        console.error(`Failed to send activation email to ${user.email}:`, emailError);
+                        // Don't throw error - user is created, email can be resent
+                    }
                 }
 
                 createdCount++;

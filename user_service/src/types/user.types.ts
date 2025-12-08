@@ -5,7 +5,7 @@ export interface CreateUserDTO {
     secondSurname: string;
     role: string;
     email: string;
-    password: string;
+    sendEmail?: boolean;
 }
 
 export interface UpdateUserDTO {
@@ -25,6 +25,7 @@ export interface UserResponse {
     secondSurname: string;
     role: string;
     email: string;
+    isActive: boolean;
 }
 
 // types/user.types.ts

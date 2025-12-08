@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useCreateUser } from "@/hooks/user/useCreateUser";
 import { useFloatingAlert } from "@/hooks/useFloatingAlert";
 
@@ -38,8 +39,8 @@ export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDr
         firstSurname: "",
         secondSurname: "",
         email: "",
-        password: "",
         role: "PROFESSOR",
+        sendEmail: false,
     });
 
     const handleInputChange = (field: string, value: string) => {
@@ -82,14 +83,6 @@ export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDr
             });
             return false;
         }
-        if (!formData.password || formData.password.length < 6) {
-            triggerAlert({
-                title: "Error",
-                description: "La contraseña debe tener al menos 6 caracteres",
-                variant: "destructive"
-            });
-            return false;
-        }
         return true;
     };
 
@@ -111,8 +104,8 @@ export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDr
                 firstSurname: "",
                 secondSurname: "",
                 email: "",
-                password: "",
                 role: "PROFESSOR",
+                sendEmail: false,
             });
             onOpenChange(false);
             onSuccess?.();
@@ -195,18 +188,6 @@ export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDr
                     </div>
 
                     <div className="space-y-2 max-w-sm mx-auto w-full">
-                        <Label htmlFor="password">Contraseña *</Label>
-                        <Input
-                            id="password"
-                            type="password"
-                            placeholder="Mínimo 6 caracteres"
-                            value={formData.password}
-                            onChange={(e) => handleInputChange("password", e.target.value)}
-                            disabled={isSubmitting}
-                        />
-                    </div>
-
-                    <div className="space-y-2 max-w-sm mx-auto w-full">
                         <Label htmlFor="role">Rol *</Label>
                         <Select value={formData.role} onValueChange={(value) => handleInputChange("role", value)}>
                             <SelectTrigger id="role" disabled={isSubmitting} className="w-full">
@@ -248,6 +229,28 @@ export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDr
                                 </SelectItem>
                             </SelectContent>
                         </Select>
+                    </div>
+
+                    <div className="space-y-2 max-w-sm mx-auto w-full">
+                        <div className="flex items-center space-x-2">
+                            <Checkbox
+                                id="sendEmail"
+                                checked={formData.sendEmail}
+                                onCheckedChange={(checked) =>
+                                    setFormData(prev => ({ ...prev, sendEmail: checked as boolean }))
+                                }
+                                disabled={isSubmitting}
+                            />
+                            <Label
+                                htmlFor="sendEmail"
+                                className="text-sm font-normal cursor-pointer"
+                            >
+                                Enviar email de activación ahora
+                            </Label>
+                        </div>
+                        <p className="text-xs text-muted-foreground ml-6">
+                            El usuario recibirá un correo para activar su cuenta y establecer su contraseña
+                        </p>
                     </div>
                 </div>
 

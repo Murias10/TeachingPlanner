@@ -44,6 +44,12 @@ export const updatePassword = (req: Request, res: Response, next: NextFunction) 
         body: req.body
     });
 
+export const sendActivationEmail = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.USER}/user/${req.params.id}/send-activation`,
+        method: 'POST'
+    });
+
 export const importUsers = async (req: Request, res: Response) => {
     try {
         const file = req.file as Express.Multer.File;
@@ -61,6 +67,11 @@ export const importUsers = async (req: Request, res: Response) => {
             filename: file.originalname,
             contentType: file.mimetype,
         });
+
+        // Forward sendEmail parameter if present
+        if (req.body.sendEmail !== undefined) {
+            formData.append('sendEmail', req.body.sendEmail.toString());
+        }
 
         // Forward to user service using axios
         const headers = getProxyHeaders(req, formData.getHeaders());

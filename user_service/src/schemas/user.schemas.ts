@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 const ALLOWED_ROLES = ['ADMIN', 'PROFESSOR'] as const;
 
-// Create user schema (admin creando usuarios - sin password, se envía email de activación)
+// Create user schema (admin creando usuarios - sin password, opcionalmente envía email de activación)
 export const createUserSchema = z.object({
     name: z.string()
         .min(1, { message: 'error.name.required' })
@@ -26,7 +26,8 @@ export const createUserSchema = z.object({
     unioviUser: z.string()
         .max(255, { message: 'error.uniovi.user.too.long' })
         .trim()
-        .optional()
+        .optional(),
+    sendEmail: z.boolean().optional().default(false)
 });
 
 // Update user schema (campos opcionales)

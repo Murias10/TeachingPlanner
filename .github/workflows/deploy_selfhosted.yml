@@ -46,9 +46,9 @@ jobs:
           context: ./webapp
           file: ./webapp/Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/teachingplanner-webapp:latest
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/teachingplanner-webapp:buildcache
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/teachingplanner-webapp:buildcache,mode=max
+          tags: ghcr.io/${{ vars.REPOSITORY_NAME }}/webapp:latest
+          cache-from: type=registry,ref=ghcr.io/${{ vars.REPOSITORY_NAME }}/webapp:buildcache
+          cache-to: type=registry,ref=ghcr.io/${{ vars.REPOSITORY_NAME }}/webapp:buildcache,mode=max
 
       - name: 🏗️ Construir y subir imagen gateway_service
         uses: docker/build-push-action@v5
@@ -56,9 +56,9 @@ jobs:
           context: ./gateway_service
           file: ./gateway_service/Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/teachingplanner-gateway_service:latest
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/teachingplanner-gateway_service:buildcache
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/teachingplanner-gateway_service:buildcache,mode=max
+          tags: ghcr.io/${{ vars.REPOSITORY_NAME }}/gateway_service:latest
+          cache-from: type=registry,ref=ghcr.io/${{ vars.REPOSITORY_NAME }}/gateway_service:buildcache
+          cache-to: type=registry,ref=ghcr.io/${{ vars.REPOSITORY_NAME }}/gateway_service:buildcache,mode=max
 
       - name: 🏗️ Construir y subir imagen planner_database
         uses: docker/build-push-action@v5
@@ -66,7 +66,7 @@ jobs:
           context: ./planner_database
           file: ./planner_database/Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/teachingplanner-planner_database:latest
+          tags: ghcr.io/${{ vars.REPOSITORY_NAME }}/planner_database:latest
 
       - name: 🏗️ Construir y subir imagen planner_service
         uses: docker/build-push-action@v5
@@ -74,9 +74,9 @@ jobs:
           context: ./planner_service
           file: ./planner_service/Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/teachingplanner-planner_service:latest
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/teachingplanner-planner_service:buildcache
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/teachingplanner-planner_service:buildcache,mode=max
+          tags: ghcr.io/${{ vars.REPOSITORY_NAME }}/planner_service:latest
+          cache-from: type=registry,ref=ghcr.io/${{ vars.REPOSITORY_NAME }}/planner_service:buildcache
+          cache-to: type=registry,ref=ghcr.io/${{ vars.REPOSITORY_NAME }}/planner_service:buildcache,mode=max
 
       - name: 🏗️ Construir y subir imagen auth_service
         uses: docker/build-push-action@v5
@@ -84,9 +84,9 @@ jobs:
           context: ./auth_service
           file: ./auth_service/Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/teachingplanner-auth_service:latest
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/teachingplanner-auth_service:buildcache
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/teachingplanner-auth_service:buildcache,mode=max
+          tags: ghcr.io/${{ vars.REPOSITORY_NAME }}/auth_service:latest
+          cache-from: type=registry,ref=ghcr.io/${{ vars.REPOSITORY_NAME }}/auth_service:buildcache
+          cache-to: type=registry,ref=ghcr.io/${{ vars.REPOSITORY_NAME }}/auth_service:buildcache,mode=max
 
       - name: 🏗️ Construir y subir imagen user_service
         uses: docker/build-push-action@v5
@@ -94,9 +94,9 @@ jobs:
           context: ./user_service
           file: ./user_service/Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/teachingplanner-user_service:latest
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/teachingplanner-user_service:buildcache
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/teachingplanner-user_service:buildcache,mode=max
+          tags: ghcr.io/${{ vars.REPOSITORY_NAME }}/user_service:latest
+          cache-from: type=registry,ref=ghcr.io/${{ vars.REPOSITORY_NAME }}/user_service:buildcache
+          cache-to: type=registry,ref=ghcr.io/${{ vars.REPOSITORY_NAME }}/user_service:buildcache,mode=max
 
       - name: 🏗️ Construir y subir imagen management_database
         uses: docker/build-push-action@v5
@@ -104,7 +104,7 @@ jobs:
           context: ./management_database
           file: ./management_database/Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/teachingplanner-management_database:latest
+          tags: ghcr.io/${{ vars.REPOSITORY_NAME }}/management_database:latest
 
   deploy:
     needs: [build-and-push-images]

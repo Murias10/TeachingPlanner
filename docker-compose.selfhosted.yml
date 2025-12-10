@@ -1,0 +1,130 @@
+services:
+  webapp:
+    container_name: ${WEBAPP_HOST}
+    image: ghcr.io/murias10/teachingplanner/webapp:latest
+    ports:
+      - "${WEBAPP_PORT}:80"
+      - "443:443"
+    env_file:
+      - .env
+    restart: unless-stopped
+    depends_on:
+      - gateway_service
+    networks:
+      - app_network
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+
+  gateway_service:
+    container_name: ${GATEWAY_SERVICE_HOST}
+    image: ghcr.io/murias10/teachingplanner/gateway_service:latest
+    expose:
+      - "${GATEWAY_SERVICE_PORT}"
+    env_file:
+      - .env
+    restart: unless-stopped
+    depends_on:
+      - planner_service
+      - auth_service
+      - user_service
+    networks:
+      - app_network
+
+  planner_service:
+    container_name: planner_service
+    image: ghcr.io/murias10/teachingplanner/planner_service:latest
+    expose:
+      - "${PLANNER_SERVICE_PORT}"
+    env_file:
+      - .env
+    restart: unless-stopped
+    depends_on:
+      planner_database:
+        condition: service_healthy
+    networks:
+      - app_network
+
+  planner_database:
+    container_name: ${PLANNER_DATABASE_HOST}
+    image: ghcr.io/murias10/teachingplanner/planner_database:latest
+    environment:
+      MARIADB_ROOT_PASSWORD: ${PLANNER_DATABASE_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${PLANNER_DATABASE_DATABASE}
+      MARIADB_USER: ${PLANNER_DATABASE_USER}
+      MARIADB_PASSWORD: ${PLANNER_DATABASE_PASSWORD}
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      retries: 5
+    volumes:
+      - planner_database_volume:/var/lib/mysql
+    expose:
+      - "3306"
+    networks:
+      - app_network
+
+  auth_service:
+    container_name: ${AUTH_SERVICE_HOST}
+    image: ghcr.io/murias10/teachingplanner/auth_service:latest
+    expose:
+      - "${AUTH_SERVICE_PORT}"
+    env_file:
+      - .env
+    restart: unless-stopped
+    depends_on:
+      management_database:
+        condition: service_healthy
+    networks:
+      - app_network
+
+  user_service:
+    container_name: ${USER_SERVICE_HOST}
+    image: ghcr.io/murias10/teachingplanner/user_service:latest
+    expose:
+      - "${USER_SERVICE_PORT}"
+    env_file:
+      - .env
+    restart: unless-stopped
+    depends_on:
+      management_database:
+        condition: service_healthy
+      auth_service:
+        condition: service_started
+    networks:
+      - app_network
+
+  management_database:
+    container_name: ${MANAGEMENT_DATABASE_HOST}
+    image: ghcr.io/murias10/teachingplanner/management_database:latest
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MANAGEMENT_DATABASE_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${MANAGEMENT_DATABASE_DATABASE}
+      MARIADB_USER: ${MANAGEMENT_DATABASE_USER}
+      MARIADB_PASSWORD: ${MANAGEMENT_DATABASE_PASSWORD}
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      retries: 5
+    volumes:
+      - management_database_volume:/var/lib/mysql
+    expose:
+      - "3306"
+    networks:
+      - app_network
+
+volumes:
+  planner_database_volume:
+  management_database_volume:
+  caddy_data:
+  caddy_config:
+
+networks:
+  app_network:
+    driver: bridge

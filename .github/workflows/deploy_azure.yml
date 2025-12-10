@@ -107,13 +107,13 @@ jobs:
       - name: Listar archivos en el directorio de trabajo
         run: ls -al  # Esto ayudará a verificar que los archivos están presentes en la raíz
 
-      - name: 📤 Copiar docker-compose.yml al servidor
+      - name: 📤 Copiar docker-compose.azure.yml al servidor
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.AZURE_VM_IP }}
           username: ${{ secrets.AZURE_VM_USER }}
           key: ${{ secrets.AZURE_SSH_PRIVATE_KEY }}
-          source: "./docker-compose.yml"
+          source: "./docker-compose.azure.yml"
           target: "/home/${{ secrets.AZURE_VM_USER }}/TeachingPlanner"
           port: 22
 
@@ -129,6 +129,9 @@ jobs:
 
             echo "📁 Navegando al directorio del proyecto"
             cd ~/TeachingPlanner
+
+            echo "📋 Renombrando docker-compose para uso"
+            mv docker-compose.azure.yml docker-compose.yml || true
 
             echo "♻️ Limpiando contenedores e imágenes antiguas"
             docker compose down --rmi all --remove-orphans

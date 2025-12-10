@@ -1,0 +1,157 @@
+name: Deploy to Self-Hosted VM
+
+on:
+  push:
+    branches:
+      - main  # Se ejecuta automáticamente cuando hay un push a la rama main
+  workflow_dispatch:  # Permite ejecutar manualmente desde GitHub
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🧪 Ejecutar tests unitarios
+        run: echo "Unit tests"
+
+  e2e-tests:
+    needs: [unit-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🧪 Ejecutar tests E2E
+        run: echo "E2E tests"
+
+  build-and-push-images:
+    needs: [e2e-tests]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: 📥 Clonar el código fuente
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Configurar Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔑 Iniciar sesión en GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🏗️ Construir y subir imagen webapp
+        uses: docker/build-push-action@v5
+        with:
+          context: ./webapp
+          file: ./webapp/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/teachingplanner-webapp:latest
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/teachingplanner-webapp:buildcache
+          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/teachingplanner-webapp:buildcache,mode=max
+
+      - name: 🏗️ Construir y subir imagen gateway_service
+        uses: docker/build-push-action@v5
+        with:
+          context: ./gateway_service
+          file: ./gateway_service/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/teachingplanner-gateway_service:latest
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/teachingplanner-gateway_service:buildcache
+          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/teachingplanner-gateway_service:buildcache,mode=max
+
+      - name: 🏗️ Construir y subir imagen planner_database
+        uses: docker/build-push-action@v5
+        with:
+          context: ./planner_database
+          file: ./planner_database/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/teachingplanner-planner_database:latest
+
+      - name: 🏗️ Construir y subir imagen planner_service
+        uses: docker/build-push-action@v5
+        with:
+          context: ./planner_service
+          file: ./planner_service/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/teachingplanner-planner_service:latest
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/teachingplanner-planner_service:buildcache
+          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/teachingplanner-planner_service:buildcache,mode=max
+
+      - name: 🏗️ Construir y subir imagen auth_service
+        uses: docker/build-push-action@v5
+        with:
+          context: ./auth_service
+          file: ./auth_service/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/teachingplanner-auth_service:latest
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/teachingplanner-auth_service:buildcache
+          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/teachingplanner-auth_service:buildcache,mode=max
+
+      - name: 🏗️ Construir y subir imagen user_service
+        uses: docker/build-push-action@v5
+        with:
+          context: ./user_service
+          file: ./user_service/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/teachingplanner-user_service:latest
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/teachingplanner-user_service:buildcache
+          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/teachingplanner-user_service:buildcache,mode=max
+
+      - name: 🏗️ Construir y subir imagen management_database
+        uses: docker/build-push-action@v5
+        with:
+          context: ./management_database
+          file: ./management_database/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/teachingplanner-management_database:latest
+
+  deploy:
+    needs: [build-and-push-images]
+    runs-on: self-hosted  # Este job se ejecutará en tu VM con el runner auto-hospedado
+    steps:
+      - name: 📥 Clonar el código fuente
+        uses: actions/checkout@v4
+
+      - name: 🔑 Autenticar en GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: 📋 Copiar docker-compose.yml al directorio de producción
+        run: |
+          mkdir -p ~/TeachingPlanner
+          cp docker-compose.yml ~/TeachingPlanner/docker-compose.yml
+
+      - name: 🛑 Detener servicios actuales
+        working-directory: ~/TeachingPlanner
+        run: |
+          docker compose down || true
+
+      - name: 🗑️ Limpiar imágenes antiguas (opcional)
+        run: |
+          docker image prune -f
+
+      - name: 📥 Descargar últimas imágenes desde GHCR
+        working-directory: ~/TeachingPlanner
+        run: |
+          docker compose pull
+
+      - name: 🚀 Iniciar servicios con las nuevas imágenes
+        working-directory: ~/TeachingPlanner
+        run: |
+          docker compose up -d --force-recreate --remove-orphans
+
+      - name: ⏳ Esperar a que los servicios estén listos
+        run: |
+          sleep 10
+
+      - name: ✅ Verificar estado de los servicios
+        working-directory: ~/TeachingPlanner
+        run: |
+          docker compose ps
+
+      - name: 📋 Mostrar logs recientes
+        if: always()
+        working-directory: ~/TeachingPlanner
+        run: |
+          docker compose logs --tail=50

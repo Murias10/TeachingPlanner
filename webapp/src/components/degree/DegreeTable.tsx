@@ -54,7 +54,7 @@ export function DegreeTable({ degrees, deleteDegree, editDegree, setSelectedIds,
     useEffect(() => {
         const ids = Object.keys(rowSelection).map(idx => degrees[Number(idx)]?.id).filter(Boolean)
         setSelectedIds(ids)
-    }, [rowSelection, degrees, setSelectedIds])
+    }, [rowSelection, degrees])
 
     const table = useReactTable({
         data: degrees,

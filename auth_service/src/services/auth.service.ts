@@ -133,10 +133,12 @@ export class AuthService {
         return {
             id: user.id,
             name: user.name,
+            unioviUser: user.unioviUser,
             firstSurname: user.firstSurname,
             secondSurname: user.secondSurname,
             role: user.role,
-            email: user.email
+            email: user.email,
+            isActive: user.isActive
         };
     }
 }

@@ -56,7 +56,7 @@ export function CourseTable({ courses, deleteCourse, deleteCalendar, createCalen
     useEffect(() => {
         const ids = Object.keys(rowSelection).map(idx => courses[Number(idx)]?.id).filter(Boolean)
         setSelectedIds(ids)
-    }, [rowSelection, courses, setSelectedIds])
+    }, [rowSelection, courses])
 
     const table = useReactTable({
         data: courses,

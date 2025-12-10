@@ -9,6 +9,7 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { CheckCircle, XCircle, Eye, EyeOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import axios, { AxiosError } from 'axios';
+import { validatePassword as validatePasswordUtil, getPasswordRequirements } from '@/utils/passwordValidation';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -33,35 +34,13 @@ export default function ActivatePage() {
         }
     }, [token]);
 
-    const validatePassword = (pass: string): string[] => {
-        const errors: string[] = [];
-
-        if (pass.length < 8) {
-            errors.push(t('error.password.min.length'));
-        }
-        if (!/[A-Z]/.test(pass)) {
-            errors.push(t('error.password.uppercase'));
-        }
-        if (!/[a-z]/.test(pass)) {
-            errors.push(t('error.password.lowercase'));
-        }
-        if (!/[0-9]/.test(pass)) {
-            errors.push(t('error.password.number'));
-        }
-        if (!/[!@#$%^&*(),.?":{}|<>]/.test(pass)) {
-            errors.push(t('error.password.special'));
-        }
-
-        return errors;
-    };
-
     const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newPassword = e.target.value;
         setPassword(newPassword);
 
         if (newPassword) {
-            const errors = validatePassword(newPassword);
-            setValidationErrors(errors);
+            const validation = validatePasswordUtil(newPassword);
+            setValidationErrors(validation.errors.map(err => t(err)));
         } else {
             setValidationErrors([]);
         }
@@ -81,9 +60,9 @@ export default function ActivatePage() {
             return;
         }
 
-        const passwordErrors = validatePassword(password);
-        if (passwordErrors.length > 0) {
-            setValidationErrors(passwordErrors);
+        const passwordValidation = validatePasswordUtil(password);
+        if (!passwordValidation.isValid) {
+            setValidationErrors(passwordValidation.errors.map(err => t(err)));
             return;
         }
 
@@ -250,11 +229,9 @@ export default function ActivatePage() {
                         <div className="bg-muted p-3 rounded-md text-sm">
                             <p className="font-semibold mb-2">{t('password.requirements')}:</p>
                             <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                                <li>{t('error.password.min.length')}</li>
-                                <li>{t('error.password.uppercase')}</li>
-                                <li>{t('error.password.lowercase')}</li>
-                                <li>{t('error.password.number')}</li>
-                                <li>{t('error.password.special')}</li>
+                                {getPasswordRequirements().map((req, idx) => (
+                                    <li key={idx}>{t(req)}</li>
+                                ))}
                             </ul>
                         </div>
 

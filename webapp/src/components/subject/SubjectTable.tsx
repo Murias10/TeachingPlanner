@@ -55,7 +55,7 @@ export function SubjectTable({ subjects, deleteSubject, setSelectedIds, isAdmin,
     useEffect(() => {
         const ids = Object.keys(rowSelection).map(idx => subjects[Number(idx)]?.id).filter(Boolean)
         setSelectedIds(ids)
-    }, [rowSelection, subjects, setSelectedIds])
+    }, [rowSelection, subjects])
 
     const table = useReactTable({
         data: subjects,

@@ -52,7 +52,7 @@ export function UserTable({ users, deleteUser, editUser, sendActivationEmail, se
     useEffect(() => {
         const ids = Object.keys(rowSelection).map(idx => users[Number(idx)]?.id).filter(Boolean)
         setSelectedIds(ids)
-    }, [rowSelection, users, setSelectedIds])
+    }, [rowSelection, users])
 
     const table = useReactTable({
         data: users,

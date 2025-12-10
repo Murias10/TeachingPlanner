@@ -10,8 +10,11 @@ import { Spinner } from "@/components/ui/spinner";
 import { useUpdateUser } from "@/hooks/user/useUpdateUser";
 import { useUpdatePassword } from "@/hooks/user/useUpdatePassword";
 import { useFloatingAlert } from "@/hooks/useFloatingAlert";
+import { validatePassword } from "@/utils/passwordValidation";
+import { useTranslation } from "react-i18next";
 
 const SettingsPage = () => {
+    const { t } = useTranslation();
     const { setItems } = useBreadcrumbContext();
     const { user, updateUser: updateUserInContext } = useAuth();
     const { updateUser } = useUpdateUser();
@@ -124,10 +127,12 @@ const SettingsPage = () => {
             return;
         }
 
-        if (newPassword.length < 6) {
+        // Validar requisitos de contraseña
+        const passwordValidation = validatePassword(newPassword);
+        if (!passwordValidation.isValid) {
             triggerAlert({
-                title: "Error",
-                description: "La nueva contraseña debe tener al menos 6 caracteres",
+                title: t("error.password.invalid.title"),
+                description: passwordValidation.errors.map(err => t(err)).join(', '),
                 variant: "destructive"
             });
             return;
@@ -171,7 +176,7 @@ const SettingsPage = () => {
     if (!user) return null;
 
     return (
-        <div className="container mx-auto py-6 space-y-6">
+        <div className="container mx-auto py-6 px-4 space-y-6">
             {/* Sección de Perfil */}
             <Card>
                 <CardHeader>

@@ -1,5 +1,5 @@
-# Stage 1: Build con Node.js 22
-FROM node:23-alpine AS builder
+# Stage 1: Build con Node.js
+FROM node:23-alpine3.20 AS builder
 
 WORKDIR /app
 
@@ -15,22 +15,17 @@ COPY . .
 # Build de producción
 RUN npm run build
 
-# Stage 2: Servir con Nginx
-FROM nginx:1.28.0-alpine
-
-# Eliminar configuración por defecto
-RUN rm /etc/nginx/conf.d/default.conf
-
-# Copiar configuración personalizada
-COPY nginx.conf /etc/nginx/conf.d
+# Stage 2: Servir con Caddy
+FROM caddy:2.8-alpine
 
 # Copiar archivos construidos
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY --from=builder /app/dist /srv
 
-# Establecer permisos seguros
-RUN chown -R nginx:nginx /usr/share/nginx/html && \
-    chmod -R 755 /usr/share/nginx/html
+# Copiar configuración de Caddy
+COPY Caddyfile /etc/caddy/Caddyfile
 
-# Puerto y comando
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+# Caddy expone 80 (HTTP) y 443 (HTTPS) automáticamente
+EXPOSE 80 443
+
+# Caddy maneja SSL automáticamente
+CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]

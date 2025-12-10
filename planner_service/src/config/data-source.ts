@@ -19,9 +19,7 @@ export function createAppDataSource() {
     password: process.env.PLANNER_DATABASE_PASSWORD,
     database: process.env.PLANNER_DATABASE_DATABASE,
     entities: [Degree, Course, Calendar, Classroom, Subject, Group, Day, PuntualEvent, PeriodicEvent, EventRequest],
-    migrations: ['src/migrations/*.ts'],
-    migrationsRun: true,
-    synchronize: false,
+    synchronize: true,
     logging: true,
   });
 }

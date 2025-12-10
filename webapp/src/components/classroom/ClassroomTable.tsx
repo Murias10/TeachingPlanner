@@ -54,7 +54,7 @@ export function ClassroomTable({ classrooms, deleteClassroom, setSelectedIds, is
     useEffect(() => {
         const ids = Object.keys(rowSelection).map(idx => classrooms[Number(idx)]?.id).filter(Boolean)
         setSelectedIds(ids)
-    }, [rowSelection, classrooms, setSelectedIds])
+    }, [rowSelection, classrooms])
 
 
     const table = useReactTable({

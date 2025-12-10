@@ -7,6 +7,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp
 import { useFloatingAlertContext } from '@/contexts/useFloatingAlertContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { validatePassword } from '@/utils/passwordValidation';
 
 type Step = 'email' | 'otp' | 'password';
 
@@ -123,10 +124,12 @@ export default function ForgotPasswordPage() {
             return;
         }
 
-        if (newPassword.length < 6) {
+        // Validar requisitos de contraseña
+        const passwordValidation = validatePassword(newPassword);
+        if (!passwordValidation.isValid) {
             triggerAlert({
-                title: 'Error',
-                description: 'La contraseña debe tener mínimo 6 caracteres',
+                title: 'Error de validación',
+                description: passwordValidation.errors.join(', '),
                 variant: 'destructive'
             });
             return;

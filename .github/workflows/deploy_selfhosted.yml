@@ -119,12 +119,12 @@ jobs:
 
       - name: 📋 Copiar docker-compose.yml al directorio de producción
         run: |
-          mkdir -p ~/TeachingPlanner
-          cp docker-compose.yml ~/TeachingPlanner/docker-compose.yml
+          mkdir -p $HOME/TeachingPlanner
+          cp docker-compose.yml $HOME/TeachingPlanner/docker-compose.yml
 
       - name: 🛑 Detener servicios actuales
-        working-directory: ~/TeachingPlanner
         run: |
+          cd $HOME/TeachingPlanner
           docker compose down || true
 
       - name: 🗑️ Limpiar imágenes antiguas (opcional)
@@ -132,13 +132,13 @@ jobs:
           docker image prune -f
 
       - name: 📥 Descargar últimas imágenes desde GHCR
-        working-directory: ~/TeachingPlanner
         run: |
+          cd $HOME/TeachingPlanner
           docker compose pull
 
       - name: 🚀 Iniciar servicios con las nuevas imágenes
-        working-directory: ~/TeachingPlanner
         run: |
+          cd $HOME/TeachingPlanner
           docker compose up -d --force-recreate --remove-orphans
 
       - name: ⏳ Esperar a que los servicios estén listos
@@ -146,12 +146,12 @@ jobs:
           sleep 10
 
       - name: ✅ Verificar estado de los servicios
-        working-directory: ~/TeachingPlanner
         run: |
+          cd $HOME/TeachingPlanner
           docker compose ps
 
       - name: 📋 Mostrar logs recientes
         if: always()
-        working-directory: ~/TeachingPlanner
         run: |
+          cd $HOME/TeachingPlanner
           docker compose logs --tail=50

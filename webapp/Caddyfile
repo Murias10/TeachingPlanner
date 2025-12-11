@@ -1,4 +1,4 @@
-{$DOMAIN:localhost} {
+{$DOMAIN:localhost}, {$SERVER_IP:} {
 	# TLS con certificados personalizados (autofirmados o propios)
 	tls /etc/caddy/certs/cert.pem /etc/caddy/certs/key.pem
 

@@ -1,7 +1,5 @@
-{$DOMAIN:localhost}, {$SERVER_IP:} {
-	# TLS con certificados personalizados (autofirmados o propios)
-	tls /etc/caddy/certs/cert.pem /etc/caddy/certs/key.pem
-
+# Snippet con la configuración común
+(common) {
 	# Raíz donde está tu app React
 	root * /srv
 
@@ -30,4 +28,16 @@
 		output stdout
 		format console
 	}
+}
+
+# Configuración para el dominio
+{$DOMAIN:localhost} {
+	tls /etc/caddy/certs/cert.pem /etc/caddy/certs/key.pem
+	import common
+}
+
+# Configuración para la IP (si está definida)
+{$SERVER_IP:} {
+	tls /etc/caddy/certs/cert.pem /etc/caddy/certs/key.pem
+	import common
 }

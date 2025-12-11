@@ -122,6 +122,14 @@ jobs:
           mkdir -p $HOME/TeachingPlanner
           cp docker-compose.selfhosted.yml $HOME/TeachingPlanner/docker-compose.yml
 
+      - name: 🔐 Crear certificados SSL desde secrets
+        run: |
+          mkdir -p $HOME/TeachingPlanner/certs
+          echo "${{ secrets.SSL_CERT }}" > $HOME/TeachingPlanner/certs/cert.pem
+          echo "${{ secrets.SSL_KEY }}" > $HOME/TeachingPlanner/certs/key.pem
+          chmod 600 $HOME/TeachingPlanner/certs/key.pem
+          chmod 644 $HOME/TeachingPlanner/certs/cert.pem
+
       - name: 🛑 Detener servicios actuales
         run: |
           cd $HOME/TeachingPlanner

@@ -15,6 +15,7 @@ services:
     volumes:
       - caddy_data:/data
       - caddy_config:/config
+      - ./certs:/etc/caddy/certs:ro
 
   gateway_service:
     container_name: ${GATEWAY_SERVICE_HOST}

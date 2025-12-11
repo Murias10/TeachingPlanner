@@ -117,6 +117,19 @@ jobs:
           target: "/home/${{ secrets.AZURE_VM_USER }}/TeachingPlanner"
           port: 22
 
+      - name: 🔐 Crear certificados SSL en Azure VM
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.AZURE_VM_IP }}
+          username: ${{ secrets.AZURE_VM_USER }}
+          key: ${{ secrets.AZURE_SSH_PRIVATE_KEY }}
+          script: |
+            mkdir -p ~/TeachingPlanner/certs
+            echo "${{ secrets.SSL_CERT }}" > ~/TeachingPlanner/certs/cert.pem
+            echo "${{ secrets.SSL_KEY }}" > ~/TeachingPlanner/certs/key.pem
+            chmod 600 ~/TeachingPlanner/certs/key.pem
+            chmod 644 ~/TeachingPlanner/certs/cert.pem
+
       - name: 📤 Desplegar en Azure VM
         uses: appleboy/ssh-action@v1.2.0
         with:

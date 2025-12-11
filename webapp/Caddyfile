@@ -1,4 +1,7 @@
 {$DOMAIN:localhost} {
+	# TLS con certificados personalizados (autofirmados o propios)
+	tls /etc/caddy/certs/cert.pem /etc/caddy/certs/key.pem
+
 	# Raíz donde está tu app React
 	root * /srv
 

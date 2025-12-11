@@ -4,8 +4,8 @@
 	default_sni {$DOMAIN:localhost}
 }
 
-# Snippet con la configuración común
-(common) {
+# Snippet con la configuración común para servir archivos estáticos
+(static_files) {
 	# Raíz donde está tu app React
 	root * /srv
 
@@ -28,17 +28,17 @@
 	# Cache para assets estáticos
 	@static path *.ico *.css *.js *.gif *.jpg *.jpeg *.png *.svg *.woff *.woff2 *.ttf *.eot
 	header @static Cache-Control "public, max-age=31536000, immutable"
-
-	# Logs
-	log {
-		output stdout
-		format console
-	}
 }
 
 # Configuración para el dominio y la IP
 {$DOMAIN:localhost}, {$SERVER_IP:} {
 	tls /etc/caddy/certs/cert.pem /etc/caddy/certs/key.pem
+
+	# Logs (debe estar fuera de handle)
+	log {
+		output stdout
+		format console
+	}
 
 	# Reverse proxy para la API
 	handle /api/* {
@@ -47,6 +47,6 @@
 
 	# Todo lo demás va a la webapp
 	handle {
-		import common
+		import static_files
 	}
 }

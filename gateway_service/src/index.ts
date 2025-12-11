@@ -6,10 +6,10 @@ import userRouter from '@/routes/user.routes'
 
 const port = process.env.GATEWAY_SERVICE_PORT;
 
-app.use(plannerRouter);
-app.use(userRouter)
-app.use(authRouter);
-app.use(statusRouter);
+app.use('/api', plannerRouter);
+app.use('/api', userRouter);
+app.use('/api', authRouter);
+app.use('/api', statusRouter);
 
 app.listen(port, () => {
     console.log(`Servidor escuchando en http://localhost:${port}`);

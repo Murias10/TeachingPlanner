@@ -1,3 +1,9 @@
+# Configuración global
+{
+	# Certificado por defecto para conexiones sin SNI
+	default_sni {$DOMAIN:localhost}
+}
+
 # Snippet con la configuración común
 (common) {
 	# Raíz donde está tu app React
@@ -30,14 +36,8 @@
 	}
 }
 
-# Configuración para el dominio
-{$DOMAIN:localhost} {
-	tls /etc/caddy/certs/cert.pem /etc/caddy/certs/key.pem
-	import common
-}
-
-# Configuración para la IP (si está definida)
-{$SERVER_IP:} {
+# Configuración para el dominio y la IP
+{$DOMAIN:localhost}, {$SERVER_IP:} {
 	tls /etc/caddy/certs/cert.pem /etc/caddy/certs/key.pem
 	import common
 }

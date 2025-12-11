@@ -21,6 +21,10 @@ const whitelist = [
     // Producción - añade tus dominios reales aquí
     "https://4.210.225.47",
     "http://4.210.225.47",
+    "https://156.35.95.65",
+    "http://156.35.95.65",
+    "https://tfg.juanramon.eii-planificador2",
+    "http://tfg.juanramon.eii-planificador2",
 ];
 
 // Opciones de CORS usando la whitelist

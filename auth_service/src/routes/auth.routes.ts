@@ -30,5 +30,13 @@ router.post('/auth/activate', validate(activateAccountSchema), authController.ac
 // Rutas protegidas
 router.get('/auth/profile', authenticateToken, authController.getProfile);
 
+// Rutas de Google OAuth
+router.get('/auth/google/initiate', authenticateToken, authController.initiateGoogleOAuth);
+router.get('/auth/google/callback', authController.handleGoogleCallback);
+router.post('/auth/google/disconnect', authenticateToken, authController.disconnectGoogle);
+router.get('/auth/google/status', authenticateToken, authController.getGoogleStatus);
+
+// Internal route for service-to-service communication (used by planner_service)
+router.get('/auth/google/token/:userId', authController.getGoogleTokenInternal);
 
 export default router;

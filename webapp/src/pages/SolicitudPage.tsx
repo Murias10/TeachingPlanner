@@ -213,17 +213,19 @@ const SolicitudPage = () => {
                 </div>
 
                 {/* Tabla de solicitudes */}
-                <div className="flex-1 overflow-auto px-6 py-6">
+                <div className="flex-1 overflow-auto px-6 py-4 min-h-0">
                     {isLoading && solicitudes.length === 0 ? (
                         <div className="h-full flex items-center justify-center">
                             <LoadingSpinner />
                         </div>
                     ) : (
-                        <SolicitudTable
-                            solicitudes={solicitudes}
-                            onApprove={handleApprove}
-                            onReject={handleReject}
-                        />
+                        <div className="h-full">
+                            <SolicitudTable
+                                solicitudes={solicitudes}
+                                onApprove={handleApprove}
+                                onReject={handleReject}
+                            />
+                        </div>
                     )}
                 </div>
             </section>

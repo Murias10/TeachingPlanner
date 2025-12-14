@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { AuthService } from '@/services/auth.service';
 import { PasswordResetService } from '@/services/password-reset.service';
+import { GoogleOAuthService } from '@/services/google-oauth.service';
 import { ApiResponse, LoginDTO, JwtPayload, ForgotPasswordDTO, VerifyOTPDTO, ResetPasswordDTO } from '@/types/auth.types';
 
 interface AuthRequest extends Request {
@@ -8,12 +9,14 @@ interface AuthRequest extends Request {
 }
 
 export class AuthController {
-    private authService: AuthService;
-    private passwordResetService: PasswordResetService;
+    private readonly authService: AuthService;
+    private readonly passwordResetService: PasswordResetService;
+    private readonly googleOAuthService: GoogleOAuthService;
 
     constructor() {
         this.authService = new AuthService();
         this.passwordResetService = new PasswordResetService();
+        this.googleOAuthService = new GoogleOAuthService();
     }
 
     login = async (req: Request, res: Response): Promise<void> => {
@@ -220,6 +223,151 @@ export class AuthController {
             res.status(500).json({
                 success: false,
                 message: error.message || 'Account activation failed'
+            });
+        }
+    };
+
+    // Google OAuth methods
+    initiateGoogleOAuth = async (req: AuthRequest, res: Response): Promise<void> => {
+        try {
+            if (!req.user) {
+                res.status(401).json({
+                    success: false,
+                    message: 'User not authenticated'
+                });
+                return;
+            }
+
+            const authUrl = this.googleOAuthService.getAuthorizationUrl(req.user.userId);
+
+            res.json({
+                success: true,
+                message: 'Authorization URL generated',
+                data: { authUrl }
+            });
+        } catch (error: any) {
+            res.status(500).json({
+                success: false,
+                message: error.message || 'Failed to initiate Google OAuth'
+            });
+        }
+    };
+
+    handleGoogleCallback = async (req: Request, res: Response): Promise<void> => {
+        try {
+            const { code, state } = req.query;
+
+            if (!code || !state) {
+                res.redirect(`${process.env.FRONTEND_URL}/settings?google_error=missing_params`);
+                return;
+            }
+
+            const result = await this.googleOAuthService.handleCallback(
+                code as string,
+                state as string
+            );
+
+            if (result.success) {
+                res.redirect(`${process.env.FRONTEND_URL}/settings?google_connected=true`);
+            } else {
+                res.redirect(`${process.env.FRONTEND_URL}/settings?google_error=${encodeURIComponent(result.message)}`);
+            }
+        } catch (error: any) {
+            console.error('Google OAuth callback error:', error);
+            res.redirect(`${process.env.FRONTEND_URL}/settings?google_error=callback_failed`);
+        }
+    };
+
+    disconnectGoogle = async (req: AuthRequest, res: Response): Promise<void> => {
+        try {
+            if (!req.user) {
+                res.status(401).json({
+                    success: false,
+                    message: 'User not authenticated'
+                });
+                return;
+            }
+
+            const result = await this.googleOAuthService.disconnectGoogleAccount(req.user.userId);
+
+            res.json({
+                success: result.success,
+                message: result.message
+            });
+        } catch (error: any) {
+            res.status(500).json({
+                success: false,
+                message: error.message || 'Failed to disconnect Google account'
+            });
+        }
+    };
+
+    getGoogleStatus = async (req: AuthRequest, res: Response): Promise<void> => {
+        try {
+            if (!req.user) {
+                res.status(401).json({
+                    success: false,
+                    message: 'User not authenticated'
+                });
+                return;
+            }
+
+            const status = await this.googleOAuthService.getGoogleStatus(req.user.userId);
+
+            res.json({
+                success: true,
+                message: 'Google status retrieved',
+                data: status
+            });
+        } catch (error: any) {
+            res.status(500).json({
+                success: false,
+                message: error.message || 'Failed to get Google status'
+            });
+        }
+    };
+
+    // Internal endpoint for service-to-service communication
+    getGoogleTokenInternal = async (req: Request, res: Response): Promise<void> => {
+        try {
+            // Verify internal service header
+            const internalService = req.headers['x-internal-service'];
+            if (internalService !== 'planner_service') {
+                res.status(403).json({
+                    success: false,
+                    message: 'Forbidden: Internal service access only'
+                });
+                return;
+            }
+
+            const { userId } = req.params;
+
+            if (!userId) {
+                res.status(400).json({
+                    success: false,
+                    message: 'User ID is required'
+                });
+                return;
+            }
+
+            const accessToken = await this.googleOAuthService.getValidAccessToken(userId);
+
+            if (!accessToken) {
+                res.status(404).json({
+                    success: false,
+                    message: 'No valid access token available'
+                });
+                return;
+            }
+
+            res.json({
+                success: true,
+                data: { accessToken }
+            });
+        } catch (error: any) {
+            res.status(500).json({
+                success: false,
+                message: error.message || 'Failed to get access token'
             });
         }
     };

@@ -78,8 +78,7 @@ export function ClassroomTable({ classrooms, deleteClassroom, setSelectedIds, is
     })
 
     return (
-
-        <div className="w-full">
+        <div className="w-full h-full flex flex-col">
             <div className="flex items-center py-4">
                 <Input
                     placeholder={t("table.classrooms.filter.placeholder")}
@@ -113,7 +112,7 @@ export function ClassroomTable({ classrooms, deleteClassroom, setSelectedIds, is
                 </DropdownMenu>
             </div>
 
-            <div className="rounded-lg border">
+            <div className="rounded-lg border overflow-hidden flex-1 flex flex-col min-h-0">
                 <Table>
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
@@ -153,23 +152,28 @@ export function ClassroomTable({ classrooms, deleteClassroom, setSelectedIds, is
                 </Table>
             </div>
 
-            <div className="flex items-center justify-end space-x-2 py-4">
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => table.previousPage()}
-                    disabled={!table.getCanPreviousPage()}
-                >
-                    {t("table.pagination.previous")}
-                </Button>
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => table.nextPage()}
-                    disabled={!table.getCanNextPage()}
-                >
-                    {t("table.pagination.next")}
-                </Button>
+            <div className="flex items-center justify-between space-x-2 py-4">
+                <div className="text-sm text-muted-foreground">
+                    Total: {table.getFilteredRowModel().rows.length} {t("table.classrooms.title").toLowerCase()}
+                </div>
+                <div className="space-x-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => table.previousPage()}
+                        disabled={!table.getCanPreviousPage()}
+                    >
+                        {t("table.pagination.previous")}
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => table.nextPage()}
+                        disabled={!table.getCanNextPage()}
+                    >
+                        {t("table.pagination.next")}
+                    </Button>
+                </div>
             </div>
         </div>
     )

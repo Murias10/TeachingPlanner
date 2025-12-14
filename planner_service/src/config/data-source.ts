@@ -9,6 +9,7 @@ import { PuntualEvent } from '@/entities/puntual_event.entity';
 import { PeriodicEvent } from '@/entities/periodic_event.entity';
 import { Day } from '@/entities/day.entity';
 import { EventRequest } from '@/entities/event-request.entity';
+import { CalendarSync } from '@/entities/calendar-sync.entity';
 
 export function createAppDataSource() {
   return new DataSource({
@@ -18,7 +19,7 @@ export function createAppDataSource() {
     username: process.env.PLANNER_DATABASE_USER,
     password: process.env.PLANNER_DATABASE_PASSWORD,
     database: process.env.PLANNER_DATABASE_DATABASE,
-    entities: [Degree, Course, Calendar, Classroom, Subject, Group, Day, PuntualEvent, PeriodicEvent, EventRequest],
+    entities: [Degree, Course, Calendar, Classroom, Subject, Group, Day, PuntualEvent, PeriodicEvent, EventRequest, CalendarSync],
     synchronize: true,
     logging: true,
   });

@@ -15,20 +15,27 @@ export class AuthService {
     async login(loginData: LoginDTO): Promise<AuthResponse> {
         const { email, password } = loginData;
 
+        console.log('[LOGIN] Attempting login for:', email);
+
         // Buscar usuario por email
         const user = await this.userRepository.findOne({ where: { email } });
 
         if (!user) {
+            console.log('[LOGIN] User not found:', email);
             throw new Error('Invalid email or password');
         }
 
+        console.log('[LOGIN] User found:', { email: user.email, isActive: user.isActive, hasPassword: !!user.password });
+
         // Verificar si el usuario está activo
         if (!user.isActive) {
+            console.log('[LOGIN] User not active:', email);
             throw new Error('Account not activated. Please check your email for the activation link.');
         }
 
         // Verificar contraseña
         const isPasswordValid = await bcrypt.compare(password, user.password);
+        console.log('[LOGIN] Password valid:', isPasswordValid);
 
         if (!isPasswordValid) {
             throw new Error('Invalid email or password');

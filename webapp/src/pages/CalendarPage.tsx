@@ -149,7 +149,6 @@ export default function CalendarPage() {
 
     // Estado para el diálogo de crear evento
     const [isCreateEventDialogOpen, setIsCreateEventDialogOpen] = useState(false);
-    const [selectedEventIds, setSelectedEventIds] = useState<string[]>([]);
     const [dragStartDate, setDragStartDate] = useState<string | null>(null);
     const [dragStartTime, setDragStartTime] = useState<string | null>(null);
     const [dragEndTime, setDragEndTime] = useState<string | null>(null);
@@ -561,11 +560,6 @@ export default function CalendarPage() {
         }
     };
 
-    const handleDeleteEvents = () => {
-        // TODO: Implement delete functionality
-        setSelectedEventIds([]);
-    };
-
     const handleSaveEvent = (config: RecurrenceConfig) => {
         // Validaciones comunes
         if (!config.groupIds || config.groupIds.length === 0) {
@@ -950,11 +944,11 @@ export default function CalendarPage() {
         );
     }
 
-    if (!data || allEvents.length === 0) {
+    if (!data) {
         return (
             <section className="h-full rounded-xl bg-muted/50 flex items-center justify-center m-2 p-10">
                 <div className="flex items-center justify-center h-full">
-                    <p className="text-muted-foreground">No hay eventos para mostrar</p>
+                    <p className="text-muted-foreground">No se pudo cargar el calendario</p>
                 </div>
             </section>
         );
@@ -971,8 +965,6 @@ export default function CalendarPage() {
                                 onExport={handleExportCalendar}
                                 onExportCSV={handleExportToCSV}
                                 onCreateEvent={handleCreateEvent}
-                                onDeleteEvents={handleDeleteEvents}
-                                selectedCount={selectedEventIds.length}
                             />
                         )}
                         {isAdmin && (
@@ -1045,76 +1037,67 @@ export default function CalendarPage() {
 
                         {/* Calendario */}
                         <div className="flex-1 p-4 overflow-hidden bg-white rounded-b-2xl">
-                            {events.length > 0 ? (
-                                <Calendar
-                                    defaultView="work_week"
-                                    views={['week', 'work_week', 'day', 'month']}
-                                    localizer={localizer}
-                                    events={events}
-                                    max={maxDate}
-                                    min={minDate}
-                                    date={currentDate}
-                                    onNavigate={handleNavigate}
-                                    startAccessor="start"
-                                    endAccessor="end"
-                                    culture="es"
-                                    style={{ height: '100%', width: '100%' }}
-                                    components={calendarComponents}
-                                    onSelectSlot={handleSelectSlot}
-                                    selectable={isAdmin || user?.role === 'PROFESSOR'}
-                                    eventPropGetter={(event) => {
-                                        const calendarEvent = event.resource as CalendarEvent;
+                            <Calendar
+                                defaultView="work_week"
+                                views={['week', 'work_week', 'day', 'month']}
+                                localizer={localizer}
+                                events={events}
+                                max={maxDate}
+                                min={minDate}
+                                date={currentDate}
+                                onNavigate={handleNavigate}
+                                startAccessor="start"
+                                endAccessor="end"
+                                culture="es"
+                                style={{ height: '100%', width: '100%' }}
+                                components={calendarComponents}
+                                onSelectSlot={handleSelectSlot}
+                                selectable={isAdmin || user?.role === 'PROFESSOR'}
+                                eventPropGetter={(event) => {
+                                    const calendarEvent = event.resource as CalendarEvent;
 
-                                        // Obtener el color basado en la asignatura
-                                        let backgroundColor = getSubjectColor(calendarEvent?.subject?.acronym);
-                                        let opacity = 1;
-                                        let border = '1px solid white';
+                                    // Obtener el color basado en la asignatura
+                                    let backgroundColor = getSubjectColor(calendarEvent?.subject?.acronym);
+                                    let opacity = 1;
+                                    let border = '1px solid white';
 
-                                        // Eventos cancelados
-                                        if (calendarEvent?.cancelled) {
-                                            backgroundColor = '#ef4444';
-                                            opacity = 0.6;
+                                    // Eventos cancelados
+                                    if (calendarEvent?.cancelled) {
+                                        backgroundColor = '#ef4444';
+                                        opacity = 0.6;
+                                    }
+                                    // Eventos pendientes (solicitudes)
+                                    else if (calendarEvent?.isPending) {
+                                        opacity = 0.5;
+                                        border = '2px dashed #6b7280';
+                                    }
+
+                                    return {
+                                        style: {
+                                            backgroundColor,
+                                            opacity,
+                                            border,
+                                            borderRadius: '10px',
                                         }
-                                        // Eventos pendientes (solicitudes)
-                                        else if (calendarEvent?.isPending) {
-                                            opacity = 0.5;
-                                            border = '2px dashed #6b7280';
-                                        }
-
-                                        return {
-                                            style: {
-                                                backgroundColor,
-                                                opacity,
-                                                border,
-                                                borderRadius: '10px',
-                                            }
-                                        };
-                                    }}
-                                    dayPropGetter={dayPropGetter}
-                                    messages={{
-                                        week: 'Semana',
-                                        work_week: 'Semana laboral',
-                                        day: 'Día',
-                                        month: 'Mes',
-                                        previous: 'Anterior',
-                                        next: 'Siguiente',
-                                        today: 'Hoy',
-                                        agenda: 'Agenda',
-                                        date: 'Fecha',
-                                        time: 'Hora',
-                                        event: 'Evento',
-                                        noEventsInRange: 'No hay eventos en este rango',
-                                        showMore: (total) => `+ Ver más (${total})`
-                                    }}
-                                />
-                            ) : (
-                                <div className="flex items-center justify-center h-full">
-                                    <div className="text-center">
-                                        <p className="text-muted-foreground mb-2">No hay eventos que coincidan con los filtros seleccionados</p>
-                                        <p className="text-sm text-muted-foreground/70">Intenta ajustar los filtros</p>
-                                    </div>
-                                </div>
-                            )}
+                                    };
+                                }}
+                                dayPropGetter={dayPropGetter}
+                                messages={{
+                                    week: 'Semana',
+                                    work_week: 'Semana laboral',
+                                    day: 'Día',
+                                    month: 'Mes',
+                                    previous: 'Anterior',
+                                    next: 'Siguiente',
+                                    today: 'Hoy',
+                                    agenda: 'Agenda',
+                                    date: 'Fecha',
+                                    time: 'Hora',
+                                    event: 'Evento',
+                                    noEventsInRange: 'No hay eventos en este rango',
+                                    showMore: (total) => `+ Ver más (${total})`
+                                }}
+                            />
                         </div>
                     </div>
                 </div>

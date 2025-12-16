@@ -78,7 +78,7 @@ export const getCalendarById = async (req: AuditedRequest, res: Response) => {
 };
 
 export const createCalendar = async (req: AuditedRequest, res: Response) => {
-    const { idCourse, semester, start, end } = req.body;
+    const { idCourse, semester, start, end, holidayDates = [] } = req.body;
 
     // Validaciones
     if (!idCourse) {
@@ -132,6 +132,7 @@ export const createCalendar = async (req: AuditedRequest, res: Response) => {
 
     try {
         const calendarRepo = AppDataSource.getRepository(Calendar);
+        const dayRepo = AppDataSource.getRepository(Day);
 
         // Verificar si ya existe un calendario para el mismo curso y semestre
         const existingCalendar = await calendarRepo.findOne({
@@ -163,11 +164,69 @@ export const createCalendar = async (req: AuditedRequest, res: Response) => {
 
         const savedCalendar = await calendarRepo.save(calendar);
 
+        // Crear conjunto de fechas festivas para búsqueda rápida
+        const holidaySet = new Set(
+            (holidayDates as string[]).map((dateStr: string) => {
+                const date = new Date(dateStr);
+                date.setHours(0, 0, 0, 0);
+                return date.toISOString().split('T')[0];
+            })
+        );
+
+        // Crear Day records para cada día del calendario
+        const days: Day[] = [];
+        const currentDate = new Date(startDate);
+        currentDate.setHours(0, 0, 0, 0);
+        const endDateAdjusted = new Date(endDate);
+        endDateAdjusted.setHours(0, 0, 0, 0);
+
+        while (currentDate <= endDateAdjusted) {
+            const dayOfWeek = currentDate.getDay(); // 0 = Sunday, 6 = Saturday
+            const dateKey = currentDate.toISOString().split('T')[0];
+
+            // Determinar si es día lectivo
+            const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+            const isHoliday = holidaySet.has(dateKey);
+            const isLective = !isWeekend && !isHoliday;
+
+            // Determinar el carácter del día
+            let dayCharacter = 'NORMAL';
+            if (isWeekend) {
+                dayCharacter = 'WEEKEND';
+            } else if (isHoliday) {
+                dayCharacter = 'HOLIDAY';
+            }
+
+            const day = dayRepo.create({
+                calendar: savedCalendar,
+                date: new Date(currentDate),
+                lective: isLective,
+                dayCharacter,
+                comment: '',
+                createdBy: userEmail
+            });
+
+            days.push(day);
+
+            // Avanzar al siguiente día
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        // Guardar todos los días
+        await dayRepo.save(days);
+
+        console.log(`[Calendar Creation] Created ${days.length} days for calendar ${savedCalendar.id}`);
+        console.log(`[Calendar Creation] Lective days: ${days.filter(d => d.lective).length}`);
+        console.log(`[Calendar Creation] Weekend days: ${days.filter(d => d.dayCharacter === 'WEEKEND').length}`);
+        console.log(`[Calendar Creation] Holiday days: ${days.filter(d => d.dayCharacter === 'HOLIDAY').length}`);
+
         res.status(201).json({
             status: "success",
             message: "Calendar created successfully",
             data: {
                 calendar: savedCalendar,
+                daysCreated: days.length,
+                lectiveDays: days.filter(d => d.lective).length
             },
         });
     } catch (error) {

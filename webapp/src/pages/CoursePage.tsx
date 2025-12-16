@@ -21,6 +21,8 @@ import { CreateCalendarDrawer } from "@/components/calendar/CreateCalendarDrawer
 import { CourseFormData, Course } from "@/types/Course"
 import { CalendarFormData, CalendarDrawerData } from "@/types/Calendar"
 import { useCoursesByDegreeId } from "@/hooks/course/useCoursesByDegreeId"
+import VITE_GATEWAY_API_URL from "@/config/api"
+import { getAuthHeaders } from "@/utils/authHeaders"
 
 interface DeleteState {
     type: 'single' | 'bulk' | 'calendar' | null;
@@ -311,20 +313,21 @@ export default function CoursePage() {
             throw new Error('Degree ID is required');
         }
 
-        const response = await fetch(`http://localhost:8080/calendar`, {
+        const response = await fetch(`${VITE_GATEWAY_API_URL}/calendar`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({
                 idCourse: formData.courseId,
                 degreeId: calendarDrawerData.degreeId,
                 semester: formData.semester,
                 start: formData.startDate?.toISOString(),
-                end: formData.endDate?.toISOString()
+                end: formData.endDate?.toISOString(),
+                holidayDates: formData.holidayDates?.map(date => date.toISOString())
             })
         });
 
         if (!response.ok) {
-            const errorData = await response.json();
+            const errorData = await response.json().catch(() => ({}));
             throw new Error(errorData.message || 'Error creating manual calendar');
         }
 

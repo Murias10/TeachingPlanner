@@ -41,4 +41,20 @@ export class User {
 
   @Column('datetime', { name: 'RESET_TOKEN_EXPIRY', nullable: true })
   resetTokenExpiry?: Date;
+
+  // Google OAuth fields
+  @Column('text', { name: 'GOOGLE_ACCESS_TOKEN', nullable: true })
+  googleAccessToken?: string;
+
+  @Column('text', { name: 'GOOGLE_REFRESH_TOKEN', nullable: true })
+  googleRefreshToken?: string;
+
+  @Column('varchar', { length: 255, name: 'GOOGLE_ID', nullable: true })
+  googleId?: string;
+
+  @Column('datetime', { name: 'GOOGLE_TOKEN_EXPIRY', nullable: true })
+  googleTokenExpiry?: Date;
+
+  @Column('boolean', { name: 'GOOGLE_CALENDAR_SYNC_ENABLED', default: false })
+  googleCalendarSyncEnabled!: boolean;
 }

@@ -1,112 +1,204 @@
-name: Deploy on Release/Push to main en Azure  # Nombre del workflow
+# =============================================================================
+# WORKFLOW: Deploy to Azure VM
+# =============================================================================
+# Este workflow despliega la aplicación TeachingPlanner en una VM de Azure.
+#
+# FLUJO DE EJECUCIÓN:
+#   1. unit-tests      → Ejecuta tests unitarios
+#   2. e2e-tests       → Ejecuta tests end-to-end (depende de unit-tests)
+#   3. docker-push     → Construye y sube imágenes a GHCR (depende de e2e-tests)
+#   4. deploy          → Despliega en Azure VM (depende de docker-push)
+#
+# TRIGGER: Ejecución manual desde GitHub (workflow_dispatch)
+#
+# SECRETS REQUERIDOS:
+#   - AZURE_SSH_PRIVATE_KEY : Clave SSH privada para conectar a la VM
+#   - AZURE_VM_IP           : Dirección IP de la VM de Azure
+#   - AZURE_VM_USER         : Usuario SSH de la VM
+#   - SSL_CERT              : Certificado SSL (cert.pem)
+#   - SSL_KEY               : Clave privada SSL (key.pem)
+#   - GITHUB_TOKEN          : Token automático de GitHub (para GHCR)
+#
+# VARIABLES REQUERIDAS:
+#   - REPOSITORY_NAME       : Nombre del repositorio en formato owner/repo
+# =============================================================================
 
+name: Deploy to Azure VM
+
+# -----------------------------------------------------------------------------
+# TRIGGER: Cuándo se ejecuta este workflow
+# -----------------------------------------------------------------------------
 on:
-  release:
-    types: [published]  # Se ejecuta automáticamente cuando se publica un release en GitHub
+  workflow_dispatch:  # Permite ejecución manual desde la UI de GitHub
 
+# -----------------------------------------------------------------------------
+# JOBS: Definición de trabajos
+# -----------------------------------------------------------------------------
 jobs:
-  unit-tests:  # Job para ejecutar pruebas unitarias
-    runs-on: ubuntu-latest  # Usa la última versión de Ubuntu
-    steps:
-      - run: echo "Unit tests"  # Simulación de ejecución de tests unitarios
 
-  e2e-tests:  # Job para ejecutar pruebas end-to-end
-    needs: [unit-tests]  # Se ejecuta solo si los tests unitarios han pasado
+  # ===========================================================================
+  # JOB 1: TESTS UNITARIOS
+  # ===========================================================================
+  # Ejecuta las pruebas unitarias de todos los servicios
+  # ---------------------------------------------------------------------------
+  unit-tests:
+    name: 🧪 Tests Unitarios
     runs-on: ubuntu-latest
     steps:
-      - run: echo "E2E tests"  # Simulación de ejecución de tests E2E
+      - name: 🧪 Ejecutar tests unitarios
+        run: echo "Unit tests"  # TODO: Implementar tests reales
 
-  docker-push-images:
-    needs: [e2e-tests]  # Depende de que los tests E2E hayan pasado
+  # ===========================================================================
+  # JOB 2: TESTS END-TO-END
+  # ===========================================================================
+  # Ejecuta las pruebas de integración/E2E
+  # Requiere: unit-tests
+  # ---------------------------------------------------------------------------
+  e2e-tests:
+    name: 🔗 Tests E2E
+    needs: [unit-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🔗 Ejecutar tests E2E
+        run: echo "E2E tests"  # TODO: Implementar tests reales
+
+  # ===========================================================================
+  # JOB 3: BUILD & PUSH DOCKER IMAGES
+  # ===========================================================================
+  # Construye todas las imágenes Docker y las sube a GitHub Container Registry
+  # Requiere: e2e-tests
+  # ---------------------------------------------------------------------------
+  build-and-push-images:
+    name: 🐳 Build & Push Images
+    needs: [e2e-tests]
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      packages: write
+      contents: read    # Para clonar el repositorio
+      packages: write   # Para subir imágenes a GHCR
+
     steps:
-      - name: 📥 Clonar el código fuente
+      # -----------------------------------------------------------------------
+      # SETUP: Preparación del entorno
+      # -----------------------------------------------------------------------
+      - name: 📥 Clonar código fuente
         uses: actions/checkout@v4
 
       - name: ⚙️ Configurar Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: 🔑 Iniciar sesión en GitHub Container Registry
+      - name: 🔑 Login en GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 🏗️ Construir y subir imagen webapp
-        uses: docker/build-push-action@v3
+      # -----------------------------------------------------------------------
+      # BUILD: Construcción de imágenes (Frontend)
+      # -----------------------------------------------------------------------
+      - name: 🌐 Build & Push - webapp
+        uses: docker/build-push-action@v5
         with:
           context: ./webapp
           file: ./webapp/Dockerfile
           push: true
           tags: ghcr.io/${{ vars.REPOSITORY_NAME }}/webapp:latest
+          cache-from: type=registry,ref=ghcr.io/${{ vars.REPOSITORY_NAME }}/webapp:buildcache
+          cache-to: type=registry,ref=ghcr.io/${{ vars.REPOSITORY_NAME }}/webapp:buildcache,mode=max
 
-      - name: 🏗️ Construir y subir imagen gateway_service
-        uses: docker/build-push-action@v3
+      # -----------------------------------------------------------------------
+      # BUILD: Construcción de imágenes (API Gateway)
+      # -----------------------------------------------------------------------
+      - name: 🚪 Build & Push - gateway_service
+        uses: docker/build-push-action@v5
         with:
           context: ./gateway_service
           file: ./gateway_service/Dockerfile
           push: true
           tags: ghcr.io/${{ vars.REPOSITORY_NAME }}/gateway_service:latest
+          cache-from: type=registry,ref=ghcr.io/${{ vars.REPOSITORY_NAME }}/gateway_service:buildcache
+          cache-to: type=registry,ref=ghcr.io/${{ vars.REPOSITORY_NAME }}/gateway_service:buildcache,mode=max
 
-      - name: 🏗️ Construir y subir imagen planner_database
-        uses: docker/build-push-action@v3
-        with:
-          context: ./planner_database
-          file: ./planner_database/Dockerfile
-          push: true
-          tags: ghcr.io/${{ vars.REPOSITORY_NAME }}/planner_database:latest
-
-      - name: 🏗️ Construir y subir imagen planner_service
-        uses: docker/build-push-action@v3
+      # -----------------------------------------------------------------------
+      # BUILD: Construcción de imágenes (Servicios de negocio)
+      # -----------------------------------------------------------------------
+      - name: 📅 Build & Push - planner_service
+        uses: docker/build-push-action@v5
         with:
           context: ./planner_service
           file: ./planner_service/Dockerfile
           push: true
           tags: ghcr.io/${{ vars.REPOSITORY_NAME }}/planner_service:latest
+          cache-from: type=registry,ref=ghcr.io/${{ vars.REPOSITORY_NAME }}/planner_service:buildcache
+          cache-to: type=registry,ref=ghcr.io/${{ vars.REPOSITORY_NAME }}/planner_service:buildcache,mode=max
 
-      - name: 🏗️ Construir y subir imagen auth_service
-        uses: docker/build-push-action@v3
+      - name: 🔐 Build & Push - auth_service
+        uses: docker/build-push-action@v5
         with:
           context: ./auth_service
           file: ./auth_service/Dockerfile
           push: true
           tags: ghcr.io/${{ vars.REPOSITORY_NAME }}/auth_service:latest
+          cache-from: type=registry,ref=ghcr.io/${{ vars.REPOSITORY_NAME }}/auth_service:buildcache
+          cache-to: type=registry,ref=ghcr.io/${{ vars.REPOSITORY_NAME }}/auth_service:buildcache,mode=max
 
-      - name: 🏗️ Construir y subir imagen user_service
-        uses: docker/build-push-action@v3
+      - name: 👤 Build & Push - user_service
+        uses: docker/build-push-action@v5
         with:
           context: ./user_service
           file: ./user_service/Dockerfile
           push: true
           tags: ghcr.io/${{ vars.REPOSITORY_NAME }}/user_service:latest
+          cache-from: type=registry,ref=ghcr.io/${{ vars.REPOSITORY_NAME }}/user_service:buildcache
+          cache-to: type=registry,ref=ghcr.io/${{ vars.REPOSITORY_NAME }}/user_service:buildcache,mode=max
 
-      - name: 🏗️ Construir y subir imagen management_database
-        uses: docker/build-push-action@v3
+      # -----------------------------------------------------------------------
+      # BUILD: Construcción de imágenes (Bases de datos)
+      # -----------------------------------------------------------------------
+      - name: 🗄️ Build & Push - planner_database
+        uses: docker/build-push-action@v5
+        with:
+          context: ./planner_database
+          file: ./planner_database/Dockerfile
+          push: true
+          tags: ghcr.io/${{ vars.REPOSITORY_NAME }}/planner_database:latest
+          # Sin cache para DBs (raramente cambian y son pequeñas)
+
+      - name: 🗄️ Build & Push - management_database
+        uses: docker/build-push-action@v5
         with:
           context: ./management_database
           file: ./management_database/Dockerfile
           push: true
           tags: ghcr.io/${{ vars.REPOSITORY_NAME }}/management_database:latest
+          # Sin cache para DBs (raramente cambian y son pequeñas)
 
+  # ===========================================================================
+  # JOB 4: DEPLOY TO AZURE VM
+  # ===========================================================================
+  # Despliega la aplicación en la VM de Azure via SSH
+  # Requiere: build-and-push-images
+  # ---------------------------------------------------------------------------
   deploy:
-    needs: [docker-push-images]  # Se ejecuta solo después de que las imágenes han sido subidas
+    name: 🚀 Deploy to Azure
+    needs: [build-and-push-images]
     runs-on: ubuntu-latest
+
     steps:
-      - name: 🔑 Configurar SSH
+      # -----------------------------------------------------------------------
+      # SETUP: Preparación para el despliegue
+      # -----------------------------------------------------------------------
+      - name: 📥 Clonar código fuente
+        uses: actions/checkout@v4
+
+      - name: 🔑 Configurar agente SSH
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.AZURE_SSH_PRIVATE_KEY }}
 
-      - name: 📥 Clonar el código fuente
-        uses: actions/checkout@v4
-
-      - name: Listar archivos en el directorio de trabajo
-        run: ls -al  # Esto ayudará a verificar que los archivos están presentes en la raíz
-
+      # -----------------------------------------------------------------------
+      # TRANSFER: Copiar archivos necesarios a la VM
+      # -----------------------------------------------------------------------
       - name: 📤 Copiar docker-compose.azure.yml al servidor
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -117,6 +209,9 @@ jobs:
           target: "/home/${{ secrets.AZURE_VM_USER }}/TeachingPlanner"
           port: 22
 
+      # -----------------------------------------------------------------------
+      # SSL: Configurar certificados SSL
+      # -----------------------------------------------------------------------
       - name: 🔐 Crear certificados SSL en Azure VM
         uses: appleboy/ssh-action@v1.2.0
         with:
@@ -124,35 +219,55 @@ jobs:
           username: ${{ secrets.AZURE_VM_USER }}
           key: ${{ secrets.AZURE_SSH_PRIVATE_KEY }}
           script: |
+            # Crear directorio para certificados
             mkdir -p ~/TeachingPlanner/certs
+
+            # Escribir certificados desde secrets
             echo "${{ secrets.SSL_CERT }}" > ~/TeachingPlanner/certs/cert.pem
             echo "${{ secrets.SSL_KEY }}" > ~/TeachingPlanner/certs/key.pem
-            chmod 600 ~/TeachingPlanner/certs/key.pem
-            chmod 644 ~/TeachingPlanner/certs/cert.pem
 
-      - name: 📤 Desplegar en Azure VM
+            # Configurar permisos seguros
+            chmod 600 ~/TeachingPlanner/certs/key.pem   # Solo lectura para owner
+            chmod 644 ~/TeachingPlanner/certs/cert.pem # Lectura para todos
+
+      # -----------------------------------------------------------------------
+      # DEPLOY: Desplegar aplicación
+      # -----------------------------------------------------------------------
+      - name: 🚀 Desplegar aplicación en Azure VM
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.AZURE_VM_IP }}
           username: ${{ secrets.AZURE_VM_USER }}
           key: ${{ secrets.AZURE_SSH_PRIVATE_KEY }}
           script: |
-            echo "🔐 Autenticando en GHCR"
+            echo "=========================================="
+            echo "🔐 Autenticando en GitHub Container Registry"
+            echo "=========================================="
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-            echo "📁 Navegando al directorio del proyecto"
+            echo "=========================================="
+            echo "📁 Preparando directorio del proyecto"
+            echo "=========================================="
             cd ~/TeachingPlanner
-
-            echo "📋 Renombrando docker-compose para uso"
             mv docker-compose.azure.yml docker-compose.yml || true
 
-            echo "♻️ Limpiando contenedores e imágenes antiguas"
+            echo "=========================================="
+            echo "🛑 Deteniendo servicios actuales"
+            echo "=========================================="
             docker compose down --rmi all --remove-orphans
 
-            # 🗑️ DESCOMENTAR SOLO SI QUIERES BORRAR LOS DATOS DE LAS BASES DE DATOS
-            echo "🗑️ Eliminando volúmenes de bases de datos"
-            docker volume rm teachingplanner_planner_database_volume || true
-            docker volume rm teachingplanner_management_database_volume || true
+            # ⚠️ ADVERTENCIA: Las siguientes líneas BORRAN los datos de las DBs
+            # Descomentar SOLO si se necesita un reset completo de datos
+            # echo "🗑️ Eliminando volúmenes de bases de datos"
+            # docker volume rm teachingplanner_planner_database_volume || true
+            # docker volume rm teachingplanner_management_database_volume || true
 
-            echo "🚀 Descargando y levantando todo de nuevo"
+            echo "=========================================="
+            echo "🚀 Iniciando servicios"
+            echo "=========================================="
             docker compose up -d --pull always --force-recreate --remove-orphans
+
+            echo "=========================================="
+            echo "✅ Despliegue completado"
+            echo "=========================================="
+            docker compose ps

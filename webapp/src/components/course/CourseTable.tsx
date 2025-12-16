@@ -79,7 +79,7 @@ export function CourseTable({ courses, deleteCourse, deleteCalendar, createCalen
     })
 
     return (
-        <div className="w-full h-full flex flex-col">
+        <div className="w-full h-full flex flex-col justify-center">
             <div className="flex items-center py-4">
                 <Input
                     placeholder={t("table.courses.filter.placeholder")}
@@ -113,7 +113,7 @@ export function CourseTable({ courses, deleteCourse, deleteCalendar, createCalen
                 </DropdownMenu>
             </div>
 
-            <div className="rounded-lg border overflow-hidden flex-1 flex flex-col min-h-0">
+            <div className="rounded-lg border overflow-hidden">
                 <Table>
                     <TableHeader>
                         {table.getHeaderGroups().map(headerGroup => (

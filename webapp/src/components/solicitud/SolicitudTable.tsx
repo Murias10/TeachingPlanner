@@ -74,7 +74,7 @@ export function SolicitudTable({ solicitudes, onApprove, onReject }: SolicitudTa
     })
 
     return (
-        <div className="w-full h-full flex flex-col">
+        <div className="w-full h-full flex flex-col justify-center">
             <div className="flex items-center py-4 gap-4">
                 <Input
                     placeholder="Buscar por profesor..."
@@ -112,7 +112,7 @@ export function SolicitudTable({ solicitudes, onApprove, onReject }: SolicitudTa
                 </DropdownMenu>
             </div>
 
-            <div className="rounded-lg border overflow-hidden flex-1 flex flex-col min-h-0">
+            <div className="rounded-lg border overflow-hidden">
                 <Table className="flex-1">
                     <TableHeader className="bg-muted/50">
                         {table.getHeaderGroups().map((headerGroup) => (

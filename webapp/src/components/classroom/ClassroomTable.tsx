@@ -74,11 +74,11 @@ export function ClassroomTable({ classrooms, deleteClassroom, setSelectedIds, is
         getSortedRowModel: getSortedRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
-        initialState: { pagination: { pageSize: 6 } },
+        initialState: { pagination: { pageSize: 10 } },
     })
 
     return (
-        <div className="w-full h-full flex flex-col">
+        <div className="w-full h-full flex flex-col justify-center">
             <div className="flex items-center py-4">
                 <Input
                     placeholder={t("table.classrooms.filter.placeholder")}
@@ -112,7 +112,7 @@ export function ClassroomTable({ classrooms, deleteClassroom, setSelectedIds, is
                 </DropdownMenu>
             </div>
 
-            <div className="rounded-lg border overflow-hidden flex-1 flex flex-col min-h-0">
+            <div className="rounded-lg border overflow-hidden">
                 <Table>
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (

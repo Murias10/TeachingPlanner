@@ -67,7 +67,7 @@ export function GroupTable({ subjects }: GroupTableProps) {
     })
 
     return (
-        <div className="w-full h-full flex flex-col">
+        <div className="w-full h-full flex flex-col justify-center">
             <div className="flex items-center py-4">
                 <Input
                     placeholder="Filter subject..."
@@ -101,7 +101,7 @@ export function GroupTable({ subjects }: GroupTableProps) {
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
-            <div className="rounded-lg border overflow-hidden flex-1 flex flex-col min-h-0">
+            <div className="rounded-lg border overflow-hidden">
                 <Table>
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (

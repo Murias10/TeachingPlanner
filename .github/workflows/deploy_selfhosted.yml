@@ -1,46 +1,110 @@
+# =============================================================================
+# WORKFLOW: Deploy to Self-Hosted VM
+# =============================================================================
+# Este workflow despliega la aplicación TeachingPlanner en una VM con runner
+# auto-hospedado (self-hosted runner).
+#
+# FLUJO DE EJECUCIÓN:
+#   1. unit-tests           → Ejecuta tests unitarios
+#   2. e2e-tests            → Ejecuta tests end-to-end (depende de unit-tests)
+#   3. build-and-push       → Construye y sube imágenes a GHCR (depende de e2e-tests)
+#   4. deploy               → Despliega en VM self-hosted (depende de build-and-push)
+#
+# TRIGGERS:
+#   - Push a la rama 'main'
+#   - Ejecución manual desde GitHub (workflow_dispatch)
+#
+# SECRETS REQUERIDOS:
+#   - SSL_CERT              : Certificado SSL (cert.pem)
+#   - SSL_KEY               : Clave privada SSL (key.pem)
+#   - GITHUB_TOKEN          : Token automático de GitHub (para GHCR)
+#
+# VARIABLES REQUERIDAS:
+#   - REPOSITORY_NAME       : Nombre del repositorio en formato owner/repo
+#
+# REQUISITOS DEL RUNNER:
+#   - Docker y Docker Compose instalados
+#   - GitHub Actions Runner configurado y en ejecución
+#   - Acceso a internet para descargar imágenes de GHCR
+# =============================================================================
+
 name: Deploy to Self-Hosted VM
 
+# -----------------------------------------------------------------------------
+# TRIGGERS: Cuándo se ejecuta este workflow
+# -----------------------------------------------------------------------------
 on:
   push:
     branches:
-      - main  # Se ejecuta automáticamente cuando hay un push a la rama main
-  workflow_dispatch:  # Permite ejecutar manualmente desde GitHub
+      - main  # Despliegue automático en cada push a main
+  workflow_dispatch:  # Permite ejecución manual desde la UI de GitHub
 
+# -----------------------------------------------------------------------------
+# JOBS: Definición de trabajos
+# -----------------------------------------------------------------------------
 jobs:
+
+  # ===========================================================================
+  # JOB 1: TESTS UNITARIOS
+  # ===========================================================================
+  # Ejecuta las pruebas unitarias de todos los servicios
+  # ---------------------------------------------------------------------------
   unit-tests:
+    name: 🧪 Tests Unitarios
     runs-on: ubuntu-latest
     steps:
       - name: 🧪 Ejecutar tests unitarios
-        run: echo "Unit tests"
+        run: echo "Unit tests"  # TODO: Implementar tests reales
 
+  # ===========================================================================
+  # JOB 2: TESTS END-TO-END
+  # ===========================================================================
+  # Ejecuta las pruebas de integración/E2E
+  # Requiere: unit-tests
+  # ---------------------------------------------------------------------------
   e2e-tests:
+    name: 🔗 Tests E2E
     needs: [unit-tests]
     runs-on: ubuntu-latest
     steps:
-      - name: 🧪 Ejecutar tests E2E
-        run: echo "E2E tests"
+      - name: 🔗 Ejecutar tests E2E
+        run: echo "E2E tests"  # TODO: Implementar tests reales
 
+  # ===========================================================================
+  # JOB 3: BUILD & PUSH DOCKER IMAGES
+  # ===========================================================================
+  # Construye todas las imágenes Docker y las sube a GitHub Container Registry
+  # Requiere: e2e-tests
+  # ---------------------------------------------------------------------------
   build-and-push-images:
+    name: 🐳 Build & Push Images
     needs: [e2e-tests]
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      packages: write
+      contents: read    # Para clonar el repositorio
+      packages: write   # Para subir imágenes a GHCR
+
     steps:
-      - name: 📥 Clonar el código fuente
+      # -----------------------------------------------------------------------
+      # SETUP: Preparación del entorno
+      # -----------------------------------------------------------------------
+      - name: 📥 Clonar código fuente
         uses: actions/checkout@v4
 
       - name: ⚙️ Configurar Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: 🔑 Iniciar sesión en GitHub Container Registry
+      - name: 🔑 Login en GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 🏗️ Construir y subir imagen webapp
+      # -----------------------------------------------------------------------
+      # BUILD: Construcción de imágenes (Frontend)
+      # -----------------------------------------------------------------------
+      - name: 🌐 Build & Push - webapp
         uses: docker/build-push-action@v5
         with:
           context: ./webapp
@@ -50,7 +114,10 @@ jobs:
           cache-from: type=registry,ref=ghcr.io/${{ vars.REPOSITORY_NAME }}/webapp:buildcache
           cache-to: type=registry,ref=ghcr.io/${{ vars.REPOSITORY_NAME }}/webapp:buildcache,mode=max
 
-      - name: 🏗️ Construir y subir imagen gateway_service
+      # -----------------------------------------------------------------------
+      # BUILD: Construcción de imágenes (API Gateway)
+      # -----------------------------------------------------------------------
+      - name: 🚪 Build & Push - gateway_service
         uses: docker/build-push-action@v5
         with:
           context: ./gateway_service
@@ -60,15 +127,10 @@ jobs:
           cache-from: type=registry,ref=ghcr.io/${{ vars.REPOSITORY_NAME }}/gateway_service:buildcache
           cache-to: type=registry,ref=ghcr.io/${{ vars.REPOSITORY_NAME }}/gateway_service:buildcache,mode=max
 
-      - name: 🏗️ Construir y subir imagen planner_database
-        uses: docker/build-push-action@v5
-        with:
-          context: ./planner_database
-          file: ./planner_database/Dockerfile
-          push: true
-          tags: ghcr.io/${{ vars.REPOSITORY_NAME }}/planner_database:latest
-
-      - name: 🏗️ Construir y subir imagen planner_service
+      # -----------------------------------------------------------------------
+      # BUILD: Construcción de imágenes (Servicios de negocio)
+      # -----------------------------------------------------------------------
+      - name: 📅 Build & Push - planner_service
         uses: docker/build-push-action@v5
         with:
           context: ./planner_service
@@ -78,7 +140,7 @@ jobs:
           cache-from: type=registry,ref=ghcr.io/${{ vars.REPOSITORY_NAME }}/planner_service:buildcache
           cache-to: type=registry,ref=ghcr.io/${{ vars.REPOSITORY_NAME }}/planner_service:buildcache,mode=max
 
-      - name: 🏗️ Construir y subir imagen auth_service
+      - name: 🔐 Build & Push - auth_service
         uses: docker/build-push-action@v5
         with:
           context: ./auth_service
@@ -88,7 +150,7 @@ jobs:
           cache-from: type=registry,ref=ghcr.io/${{ vars.REPOSITORY_NAME }}/auth_service:buildcache
           cache-to: type=registry,ref=ghcr.io/${{ vars.REPOSITORY_NAME }}/auth_service:buildcache,mode=max
 
-      - name: 🏗️ Construir y subir imagen user_service
+      - name: 👤 Build & Push - user_service
         uses: docker/build-push-action@v5
         with:
           context: ./user_service
@@ -98,44 +160,85 @@ jobs:
           cache-from: type=registry,ref=ghcr.io/${{ vars.REPOSITORY_NAME }}/user_service:buildcache
           cache-to: type=registry,ref=ghcr.io/${{ vars.REPOSITORY_NAME }}/user_service:buildcache,mode=max
 
-      - name: 🏗️ Construir y subir imagen management_database
+      # -----------------------------------------------------------------------
+      # BUILD: Construcción de imágenes (Bases de datos)
+      # -----------------------------------------------------------------------
+      - name: 🗄️ Build & Push - planner_database
+        uses: docker/build-push-action@v5
+        with:
+          context: ./planner_database
+          file: ./planner_database/Dockerfile
+          push: true
+          tags: ghcr.io/${{ vars.REPOSITORY_NAME }}/planner_database:latest
+          # Sin cache para DBs (raramente cambian y son pequeñas)
+
+      - name: 🗄️ Build & Push - management_database
         uses: docker/build-push-action@v5
         with:
           context: ./management_database
           file: ./management_database/Dockerfile
           push: true
           tags: ghcr.io/${{ vars.REPOSITORY_NAME }}/management_database:latest
+          # Sin cache para DBs (raramente cambian y son pequeñas)
 
+  # ===========================================================================
+  # JOB 4: DEPLOY TO SELF-HOSTED VM
+  # ===========================================================================
+  # Despliega la aplicación directamente en la VM donde corre el runner
+  # Requiere: build-and-push-images
+  #
+  # NOTA: Este job usa 'runs-on: self-hosted' lo que significa que se ejecuta
+  # directamente en tu VM, no necesita SSH porque ya está ahí.
+  # ---------------------------------------------------------------------------
   deploy:
+    name: 🚀 Deploy to Self-Hosted
     needs: [build-and-push-images]
-    runs-on: self-hosted  # Este job se ejecutará en tu VM con el runner auto-hospedado
+    runs-on: self-hosted  # Se ejecuta en el runner auto-hospedado de la VM
+
     steps:
-      - name: 📥 Clonar el código fuente
+      # -----------------------------------------------------------------------
+      # SETUP: Preparación del entorno
+      # -----------------------------------------------------------------------
+      - name: 📥 Clonar código fuente
         uses: actions/checkout@v4
 
       - name: 🔑 Autenticar en GitHub Container Registry
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
+      # -----------------------------------------------------------------------
+      # TRANSFER: Preparar archivos de configuración
+      # -----------------------------------------------------------------------
       - name: 📋 Copiar docker-compose al directorio de producción
         run: |
           mkdir -p $HOME/TeachingPlanner
           cp docker-compose.selfhosted.yml $HOME/TeachingPlanner/docker-compose.yml
 
+      # -----------------------------------------------------------------------
+      # SSL: Configurar certificados SSL
+      # -----------------------------------------------------------------------
       - name: 🔐 Crear certificados SSL desde secrets
         run: |
+          # Crear directorio para certificados
           mkdir -p $HOME/TeachingPlanner/certs
+
+          # Escribir certificados desde secrets
           echo "${{ secrets.SSL_CERT }}" > $HOME/TeachingPlanner/certs/cert.pem
           echo "${{ secrets.SSL_KEY }}" > $HOME/TeachingPlanner/certs/key.pem
-          chmod 600 $HOME/TeachingPlanner/certs/key.pem
-          chmod 644 $HOME/TeachingPlanner/certs/cert.pem
 
+          # Configurar permisos seguros
+          chmod 600 $HOME/TeachingPlanner/certs/key.pem   # Solo lectura para owner
+          chmod 644 $HOME/TeachingPlanner/certs/cert.pem  # Lectura para todos
+
+      # -----------------------------------------------------------------------
+      # DEPLOY: Desplegar aplicación
+      # -----------------------------------------------------------------------
       - name: 🛑 Detener servicios actuales
         run: |
           cd $HOME/TeachingPlanner
           docker compose down || true
 
-      - name: 🗑️ Limpiar imágenes antiguas (opcional)
+      - name: 🗑️ Limpiar imágenes Docker no utilizadas
         run: |
           docker image prune -f
 
@@ -149,8 +252,12 @@ jobs:
           cd $HOME/TeachingPlanner
           docker compose up -d --force-recreate --remove-orphans
 
+      # -----------------------------------------------------------------------
+      # VERIFICACIÓN: Comprobar estado del despliegue
+      # -----------------------------------------------------------------------
       - name: ⏳ Esperar a que los servicios estén listos
         run: |
+          echo "Esperando 10 segundos para que los servicios inicien..."
           sleep 10
 
       - name: ✅ Verificar estado de los servicios
@@ -158,8 +265,8 @@ jobs:
           cd $HOME/TeachingPlanner
           docker compose ps
 
-      - name: 📋 Mostrar logs recientes
-        if: always()
+      - name: 📋 Mostrar logs recientes (debug)
+        if: always()  # Se ejecuta siempre, incluso si fallan pasos anteriores
         run: |
           cd $HOME/TeachingPlanner
           docker compose logs --tail=50

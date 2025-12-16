@@ -133,32 +133,30 @@ export function SolicitudTable({ solicitudes, onApprove, onReject }: SolicitudTa
                         ))}
                     </TableHeader>
                     <TableBody>
-                        {table.getRowModel().rows?.length ? (
-                            table.getRowModel().rows.map((row, idx) => (
-                                <TableRow
-                                    key={row.id}
-                                    className={idx % 2 === 0 ? 'bg-background' : 'bg-muted/30 hover:bg-muted/40'}
-                                >
-                                    {row.getVisibleCells().map((cell) => (
-                                        <TableCell key={cell.id} className="py-3">
-                                            {flexRender(
-                                                cell.column.columnDef.cell,
-                                                cell.getContext()
-                                            )}
-                                        </TableCell>
-                                    ))}
-                                </TableRow>
-                            ))
-                        ) : (
-                            <TableRow>
-                                <TableCell
-                                    colSpan={defaultColumns({ onApprove, onReject }).length}
-                                    className="h-24 text-center"
-                                >
+                        {table.getRowModel().rows.map((row, idx) => (
+                            <TableRow
+                                key={row.id}
+                                className={`h-[53px] ${idx % 2 === 0 ? 'bg-background' : 'bg-muted/30 hover:bg-muted/40'}`}
+                            >
+                                {row.getVisibleCells().map((cell) => (
+                                    <TableCell key={cell.id}>
+                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                    </TableCell>
+                                ))}
+                            </TableRow>
+                        ))}
+                        {table.getRowModel().rows.length === 0 && (
+                            <TableRow className="h-[53px]">
+                                <TableCell colSpan={table.getAllColumns().length} className="text-center">
                                     No hay resultados.
                                 </TableCell>
                             </TableRow>
                         )}
+                        {Array.from({ length: Math.max(0, 10 - Math.max(1, table.getRowModel().rows.length)) }).map((_, idx) => (
+                            <TableRow key={`empty-${idx}`} className={`h-[53px] ${((table.getRowModel().rows.length + idx) % 2 === 0) ? 'bg-background' : 'bg-muted/30'}`}>
+                                <TableCell colSpan={table.getAllColumns().length}>&nbsp;</TableCell>
+                            </TableRow>
+                        ))}
                     </TableBody>
                 </Table>
             </div>

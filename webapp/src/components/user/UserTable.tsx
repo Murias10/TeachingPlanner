@@ -129,29 +129,27 @@ export function UserTable({ users, deleteUser, editUser, sendActivationEmail, se
                         ))}
                     </TableHeader>
                     <TableBody>
-                        {table.getRowModel().rows.length ? (
-                            table.getRowModel().rows.map((row) => (
-                                <TableRow key={row.id}>
-                                    {row.getVisibleCells().map((cell) => (
-                                        <TableCell key={cell.id}>
-                                            {flexRender(
-                                                cell.column.columnDef.cell,
-                                                cell.getContext()
-                                            )}
-                                        </TableCell>
-                                    ))}
-                                </TableRow>
-                            ))
-                        ) : (
-                            <TableRow>
-                                <TableCell
-                                    colSpan={defaultColumns.length}
-                                    className="h-24 text-center"
-                                >
+                        {table.getRowModel().rows.map((row) => (
+                            <TableRow key={row.id} className="h-[53px]">
+                                {row.getVisibleCells().map((cell) => (
+                                    <TableCell key={cell.id}>
+                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                    </TableCell>
+                                ))}
+                            </TableRow>
+                        ))}
+                        {table.getRowModel().rows.length === 0 && (
+                            <TableRow className="h-[53px]">
+                                <TableCell colSpan={table.getAllColumns().length} className="text-center">
                                     No hay usuarios para mostrar
                                 </TableCell>
                             </TableRow>
                         )}
+                        {Array.from({ length: Math.max(0, 10 - Math.max(1, table.getRowModel().rows.length)) }).map((_, idx) => (
+                            <TableRow key={`empty-${idx}`} className="h-[53px]">
+                                <TableCell colSpan={table.getAllColumns().length}>&nbsp;</TableCell>
+                            </TableRow>
+                        ))}
                     </TableBody>
                 </Table>
             </div>

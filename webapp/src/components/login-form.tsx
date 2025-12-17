@@ -53,7 +53,7 @@ export function LoginForm({
         });
 
         setTimeout(() => {
-          const from = location.state?.from?.pathname || '/home';
+          const from = location.state?.from?.pathname || '/degrees';
           navigate(from, { replace: true });
         }, 500);
       } else {

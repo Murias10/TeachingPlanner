@@ -1,15 +1,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Subject } from "@/types/Subject"
-import {
-    DropdownMenu,
-    DropdownMenuTrigger,
-    DropdownMenuContent,
-    DropdownMenuLabel,
-    DropdownMenuItem,
-    DropdownMenuSeparator
-} from '@/components/ui/dropdown-menu'
-import { ChevronsRight, MoreHorizontal } from "lucide-react"
+import { ChevronsRight, Trash2 } from "lucide-react"
 import {
     Drawer,
     DrawerContent,
@@ -30,9 +22,10 @@ import { useTranslation } from "react-i18next"
 
 type Props = {
     subject: Subject
+    onDeleteGroup?: (groupId: string) => void
 }
 
-export function GroupTableButtons({ subject }: Props) {
+export function GroupTableButtons({ subject, onDeleteGroup }: Props) {
 
     const { t } = useTranslation()
 
@@ -59,26 +52,35 @@ export function GroupTableButtons({ subject }: Props) {
         ).length
     }
 
+    const handleDeleteGroup = (groupId: string, e: React.MouseEvent) => {
+        e.stopPropagation()
+        if (onDeleteGroup) {
+            onDeleteGroup(groupId)
+        }
+    }
+
+    const handleDeleteSelected = () => {
+        if (onDeleteGroup && selectedGroups.length > 0) {
+            selectedGroups.forEach(groupId => {
+                onDeleteGroup(groupId)
+            })
+            setSelectedGroups([])
+            setOpen(false)
+        }
+    }
+
+    const hasGroups = subject.groups && subject.groups.length > 0;
+
     return (
         <div className="flex justify-end space-x-2">
-            <Button variant="outline" size="lg" onClick={() => setOpen(true)}>
+            <Button
+                variant="outline"
+                size="lg"
+                onClick={() => setOpen(true)}
+                disabled={!hasGroups}
+            >
                 {t("table.groups.actions.select.groups")}<ChevronsRight />
             </Button>
-
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
-                        <span className="sr-only">Open menu</span>
-                        <MoreHorizontal />
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => navigator.clipboard.writeText(subject.id)}>Copy ID</DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem>View details</DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
 
             <Drawer open={open} onOpenChange={setOpen}>
                 <DrawerContent className="flex flex-col max-h-screen">
@@ -112,14 +114,30 @@ export function GroupTableButtons({ subject }: Props) {
                                                     {groups.map((group: Group) => (
                                                         <CommandItem
                                                             key={group.id}
-                                                            onSelect={() => toggleGroupSelection(group.id)}
+                                                            onSelect={(e) => {
+                                                                e.preventDefault();
+                                                                toggleGroupSelection(group.id);
+                                                            }}
+                                                            className="flex items-center justify-between"
                                                         >
-                                                            <Checkbox
-                                                                checked={selectedGroups.includes(group.id)}
-                                                                onCheckedChange={() => toggleGroupSelection(group.id)}
-                                                                className="mr-2"
-                                                            />
-                                                            {group.type}-{group.number}
+                                                            <div className="flex items-center">
+                                                                <Checkbox
+                                                                    checked={selectedGroups.includes(group.id)}
+                                                                    onCheckedChange={() => toggleGroupSelection(group.id)}
+                                                                    className="mr-2"
+                                                                />
+                                                                {subject.acronym}.{group.type}.{group.language === 'EN' ? 'I-' : ''}{group.number}
+                                                            </div>
+                                                            {onDeleteGroup && (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    onClick={(e) => handleDeleteGroup(group.id, e)}
+                                                                    className="h-6 w-6 p-0 hover:bg-destructive hover:text-destructive-foreground"
+                                                                >
+                                                                    <Trash2 className="h-3 w-3" />
+                                                                </Button>
+                                                            )}
                                                         </CommandItem>
 
                                                     ))}
@@ -133,11 +151,17 @@ export function GroupTableButtons({ subject }: Props) {
                     </div>
 
                     {/* Botones siempre abajo */}
-                    <div className="p-4 flex justify-end space-x-2 border-t">
+                    <div className="p-4 flex justify-between space-x-2 border-t">
                         <DrawerClose asChild>
-                            <Button variant="outline">Close</Button>
+                            <Button variant="outline">{t("common.close")}</Button>
                         </DrawerClose>
-                        <Button onClick={() => console.log("Selected Groups:", selectedGroups)}>Save</Button>
+                        <Button
+                            variant="destructive"
+                            onClick={handleDeleteSelected}
+                            disabled={selectedGroups.length === 0}
+                        >
+                            {t("common.delete")} {selectedGroups.length > 0 && `(${selectedGroups.length})`}
+                        </Button>
                     </div>
                 </DrawerContent>
             </Drawer>

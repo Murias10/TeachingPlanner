@@ -386,7 +386,7 @@ export const getSubjectsByDegreeId = async (req: AuditedRequest, res: Response) 
 }
 
 
-export const getSubjectsWithEventsAndGroupsByCourseAndSemester = async (req: AuditedRequest, res: Response) => {
+export const getSubjectsWithGroupsByCourseAndSemester = async (req: AuditedRequest, res: Response) => {
     const { courseId, semester } = req.params;
 
     if (!courseId || !semester) {
@@ -401,7 +401,7 @@ export const getSubjectsWithEventsAndGroupsByCourseAndSemester = async (req: Aud
     try {
         const result = await AppDataSource.query(
             `
-            SELECT DISTINCT 
+            SELECT DISTINCT
                 sb.ID as subject_id,
                 sb.NAME as subject_name,
                 sb.ACRONYM as subject_acronym,
@@ -412,15 +412,15 @@ export const getSubjectsWithEventsAndGroupsByCourseAndSemester = async (req: Aud
                 gr.TYPE as group_type,
                 gr.LANGUAGE as group_language
             FROM CALENDARS ca
-            JOIN DAYS da ON da.ID_CALENDAR = ca.ID
-            JOIN EVENTS ev ON ev.ID_DAY = da.ID
-            JOIN EVENT_GROUPS eg ON eg.ID_EVENT = ev.ID
-            JOIN GROUPS gr ON gr.ID = eg.ID_GROUP
-            JOIN SUBJECTS sb ON sb.ID = gr.ID_SUBJECT
+            JOIN COURSES co ON co.ID = ca.ID_COURSE
+            JOIN SUBJECTS sb ON sb.ID_DEGREE = co.ID_DEGREE
+            LEFT JOIN GROUPS gr ON gr.ID_SUBJECT = sb.ID
             WHERE ca.ID_COURSE = ?
               AND ca.SEMESTER = ?
+              AND sb.SEMESTER = ?
+            ORDER BY sb.NAME, gr.TYPE, gr.NUMBER
             `,
-            [courseId, semester]
+            [courseId, semester, semester]
         );
 
         // Reorganizar por asignaturas y anidar los grupos
@@ -433,10 +433,10 @@ export const getSubjectsWithEventsAndGroupsByCourseAndSemester = async (req: Aud
             subject_acronym: string;
             subject_semester: number;
             subject_year: number;
-            group_id: string;
-            group_number: number;
-            group_type: string;
-            group_language: string;
+            group_id: string | null;
+            group_number: number | null;
+            group_type: string | null;
+            group_language: string | null;
         };
 
         (result as SubjectGroupRow[]).forEach(row => {
@@ -463,27 +463,30 @@ export const getSubjectsWithEventsAndGroupsByCourseAndSemester = async (req: Aud
                 });
             }
 
-            groupedBySubject.get(subject_id).groups.push({
-                id: group_id,
-                number: group_number,
-                type: group_type,
-                language: group_language,
-            });
+            // Only add group if it exists (LEFT JOIN can return null)
+            if (group_id) {
+                groupedBySubject.get(subject_id).groups.push({
+                    id: group_id,
+                    number: group_number,
+                    type: group_type,
+                    language: group_language,
+                });
+            }
         });
 
         res.status(200).json({
             status: 'success',
-            message: 'Subjects with events and groups fetched successfully',
+            message: 'Subjects with groups fetched successfully',
             data: {
                 subjects: Array.from(groupedBySubject.values()),
             }
         });
 
     } catch (error) {
-        console.error('Error fetching subjects with events and groups:', error);
+        console.error('Error fetching subjects with groups:', error);
         res.status(500).json({
             status: 'error',
-            message: 'Error fetching subjects with events and groups',
+            message: 'Error fetching subjects with groups',
             data: error instanceof Error ? error.message : error,
         });
     }

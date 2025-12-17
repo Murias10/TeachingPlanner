@@ -2,12 +2,8 @@ import { Link } from "react-router-dom"
 import {
   CircleHelp,
   UserRoundCog,
-  ScrollText,
-  PieChart,
-  Settings2,
   Warehouse,
   CalendarDays,
-  Home
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -40,14 +36,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     },
     main: [
       {
-        title: t("sidebar.main.home.title"),
-        url: "/home",
-        icon: Home,
-        isActive: true,
-        items: [],
-        requiredAuth: false,
-      },
-      {
         title: t("sidebar.main.calendars.title"),
         url: "/degrees",
         icon: CalendarDays,
@@ -62,31 +50,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         items: [],
         requiredAuth: false,
       },
-      {
-        title: t("sidebar.main.settings.title"),
-        url: "/settings",
-        icon: Settings2,
-        items: [],
-        requiredAuth: true,
-      },
     ],
     system: [
-      {
-        name: t("sidebar.system.logs.title"),
-        url: "/logs",
-        icon: ScrollText,
-        requiredAuth: true,
-      },
       {
         name: t("sidebar.system.users.title"),
         url: "/users",
         icon: UserRoundCog,
-        requiredAuth: true,
-      },
-      {
-        name: t("sidebar.system.reports.title"),
-        url: "/reports",
-        icon: PieChart,
         requiredAuth: true,
       },
     ],

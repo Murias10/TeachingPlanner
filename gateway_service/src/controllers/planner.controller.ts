@@ -51,7 +51,7 @@ export const getSubjectsByDegreeId = (req: Request, res: Response, next: NextFun
 
 export const getSubjectsWithEventsAndGroupsByCourseAndSemester = (req: Request, res: Response, next: NextFunction) =>
     proxyRequest(req, res, next, {
-        url: `${SERVICES.PLANNER}/subjects/with-events/groups/by-course/${req.params.courseId}/semester/${req.params.semester}`,
+        url: `${SERVICES.PLANNER}/subjects/groups/by-course/${req.params.courseId}/semester/${req.params.semester}`,
         method: 'GET'
     });
 
@@ -295,5 +295,22 @@ export const rejectEventRequest = (req: Request, res: Response, next: NextFuncti
 export const deleteEventRequest = (req: Request, res: Response, next: NextFunction) =>
     proxyRequest(req, res, next, {
         url: `${SERVICES.PLANNER}/event-request/${req.params.id}`,
+        method: 'DELETE'
+    });
+
+//////////////////////////////////////////////
+// GROUP ENDPOINTS
+//////////////////////////////////////////////
+
+export const createGroup = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/group`,
+        method: 'POST',
+        body: req.body
+    });
+
+export const deleteGroup = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/group/${req.params.id}`,
         method: 'DELETE'
     });

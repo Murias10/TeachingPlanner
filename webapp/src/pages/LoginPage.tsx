@@ -7,10 +7,9 @@ import { LoadingSpinner } from "@/components/LoadingSpinner";
 export default function LoginPage() {
     const { isAuthenticated, isLoading } = useAuth();
     const location = useLocation();
-    //TODO
     // Si ya está autenticado, redirigir
     if (isAuthenticated) {
-        const from = location.state?.from?.pathname || '/home';
+        const from = location.state?.from?.pathname || '/degrees';
         return <Navigate to={from} replace />;
     }
 

@@ -75,7 +75,7 @@ export const columns = ({ deleteClassroom, isAdmin = false, onEditClassroom }: C
 
                 return (
                     <div className="flex justify-end items-center gap-2">
-                        <Link to={`https://${classroom.gisUrl}`} target="_blank" className="flex items-center">
+                        <Link to={classroom.gisUrl} target="_blank" className="flex items-center">
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <Button variant="outline" size="icon" className="size-10">

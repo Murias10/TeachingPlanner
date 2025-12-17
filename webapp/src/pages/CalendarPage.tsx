@@ -965,6 +965,7 @@ export default function CalendarPage() {
                                 onExport={handleExportCalendar}
                                 onExportCSV={handleExportToCSV}
                                 onCreateEvent={handleCreateEvent}
+                                onManageGroups={() => navigate(`/degrees/${acronym}/courses/${startYear}/${endYear}/semester/${semester}/calendar/groups`)}
                             />
                         )}
                         {isAdmin && (
@@ -1116,6 +1117,8 @@ export default function CalendarPage() {
                 }}
                 onSave={handleSaveEvent}
                 degreeId={course?.degree?.id}
+                courseId={course?.id}
+                semester={semester ? parseInt(semester, 10) : undefined}
                 calendarEvents={data?.events}
                 initialDate={dragStartDate}
                 initialStartTime={dragStartTime}
@@ -1153,6 +1156,8 @@ export default function CalendarPage() {
                     }}
                     onSave={handleSolicitud}
                     degreeId={course?.degree?.id}
+                    courseId={course?.id}
+                    semester={semester ? parseInt(semester, 10) : undefined}
                     calendarId={calendarId || undefined}
                     calendarEvents={data?.events}
                     initialDate={dragStartDate}

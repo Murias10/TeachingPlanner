@@ -10,7 +10,6 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Checkbox } from '@/components/ui/checkbox';
 import { TimePicker } from '@/components/ui/time-picker';
 import { Textarea } from '@/components/ui/textarea';
 import { es } from 'date-fns/locale';
@@ -20,12 +19,15 @@ import type { CalendarEvent } from '@/types/CalendarEvent';
 import type { Group } from '@/types/Group';
 import { useClassrooms } from '@/hooks/classroom/useClassrooms';
 import { useSubjectsByDegreeId } from '@/hooks/subject/useSubjectsByDegreeId';
+import { useSubjectsWithEventsAndGroupsByCourseAndSemester } from '@/hooks/subject/useSubjectsWithEventsAndGroupsByCourseIdAndSemester';
 
 interface CreateSolicitudDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (calendarId: string, eventType: string, config: RecurrenceConfig) => void;
   degreeId?: string;
+  courseId?: string;
+  semester?: number;
   calendarId?: string;
   calendarEvents?: CalendarEvent[];
   initialDate?: string | null;
@@ -39,6 +41,8 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
   onOpenChange,
   onSave,
   degreeId,
+  courseId,
+  semester,
   calendarId,
   calendarEvents = [],
   initialDate,
@@ -106,24 +110,21 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
   const { data: classrooms = [] } = useClassrooms();
   const { data: subjects = [], isLoading: isLoadingSubjects } = useSubjectsByDegreeId(degreeId || null);
 
-  // Extract groups from calendar events for the selected subject and filter by event type
+  // Get all subjects with their groups using the same hook as GroupPage
+  const { data: subjectsWithGroups = [] } = useSubjectsWithEventsAndGroupsByCourseAndSemester(courseId || null, semester || null);
+
+  // Extract groups from subjects with groups for the selected subject and filter by event type
   const availableGroups = useMemo(() => {
-    if (!config.subjectId || !calendarEvents) return [];
+    if (!config.subjectId) return [];
 
-    const groupsSet = new Set<string>();
-    calendarEvents.forEach((event) => {
-      if (event.subject?.id === config.subjectId && event.groups) {
-        event.groups.forEach((group) => {
-          // Only add groups that match the selected event type
-          if (group.type === eventType) {
-            groupsSet.add(JSON.stringify(group)); // Use stringify to create unique key
-          }
-        });
-      }
-    });
+    // Find the selected subject in subjectsWithGroups
+    const selectedSubject = subjectsWithGroups.find(s => s.id === config.subjectId);
 
-    return Array.from(groupsSet).map(g => JSON.parse(g) as Group);
-  }, [config.subjectId, calendarEvents, eventType]);
+    if (!selectedSubject || !selectedSubject.groups) return [];
+
+    // Filter groups by event type
+    return selectedSubject.groups.filter(group => group.type === eventType);
+  }, [config.subjectId, subjectsWithGroups, eventType]);
 
   // Validate that all required fields are filled
   const isFormValid = useMemo(() => {
@@ -414,111 +415,73 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
             </div>
 
             {/* Groups and Classrooms Selection - Same row */}
-            <div className="flex gap-2">
-              {/* Groups Selection - Always visible */}
-              <div className="space-y-1 flex-1">
-                <Label className="text-xs font-semibold">Grupos</Label>
-                <Popover modal={true}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="h-8 px-3 text-xs justify-between font-normal w-full"
-                    >
-                      <span>
-                        {config.groupIds && config.groupIds.length > 0
-                          ? `${config.groupIds.length} grupo(s) seleccionado(s)`
-                          : 'Seleccionar grupos'}
-                      </span>
-                      <ChevronDownIcon className="w-3 h-3" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="p-2 w-auto" align="start">
-                    <div className="space-y-1 max-h-40 overflow-y-auto min-w-48">
-                      {config.subjectId ? (
-                        availableGroups.length > 0 ? (
-                          availableGroups.sort((a, b) => {
-                            const langPrefixA = a.language === 'EN' ? 'I-' : '';
-                            const langPrefixB = b.language === 'EN' ? 'I-' : '';
-                            const subject = subjects.find(s => s.id === config.subjectId);
-                            const labelA = `${subject?.acronym}.${a.type}.${langPrefixA}${a.number}`;
-                            const labelB = `${subject?.acronym}.${b.type}.${langPrefixB}${b.number}`;
-                            return labelA.localeCompare(labelB);
-                          }).map((group) => {
-                            const langPrefix = group.language === 'EN' ? 'I-' : '';
-                            const subject = subjects.find(s => s.id === config.subjectId);
-                            const groupLabel = `${subject?.acronym}.${group.type}.${langPrefix}${group.number}`;
-                            return (
-                              <div key={group.id} className="flex items-center gap-2">
-                                <Checkbox
-                                  id={`group-${group.id}`}
-                                  checked={config.groupIds?.includes(group.id) || false}
-                                  onCheckedChange={(checked) => {
-                                    const newIds = checked
-                                      ? [...(config.groupIds || []), group.id]
-                                      : (config.groupIds || []).filter(id => id !== group.id);
-                                    setConfig({ ...config, groupIds: newIds });
-                                  }}
-                                />
-                                <Label htmlFor={`group-${group.id}`} className="text-xs cursor-pointer m-0 flex-1">
-                                  {groupLabel}
-                                </Label>
-                              </div>
-                            );
-                          })
-                        ) : (
-                          <p className="text-xs text-muted-foreground">Sin grupos disponibles para esta asignatura</p>
-                        )
+            <div className="grid grid-cols-2 gap-2">
+              {/* Groups Selection - Single select */}
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Grupo</Label>
+                <Select
+                  value={config.groupIds?.[0] || ''}
+                  onValueChange={(value) => {
+                    setConfig({ ...config, groupIds: value ? [value] : [] });
+                  }}
+                >
+                  <SelectTrigger className="h-8 text-xs w-full">
+                    <SelectValue placeholder="Seleccionar grupo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {config.subjectId ? (
+                      availableGroups.length > 0 ? (
+                        availableGroups.sort((a, b) => {
+                          const langPrefixA = a.language === 'EN' ? 'I-' : '';
+                          const langPrefixB = b.language === 'EN' ? 'I-' : '';
+                          const subject = subjects.find(s => s.id === config.subjectId);
+                          const labelA = `${subject?.acronym}.${a.type}.${langPrefixA}${a.number}`;
+                          const labelB = `${subject?.acronym}.${b.type}.${langPrefixB}${b.number}`;
+                          return labelA.localeCompare(labelB);
+                        }).map((group) => {
+                          const langPrefix = group.language === 'EN' ? 'I-' : '';
+                          const subject = subjects.find(s => s.id === config.subjectId);
+                          const groupLabel = `${subject?.acronym}.${group.type}.${langPrefix}${group.number}`;
+                          return (
+                            <SelectItem key={group.id} value={group.id}>
+                              {groupLabel}
+                            </SelectItem>
+                          );
+                        })
                       ) : (
-                        <p className="text-xs text-muted-foreground">Selecciona una asignatura primero</p>
-                      )}
-                    </div>
-                  </PopoverContent>
-                </Popover>
+                        <SelectItem value="no-groups" disabled>Sin grupos disponibles</SelectItem>
+                      )
+                    ) : (
+                      <SelectItem value="no-subject" disabled>Selecciona una asignatura primero</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
 
-              {/* Classrooms Selection - Always visible */}
-              <div className="space-y-1 flex-1">
-                <Label className="text-xs font-semibold">Aulas</Label>
-                <Popover modal={true}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="h-8 px-3 text-xs justify-between font-normal w-full"
-                    >
-                      <span>
-                        {config.classroomIds && config.classroomIds.length > 0
-                          ? `${config.classroomIds.length} aula(s) seleccionada(s)`
-                          : 'Seleccionar aulas'}
-                      </span>
-                      <ChevronDownIcon className="w-3 h-3" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="p-2 w-auto" align="start">
-                    <div className="space-y-1 max-h-40 overflow-y-auto min-w-48">
-                      {classrooms.length > 0 ? (
-                        classrooms.sort((a, b) => a.code.localeCompare(b.code)).map((classroom) => (
-                          <div key={classroom.id} className="flex items-center gap-2">
-                            <Checkbox
-                              id={`classroom-${classroom.id}`}
-                              checked={config.classroomIds?.includes(classroom.id) || false}
-                              onCheckedChange={(checked) => {
-                                const newIds = checked
-                                  ? [...(config.classroomIds || []), classroom.id]
-                                  : (config.classroomIds || []).filter(id => id !== classroom.id);
-                                setConfig({ ...config, classroomIds: newIds });
-                              }}
-                            />
-                            <Label htmlFor={`classroom-${classroom.id}`} className="text-xs cursor-pointer m-0 flex-1">
-                              {classroom.code}
-                            </Label>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-xs text-muted-foreground">Cargando aulas...</p>
-                      )}
-                    </div>
-                  </PopoverContent>
-                </Popover>
+              {/* Classrooms Selection - Single select */}
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Aula</Label>
+                <Select
+                  value={config.classroomIds?.[0] || ''}
+                  onValueChange={(value) => {
+                    setConfig({ ...config, classroomIds: value ? [value] : [] });
+                  }}
+                >
+                  <SelectTrigger className="h-8 text-xs w-full">
+                    <SelectValue placeholder="Seleccionar aula" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {classrooms.length > 0 ? (
+                      classrooms.sort((a, b) => a.code.localeCompare(b.code)).map((classroom) => (
+                        <SelectItem key={classroom.id} value={classroom.id}>
+                          {classroom.code}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="no-classrooms" disabled>Cargando aulas...</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 

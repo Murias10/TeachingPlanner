@@ -1,11 +1,10 @@
 "use client"
 
 import {
-  BadgeCheck,
-  Bell,
   ChevronsUpDown,
   LogOut,
   LogIn,
+  Settings2,
 } from "lucide-react"
 
 import {
@@ -95,13 +94,9 @@ export function NavUser({
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
-                  <DropdownMenuItem>
-                    <BadgeCheck />
-                    Account
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <Bell />
-                    Notifications
+                  <DropdownMenuItem onClick={() => navigate("/settings")}>
+                    <Settings2 />
+                    Configuración
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />

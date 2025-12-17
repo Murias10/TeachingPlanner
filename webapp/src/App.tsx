@@ -1,11 +1,8 @@
-import HomePage from "@/pages/HomePage";
 import Start from "@/pages/Start";
 import ClassroomPage from "@/pages/ClassroomPage";
 import SubjectPage from "@/pages/SubjectPage";
 import SettingsPage from "@/pages/SettingsPage";
-import LogsPage from "@/pages/LogsPage";
 import UserPage from "@/pages/UserPage";
-import ReportPage from "@/pages/ReportPage";
 import GroupPage from "@/pages/GroupPage";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
@@ -35,11 +32,11 @@ export default function App() {
                     {/* Layout con header + sidebar */}
                     <Route element={<AppLayout />}>
                         {/* Rutas públicas - No requieren autenticación */}
-                        <Route path="home" element={<HomePage />} />
                         <Route path="degrees" element={<DegreePage />} />
                         <Route path="degrees/:acronym/courses" element={<CoursePage />} />
                         <Route path="degrees/:acronym/courses/:startYear/:endYear/semester/:semester/groups" element={<GroupPage />} />
                         <Route path="degrees/:acronym/courses/:startYear/:endYear/semester/:semester/calendar" element={<CalendarPage />} />
+                        <Route path="degrees/:acronym/courses/:startYear/:endYear/semester/:semester/calendar/groups" element={<GroupPage />} />
                         <Route path="degrees/:acronym/courses/:startYear/:endYear/semester/:semester/calendar/solicitudes" element={<SolicitudPage />} />
                         <Route path="degrees/:acronym/subjects" element={<SubjectPage />} />
                         <Route path="classrooms" element={<ClassroomPage />} />
@@ -54,26 +51,10 @@ export default function App() {
                         } />
 
                         <Route
-                            path="reports"
-                            element={
-                                <ProtectedRoute>
-                                    <ReportPage />
-                                </ProtectedRoute>
-                            }
-                        />
-                        <Route
                             path="users"
                             element={
                                 <ProtectedRoute>
                                     <UserPage />
-                                </ProtectedRoute>
-                            }
-                        />
-                        <Route
-                            path="logs"
-                            element={
-                                <ProtectedRoute>
-                                    <LogsPage />
                                 </ProtectedRoute>
                             }
                         />

@@ -1,34 +1,38 @@
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
 import {
     Tooltip,
     TooltipContent,
     TooltipTrigger,
     TooltipProvider,
 } from "@/components/ui/tooltip"
-import { ChevronsRight } from "lucide-react";
+import { Plus } from "lucide-react";
 
-export function GroupToolbar() {
+interface GroupToolbarProps {
+    onCreateGroup?: () => void;
+}
+
+export function GroupToolbar({ onCreateGroup }: GroupToolbarProps) {
     return (
         <TooltipProvider>
             <div className="flex gap-2 items-center justify-end">
-                <Link to="calendar">
+                {onCreateGroup && (
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button
-                                variant="outline"
+                                variant="default"
                                 size="sm"
+                                onClick={onCreateGroup}
                                 className="h-9 gap-2"
                             >
-                                <span className="hidden sm:inline text-xs">Ver Calendario</span>
-                                <ChevronsRight className="w-4 h-4" />
+                                <Plus className="w-4 h-4" />
+                                <span className="hidden sm:inline text-xs">Crear grupo</span>
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                            Ver Calendario
+                            Crear nuevo grupo
                         </TooltipContent>
                     </Tooltip>
-                </Link>
+                )}
             </div>
         </TooltipProvider>
     )

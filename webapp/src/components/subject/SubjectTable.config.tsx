@@ -4,12 +4,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ProtectedComponent } from "@/components/ProtectedComponent"
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger,
-} from "@/components/ui/tooltip"
-import { ArrowUpDown, Eye } from "lucide-react"
+import { ArrowUpDown } from "lucide-react"
 import { EditDeleteTableButtons } from "@/components/common/EditDeleteTableButtons"
 import { TFunction } from "i18next"
 import { Subject } from "@/types/Subject"
@@ -107,6 +102,19 @@ export const columns = ({ deleteSubject, isAdmin = false, onViewSubject, onEditS
             },
         },
         {
+            accessorKey: "siesCode",
+            header: ({ column }) => (
+                <Button
+                    variant="ghost"
+                    onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+                    className="flex items-center gap-1"
+                >
+                    {t("table.subjects.columns.siesCode")} <ArrowUpDown className="h-4 w-4" />
+                </Button>
+            ),
+            cell: ({ getValue }) => <span>{getValue<string>()}</span>,
+        },
+        {
             accessorKey: "semester",
             header: ({ column }) => (
                 <Button
@@ -153,17 +161,6 @@ export const columns = ({ deleteSubject, isAdmin = false, onViewSubject, onEditS
 
                 return (
                     <div className="flex justify-end items-center gap-2">
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button variant="outline" size="icon" className="size-10" onClick={() => onViewSubject?.(subject)}>
-                                    <Eye />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>{t("table.subjects.actions.view")}</p>
-                            </TooltipContent>
-                        </Tooltip>
-
                         <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
                             <EditDeleteTableButtons
                                 onEdit={() => onEditSubject?.(subject)}

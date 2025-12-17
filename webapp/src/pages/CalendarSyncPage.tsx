@@ -224,8 +224,8 @@ const CalendarSyncPage = () => {
 
                                                     {synced && (
                                                         <div className="flex items-center gap-2">
-                                                            <Badge variant={sync?.isActive ? "default" : "secondary"}>
-                                                                {sync?.isActive ? "Activo" : "Pausado"}
+                                                            <Badge variant={sync?.syncEnabled ? "default" : "secondary"}>
+                                                                {sync?.syncEnabled ? "Activo" : "Pausado"}
                                                             </Badge>
                                                             {sync?.lastSyncAt && (
                                                                 <span className="text-xs text-muted-foreground">
@@ -240,7 +240,7 @@ const CalendarSyncPage = () => {
                                                     {synced && sync ? (
                                                         <>
                                                             <Switch
-                                                                checked={sync.isActive}
+                                                                checked={sync.syncEnabled}
                                                                 onCheckedChange={() => handleToggleSync(sync.id)}
                                                                 disabled={isLoading}
                                                             />
@@ -248,7 +248,7 @@ const CalendarSyncPage = () => {
                                                                 variant="outline"
                                                                 size="icon"
                                                                 onClick={() => handleSyncNow(sync.id)}
-                                                                disabled={isLoading || !sync.isActive}
+                                                                disabled={isLoading || !sync.syncEnabled}
                                                                 title="Sincronizar ahora"
                                                             >
                                                                 {isLoading ? <Spinner /> : <RefreshCw className="h-4 w-4" />}

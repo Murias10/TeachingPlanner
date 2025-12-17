@@ -13,7 +13,7 @@ import { useFloatingAlert } from "@/hooks/useFloatingAlert";
 import { validatePassword } from "@/utils/passwordValidation";
 import { useTranslation } from "react-i18next";
 import { useGoogleAuth } from "@/hooks/google/useGoogleAuth";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Calendar, CheckCircle2, XCircle } from "lucide-react";
 
 const SettingsPage = () => {
@@ -24,6 +24,7 @@ const SettingsPage = () => {
     const { updatePassword } = useUpdatePassword();
     const { triggerAlert } = useFloatingAlert();
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
     const { getStatus, initiateConnection, disconnect, isLoading: isGoogleLoading } = useGoogleAuth();
 
     // Profile form state
@@ -60,6 +61,55 @@ const SettingsPage = () => {
             setUnioviUser(user.unioviUser || "");
         }
     }, [user]);
+
+    // Handle Google OAuth callback params
+    useEffect(() => {
+        console.log('[DEBUG] OAuth callback useEffect triggered');
+        console.log('[DEBUG] Current URL:', globalThis.location.href);
+        console.log('[DEBUG] searchParams object:', searchParams.toString());
+
+        const googleConnected = searchParams.get('google_connected');
+        const googleError = searchParams.get('google_error');
+
+        console.log('[DEBUG] google_connected param:', googleConnected);
+        console.log('[DEBUG] google_error param:', googleError);
+
+        const handleOAuthCallback = async () => {
+            if (googleConnected === 'true') {
+                console.log('[DEBUG] Google connected === true, showing success alert');
+                triggerAlert({
+                    title: 'Conectado',
+                    description: 'Google Calendar conectado exitosamente',
+                    variant: 'success'
+                });
+
+                // Reload the Google status from the API
+                console.log('[DEBUG] Reloading Google status from API...');
+                const status = await getStatus();
+                console.log('[DEBUG] Reloaded status:', status);
+                if (status) {
+                    setGoogleConnected(status.connected);
+                    setGoogleEmail(status.email);
+                }
+
+                // Limpiar parámetros de la URL
+                setSearchParams({});
+            } else if (googleError) {
+                console.log('[DEBUG] Google error detected:', googleError);
+                triggerAlert({
+                    title: 'Error',
+                    description: `Error al conectar Google Calendar: ${googleError}`,
+                    variant: 'destructive'
+                });
+                // Limpiar parámetros de la URL
+                setSearchParams({});
+            } else {
+                console.log('[DEBUG] No google_connected or google_error params found');
+            }
+        };
+
+        handleOAuthCallback();
+    }, [searchParams, setSearchParams, triggerAlert, getStatus]);
 
     // Load Google Calendar connection status
     useEffect(() => {

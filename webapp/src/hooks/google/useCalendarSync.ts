@@ -6,14 +6,12 @@ import { getAuthHeaders } from '@/utils/authHeaders';
 export interface CalendarSync {
     id: string;
     calendarId: string;
+    calendarName: string;
     googleCalendarId: string;
-    isActive: boolean;
+    syncEnabled: boolean;
+    syncStatus: string;
     lastSyncAt?: string;
-    nextSyncAt?: string;
-    calendar?: {
-        id: string;
-        name: string;
-    };
+    errorMessage?: string;
 }
 
 export const useCalendarSync = () => {
@@ -33,7 +31,10 @@ export const useCalendarSync = () => {
                 throw new Error('Failed to fetch calendar syncs');
             }
 
-            return response.json();
+            const result = await response.json();
+            // The API returns { success: true, data: [...] }
+            // Extract just the data property
+            return result.data || [];
         },
         enabled: true,
     });

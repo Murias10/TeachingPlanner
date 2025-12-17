@@ -21,16 +21,37 @@ export const useGoogleAuth = () => {
                 return null;
             }
 
-            return await response.json();
+            const result = await response.json();
+            // The API returns { success: true, message: '...', data: { connected: boolean, email?: string } }
+            // Extract just the data property
+            return result.data || null;
         } catch (error) {
             console.error('Error getting Google auth status:', error);
             return null;
         }
     }, []);
 
-    const initiateConnection = useCallback(() => {
-        // Redirigir al flujo OAuth de Google
-        window.location.href = `${VITE_GATEWAY_API_URL}/auth/google/initiate`;
+    const initiateConnection = useCallback(async () => {
+        try {
+            const response = await fetch(`${VITE_GATEWAY_API_URL}/auth/google/initiate`, {
+                method: 'GET',
+                headers: getAuthHeaders(),
+            });
+
+            if (!response.ok) {
+                console.error('Error initiating Google OAuth');
+                return;
+            }
+
+            const data = await response.json();
+
+            // Redirigir a la URL de OAuth de Google
+            if (data.data?.authUrl) {
+                globalThis.location.href = data.data.authUrl;
+            }
+        } catch (error) {
+            console.error('Error initiating Google connection:', error);
+        }
     }, []);
 
     const disconnect = useCallback(async (): Promise<{ success: boolean; message?: string }> => {

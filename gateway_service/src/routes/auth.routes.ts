@@ -1,5 +1,5 @@
 import express from 'express';
-import { login, validateToken, getProfile, logout, forgotPassword, verifyOTP, resetPassword, activateAccount } from '@/controllers/auth.controller';
+import { login, validateToken, getProfile, logout, forgotPassword, verifyOTP, resetPassword, activateAccount, googleInitiate, googleCallback, googleDisconnect, googleStatus, getCalendarSyncs, createCalendarSync, deleteCalendarSync, toggleCalendarSync, syncNow } from '@/controllers/auth.controller';
 
 const router = express.Router();
 
@@ -15,6 +15,19 @@ router.post('/auth/reset-password', resetPassword);
 
 // Ruta de activación de cuenta
 router.post('/auth/activate', activateAccount);
+
+// Google OAuth routes
+router.get('/auth/google/initiate', googleInitiate);
+router.get('/auth/google/callback', googleCallback);
+router.post('/auth/google/disconnect', googleDisconnect);
+router.get('/auth/google/status', googleStatus);
+
+// Calendar sync routes
+router.get('/calendar-sync', getCalendarSyncs);
+router.post('/calendar-sync', createCalendarSync);
+router.delete('/calendar-sync/:id', deleteCalendarSync);
+router.patch('/calendar-sync/:id/toggle', toggleCalendarSync);
+router.post('/calendar-sync/:id/sync-now', syncNow);
 
 // Rutas protegidas
 router.get('/auth/profile', getProfile);

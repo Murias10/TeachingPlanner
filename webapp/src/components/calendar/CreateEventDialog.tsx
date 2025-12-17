@@ -15,8 +15,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { es } from 'date-fns/locale';
 import { format } from 'date-fns';
 import type { RecurrenceConfig, FrequencyType, WeekDay, EndsType, CustomFrequencyUnit } from '@/types/RecurrenceConfig';
-import type { CalendarEvent } from '@/types/CalendarEvent';
-import type { Group } from '@/types/Group';
 import { useClassrooms } from '@/hooks/classroom/useClassrooms';
 import { useSubjectsByDegreeId } from '@/hooks/subject/useSubjectsByDegreeId';
 import { useSubjectsWithEventsAndGroupsByCourseAndSemester } from '@/hooks/subject/useSubjectsWithEventsAndGroupsByCourseIdAndSemester';
@@ -28,14 +26,13 @@ interface CreateEventDialogProps {
   degreeId?: string;
   courseId?: string;
   semester?: number;
-  calendarEvents?: CalendarEvent[];
   initialDate?: string | null;
   initialStartTime?: string | null;
   initialEndTime?: string | null;
   lectiveDates?: Set<string>;
 }
 
-const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChange, onSave, degreeId, courseId, semester, calendarEvents = [], initialDate, initialStartTime, initialEndTime, lectiveDates = new Set() }) => {
+const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChange, onSave, degreeId, courseId, semester, initialDate, initialStartTime, initialEndTime, lectiveDates = new Set() }) => {
   const [config, setConfig] = useState<RecurrenceConfig>({
     frequency: 'no-repeat',
     interval: 1,

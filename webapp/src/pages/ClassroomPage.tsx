@@ -46,7 +46,6 @@ export default function ClassroomPage() {
     // Configurar breadcrumb
     useEffect(() => {
         setItems([
-            { label: t("breadcrumb.home"), href: "/home" },
             { label: t("breadcrumb.classrooms"), href: "/classrooms" }
         ])
     }, [setItems, t])

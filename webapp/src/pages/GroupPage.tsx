@@ -28,7 +28,6 @@ export default function GroupPage() {
 
     useEffect(() => {
         setItems([
-            { label: t("breadcrumb.home"), href: "/home" },
             { label: t("breadcrumb.degrees"), href: "/degrees" },
             { label: t("breadcrumb.courses"), href: `/degrees/${acronym}/courses` },
             { label: t("breadcrumb.calendar"), href: `/degrees/${acronym}/courses/${startYear}/${endYear}/semester/${semester}/calendar` },

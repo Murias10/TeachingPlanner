@@ -34,7 +34,7 @@ const UserPage = () => {
 
     // Protección: Solo ADMIN puede acceder
     if (!isAdmin) {
-        return <Navigate to="/home" replace />
+        return <Navigate to="/degrees" replace />
     }
 
     const { data: allUsers = [], isLoading, error, refetch } = useListUsers()
@@ -53,7 +53,6 @@ const UserPage = () => {
 
     useEffect(() => {
         setItems([
-            { label: "Inicio", href: "/home" },
             { label: "Usuarios", href: "/users" },
         ])
     }, [setItems])

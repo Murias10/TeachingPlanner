@@ -83,7 +83,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <Link to="/" className="flex items-center gap-3">
+              <Link to="/degrees" className="flex items-center gap-3">
                 <img
                   src="/favicon.svg"
                   alt="Logo"

@@ -15,8 +15,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { es } from 'date-fns/locale';
 import { format } from 'date-fns';
 import type { RecurrenceConfig, FrequencyType, WeekDay, EndsType, CustomFrequencyUnit } from '@/types/RecurrenceConfig';
-import type { CalendarEvent } from '@/types/CalendarEvent';
-import type { Group } from '@/types/Group';
 import { useClassrooms } from '@/hooks/classroom/useClassrooms';
 import { useSubjectsByDegreeId } from '@/hooks/subject/useSubjectsByDegreeId';
 import { useSubjectsWithEventsAndGroupsByCourseAndSemester } from '@/hooks/subject/useSubjectsWithEventsAndGroupsByCourseIdAndSemester';
@@ -29,7 +27,6 @@ interface CreateSolicitudDialogProps {
   courseId?: string;
   semester?: number;
   calendarId?: string;
-  calendarEvents?: CalendarEvent[];
   initialDate?: string | null;
   initialStartTime?: string | null;
   initialEndTime?: string | null;
@@ -44,7 +41,6 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
   courseId,
   semester,
   calendarId,
-  calendarEvents = [],
   initialDate,
   initialStartTime,
   initialEndTime,

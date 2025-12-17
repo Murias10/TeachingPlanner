@@ -85,7 +85,6 @@ export default function CoursePage() {
     // Configurar breadcrumb
     useEffect(() => {
         const items = [
-            { label: t("breadcrumb.home"), href: "/home" },
             { label: t("breadcrumb.degrees"), href: "/degrees" },
             { label: t("breadcrumb.courses"), href: "" },
         ];

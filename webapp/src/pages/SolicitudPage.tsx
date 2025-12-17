@@ -80,7 +80,6 @@ const SolicitudPage = () => {
     // Cargar solicitudes al montar el componente
     useEffect(() => {
         setItems([
-            { label: t("breadcrumb.home"), href: "/home" },
             { label: t("breadcrumb.degrees"), href: "/degrees" },
             { label: t("breadcrumb.courses"), href: `/degrees/${acronym}/courses` },
             { label: t("breadcrumb.calendar"), href: `/degrees/${acronym}/courses/${startYear}/${endYear}/semester/${semester}/calendar` },
@@ -91,7 +90,7 @@ const SolicitudPage = () => {
 
     // Protección: Solo ADMIN puede acceder
     if (user?.role !== 'ADMIN') {
-        return <Navigate to="/home" replace />;
+        return <Navigate to="/degrees" replace />;
     }
 
     const handleOpenActionDialog = (solicitud: EventRequest, action: ActionType) => {

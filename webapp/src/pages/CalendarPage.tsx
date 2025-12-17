@@ -203,7 +203,6 @@ export default function CalendarPage() {
 
     useEffect(() => {
         setItems([
-            { label: t("breadcrumb.home"), href: "/home" },
             { label: t("breadcrumb.degrees"), href: "/degrees" },
             { label: t("breadcrumb.courses"), href: `/degrees/${acronym}/courses` },
             { label: t("breadcrumb.calendar"), href: "" },
@@ -1119,7 +1118,6 @@ export default function CalendarPage() {
                 degreeId={course?.degree?.id}
                 courseId={course?.id}
                 semester={semester ? parseInt(semester, 10) : undefined}
-                calendarEvents={data?.events}
                 initialDate={dragStartDate}
                 initialStartTime={dragStartTime}
                 initialEndTime={dragEndTime}
@@ -1159,7 +1157,6 @@ export default function CalendarPage() {
                     courseId={course?.id}
                     semester={semester ? parseInt(semester, 10) : undefined}
                     calendarId={calendarId || undefined}
-                    calendarEvents={data?.events}
                     initialDate={dragStartDate}
                     initialStartTime={dragStartTime}
                     initialEndTime={dragEndTime}

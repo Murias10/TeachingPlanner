@@ -1,7 +1,6 @@
 import { SubjectToolbar } from "@/components/subject/SubjectToolbar"
 import { SubjectTable } from "@/components/subject/SubjectTable"
 import { CreateSubjectDrawer } from "@/components/subject/CreateSubjectDrawer"
-import { ViewSubjectDrawer } from "@/components/subject/ViewSubjectDrawer"
 import { EditSubjectDrawer } from "@/components/subject/EditSubjectDrawer"
 import { DeleteConfirmationDialog } from "@/components/DeleteConfirmationDialog"
 import { ProtectedComponent } from "@/components/ProtectedComponent"
@@ -66,16 +65,13 @@ export default function SubjectPage() {
 
     const [selectedIds, setSelectedIds] = useState<string[]>([])
     const [drawerOpen, setDrawerOpen] = useState(false)
-    const [viewDrawerOpen, setViewDrawerOpen] = useState(false)
     const [editDrawerOpen, setEditDrawerOpen] = useState(false)
-    const [subjectToView, setSubjectToView] = useState<Subject | undefined>(undefined)
     const [subjectToEdit, setSubjectToEdit] = useState<Subject | undefined>(undefined)
     const [deleteState, setDeleteState] = useState<DeleteState>({ type: null })
 
     // Configurar breadcrumb - incluye el nombre del degree si está disponible
     useEffect(() => {
         const items = [
-            { label: t("breadcrumb.home"), href: "/home" },
             { label: t("breadcrumb.degrees"), href: "/degrees" },
             { label: t("breadcrumb.subjects"), href: "" },
         ];
@@ -216,12 +212,6 @@ export default function SubjectPage() {
         });
     }, [createSubject, degree, refetch, triggerAlert, t, formatConflictFields]);
 
-    // Abrir drawer de visualización
-    const handleViewClick = useCallback((subject: Subject) => {
-        setSubjectToView(subject);
-        setViewDrawerOpen(true);
-    }, []);
-
     // Abrir drawer de edición
     const handleEditClick = useCallback((subject: Subject) => {
         setSubjectToEdit(subject);
@@ -338,7 +328,6 @@ export default function SubjectPage() {
                             deleteSubject={handleDeleteClick}
                             setSelectedIds={setSelectedIds}
                             isAdmin={isAdmin}
-                            onViewSubject={handleViewClick}
                             onEditSubject={handleEditClick}
                         />
                     )}
@@ -349,12 +338,6 @@ export default function SubjectPage() {
                 open={drawerOpen && !!degree}
                 onOpenChange={setDrawerOpen}
                 onSave={handleSave}
-            />
-
-            <ViewSubjectDrawer
-                open={viewDrawerOpen}
-                onOpenChange={setViewDrawerOpen}
-                subjectData={subjectToView}
             />
 
             <EditSubjectDrawer

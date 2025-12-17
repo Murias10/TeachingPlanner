@@ -12,7 +12,6 @@ import { Subject } from "@/types/Subject"
 interface ColumnExtraProps {
     deleteSubject: (subjectId: string) => void;
     isAdmin?: boolean;
-    onViewSubject?: (subject: Subject) => void;
     onEditSubject?: (subject: Subject) => void;
 }
 
@@ -42,7 +41,7 @@ const getColorFromText = (text: string) => {
     return colors[Math.abs(hash) % colors.length];
 };
 
-export const columns = ({ deleteSubject, isAdmin = false, onViewSubject, onEditSubject }: ColumnExtraProps, t: TFunction): ColumnDef<Subject>[] => {
+export const columns = ({ deleteSubject, isAdmin = false, onEditSubject }: ColumnExtraProps, t: TFunction): ColumnDef<Subject>[] => {
     const cols: ColumnDef<Subject>[] = [];
 
     // Solo agregar columna de selección si es ADMIN

@@ -13,6 +13,7 @@ import CoursePage from "@/pages/CoursePage";
 import CalendarPage from "@/pages/CalendarPage";
 import SolicitudPage from "@/pages/SolicitudPage";
 import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
+import CalendarSyncPage from "@/pages/CalendarSyncPage";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Route, Routes, Navigate } from "react-router-dom";
@@ -47,6 +48,12 @@ export default function App() {
                         <Route path="settings" element={
                             <ProtectedRoute>
                                 <SettingsPage />
+                            </ProtectedRoute>
+                        } />
+
+                        <Route path="calendar-sync" element={
+                            <ProtectedRoute>
+                                <CalendarSyncPage />
                             </ProtectedRoute>
                         } />
 

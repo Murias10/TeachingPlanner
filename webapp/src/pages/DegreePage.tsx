@@ -45,7 +45,6 @@ export default function DegreePage() {
     // Configurar breadcrumb
     useEffect(() => {
         setItems([
-            { label: t("breadcrumb.home"), href: "/home" },
             { label: t("breadcrumb.degrees"), href: "/degrees" }
         ])
     }, [setItems, t])

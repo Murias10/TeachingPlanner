@@ -114,8 +114,7 @@ export function GroupTableButtons({ subject, onDeleteGroup }: Props) {
                                                     {groups.map((group: Group) => (
                                                         <CommandItem
                                                             key={group.id}
-                                                            onSelect={(e) => {
-                                                                e.preventDefault();
+                                                            onSelect={() => {
                                                                 toggleGroupSelection(group.id);
                                                             }}
                                                             className="flex items-center justify-between"

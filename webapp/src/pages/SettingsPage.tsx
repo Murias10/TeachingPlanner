@@ -12,6 +12,9 @@ import { useUpdatePassword } from "@/hooks/user/useUpdatePassword";
 import { useFloatingAlert } from "@/hooks/useFloatingAlert";
 import { validatePassword } from "@/utils/passwordValidation";
 import { useTranslation } from "react-i18next";
+import { useGoogleAuth } from "@/hooks/google/useGoogleAuth";
+import { useNavigate } from "react-router-dom";
+import { Calendar, CheckCircle2, XCircle } from "lucide-react";
 
 const SettingsPage = () => {
     const { t } = useTranslation();
@@ -20,6 +23,8 @@ const SettingsPage = () => {
     const { updateUser } = useUpdateUser();
     const { updatePassword } = useUpdatePassword();
     const { triggerAlert } = useFloatingAlert();
+    const navigate = useNavigate();
+    const { getStatus, initiateConnection, disconnect, isLoading: isGoogleLoading } = useGoogleAuth();
 
     // Profile form state
     const [name, setName] = useState("");
@@ -35,9 +40,13 @@ const SettingsPage = () => {
     const [confirmPassword, setConfirmPassword] = useState("");
     const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
+    // Google Calendar state
+    const [googleConnected, setGoogleConnected] = useState(false);
+    const [googleEmail, setGoogleEmail] = useState<string | undefined>();
+    const [isLoadingGoogleStatus, setIsLoadingGoogleStatus] = useState(true);
+
     useEffect(() => {
         setItems([
-            { label: "Inicio", href: "/home" },
             { label: "Ajustes", href: "/settings" },
         ])
     }, [setItems]);
@@ -51,6 +60,25 @@ const SettingsPage = () => {
             setUnioviUser(user.unioviUser || "");
         }
     }, [user]);
+
+    // Load Google Calendar connection status
+    useEffect(() => {
+        const loadGoogleStatus = async () => {
+            setIsLoadingGoogleStatus(true);
+            const status = await getStatus();
+            if (status) {
+                setGoogleConnected(status.connected);
+                setGoogleEmail(status.email);
+            }
+            setIsLoadingGoogleStatus(false);
+        };
+
+        if (user?.role === 'ADMIN') {
+            loadGoogleStatus();
+        } else {
+            setIsLoadingGoogleStatus(false);
+        }
+    }, [user, getStatus]);
 
     const handleProfileUpdate = async () => {
         if (!user) return;
@@ -171,6 +199,33 @@ const SettingsPage = () => {
             });
         }
         setIsUpdatingPassword(false);
+    };
+
+    const handleGoogleConnect = () => {
+        initiateConnection();
+    };
+
+    const handleGoogleDisconnect = async () => {
+        const result = await disconnect();
+        if (result.success) {
+            setGoogleConnected(false);
+            setGoogleEmail(undefined);
+            triggerAlert({
+                title: "Desconectado",
+                description: "Google Calendar desconectado exitosamente",
+                variant: "success"
+            });
+        } else {
+            triggerAlert({
+                title: "Error",
+                description: result.message || "Error al desconectar Google Calendar",
+                variant: "destructive"
+            });
+        }
+    };
+
+    const handleManageSyncs = () => {
+        navigate('/calendar-sync');
     };
 
     if (!user) return null;
@@ -330,6 +385,100 @@ const SettingsPage = () => {
                     </div>
                 </CardContent>
             </Card>
+
+            {/* Sección de Google Calendar (solo para ADMIN) */}
+            {user.role === 'ADMIN' && (
+                <Card>
+                    <CardHeader>
+                        <div className="flex items-center gap-2">
+                            <Calendar className="h-5 w-5" />
+                            <CardTitle>Google Calendar</CardTitle>
+                        </div>
+                        <CardDescription>
+                            Sincroniza tus calendarios de TeachingPlanner con Google Calendar
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        {isLoadingGoogleStatus ? (
+                            <div className="flex items-center justify-center py-6">
+                                <Spinner />
+                                <span className="ml-2 text-sm text-muted-foreground">Cargando estado de conexión...</span>
+                            </div>
+                        ) : (
+                            <>
+                                {/* Estado de conexión */}
+                                <div className="flex items-center justify-between p-4 border rounded-lg">
+                                    <div className="flex items-center gap-3">
+                                        {googleConnected ? (
+                                            <>
+                                                <CheckCircle2 className="h-5 w-5 text-green-600" />
+                                                <div>
+                                                    <p className="font-medium">Conectado a Google Calendar</p>
+                                                    {googleEmail && (
+                                                        <p className="text-sm text-muted-foreground">{googleEmail}</p>
+                                                    )}
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <XCircle className="h-5 w-5 text-gray-400" />
+                                                <div>
+                                                    <p className="font-medium">No conectado</p>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        Conecta tu cuenta de Google para sincronizar calendarios
+                                                    </p>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Botones de acción */}
+                                <div className="flex gap-2">
+                                    {googleConnected ? (
+                                        <>
+                                            <Button
+                                                onClick={handleManageSyncs}
+                                                variant="default"
+                                            >
+                                                Gestionar Sincronizaciones
+                                            </Button>
+                                            <Button
+                                                onClick={handleGoogleDisconnect}
+                                                variant="outline"
+                                                disabled={isGoogleLoading}
+                                            >
+                                                {isGoogleLoading && <Spinner />}
+                                                {isGoogleLoading ? "Desconectando..." : "Desconectar"}
+                                            </Button>
+                                        </>
+                                    ) : (
+                                        <Button
+                                            onClick={handleGoogleConnect}
+                                            variant="default"
+                                            disabled={isGoogleLoading}
+                                        >
+                                            {isGoogleLoading && <Spinner />}
+                                            {isGoogleLoading ? "Conectando..." : "Conectar con Google Calendar"}
+                                        </Button>
+                                    )}
+                                </div>
+
+                                {/* Información adicional */}
+                                <div className="bg-muted p-4 rounded-lg space-y-2">
+                                    <p className="text-sm font-medium">¿Cómo funciona?</p>
+                                    <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                                        <li>Conecta tu cuenta de Google para autorizar el acceso</li>
+                                        <li>Selecciona qué calendarios quieres sincronizar</li>
+                                        <li>Los eventos se sincronizan automáticamente cada 5 minutos</li>
+                                        <li>Los cambios en cualquier plataforma se reflejan en ambas</li>
+                                    </ul>
+                                </div>
+                            </>
+                        )}
+                    </CardContent>
+                </Card>
+            )}
         </div>
     );
 };

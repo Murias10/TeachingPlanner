@@ -81,6 +81,9 @@ export const columns = ({ deleteDegree, editDegree, isAdmin = false }: ColumnExt
             </Button>
         ),
         cell: ({ getValue }) => <span>{getValue<string>()}</span>,
+        meta: {
+            label: t("table.degrees.columns.name")
+        }
     });
 
     cols.push({
@@ -106,11 +109,15 @@ export const columns = ({ deleteDegree, editDegree, isAdmin = false }: ColumnExt
                 </Badge>
             );
         },
+        meta: {
+            label: t("table.degrees.columns.acronym")
+        }
     });
 
     cols.push({
         id: "actions",
         enableSorting: false,
+        enableHiding: false,
         cell: ({ row }) => {
             const degree = row.original
 

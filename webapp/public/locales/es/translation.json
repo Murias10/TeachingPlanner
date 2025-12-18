@@ -466,6 +466,35 @@
         }
     },
     "table": {
+        "users": {
+            "filter.placeholder": "Buscar por email o nombre...",
+            "columns": {
+                "title": "Columnas",
+                "unioviUser": "Usuario Uniovi",
+                "email": "Email",
+                "name": "Nombre",
+                "firstSurname": "Primer Apellido",
+                "secondSurname": "Segundo Apellido",
+                "isActive": "Estado",
+                "role": "Rol",
+                "actions": "Acciones"
+            },
+            "no.results": "No hay usuarios para mostrar",
+            "total": "Total: {{count}} usuarios"
+        },
+        "solicitudes": {
+            "filter.placeholder": "Buscar por profesor...",
+            "columns": {
+                "title": "Columnas",
+                "professorId": "Profesor",
+                "eventType": "Tipo de Evento",
+                "createdAt": "Fecha de Solicitud",
+                "status": "Estado",
+                "actions": "Acciones"
+            },
+            "no.results": "No hay resultados.",
+            "total": "Total: {{count}} solicitudes"
+        },
         "classrooms": {
             "filter.placeholder": "Filtrar por código...",
             "columns": {
@@ -486,8 +515,9 @@
             "filter.placeholder": "Filtrar por nombre...",
             "columns": {
                 "title": "Columnas",
-                "acronym": "Acrónimo",
                 "name": "Nombre",
+                "acronym": "Acrónimo",
+                "siesCode": "Código SIES",
                 "semester": "Semestre",
                 "year": "Año",
                 "actions": "Acciones"
@@ -534,8 +564,10 @@
             "filter.placeholder": "Filtrar por nombre...",
             "columns": {
                 "title": "Columnas",
-                "year": "Año",
-                "name": "Nombre"
+                "name": "Nombre",
+                "acronym": "Acrónimo",
+                "semester": "Semestre",
+                "year": "Año"
             },
             "no.results": "No se encontraron grupos.",
             "actions": {

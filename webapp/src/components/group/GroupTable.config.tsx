@@ -47,6 +47,9 @@ export const columns = (t: TFunction, onDeleteGroup?: (groupId: string) => void)
             </Button>
         ),
         cell: ({ getValue }) => <span>{getValue<string>()}</span>,
+        meta: {
+            label: t("table.groups.columns.name")
+        }
     },
     {
         accessorKey: "acronym",
@@ -71,6 +74,9 @@ export const columns = (t: TFunction, onDeleteGroup?: (groupId: string) => void)
                 </Badge>
             );
         },
+        meta: {
+            label: t("table.groups.columns.acronym")
+        }
     },
     {
         accessorKey: "semester",
@@ -89,6 +95,9 @@ export const columns = (t: TFunction, onDeleteGroup?: (groupId: string) => void)
             const semester = getValue<number>();
             const label = semester === 1 ? t("table.subjects.semester.1") : semester === 2 ? t("table.subjects.semester.2") : "—";
             return <span>{label}</span>;
+        },
+        meta: {
+            label: t("table.groups.columns.semester")
         }
     },
     {
@@ -114,10 +123,14 @@ export const columns = (t: TFunction, onDeleteGroup?: (groupId: string) => void)
                                 "—";
             return <span>{label}</span>;
         },
+        meta: {
+            label: t("table.groups.columns.year")
+        }
     },
     {
         id: "actions",
         enableSorting: false,
+        enableHiding: false,
         cell: ({ row }) => {
             const subject = row.original
             return (

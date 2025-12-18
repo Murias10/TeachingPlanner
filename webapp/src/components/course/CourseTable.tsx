@@ -106,7 +106,7 @@ export function CourseTable({ courses, deleteCourse, deleteCalendar, createCalen
                                     checked={c.getIsVisible()}
                                     onCheckedChange={v => c.toggleVisibility(!!v)}
                                 >
-                                    {c.id}
+                                    {c.columnDef?.meta?.label || c.id}
                                 </DropdownMenuCheckboxItem>
                             ))}
                     </DropdownMenuContent>

@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/table"
 import { User } from "@/types/auth.types"
 import { useEffect } from "react"
+import { useTranslation } from "react-i18next"
 
 interface UserTableProps {
     users: User[];
@@ -42,6 +43,7 @@ interface UserTableProps {
 }
 
 export function UserTable({ users, deleteUser, editUser, sendActivationEmail, setSelectedIds, isAdmin = false }: UserTableProps) {
+    const { t } = useTranslation()
 
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -56,7 +58,7 @@ export function UserTable({ users, deleteUser, editUser, sendActivationEmail, se
 
     const table = useReactTable({
         data: users,
-        columns: defaultColumns({ deleteUser, editUser, sendActivationEmail, isAdmin }),
+        columns: defaultColumns({ deleteUser, editUser, sendActivationEmail, isAdmin, t }),
         state: {
             sorting,
             columnFilters,
@@ -78,7 +80,7 @@ export function UserTable({ users, deleteUser, editUser, sendActivationEmail, se
         <div className="w-full h-full flex flex-col justify-center">
             <div className="flex items-center py-4">
                 <Input
-                    placeholder="Buscar por email o nombre..."
+                    placeholder={t("table.users.filter.placeholder")}
                     value={filterValue}
                     onChange={(e) => {
                         setFilterValue(e.target.value)
@@ -90,7 +92,7 @@ export function UserTable({ users, deleteUser, editUser, sendActivationEmail, se
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="outline" className="ml-auto">
-                            Columnas <ChevronDown className="ml-2 h-4 w-4" />
+                            {t("table.users.columns.title")} <ChevronDown className="ml-2 h-4 w-4" />
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
@@ -103,7 +105,7 @@ export function UserTable({ users, deleteUser, editUser, sendActivationEmail, se
                                     checked={c.getIsVisible()}
                                     onCheckedChange={(v) => c.toggleVisibility(!!v)}
                                 >
-                                    {c.id}
+                                    {c.columnDef?.meta?.label || c.id}
                                 </DropdownMenuCheckboxItem>
                             ))}
                     </DropdownMenuContent>
@@ -141,7 +143,7 @@ export function UserTable({ users, deleteUser, editUser, sendActivationEmail, se
                         {table.getRowModel().rows.length === 0 && (
                             <TableRow className="h-[53px]">
                                 <TableCell colSpan={table.getAllColumns().length} className="text-center">
-                                    No hay usuarios para mostrar
+                                    {t("table.users.no.results")}
                                 </TableCell>
                             </TableRow>
                         )}

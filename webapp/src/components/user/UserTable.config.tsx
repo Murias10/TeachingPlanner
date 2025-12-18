@@ -5,12 +5,14 @@ import { Badge } from "@/components/ui/badge"
 import { ArrowUpDown, CheckCircle, XCircle } from "lucide-react"
 import { UserTableButtons } from "@/components/user/UserTableButtons"
 import { User } from "@/types/auth.types"
+import { TFunction } from "i18next"
 
 interface ColumnExtraProps {
     deleteUser: (userId: string) => void;
     editUser?: (user: User) => void;
     sendActivationEmail?: (userId: string) => void;
     isAdmin?: boolean;
+    t: TFunction;
 }
 
 const getColorFromText = (text: string) => {
@@ -37,7 +39,7 @@ const getColorFromText = (text: string) => {
     return colors[Math.abs(hash) % colors.length];
 };
 
-export const columns = ({ deleteUser, editUser, sendActivationEmail, isAdmin = false }: ColumnExtraProps): ColumnDef<User>[] => {
+export const columns = ({ deleteUser, editUser, sendActivationEmail, isAdmin = false, t }: ColumnExtraProps): ColumnDef<User>[] => {
     const cols: ColumnDef<User>[] = [];
 
     if (isAdmin) {
@@ -65,8 +67,11 @@ export const columns = ({ deleteUser, editUser, sendActivationEmail, isAdmin = f
 
     cols.push({
         accessorKey: "unioviUser",
-        header: "Usuario Uniovi",
+        header: t("table.users.columns.unioviUser"),
         cell: ({ row }) => row.original.unioviUser || '-',
+        meta: {
+            label: t("table.users.columns.unioviUser")
+        }
     });
 
     cols.push({
@@ -80,10 +85,13 @@ export const columns = ({ deleteUser, editUser, sendActivationEmail, isAdmin = f
                 }
                 className="flex items-center gap-1"
             >
-                Email <ArrowUpDown className="h-4 w-4" />
+                {t("table.users.columns.email")} <ArrowUpDown className="h-4 w-4" />
             </Button>
         ),
         cell: ({ row }) => row.original.email,
+        meta: {
+            label: t("table.users.columns.email")
+        }
     });
 
     cols.push({
@@ -96,22 +104,31 @@ export const columns = ({ deleteUser, editUser, sendActivationEmail, isAdmin = f
                 }
                 className="flex items-center gap-1"
             >
-                Nombre <ArrowUpDown className="h-4 w-4" />
+                {t("table.users.columns.name")} <ArrowUpDown className="h-4 w-4" />
             </Button>
         ),
         cell: ({ row }) => row.original.name,
+        meta: {
+            label: t("table.users.columns.name")
+        }
     });
 
     cols.push({
         accessorKey: "firstSurname",
-        header: "Primer Apellido",
+        header: t("table.users.columns.firstSurname"),
         cell: ({ row }) => row.original.firstSurname,
+        meta: {
+            label: t("table.users.columns.firstSurname")
+        }
     });
 
     cols.push({
         accessorKey: "secondSurname",
-        header: "Segundo Apellido",
+        header: t("table.users.columns.secondSurname"),
         cell: ({ row }) => row.original.secondSurname,
+        meta: {
+            label: t("table.users.columns.secondSurname")
+        }
     });
 
     cols.push({
@@ -124,7 +141,7 @@ export const columns = ({ deleteUser, editUser, sendActivationEmail, isAdmin = f
                 }
                 className="flex items-center gap-1"
             >
-                Estado <ArrowUpDown className="h-4 w-4" />
+                {t("table.users.columns.isActive")} <ArrowUpDown className="h-4 w-4" />
             </Button>
         ),
         cell: ({ row }) => {
@@ -152,6 +169,9 @@ export const columns = ({ deleteUser, editUser, sendActivationEmail, isAdmin = f
                 </Badge>
             );
         },
+        meta: {
+            label: t("table.users.columns.isActive")
+        }
     });
 
     cols.push({
@@ -164,7 +184,7 @@ export const columns = ({ deleteUser, editUser, sendActivationEmail, isAdmin = f
                 }
                 className="flex items-center gap-1"
             >
-                Rol <ArrowUpDown className="h-4 w-4" />
+                {t("table.users.columns.role")} <ArrowUpDown className="h-4 w-4" />
             </Button>
         ),
         cell: ({ row }) => (
@@ -172,6 +192,9 @@ export const columns = ({ deleteUser, editUser, sendActivationEmail, isAdmin = f
                 {row.original.role}
             </Badge>
         ),
+        meta: {
+            label: t("table.users.columns.role")
+        }
     });
 
     if (isAdmin) {
@@ -187,6 +210,9 @@ export const columns = ({ deleteUser, editUser, sendActivationEmail, isAdmin = f
                     />
                 </div>
             ),
+            meta: {
+                label: t("table.users.columns.actions")
+            }
         });
     }
 

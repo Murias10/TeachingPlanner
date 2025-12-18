@@ -121,8 +121,42 @@
         }
     },
     "table": {
+        "users": {
+            "filter.placeholder": "Search by email or name...",
+            "columns": {
+                "title": "Columns",
+                "unioviUser": "Uniovi User",
+                "email": "Email",
+                "name": "Name",
+                "firstSurname": "First Surname",
+                "secondSurname": "Second Surname",
+                "isActive": "Status",
+                "role": "Role",
+                "actions": "Actions"
+            },
+            "no.results": "No users to display",
+            "total": "Total: {{count}} users"
+        },
+        "solicitudes": {
+            "filter.placeholder": "Search by professor...",
+            "columns": {
+                "title": "Columns",
+                "professorId": "Professor",
+                "eventType": "Event Type",
+                "createdAt": "Request Date",
+                "status": "Status",
+                "actions": "Actions"
+            },
+            "no.results": "No results.",
+            "total": "Total: {{count}} requests"
+        },
         "courses": {
-            "filter.placeholder": "Filter by course..."
+            "filter.placeholder": "Filter by course...",
+            "columns": {
+                "title": "Columns",
+                "course": "Course",
+                "state": "State"
+            }
         }
     }
 }

@@ -12,6 +12,7 @@ import {
 } from "@tanstack/react-table"
 
 import { columns as defaultColumns } from "@/components/solicitud/SolicitudTable.config"
+import { useTranslation } from "react-i18next"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { ChevronDown } from "lucide-react"
@@ -50,6 +51,7 @@ interface SolicitudTableProps {
 }
 
 export function SolicitudTable({ solicitudes, onApprove, onReject }: SolicitudTableProps) {
+    const { t } = useTranslation()
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
@@ -57,7 +59,7 @@ export function SolicitudTable({ solicitudes, onApprove, onReject }: SolicitudTa
 
     const table = useReactTable({
         data: solicitudes,
-        columns: defaultColumns({ onApprove, onReject }),
+        columns: defaultColumns({ onApprove, onReject, t }),
         state: {
             sorting,
             columnFilters,
@@ -77,7 +79,7 @@ export function SolicitudTable({ solicitudes, onApprove, onReject }: SolicitudTa
         <div className="w-full h-full flex flex-col justify-center">
             <div className="flex items-center py-4 gap-4">
                 <Input
-                    placeholder="Buscar por profesor..."
+                    placeholder={t("table.solicitudes.filter.placeholder")}
                     value={filterValue}
                     onChange={(e) => {
                         setFilterValue(e.target.value)
@@ -89,7 +91,7 @@ export function SolicitudTable({ solicitudes, onApprove, onReject }: SolicitudTa
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="outline" className="ml-auto">
-                            Columnas <ChevronDown className="ml-2 h-4 w-4" />
+                            {t("table.solicitudes.columns.title")} <ChevronDown className="ml-2 h-4 w-4" />
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
@@ -105,7 +107,7 @@ export function SolicitudTable({ solicitudes, onApprove, onReject }: SolicitudTa
                                         column.toggleVisibility(!!value)
                                     }
                                 >
-                                    {column.id}
+                                    {column.columnDef?.meta?.label || column.id}
                                 </DropdownMenuCheckboxItem>
                             ))}
                     </DropdownMenuContent>
@@ -148,7 +150,7 @@ export function SolicitudTable({ solicitudes, onApprove, onReject }: SolicitudTa
                         {table.getRowModel().rows.length === 0 && (
                             <TableRow className="h-[53px]">
                                 <TableCell colSpan={table.getAllColumns().length} className="text-center">
-                                    No hay resultados.
+                                    {t("table.solicitudes.no.results")}
                                 </TableCell>
                             </TableRow>
                         )}

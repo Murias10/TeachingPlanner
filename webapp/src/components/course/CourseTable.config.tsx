@@ -51,6 +51,9 @@ export const columns = ({ deleteCourse, deleteCalendar, createCalendar, onEditCo
         cell: ({ getValue }) => (
             <span className="font-medium text-sm">{getValue<string>()}</span>
         ),
+        meta: {
+            label: t("table.courses.columns.course")
+        }
     },
     {
         accessorKey: 'state',
@@ -74,10 +77,14 @@ export const columns = ({ deleteCourse, deleteCalendar, createCalendar, onEditCo
                 </div>
             );
         },
+        meta: {
+            label: t("table.courses.columns.state")
+        }
     },
     {
         id: 'actions',
         enableSorting: false,
+        enableHiding: false,
         cell: ({ row }) => {
             const course = row.original
 

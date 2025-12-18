@@ -104,7 +104,7 @@ export function SubjectTable({ subjects, deleteSubject, setSelectedIds, isAdmin,
                                     checked={c.getIsVisible()}
                                     onCheckedChange={(v) => c.toggleVisibility(!!v)}
                                 >
-                                    {c.id}
+                                    {c.columnDef?.meta?.label || c.id}
                                 </DropdownMenuCheckboxItem>
                             ))}
                     </DropdownMenuContent>

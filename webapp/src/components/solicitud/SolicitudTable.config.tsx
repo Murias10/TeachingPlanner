@@ -8,6 +8,7 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip"
 import moment from "moment"
+import { TFunction } from "i18next"
 
 interface EventRequest {
     id: string;
@@ -25,6 +26,7 @@ interface EventRequest {
 interface ColumnExtraProps {
     onApprove: (solicitud: EventRequest) => void;
     onReject: (solicitud: EventRequest) => void;
+    t: TFunction;
 }
 
 const getStatusBadge = (status: string) => {
@@ -44,7 +46,7 @@ const getEventTypeLabel = (eventType: string) => {
     return eventType === 'PUNTUAL' ? 'Puntual' : 'Periódica';
 };
 
-export const columns = ({ onApprove, onReject }: ColumnExtraProps): ColumnDef<EventRequest>[] => [
+export const columns = ({ onApprove, onReject, t }: ColumnExtraProps): ColumnDef<EventRequest>[] => [
     {
         accessorKey: "professorId",
         enableHiding: false,
@@ -56,16 +58,22 @@ export const columns = ({ onApprove, onReject }: ColumnExtraProps): ColumnDef<Ev
                 }
                 className="flex items-center gap-1"
             >
-                Profesor
+                {t("table.solicitudes.columns.professorId")}
                 <ArrowUpDown className="h-4 w-4" />
             </Button>
         ),
         cell: ({ row }) => <div className="font-medium">{row.getValue("professorId")}</div>,
+        meta: {
+            label: t("table.solicitudes.columns.professorId")
+        }
     },
     {
         accessorKey: "eventType",
-        header: () => <div>Tipo de Evento</div>,
+        header: () => <div>{t("table.solicitudes.columns.eventType")}</div>,
         cell: ({ row }) => <div>{getEventTypeLabel(row.getValue("eventType"))}</div>,
+        meta: {
+            label: t("table.solicitudes.columns.eventType")
+        }
     },
     {
         accessorKey: "createdAt",
@@ -77,16 +85,22 @@ export const columns = ({ onApprove, onReject }: ColumnExtraProps): ColumnDef<Ev
                 }
                 className="flex items-center gap-1"
             >
-                Fecha de Solicitud
+                {t("table.solicitudes.columns.createdAt")}
                 <ArrowUpDown className="h-4 w-4" />
             </Button>
         ),
         cell: ({ row }) => <div>{moment(row.getValue("createdAt")).format('DD/MM/YYYY HH:mm')}</div>,
+        meta: {
+            label: t("table.solicitudes.columns.createdAt")
+        }
     },
     {
         accessorKey: "status",
-        header: () => <div>Estado</div>,
+        header: () => <div>{t("table.solicitudes.columns.status")}</div>,
         cell: ({ row }) => getStatusBadge(row.getValue("status")),
+        meta: {
+            label: t("table.solicitudes.columns.status")
+        }
     },
     {
         id: "actions",
@@ -129,5 +143,8 @@ export const columns = ({ onApprove, onReject }: ColumnExtraProps): ColumnDef<Ev
                 </div>
             );
         },
+        meta: {
+            label: t("table.solicitudes.columns.actions")
+        }
     },
 ];

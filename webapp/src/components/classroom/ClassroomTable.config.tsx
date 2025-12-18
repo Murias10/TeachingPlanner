@@ -66,10 +66,14 @@ export const columns = ({ deleteClassroom, isAdmin = false, onEditClassroom }: C
             cell: ({ getValue }) => (
                 <span>{getValue<string>()}</span>
             ),
+            meta: {
+                label: t("table.classrooms.columns.gisUrl")
+            }
         },
         {
             id: "actions",
             enableSorting: false,
+            enableHiding: false,
             cell: ({ row }) => {
                 const classroom = row.original
 

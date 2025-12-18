@@ -6,9 +6,10 @@ import { format } from "date-fns";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { useCalendarByCourseAndSemester } from "@/hooks/calendar/useCalendarByCourseAndSemester";
 import { usePendingRequestsAsEvents } from "@/hooks/calendar/usePendingRequestsAsEvents";
+import { useSubjectsWithEventsAndGroupsByCourseAndSemester } from "@/hooks/subject/useSubjectsWithEventsAndGroupsByCourseIdAndSemester";
 import { CalendarEvent } from "@/types/CalendarEvent";
 import ClassFilter, { FilterValues } from "@/components/ClassFilter";
-import { FileText, BookOpen, DoorOpen, Languages, Users } from "lucide-react";
+import { FileText, BookOpen, DoorOpen, Languages, Users, GraduationCap } from "lucide-react";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -50,6 +51,20 @@ interface MyEvent {
     end: Date;
     resource?: CalendarEvent;
 }
+
+// Constantes
+const ACADEMIC_YEAR_LABELS = {
+    0: 'Optativas',
+    1: '1º',
+    2: '2º',
+    3: '3º',
+    4: '4º'
+} as const;
+
+// Helper: Mapear año numérico a etiqueta
+const getYearLabel = (year: number): string => {
+    return ACADEMIC_YEAR_LABELS[year as keyof typeof ACADEMIC_YEAR_LABELS] || `${year}º`;
+};
 
 // Colores pastel suaves y únicos para asignaturas (con buen contraste para texto blanco)
 const SUBJECT_COLORS = [
@@ -123,6 +138,23 @@ export default function CalendarPage() {
     // Obtener eventos de solicitudes pendientes
     const { data: pendingData, isLoading: isLoadingPending, refetch: refetchPendingRequests } = usePendingRequestsAsEvents(calendarId);
 
+    // Obtener asignaturas para el mapping de años
+    const { data: subjectsData } = useSubjectsWithEventsAndGroupsByCourseAndSemester(
+        course?.id || null,
+        semester ? parseInt(semester, 10) : null
+    );
+
+    // Crear mapping de acronym → year
+    const subjectYearMap = useMemo(() => {
+        const map = new Map<string, number>();
+        subjectsData?.forEach(subject => {
+            if (subject.acronym && subject.year !== undefined) {
+                map.set(subject.acronym, subject.year);
+            }
+        });
+        return map;
+    }, [subjectsData]);
+
     // Combinar eventos normales con eventos pendientes
     const allEvents = useMemo(() => {
         const normalEvents = data?.events || [];
@@ -141,7 +173,8 @@ export default function CalendarPage() {
         asignatura: [],
         grupos: [],
         aula: [],
-        idioma: []
+        idioma: [],
+        curso: []
     });
 
     // Estado para colapsar/expandir filtros
@@ -283,6 +316,7 @@ export default function CalendarPage() {
         const uniqueSubjects = new Set<string>();
         const uniqueClassrooms = new Set<string>();
         const uniqueLanguages = new Set<string>();
+        const uniqueYears = new Set<number>();
 
         allEvents.forEach(event => {
             event.groups.forEach(group => {
@@ -292,12 +326,21 @@ export default function CalendarPage() {
 
             if (event.subject?.acronym) {
                 uniqueSubjects.add(event.subject.acronym);
+
+                // Obtener el año desde el mapping de asignaturas
+                const year = subjectYearMap.get(event.subject.acronym);
+                if (year !== undefined && year !== null) {
+                    uniqueYears.add(year);
+                }
             }
 
             event.classrooms.forEach(classroom => {
                 uniqueClassrooms.add(classroom.code);
             });
         });
+
+        // Mapear años a etiquetas usando la función helper
+        const yearLabels = Array.from(uniqueYears).sort().map(getYearLabel);
 
         return [
             {
@@ -329,9 +372,15 @@ export default function CalendarPage() {
                 label: 'Idioma',
                 options: sortAlphabetically(Array.from(uniqueLanguages)),
                 icon: Languages
+            },
+            {
+                category: 'curso' as const,
+                label: 'Curso',
+                options: yearLabels,
+                icon: GraduationCap
             }
         ];
-    }, [allEvents, availableGrupos]);
+    }, [allEvents, availableGrupos, subjectYearMap]);
 
     // Filtrar eventos según los filtros activos
     const filteredEvents = useMemo(() => {
@@ -386,9 +435,22 @@ export default function CalendarPage() {
                 if (!hasMatchingLanguage) return false;
             }
 
+            // Filtro por curso (año de la asignatura)
+            if (filters.curso.length > 0) {
+                if (!event.subject?.acronym) return false;
+
+                // Obtener el año desde el mapping de asignaturas
+                const subjectYear = subjectYearMap.get(event.subject.acronym);
+                if (subjectYear === undefined) return false;
+
+                // Convertir el año a etiqueta usando helper
+                const yearLabel = getYearLabel(subjectYear);
+                if (!filters.curso.includes(yearLabel)) return false;
+            }
+
             return true;
         });
-    }, [allEvents, filters]);
+    }, [allEvents, filters, subjectYearMap]);
 
     // Transformar eventos filtrados al formato de react-big-calendar
     const events: MyEvent[] = useMemo(() => {

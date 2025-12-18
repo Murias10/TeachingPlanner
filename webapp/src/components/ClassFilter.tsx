@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { Filter, X, ChevronRight, ChevronDown, Check, ChevronLeft } from 'lucide-react';
+import { Filter, X, ChevronRight, ChevronDown, Check, ChevronLeft, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { formatGroupForDisplay, getGroupAcronym } from '@/utils/groupFormatUtils';
 import { GROUP_TYPE_LABELS, LANGUAGE_LABELS } from '@/constants/groupTypes';
 
-type FilterCategory = 'tipoGrupo' | 'asignatura' | 'grupos' | 'aula' | 'idioma';
+type FilterCategory = 'tipoGrupo' | 'asignatura' | 'grupos' | 'aula' | 'idioma' | 'curso';
 
 export interface FilterValues {
   tipoGrupo: string[];
@@ -15,6 +16,7 @@ export interface FilterValues {
   grupos: string[];
   aula: string[];
   idioma: string[];
+  curso: string[];
 }
 
 interface FilterOption {
@@ -40,6 +42,16 @@ export default function ClassFilter({
   onToggleCollapse
 }: ClassFilterProps) {
   const [expandedCategory, setExpandedCategory] = useState<FilterCategory | null>(null);
+  const [searchTerms, setSearchTerms] = useState<Record<FilterCategory, string>>({
+    tipoGrupo: '',
+    asignatura: '',
+    grupos: '',
+    aula: '',
+    idioma: '',
+    curso: ''
+  });
+
+  const SEARCH_THRESHOLD = 8; // Mostrar búsqueda si hay más de 8 opciones
 
   const getGroupState = (groupId: string): 'disabled' | 'unchecked' | 'checked' => {
     const subjectAcronym = getGroupAcronym(groupId);
@@ -91,7 +103,8 @@ export default function ClassFilter({
       asignatura: [],
       grupos: [],
       aula: [],
-      idioma: []
+      idioma: [],
+      curso: []
     });
   };
 
@@ -106,6 +119,16 @@ export default function ClassFilter({
       return formatGroupForDisplay(value);
     }
     return value;
+  };
+
+  const filterOptionsBySearch = (options: string[], category: FilterCategory): string[] => {
+    const searchTerm = searchTerms[category].toLowerCase();
+    if (!searchTerm) return options;
+
+    return options.filter(option => {
+      const displayLabel = getDisplayLabel(category, option).toLowerCase();
+      return displayLabel.includes(searchTerm);
+    });
   };
 
   const totalActiveFilters = Object.values(filters).reduce((sum, arr) => sum + arr.length, 0);
@@ -178,6 +201,8 @@ export default function ClassFilter({
           {filterOptions.map(({ category, label, options, icon: Icon }) => {
             const isExpanded = expandedCategory === category;
             const selectedCount = filters[category].length;
+            const showSearch = options.length > SEARCH_THRESHOLD;
+            const filteredOptions = filterOptionsBySearch(options, category);
 
             return (
               <div key={category} className="border rounded-lg overflow-hidden bg-card">
@@ -212,6 +237,22 @@ export default function ClassFilter({
 
                 {isExpanded && (
                   <div className="border-t max-h-72 flex flex-col overflow-hidden">
+                    {showSearch && (
+                      <div className="p-2 border-b shrink-0">
+                        <div className="relative">
+                          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            placeholder="Buscar..."
+                            value={searchTerms[category]}
+                            onChange={(e) => setSearchTerms(prev => ({
+                              ...prev,
+                              [category]: e.target.value
+                            }))}
+                            className="h-8 pl-8"
+                          />
+                        </div>
+                      </div>
+                    )}
                     <div className="p-2 bg-muted/50 flex gap-2 shrink-0">
                       <Button
                         variant="ghost"
@@ -234,7 +275,12 @@ export default function ClassFilter({
                     </div>
                     <div className="flex-1 min-h-0 overflow-y-auto">
                       <div className="p-2 space-y-1">
-                        {options.map(option => {
+                        {filteredOptions.length === 0 && searchTerms[category] && (
+                          <div className="text-sm text-muted-foreground text-center py-4">
+                            No se encontraron resultados
+                          </div>
+                        )}
+                        {filteredOptions.map(option => {
                           const groupState = category === 'grupos' ? getGroupState(option) : null;
                           const isDisabled = groupState === 'disabled';
                           const isChecked = filters[category].includes(option);

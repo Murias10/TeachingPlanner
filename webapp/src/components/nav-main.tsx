@@ -43,7 +43,6 @@ export function NavMain({
 
   const viewMap = {
     [t("sidebar.main.subjects.title")]: "subjects",
-    [t("sidebar.main.calendars.title")]: "calendars",
     [t("sidebar.main.degrees.title")]: "degrees",
   };
 

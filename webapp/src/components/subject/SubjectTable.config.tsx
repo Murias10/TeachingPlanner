@@ -4,10 +4,16 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ProtectedComponent } from "@/components/ProtectedComponent"
-import { ArrowUpDown } from "lucide-react"
+import { ArrowUpDown, ExternalLink } from "lucide-react"
 import { EditDeleteTableButtons } from "@/components/common/EditDeleteTableButtons"
 import { TFunction } from "i18next"
 import { Subject } from "@/types/Subject"
+import { Link } from "react-router-dom"
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 interface ColumnExtraProps {
     deleteSubject: (subjectId: string) => void;
@@ -173,9 +179,27 @@ export const columns = ({ deleteSubject, isAdmin = false, onEditSubject }: Colum
             enableHiding: false,
             cell: ({ row }) => {
                 const subject = row.original
+                const siesUrl = subject.siesCode
+                    ? `https://www.uniovi.es/ast/estudia/grados/ingenieria/informaticasoftware/-/fof/asignatura/${subject.siesCode}`
+                    : null
 
                 return (
                     <div className="flex justify-end items-center gap-2">
+                        {siesUrl && (
+                            <Link to={siesUrl} target="_blank" className="flex items-center">
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button variant="outline" size="icon" className="size-10">
+                                            <ExternalLink />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>{t("table.subjects.actions.siesUrl", { url: siesUrl })}</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </Link>
+                        )}
+
                         <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
                             <EditDeleteTableButtons
                                 onEdit={() => onEditSubject?.(subject)}

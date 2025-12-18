@@ -15,7 +15,7 @@
                 "title": "Inicio"
             },
             "calendars": {
-                "title": "Calendarios"
+                "title": "Titulaciones"
             },
             "classrooms": {
                 "title": "Aulas"
@@ -536,7 +536,8 @@
             "actions": {
                 "edit": "Editar asignatura",
                 "delete": "Eliminar asignatura",
-                "view": "Ver asignatura"
+                "view": "Ver asignatura",
+                "siesUrl": "Ir a {{url}}"
             }
         },
         "courses": {

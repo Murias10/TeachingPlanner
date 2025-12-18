@@ -15,7 +15,7 @@
                 "title": "Home"
             },
             "calendars": {
-                "title": "Calendars"
+                "title": "Degrees"
             },
             "classrooms": {
                 "title": "Classrooms"
@@ -156,6 +156,11 @@
                 "title": "Columns",
                 "course": "Course",
                 "state": "State"
+            }
+        },
+        "subjects": {
+            "actions": {
+                "siesUrl": "Go to {{url}}"
             }
         }
     }

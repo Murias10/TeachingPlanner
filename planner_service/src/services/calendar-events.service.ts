@@ -117,6 +117,9 @@ export class CalendarEventsService {
     eventosPorGrupo: Map<string, any[]>
   ): void {
     for (const dia of diasDelCalendario) {
+      // Solo procesar días lectivos
+      if (!dia.lective) continue;
+
       for (const eventoPuntual of dia.puntualEvents || []) {
         if (eventoPuntual.cancelled) continue;
 

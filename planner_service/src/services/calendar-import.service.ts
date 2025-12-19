@@ -190,21 +190,21 @@ export class CalendarImportService {
           continue;
         }
 
-        const year = parseInt(yearStr, 10);
-        if (isNaN(year) || year < 1 || year > 6) {
+        const year = Number.parseInt(yearStr, 10);
+        if (isNaN(year) || year < 0 || year > 6) {
           errors.push(`Línea ${i + 1}: Año inválido '${yearStr}'`);
           continue;
         }
 
         const groups = [
-          { number: parseInt(groupsTeoriaES, 10), type: 'T', language: 'ES' },
-          { number: parseInt(groupsSeminarioES, 10), type: 'S', language: 'ES' },
-          { number: parseInt(groupsLaboratorioES, 10), type: 'L', language: 'ES' },
-          { number: parseInt(groupsTeoriaEN, 10), type: 'T', language: 'EN' },
-          { number: parseInt(groupsSeminarioEN, 10), type: 'S', language: 'EN' },
-          { number: parseInt(groupsLaboratorioEN, 10), type: 'L', language: 'EN' },
-          { number: parseInt(groupsTutoriaGrupalES, 10), type: 'TG', language: 'ES' },
-          { number: parseInt(groupsTutoriaGrupalEN, 10), type: 'TG', language: 'EN' }
+          { number: Number.parseInt(groupsTeoriaES, 10), type: 'T', language: 'ES' },
+          { number: Number.parseInt(groupsSeminarioES, 10), type: 'S', language: 'ES' },
+          { number: Number.parseInt(groupsLaboratorioES, 10), type: 'L', language: 'ES' },
+          { number: Number.parseInt(groupsTeoriaEN, 10), type: 'T', language: 'EN' },
+          { number: Number.parseInt(groupsSeminarioEN, 10), type: 'S', language: 'EN' },
+          { number: Number.parseInt(groupsLaboratorioEN, 10), type: 'L', language: 'EN' },
+          { number: Number.parseInt(groupsTutoriaGrupalES, 10), type: 'TG', language: 'ES' },
+          { number: Number.parseInt(groupsTutoriaGrupalEN, 10), type: 'TG', language: 'EN' }
         ];
 
         let subject = await subjectRepo.findOne({ where: { acronym, degree: { id: degreeId } } });
@@ -225,7 +225,11 @@ export class CalendarImportService {
         let totalGroupsCreated = 0;
         let totalGroupsSkipped = 0;
 
+        // Crear grupos solo si el número es > 0
+        // Si es 0, la asignatura es optativa y se guarda sin grupos
         for (const groupConfig of groups) {
+          if (groupConfig.number === 0 || isNaN(groupConfig.number)) continue;
+
           for (let groupNumber = 1; groupNumber <= groupConfig.number; groupNumber++) {
             try {
               const existingGroup = await groupRepo.findOne({
@@ -488,7 +492,7 @@ export class CalendarImportService {
         const [courseYearStr, subjectGroupInfo, weekDay, startTimeStr, endTimeStr, classroomCode, eventCharacter, planifiedHoursStr] = parts.map(p => p.trim());
 
         const year = parseInt(courseYearStr, 10);
-        if (isNaN(year) || year < 1 || year > 4) continue;
+        if (isNaN(year) || year < 1 || year > 5) continue;
 
         const groupParts = subjectGroupInfo.split('.');
         if (groupParts.length !== 3) continue;

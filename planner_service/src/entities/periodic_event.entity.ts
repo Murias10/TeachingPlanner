@@ -34,7 +34,7 @@ export class PeriodicEvent extends AuditedEntity {
     @Column('varchar', { length: 10, name: 'WEEK_DAY' })
     weekDay!: string;
 
-    /** Character or type of the event (e.g., 'Lecture', 'Practice', 'Laboratory') */
+    /** Character to indicate the periidicity of the event related to the columne dayCharacter in the DAYS table */
     @Column('varchar', { length: 50, name: 'EVENT_CHARACTER' })
     eventCharacter!: string;
 

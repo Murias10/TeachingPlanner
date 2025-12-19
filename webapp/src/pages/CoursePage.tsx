@@ -312,6 +312,14 @@ export default function CoursePage() {
             throw new Error('Degree ID is required');
         }
 
+        // Función auxiliar para formatear fecha como YYYY-MM-DD sin zona horaria
+        const formatDateAsLocal = (date: Date) => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+
         const response = await fetch(`${VITE_GATEWAY_API_URL}/calendar`, {
             method: 'POST',
             headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -319,9 +327,9 @@ export default function CoursePage() {
                 idCourse: formData.courseId,
                 degreeId: calendarDrawerData.degreeId,
                 semester: formData.semester,
-                start: formData.startDate?.toISOString(),
-                end: formData.endDate?.toISOString(),
-                holidayDates: formData.holidayDates?.map(date => date.toISOString())
+                start: formData.startDate ? formatDateAsLocal(formData.startDate) : undefined,
+                end: formData.endDate ? formatDateAsLocal(formData.endDate) : undefined,
+                holidayDates: formData.holidayDates?.map(date => formatDateAsLocal(date))
             })
         });
 

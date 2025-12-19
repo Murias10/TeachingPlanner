@@ -117,9 +117,24 @@ export const createCalendar = async (req: AuditedRequest, res: Response) => {
         return;
     }
 
-    // Validar que la fecha de inicio sea anterior a la de fin
-    const startDate = new Date(start);
-    const endDate = new Date(end);
+    // Parsear fechas en zona horaria de Madrid (Europe/Madrid)
+    // Esto evita problemas de conversión UTC que pueden cambiar el día
+    const parseSpainDate = (dateString: string): Date => {
+        const parts = dateString.split(/[-T]/);
+        if (parts.length >= 3) {
+            // Crear fecha a mediodía en zona horaria de Madrid para evitar cambios de día
+            const year = parseInt(parts[0]);
+            const month = parseInt(parts[1]) - 1;
+            const day = parseInt(parts[2]);
+            const date = new Date(year, month, day, 12, 0, 0, 0);
+            return date;
+        }
+        // Fallback: añadir hora del mediodía para evitar problemas con UTC
+        return new Date(dateString + 'T12:00:00');
+    };
+
+    const startDate = parseSpainDate(start);
+    const endDate = parseSpainDate(end);
 
     if (startDate >= endDate) {
         res.status(400).json({
@@ -167,9 +182,12 @@ export const createCalendar = async (req: AuditedRequest, res: Response) => {
         // Crear conjunto de fechas festivas para búsqueda rápida
         const holidaySet = new Set(
             (holidayDates as string[]).map((dateStr: string) => {
-                const date = new Date(dateStr);
-                date.setHours(0, 0, 0, 0);
-                return date.toISOString().split('T')[0];
+                const date = parseSpainDate(dateStr);
+                // Formatear como YYYY-MM-DD para comparación
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
             })
         );
 

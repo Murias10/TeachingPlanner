@@ -519,14 +519,17 @@
                 "acronym": "Acrónimo",
                 "siesCode": "Código SIES",
                 "semester": "Semestre",
-                "year": "Año",
+                "year": "Curso",
                 "actions": "Acciones"
             },
             "year": {
-                "1": "1º Año",
-                "2": "2º Año",
-                "3": "3º Año",
-                "4": "4º Año"
+                "0": "Optativa",
+                "1": "1º",
+                "2": "2º",
+                "3": "3º",
+                "4": "4º",
+                "5": "5º",
+                "6": "6º"
             },
             "semester": {
                 "1": "Semestre 1",
@@ -568,7 +571,7 @@
                 "name": "Nombre",
                 "acronym": "Acrónimo",
                 "semester": "Semestre",
-                "year": "Año"
+                "year": "Curso"
             },
             "no.results": "No se encontraron grupos.",
             "actions": {

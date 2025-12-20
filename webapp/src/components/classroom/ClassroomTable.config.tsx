@@ -2,12 +2,7 @@ import { ColumnDef } from "@tanstack/react-table"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
 import { ProtectedComponent } from "@/components/ProtectedComponent"
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger,
-} from "@/components/ui/tooltip"
-import { ArrowUpDown, ExternalLink } from "lucide-react"
+import { ArrowUpDown } from "lucide-react"
 import { EditDeleteTableButtons } from "@/components/common/EditDeleteTableButtons"
 import { Classroom } from "@/types/Classroom"
 import { Link } from "react-router-dom"
@@ -63,9 +58,16 @@ export const columns = ({ deleteClassroom, isAdmin = false, onEditClassroom }: C
         {
             accessorKey: "gisUrl",
             header: t("table.classrooms.columns.gisUrl"),
-            cell: ({ getValue }) => (
-                <span>{getValue<string>()}</span>
-            ),
+            cell: ({ getValue }) => {
+                const gisUrl = getValue<string>();
+                return gisUrl ? (
+                    <Link to={gisUrl} target="_blank" className="text-blue-600 hover:underline">
+                        {gisUrl}
+                    </Link>
+                ) : (
+                    <span>—</span>
+                );
+            },
             meta: {
                 label: t("table.classrooms.columns.gisUrl")
             }
@@ -79,19 +81,6 @@ export const columns = ({ deleteClassroom, isAdmin = false, onEditClassroom }: C
 
                 return (
                     <div className="flex justify-end items-center gap-2">
-                        <Link to={classroom.gisUrl} target="_blank" className="flex items-center">
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button variant="outline" size="icon" className="size-10">
-                                        <ExternalLink />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>{t("table.classrooms.actions.gisUrl", { url: classroom.gisUrl })}</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        </Link>
-
                         <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
                             <EditDeleteTableButtons
                                 onEdit={() => onEditClassroom?.(classroom)}

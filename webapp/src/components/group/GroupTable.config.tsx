@@ -115,12 +115,9 @@ export const columns = (t: TFunction, onDeleteGroup?: (groupId: string) => void)
         ),
         cell: ({ getValue }) => {
             const year = getValue<number>();
-            const label =
-                year === 1 ? t("table.subjects.year.1") :
-                    year === 2 ? t("table.subjects.year.2") :
-                        year === 3 ? t("table.subjects.year.3") :
-                            year === 4 ? t("table.subjects.year.4") :
-                                "—";
+            // Intentar obtener la traducción específica, o crear el formato genérico
+            const translationKey = `table.subjects.year.${year}`;
+            const label = t(translationKey, { defaultValue: year === 0 ? "Optativa" : `${year}º` });
             return <span>{label}</span>;
         },
         meta: {

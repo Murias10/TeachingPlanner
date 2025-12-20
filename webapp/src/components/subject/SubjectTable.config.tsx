@@ -4,7 +4,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ProtectedComponent } from "@/components/ProtectedComponent"
-import { ArrowUpDown, ExternalLink } from "lucide-react"
+import { ArrowUpDown, Info } from "lucide-react"
 import { EditDeleteTableButtons } from "@/components/common/EditDeleteTableButtons"
 import { TFunction } from "i18next"
 import { Subject } from "@/types/Subject"
@@ -161,12 +161,9 @@ export const columns = ({ deleteSubject, isAdmin = false, onEditSubject }: Colum
             ),
             cell: ({ getValue }) => {
                 const year = getValue<number>();
-                const label =
-                    year === 1 ? t("table.subjects.year.1") :
-                        year === 2 ? t("table.subjects.year.2") :
-                            year === 3 ? t("table.subjects.year.3") :
-                                year === 4 ? t("table.subjects.year.4") :
-                                    "—";
+                // Intentar obtener la traducción específica, o crear el formato genérico
+                const translationKey = `table.subjects.year.${year}`;
+                const label = t(translationKey, { defaultValue: year === 0 ? "Optativa" : `${year}º` });
                 return <span>{label}</span>;
             },
             meta: {
@@ -190,7 +187,7 @@ export const columns = ({ deleteSubject, isAdmin = false, onEditSubject }: Colum
                                 <Tooltip>
                                     <TooltipTrigger asChild>
                                         <Button variant="outline" size="icon" className="size-10">
-                                            <ExternalLink />
+                                            <Info />
                                         </Button>
                                     </TooltipTrigger>
                                     <TooltipContent>

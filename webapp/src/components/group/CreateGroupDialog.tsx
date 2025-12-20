@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Subject } from '@/types/Subject';
+import { Badge } from '@/components/ui/badge';
+import { Info } from 'lucide-react';
 
 interface CreateGroupDialogProps {
     open: boolean;
@@ -15,40 +16,68 @@ interface CreateGroupDialogProps {
 
 const CreateGroupDialog: React.FC<CreateGroupDialogProps> = ({ open, onOpenChange, onSave, subjects }) => {
     const [subjectId, setSubjectId] = useState<string>('');
-    const [number, setNumber] = useState<string>('1');
     const [type, setType] = useState<string>('');
     const [language, setLanguage] = useState<string>('ES');
+    const [nextNumber, setNextNumber] = useState<number>(1);
+
+    // Calcular el siguiente número disponible cuando cambian subject, type o language
+    useEffect(() => {
+        if (!subjectId || !type || !language) {
+            setNextNumber(1);
+            return;
+        }
+
+        const selectedSubject = subjects.find(s => s.id === subjectId);
+        if (!selectedSubject?.groups) {
+            setNextNumber(1);
+            return;
+        }
+
+        // Filtrar grupos del mismo tipo e idioma
+        const existingGroups = selectedSubject.groups.filter(
+            g => g.type === type && g.language === language
+        );
+
+        if (existingGroups.length === 0) {
+            setNextNumber(1);
+            return;
+        }
+
+        // Encontrar el número más alto y sumar 1
+        const maxNumber = Math.max(...existingGroups.map(g => g.number));
+        setNextNumber(maxNumber + 1);
+    }, [subjectId, type, language, subjects]);
 
     const handleSave = () => {
-        if (!subjectId || !number || !type || !language) {
+        if (!subjectId || !type || !language) {
             return;
         }
 
         onSave({
             subjectId,
-            number: parseInt(number, 10),
+            number: nextNumber,
             type,
             language
         });
 
         // Reset form
         setSubjectId('');
-        setNumber('1');
         setType('');
         setLanguage('ES');
+        setNextNumber(1);
         onOpenChange(false);
     };
 
     const handleCancel = () => {
         // Reset form
         setSubjectId('');
-        setNumber('1');
         setType('');
         setLanguage('ES');
+        setNextNumber(1);
         onOpenChange(false);
     };
 
-    const isFormValid = subjectId && number && type && language && parseInt(number, 10) > 0;
+    const isFormValid = subjectId && type && language;
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -56,7 +85,7 @@ const CreateGroupDialog: React.FC<CreateGroupDialogProps> = ({ open, onOpenChang
                 <DialogHeader className="space-y-3">
                     <DialogTitle className="text-2xl">Crear nuevo grupo</DialogTitle>
                     <DialogDescription className="text-base">
-                        Completa los datos para crear un nuevo grupo de una asignatura.
+                        Selecciona la asignatura, tipo e idioma. El número de grupo se asignará automáticamente.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -73,14 +102,14 @@ const CreateGroupDialog: React.FC<CreateGroupDialogProps> = ({ open, onOpenChang
                             <SelectContent>
                                 {subjects.map((subject) => (
                                     <SelectItem key={subject.id} value={subject.id}>
-                                        {subject.name}
+                                        {subject.acronym} - {subject.name}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
                     </div>
 
-                    {/* Two columns for Type and Number */}
+                    {/* Two columns for Type and Language */}
                     <div className="grid grid-cols-2 gap-4">
                         {/* Group Type */}
                         <div className="space-y-2">
@@ -93,45 +122,42 @@ const CreateGroupDialog: React.FC<CreateGroupDialogProps> = ({ open, onOpenChang
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="T">Teoría</SelectItem>
-                                    <SelectItem value="L">Laboratorio</SelectItem>
                                     <SelectItem value="S">Seminario</SelectItem>
+                                    <SelectItem value="L">Laboratorio</SelectItem>
                                     <SelectItem value="TG">Tutoría Grupal</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
 
-                        {/* Group Number */}
+                        {/* Language */}
                         <div className="space-y-2">
-                            <Label htmlFor="number" className="text-sm font-medium">
-                                Número de grupo
+                            <Label htmlFor="language" className="text-sm font-medium">
+                                Idioma
                             </Label>
-                            <Input
-                                id="number"
-                                type="number"
-                                min="1"
-                                value={number}
-                                onChange={(e) => setNumber(e.target.value)}
-                                placeholder="Ej: 1, 2, 3..."
-                                className="w-full"
-                            />
+                            <Select value={language} onValueChange={setLanguage}>
+                                <SelectTrigger id="language" className="w-full">
+                                    <SelectValue placeholder="Selecciona el idioma" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="ES">Español</SelectItem>
+                                    <SelectItem value="EN">Inglés</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
 
-                    {/* Language */}
-                    <div className="space-y-2">
-                        <Label htmlFor="language" className="text-sm font-medium">
-                            Idioma
-                        </Label>
-                        <Select value={language} onValueChange={setLanguage}>
-                            <SelectTrigger id="language" className="w-full">
-                                <SelectValue placeholder="Selecciona el idioma" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="ES">Español</SelectItem>
-                                <SelectItem value="EN">Inglés</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
+                    {/* Auto-assigned Number Info */}
+                    {isFormValid && (
+                        <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
+                            <Info className="h-5 w-5 text-muted-foreground shrink-0" />
+                            <div className="flex-1">
+                                <p className="text-sm font-medium">Número de grupo asignado automáticamente</p>
+                                <p className="text-sm text-muted-foreground">
+                                    Se creará el grupo número <Badge variant="secondary">{nextNumber}</Badge> para esta combinación de asignatura, tipo e idioma.
+                                </p>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <DialogFooter className="gap-2 sm:gap-0">

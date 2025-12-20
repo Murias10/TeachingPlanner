@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { Repeat, ChevronDownIcon } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -108,6 +109,12 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
 
   // Get all subjects with their groups using the same hook as GroupPage
   const { data: subjectsWithGroups = [] } = useSubjectsWithEventsAndGroupsByCourseAndSemester(courseId || null, semester || null);
+
+  // Filter subjects by semester
+  const filteredSubjects = useMemo(() => {
+    if (!semester) return subjects;
+    return subjects.filter(subject => subject.semester === semester);
+  }, [subjects, semester]);
 
   // Extract groups from subjects with groups for the selected subject and filter by event type
   const availableGroups = useMemo(() => {
@@ -390,17 +397,29 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
                 <div className="h-8 text-xs flex items-center text-muted-foreground">
                   Cargando asignaturas...
                 </div>
-              ) : subjects.length === 0 ? (
+              ) : filteredSubjects.length === 0 ? (
                 <div className="h-8 text-xs flex items-center text-muted-foreground">
                   No hay asignaturas disponibles
                 </div>
+              ) : filteredSubjects.length > 8 ? (
+                <SearchableSelect
+                  value={config.subjectId || ''}
+                  onValueChange={(value) => setConfig({ ...config, subjectId: value })}
+                  options={filteredSubjects.sort((a, b) => a.name.localeCompare(b.name)).map((subject) => ({
+                    value: subject.id,
+                    label: subject.name
+                  }))}
+                  placeholder="Seleccionar asignatura"
+                  searchPlaceholder="Buscar asignatura..."
+                  emptyMessage="No se encontraron asignaturas."
+                />
               ) : (
                 <Select value={config.subjectId || ''} onValueChange={(value) => setConfig({ ...config, subjectId: value })}>
                   <SelectTrigger className="h-8 text-xs w-full">
                     <SelectValue placeholder="Seleccionar asignatura" />
                   </SelectTrigger>
                   <SelectContent>
-                    {subjects.sort((a, b) => a.name.localeCompare(b.name)).map((subject) => (
+                    {filteredSubjects.sort((a, b) => a.name.localeCompare(b.name)).map((subject) => (
                       <SelectItem key={subject.id} value={subject.id}>
                         {subject.name}
                       </SelectItem>
@@ -408,77 +427,6 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
                   </SelectContent>
                 </Select>
               )}
-            </div>
-
-            {/* Groups and Classrooms Selection - Same row */}
-            <div className="grid grid-cols-2 gap-2">
-              {/* Groups Selection - Single select */}
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold">Grupo</Label>
-                <Select
-                  value={config.groupIds?.[0] || ''}
-                  onValueChange={(value) => {
-                    setConfig({ ...config, groupIds: value ? [value] : [] });
-                  }}
-                >
-                  <SelectTrigger className="h-8 text-xs w-full">
-                    <SelectValue placeholder="Seleccionar grupo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {config.subjectId ? (
-                      availableGroups.length > 0 ? (
-                        availableGroups.sort((a, b) => {
-                          const langPrefixA = a.language === 'EN' ? 'I-' : '';
-                          const langPrefixB = b.language === 'EN' ? 'I-' : '';
-                          const subject = subjects.find(s => s.id === config.subjectId);
-                          const labelA = `${subject?.acronym}.${a.type}.${langPrefixA}${a.number}`;
-                          const labelB = `${subject?.acronym}.${b.type}.${langPrefixB}${b.number}`;
-                          return labelA.localeCompare(labelB);
-                        }).map((group) => {
-                          const langPrefix = group.language === 'EN' ? 'I-' : '';
-                          const subject = subjects.find(s => s.id === config.subjectId);
-                          const groupLabel = `${subject?.acronym}.${group.type}.${langPrefix}${group.number}`;
-                          return (
-                            <SelectItem key={group.id} value={group.id}>
-                              {groupLabel}
-                            </SelectItem>
-                          );
-                        })
-                      ) : (
-                        <SelectItem value="no-groups" disabled>Sin grupos disponibles</SelectItem>
-                      )
-                    ) : (
-                      <SelectItem value="no-subject" disabled>Selecciona una asignatura primero</SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Classrooms Selection - Single select */}
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold">Aula</Label>
-                <Select
-                  value={config.classroomIds?.[0] || ''}
-                  onValueChange={(value) => {
-                    setConfig({ ...config, classroomIds: value ? [value] : [] });
-                  }}
-                >
-                  <SelectTrigger className="h-8 text-xs w-full">
-                    <SelectValue placeholder="Seleccionar aula" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {classrooms.length > 0 ? (
-                      classrooms.sort((a, b) => a.code.localeCompare(b.code)).map((classroom) => (
-                        <SelectItem key={classroom.id} value={classroom.id}>
-                          {classroom.code}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="no-classrooms" disabled>Cargando aulas...</SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
 
             {/* Event Type Selection - Always visible */}
@@ -495,6 +443,121 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
                   <SelectItem value="TG">Tutorías Grupales</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Groups and Classrooms Selection - Same row */}
+            <div className="grid grid-cols-2 gap-2">
+              {/* Groups Selection - Single select */}
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Grupo</Label>
+                {!config.subjectId ? (
+                  <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
+                    Selecciona una asignatura primero
+                  </div>
+                ) : availableGroups.length === 0 ? (
+                  <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
+                    Sin grupos disponibles
+                  </div>
+                ) : availableGroups.length > 8 ? (
+                  <SearchableSelect
+                    value={config.groupIds?.[0] || ''}
+                    onValueChange={(value) => {
+                      setConfig({ ...config, groupIds: value ? [value] : [] });
+                    }}
+                    options={availableGroups.sort((a, b) => {
+                      const langPrefixA = a.language === 'EN' ? 'I-' : '';
+                      const langPrefixB = b.language === 'EN' ? 'I-' : '';
+                      const subject = subjects.find(s => s.id === config.subjectId);
+                      const labelA = `${subject?.acronym}.${a.type}.${langPrefixA}${a.number}`;
+                      const labelB = `${subject?.acronym}.${b.type}.${langPrefixB}${b.number}`;
+                      return labelA.localeCompare(labelB);
+                    }).map((group) => {
+                      const langPrefix = group.language === 'EN' ? 'I-' : '';
+                      const subject = subjects.find(s => s.id === config.subjectId);
+                      const groupLabel = `${subject?.acronym}.${group.type}.${langPrefix}${group.number}`;
+                      return {
+                        value: group.id,
+                        label: groupLabel
+                      };
+                    })}
+                    placeholder="Seleccionar grupo"
+                    searchPlaceholder="Buscar grupo..."
+                    emptyMessage="No se encontraron grupos."
+                  />
+                ) : (
+                  <Select
+                    value={config.groupIds?.[0] || ''}
+                    onValueChange={(value) => {
+                      setConfig({ ...config, groupIds: value ? [value] : [] });
+                    }}
+                  >
+                    <SelectTrigger className="h-8 text-xs w-full">
+                      <SelectValue placeholder="Seleccionar grupo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableGroups.sort((a, b) => {
+                        const langPrefixA = a.language === 'EN' ? 'I-' : '';
+                        const langPrefixB = b.language === 'EN' ? 'I-' : '';
+                        const subject = subjects.find(s => s.id === config.subjectId);
+                        const labelA = `${subject?.acronym}.${a.type}.${langPrefixA}${a.number}`;
+                        const labelB = `${subject?.acronym}.${b.type}.${langPrefixB}${b.number}`;
+                        return labelA.localeCompare(labelB);
+                      }).map((group) => {
+                        const langPrefix = group.language === 'EN' ? 'I-' : '';
+                        const subject = subjects.find(s => s.id === config.subjectId);
+                        const groupLabel = `${subject?.acronym}.${group.type}.${langPrefix}${group.number}`;
+                        return (
+                          <SelectItem key={group.id} value={group.id}>
+                            {groupLabel}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+
+              {/* Classrooms Selection - Single select */}
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Aula</Label>
+                {classrooms.length === 0 ? (
+                  <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
+                    Cargando aulas...
+                  </div>
+                ) : classrooms.length > 8 ? (
+                  <SearchableSelect
+                    value={config.classroomIds?.[0] || ''}
+                    onValueChange={(value) => {
+                      setConfig({ ...config, classroomIds: value ? [value] : [] });
+                    }}
+                    options={classrooms.sort((a, b) => a.code.localeCompare(b.code)).map((classroom) => ({
+                      value: classroom.id,
+                      label: classroom.code
+                    }))}
+                    placeholder="Seleccionar aula"
+                    searchPlaceholder="Buscar aula..."
+                    emptyMessage="No se encontraron aulas."
+                  />
+                ) : (
+                  <Select
+                    value={config.classroomIds?.[0] || ''}
+                    onValueChange={(value) => {
+                      setConfig({ ...config, classroomIds: value ? [value] : [] });
+                    }}
+                  >
+                    <SelectTrigger className="h-8 text-xs w-full">
+                      <SelectValue placeholder="Seleccionar aula" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {classrooms.sort((a, b) => a.code.localeCompare(b.code)).map((classroom) => (
+                        <SelectItem key={classroom.id} value={classroom.id}>
+                          {classroom.code}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
             </div>
 
             {/* Custom Frequency Options - Only visible for custom frequency */}

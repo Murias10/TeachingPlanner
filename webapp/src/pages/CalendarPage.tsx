@@ -344,6 +344,12 @@ export default function CalendarPage() {
 
         return [
             {
+                category: 'curso' as const,
+                label: 'Curso',
+                options: yearLabels,
+                icon: GraduationCap
+            },
+            {
                 category: 'tipoGrupo' as const,
                 label: 'Tipo de Grupo',
                 options: sortAlphabetically(Array.from(uniqueTypes)),
@@ -372,12 +378,6 @@ export default function CalendarPage() {
                 label: 'Idioma',
                 options: sortAlphabetically(Array.from(uniqueLanguages)),
                 icon: Languages
-            },
-            {
-                category: 'curso' as const,
-                label: 'Curso',
-                options: yearLabels,
-                icon: GraduationCap
             }
         ];
     }, [allEvents, availableGrupos, subjectYearMap]);

@@ -52,12 +52,6 @@ export function GroupTableButtons({ subject, onDeleteGroup }: Readonly<Props>) {
         )
     }
 
-    const countSelectedByType = (type: string) => {
-        return selectedGroups.filter(id =>
-            subject.groups?.some(g => g.id === id && g.type === type)
-        ).length
-    }
-
     const handleDeleteGroup = (groupId: string, e: React.MouseEvent) => {
         e.stopPropagation()
         if (onDeleteGroup) {

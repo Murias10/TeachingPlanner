@@ -1205,6 +1205,159 @@ export const deletePuntualEvent = async (req: AuditedRequest, res: Response) => 
     }
 };
 
+export const updatePuntualEvent = async (req: AuditedRequest, res: Response) => {
+    try {
+        const { eventId } = req.params;
+        const { eventDate, startTime, endTime, subjectId, groupIds = [], classroomIds = [], comment = '' } = req.body;
+
+        // Validaciones
+        if (!eventId || !eventDate || !startTime || !endTime) {
+            res.status(400).json({
+                status: 'error',
+                message: 'Missing required fields: eventId, eventDate, startTime, endTime',
+                data: null
+            });
+            return;
+        }
+
+        const dayRepo = AppDataSource.getRepository(Day);
+        const puntualEventRepo = AppDataSource.getRepository(PuntualEvent);
+        const groupRepo = AppDataSource.getRepository(Group);
+        const classroomRepo = AppDataSource.getRepository(Classroom);
+
+        // Buscar el evento puntual existente
+        const puntualEvent = await puntualEventRepo.findOne({
+            where: { id: eventId },
+            relations: ['day', 'day.calendar', 'groups', 'classrooms']
+        });
+
+        if (!puntualEvent) {
+            res.status(404).json({
+                status: 'error',
+                message: 'Puntual event not found',
+                data: null
+            });
+            return;
+        }
+
+        const calendar = puntualEvent.day.calendar;
+        const eventDateObj = new Date(eventDate);
+
+        // Validar que la nueva fecha esté dentro del rango del calendario
+        const calendarStartDate = new Date(calendar.start);
+        const calendarEndDate = new Date(calendar.end);
+
+        if (eventDateObj < calendarStartDate || eventDateObj > calendarEndDate) {
+            res.status(400).json({
+                status: 'error',
+                message: `Event date must be between ${calendar.start} and ${calendar.end}`,
+                data: null
+            });
+            return;
+        }
+
+        // Buscar el día de la nueva fecha
+        let newDay = await dayRepo.findOne({
+            where: {
+                date: eventDateObj,
+                calendar: { id: calendar.id }
+            },
+            relations: ['puntualEvents', 'puntualEvents.groups', 'puntualEvents.classrooms']
+        });
+
+        if (!newDay) {
+            res.status(400).json({
+                status: 'error',
+                message: 'The selected date does not exist in the calendar',
+                data: null
+            });
+            return;
+        }
+
+        // Validar que el día sea lectivo
+        if (!newDay.lective) {
+            res.status(400).json({
+                status: 'error',
+                message: 'Cannot update event to a non-lective day',
+                data: null
+            });
+            return;
+        }
+
+        // Validación de conflictos (excluyendo el evento actual)
+        const conflictingEvents = newDay.puntualEvents?.filter(event => {
+            if (event.id === eventId) return false; // Excluir el evento actual
+
+            const eventStart = event.startTime;
+            const eventEnd = event.endTime;
+            const hasTimeOverlap = startTime < eventEnd && endTime > eventStart;
+
+            if (!hasTimeOverlap) return false;
+
+            const sharesGroup = event.groups?.some(g => groupIds.includes(g.id)) || groupIds.length === 0;
+            const sharesClassroom = event.classrooms?.some(c => classroomIds.includes(c.id)) || classroomIds.length === 0;
+
+            return sharesGroup && sharesClassroom;
+        });
+
+        if (conflictingEvents && conflictingEvents.length > 0) {
+            res.status(409).json({
+                status: 'error',
+                message: 'Time conflict: Same group/classroom already has an event at this time',
+                data: {
+                    conflicts: conflictingEvents.map(e => ({
+                        id: e.id,
+                        startTime: e.startTime,
+                        endTime: e.endTime
+                    }))
+                }
+            });
+            return;
+        }
+
+        // Obtener los nuevos grupos
+        const groups = groupIds.length > 0
+            ? await groupRepo.find({ where: { id: In(groupIds) } })
+            : [];
+
+        // Obtener las nuevas aulas
+        const classrooms = classroomIds.length > 0
+            ? await classroomRepo.find({ where: { id: In(classroomIds) } })
+            : [];
+
+        // Obtener usuario autenticado
+        const userEmail = getUserEmailFromRequest(req);
+
+        // Actualizar el evento puntual
+        puntualEvent.day = newDay;
+        puntualEvent.startTime = startTime;
+        puntualEvent.endTime = endTime;
+        puntualEvent.comment = comment || '';
+        puntualEvent.groups = groups;
+        puntualEvent.classrooms = classrooms;
+        puntualEvent.updatedBy = userEmail;
+        puntualEvent.updatedAt = new Date();
+
+        const savedEvent = await puntualEventRepo.save(puntualEvent);
+
+        res.status(200).json({
+            status: 'success',
+            message: 'Puntual event updated successfully',
+            data: {
+                event: savedEvent
+            }
+        });
+
+    } catch (error) {
+        console.error('Error updating puntual event:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error updating puntual event',
+            data: error instanceof Error ? error.message : error
+        });
+    }
+};
+
 export const createPeriodicEvent = async (req: AuditedRequest, res: Response) => {
     try {
         const { calendarId, weekDay, startTime, endTime, planifiedHours, groupIds = [], classroomIds = [] } = req.body;

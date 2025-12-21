@@ -11,10 +11,10 @@ export interface CalendarEvent {
     subject: Subject | null;
     groups: Group[];
     classrooms: Classroom[];
-    type: 'periodic' | 'punctual';
+    type: 'periodic' | 'puntual';
     cancelled: boolean;
     periodicEventId?: string; // ID del evento periódico original (si type === 'periodic')
-    puntualEventId?: string; // ID del evento puntual original (si type === 'punctual')
+    puntualEventId?: string; // ID del evento puntual original (si type === 'puntual')
     dayCharacter: string;
     dayComment: string;
     comment?: string;

@@ -112,16 +112,13 @@ export function GroupTableButtons({ subject, onDeleteGroup }: Readonly<Props>) {
                                                 key={group.id}
                                                 className="relative flex items-center py-1.5 px-2 rounded border hover:bg-accent/50 transition-colors group"
                                             >
-                                                <button
-                                                    type="button"
-                                                    className="flex items-center gap-2 flex-1 text-left min-w-0"
-                                                    onClick={() => toggleGroupSelection(group.id)}
+                                                <label
+                                                    className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer"
                                                 >
                                                     <Checkbox
                                                         checked={selectedGroups.includes(group.id)}
                                                         onCheckedChange={() => toggleGroupSelection(group.id)}
                                                         className="h-3.5 w-3.5 shrink-0"
-                                                        onClick={(e) => e.stopPropagation()}
                                                     />
                                                     <div className="flex items-baseline gap-1.5 min-w-0">
                                                         <span className="text-xs font-medium truncate">
@@ -131,7 +128,7 @@ export function GroupTableButtons({ subject, onDeleteGroup }: Readonly<Props>) {
                                                             {group.language === 'EN' ? 'EN' : 'ES'}
                                                         </span>
                                                     </div>
-                                                </button>
+                                                </label>
                                                 {onDeleteGroup && (
                                                     <Button
                                                         variant="ghost"

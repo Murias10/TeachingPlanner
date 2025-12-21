@@ -15,6 +15,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import CalendarToolbar from "@/components/calendar/CalendarToolbar";
 import CreateEventDialog from "@/components/calendar/CreateEventDialog";
+import EditEventDialog from "@/components/calendar/EditEventDialog";
 import CreateSolicitudDialog from "@/components/calendar/CreateSolicitudDialog";
 import type { RecurrenceConfig } from "@/types/RecurrenceConfig";
 import { CalendarEventWrapper } from "@/components/calendar/CalendarEventWrapper";
@@ -23,8 +24,9 @@ import { EventDetailsDrawer } from "@/components/calendar/EventDetailsDrawer";
 import { DeleteEventConfirmationDialog } from "@/components/calendar/DeleteEventConfirmationDialog";
 import { useCreatePuntualEvent } from "@/hooks/calendar/useCreatePuntualEvent";
 import { useCreatePeriodicEvent } from "@/hooks/calendar/useCreatePeriodicEvent";
+import { useUpdatePuntualEvent } from "@/hooks/calendar/useUpdatePuntualEvent";
 import { useDeletePuntualEvent } from "@/hooks/calendar/useDeletePuntualEvent";
-import { useFloatingAlert } from "@/hooks/useFloatingAlert";
+import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCrearSolicitud } from "@/hooks/event-request/useCrearSolicitud";
 import { useDeleteRequest } from "@/hooks/event-request/useDeleteRequest";
@@ -93,6 +95,22 @@ const SUBJECT_COLORS = [
 // Map para almacenar asignaturas vistas y sus colores asignados
 const subjectColorMap = new Map<string, string>();
 
+// Función para oscurecer un color hex para mejorar el contraste
+const darkenColor = (hex: string, amount: number = 0.6): string => {
+    // Convertir hex a RGB
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+
+    // Oscurecer multiplicando por el amount (0.6 = 60% del brillo original)
+    const newR = Math.round(r * amount);
+    const newG = Math.round(g * amount);
+    const newB = Math.round(b * amount);
+
+    // Convertir de vuelta a hex
+    return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
+};
+
 // Función para generar un color único y consistente basado en la asignatura
 const getSubjectColor = (subjectAcronym: string | undefined): string => {
     if (!subjectAcronym) return '#9CA3AF'; // Color gris por defecto
@@ -114,10 +132,11 @@ export default function CalendarPage() {
 
     const { t } = useTranslation()
     const navigate = useNavigate();
-    const { triggerAlert } = useFloatingAlert();
+    const { triggerAlert } = useFloatingAlertContext();
     const { user } = useAuth();
     const { mutate: createPuntualEvent } = useCreatePuntualEvent();
     const { mutate: createPeriodicEvent } = useCreatePeriodicEvent();
+    const { mutate: updatePuntualEvent } = useUpdatePuntualEvent();
     const { deletePuntualEvent, isDeleting: isDeletingEvent } = useDeletePuntualEvent();
     const crearSolicitud = useCrearSolicitud();
     const deleteRequest = useDeleteRequest();
@@ -185,6 +204,10 @@ export default function CalendarPage() {
     const [dragStartDate, setDragStartDate] = useState<string | null>(null);
     const [dragStartTime, setDragStartTime] = useState<string | null>(null);
     const [dragEndTime, setDragEndTime] = useState<string | null>(null);
+
+    // Estado para el diálogo de editar evento
+    const [isEditEventDialogOpen, setIsEditEventDialogOpen] = useState(false);
+    const [eventToEdit, setEventToEdit] = useState<CalendarEvent | null>(null);
 
     // Estado para el drawer de detalles del evento
     const [isEventDetailsDrawerOpen, setIsEventDetailsDrawerOpen] = useState(false);
@@ -461,11 +484,17 @@ export default function CalendarPage() {
             // Calcular el end basándose en la duración real del evento (en horas)
             const endMoment = startMoment.clone().add(event.duration, 'hours');
 
+            // Formatear el nombre del grupo
+            const groupName = `${event.subject?.acronym || 'Sin asignatura'}.${event.groups.map(g => {
+                const lang = g.language === 'EN' ? 'I-' : '';
+                return `${g.type}.${lang}${g.number}`;
+            }).join(', ')}`;
+
+            // Formatear la hora en formato 24h (HH:MM)
+            const timeStr = startMoment.format('HH:mm');
+
             return {
-                title: `${event.subject?.acronym || 'Sin asignatura'}.${event.groups.map(g => {
-                    const lang = g.language === 'EN' ? 'I-' : '';
-                    return `${g.type}.${lang}${g.number}`;
-                }).join(', ')}`,
+                title: `${groupName} - ${timeStr}`,
                 start: startMoment.toDate(),
                 end: endMoment.toDate(),
                 resource: event
@@ -811,8 +840,53 @@ export default function CalendarPage() {
         });
     };
 
-    const handleEditEvent = () => {
-        // TODO: Implement event editing logic
+    const handleUpdateEvent = (_eventId: string, config: RecurrenceConfig) => {
+        if (!eventToEdit?.puntualEventId || !config.eventDate) return;
+
+        // Convertir la fecha ISO completa a formato YYYY-MM-DD
+        const eventDateOnly = config.eventDate.split('T')[0];
+
+        updatePuntualEvent(
+            {
+                eventId: eventToEdit.puntualEventId,
+                eventDate: eventDateOnly,
+                startTime: config.startTime,
+                endTime: config.endTime,
+                subjectId: config.subjectId,
+                groupIds: config.groupIds,
+                classroomIds: config.classroomIds || [],
+                comment: config.comment
+            },
+            {
+                onSuccess: () => {
+                    setIsEditEventDialogOpen(false);
+                    setEventToEdit(null);
+                    refetch();
+                    triggerAlert({
+                        title: 'Evento actualizado',
+                        description: 'El evento ha sido actualizado correctamente',
+                        variant: 'success'
+                    });
+                },
+                onError: (error: Error & { statusCode?: number }) => {
+                    triggerAlert({
+                        title: 'Error al actualizar',
+                        description: error.message || 'No se pudo actualizar el evento',
+                        variant: 'destructive'
+                    });
+                }
+            }
+        );
+    };
+
+    const handleEditEvent = (event?: CalendarEvent) => {
+        const eventToUse = event || selectedEvent;
+
+        if (eventToUse && eventToUse.type === 'puntual') {
+            setEventToEdit(eventToUse);
+            setIsEditEventDialogOpen(true);
+            setIsEventDetailsDrawerOpen(false);
+        }
     };
 
     const handleDeleteEvent = (event: CalendarEvent) => {
@@ -1115,17 +1189,31 @@ export default function CalendarPage() {
                                 components={calendarComponents}
                                 onSelectSlot={handleSelectSlot}
                                 selectable={isAdmin || user?.role === 'PROFESSOR'}
+                                onDoubleClickEvent={(event) => {
+                                    const calendarEvent = (event as MyEvent).resource;
+                                    if (calendarEvent) {
+                                        handleViewEventDetails(calendarEvent);
+                                    }
+                                }}
+                                formats={{
+                                    timeGutterFormat: 'HH:mm',
+                                    eventTimeRangeFormat: () => '',
+                                    agendaTimeRangeFormat: () => '',
+                                    selectRangeFormat: () => '',
+                                }}
                                 eventPropGetter={(event) => {
                                     const calendarEvent = event.resource as CalendarEvent;
 
                                     // Obtener el color basado en la asignatura
                                     let backgroundColor = getSubjectColor(calendarEvent?.subject?.acronym);
+                                    let textColor = darkenColor(backgroundColor, 0.4); // Usar versión oscura del mismo color
                                     let opacity = 1;
                                     let border = '1px solid white';
 
                                     // Eventos cancelados
                                     if (calendarEvent?.cancelled) {
                                         backgroundColor = '#ef4444';
+                                        textColor = '#7f1d1d'; // Rojo oscuro
                                         opacity = 0.6;
                                     }
                                     // Eventos pendientes (solicitudes)
@@ -1137,6 +1225,7 @@ export default function CalendarPage() {
                                     return {
                                         style: {
                                             backgroundColor,
+                                            color: textColor,
                                             opacity,
                                             border,
                                             borderRadius: '10px',
@@ -1183,6 +1272,23 @@ export default function CalendarPage() {
                 initialDate={dragStartDate}
                 initialStartTime={dragStartTime}
                 initialEndTime={dragEndTime}
+                lectiveDates={lectiveDates}
+            />
+
+            {/* Edit Event Dialog */}
+            <EditEventDialog
+                open={isEditEventDialogOpen}
+                onOpenChange={(open) => {
+                    setIsEditEventDialogOpen(open);
+                    if (!open) {
+                        setEventToEdit(null);
+                    }
+                }}
+                onSave={handleUpdateEvent}
+                event={eventToEdit}
+                degreeId={course?.degree?.id}
+                courseId={course?.id}
+                semester={semester ? parseInt(semester, 10) : undefined}
                 lectiveDates={lectiveDates}
             />
 

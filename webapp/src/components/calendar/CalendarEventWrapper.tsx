@@ -80,16 +80,24 @@ export function CalendarEventWrapper({
   };
 
   // Renderizar contenido del evento sin menú contextual para non-admin o en solicitudes pendientes para professor
-  const renderEventContent = () => (
-    <div className="h-full w-full px-1 py-0.5">
-      <div className="text-xs font-medium">{event.title}</div>
-      {calendarEvent.classrooms.length > 0 && (
-        <div className="text-xs opacity-90">
-          {calendarEvent.classrooms.map(c => c.code).join(', ')}
+  const renderEventContent = () => {
+    // Extraer el grupo y la hora del título (formato esperado: "Grupo - HH:MM")
+    const titleParts = event.title.split(' - ');
+    const groupStr = titleParts[0]; // "AL.T.1"
+    const timeStr = titleParts.length > 1 ? titleParts[1] : '';
+
+    return (
+      <div className="h-full w-full px-1 py-1 flex flex-col gap-0.5">
+        <div className="text-xs font-semibold leading-tight">{groupStr}</div>
+        <div className="text-[11px] leading-tight font-medium opacity-95">
+          {timeStr}
+          {calendarEvent.classrooms.length > 0 && (
+            <> · {calendarEvent.classrooms.map(c => c.code).join(', ')}</>
+          )}
         </div>
-      )}
-    </div>
-  );
+      </div>
+    );
+  };
 
   // Si no es ADMIN ni PROFESSOR, mostrar solo el contenido sin menú contextual
   if (!isAdmin && !isProfessor) {

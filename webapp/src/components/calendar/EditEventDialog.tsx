@@ -57,9 +57,19 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
   const [openStartTime, setOpenStartTime] = useState(false);
   const [openEndTime, setOpenEndTime] = useState(false);
 
+  const previousEventTypeRef = React.useRef<string>('T');
+
   // Actualizar config cuando cambie el evento
   useEffect(() => {
     if (event) {
+      console.log('[EditEventDialog] Loading event:', {
+        eventId: event.id,
+        subject: event.subject?.name,
+        subjectId: event.subject?.id,
+        groups: event.groups.map(g => ({ id: g.id, type: g.type, number: g.number })),
+        classrooms: event.classrooms.map(c => ({ id: c.id, code: c.code }))
+      });
+
       const newConfig: RecurrenceConfig = {
         frequency: event.type === 'periodic' ? 'weekly' : 'no-repeat',
         interval: 1,
@@ -79,22 +89,36 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
         classroomIds: event.classrooms.map(c => c.id),
         comment: event.comment || '',
       };
+
+      console.log('[EditEventDialog] Setting config:', {
+        subjectId: newConfig.subjectId,
+        groupIds: newConfig.groupIds,
+        classroomIds: newConfig.classroomIds
+      });
+
       setConfig(newConfig);
 
       // Set event type from first group
       if (event.groups.length > 0) {
-        setEventType(event.groups[0].type);
+        const newEventType = event.groups[0].type;
+        setEventType(newEventType);
+        previousEventTypeRef.current = newEventType;
       }
     }
   }, [event]);
 
-  // Clear group and classroom selections when event type changes
+  // Clear group and classroom selections when event type changes (only if user manually changed it)
   React.useEffect(() => {
-    setConfig(prev => ({
-      ...prev,
-      groupIds: [],
-      classroomIds: []
-    }));
+    // Only clear if the event type actually changed AND it's different from the previous value
+    if (eventType !== previousEventTypeRef.current) {
+      console.log('[EditEventDialog] Event type changed from', previousEventTypeRef.current, 'to', eventType, '- clearing selections');
+      setConfig(prev => ({
+        ...prev,
+        groupIds: [],
+        classroomIds: []
+      }));
+      previousEventTypeRef.current = eventType;
+    }
   }, [eventType]);
 
   const { data: classrooms = [] } = useClassrooms();
@@ -102,6 +126,32 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
 
   // Get all subjects with their groups using the same hook as GroupPage
   const { data: subjectsWithGroups = [] } = useSubjectsWithEventsAndGroupsByCourseAndSemester(courseId || null, semester || null);
+
+  // Ensure event classrooms are available in the list
+  const availableClassrooms = useMemo(() => {
+    if (!event || !event.classrooms.length) {
+      console.log('[EditEventDialog] Using classrooms from hook (no event classrooms):', classrooms.length);
+      return classrooms;
+    }
+
+    // Merge classrooms from the hook with classrooms from the event
+    const eventClassroomIds = new Set(event.classrooms.map(c => c.id));
+    const mergedClassrooms = [...classrooms];
+
+    event.classrooms.forEach(eventClassroom => {
+      if (!classrooms.some(c => c.id === eventClassroom.id)) {
+        mergedClassrooms.push(eventClassroom);
+      }
+    });
+
+    console.log('[EditEventDialog] Available classrooms:', {
+      total: mergedClassrooms.length,
+      selectedClassroomId: config.classroomIds?.[0],
+      classrooms: mergedClassrooms.map(c => ({ id: c.id, code: c.code }))
+    });
+
+    return mergedClassrooms;
+  }, [classrooms, event, config.classroomIds]);
 
   // Filter subjects by semester
   const filteredSubjects = useMemo(() => {
@@ -116,11 +166,42 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
     // Find the selected subject in subjectsWithGroups
     const selectedSubject = subjectsWithGroups.find(s => s.id === config.subjectId);
 
-    if (!selectedSubject || !selectedSubject.groups) return [];
+    if (!selectedSubject || !selectedSubject.groups) {
+      // If subjectsWithGroups is not loaded yet, use the groups from the event
+      if (event && event.subject?.id === config.subjectId) {
+        const groups = event.groups.filter(group => group.type === eventType);
+        console.log('[EditEventDialog] Using groups from event (subjectsWithGroups not loaded):', groups.map(g => ({ id: g.id, type: g.type })));
+        return groups;
+      }
+      console.log('[EditEventDialog] No groups available - subjectsWithGroups not loaded and no event');
+      return [];
+    }
 
     // Filter groups by event type
-    return selectedSubject.groups.filter(group => group.type === eventType);
-  }, [config.subjectId, subjectsWithGroups, eventType]);
+    const filtered = selectedSubject.groups.filter(group => group.type === eventType);
+
+    // If the filtered list doesn't include the selected group from the event,
+    // add it to ensure it's available for selection
+    if (event && event.groups.length > 0 && config.groupIds.length > 0) {
+      const selectedGroupId = config.groupIds[0];
+      const isGroupInList = filtered.some(g => g.id === selectedGroupId);
+      if (!isGroupInList) {
+        const eventGroup = event.groups.find(g => g.id === selectedGroupId);
+        if (eventGroup) {
+          console.log('[EditEventDialog] Adding missing event group to available groups:', eventGroup);
+          return [...filtered, eventGroup];
+        }
+      }
+    }
+
+    console.log('[EditEventDialog] Available groups:', {
+      total: filtered.length,
+      selectedGroupId: config.groupIds[0],
+      groups: filtered.map(g => ({ id: g.id, type: g.type, number: g.number }))
+    });
+
+    return filtered;
+  }, [config.subjectId, subjectsWithGroups, eventType, event, config.groupIds]);
 
   // Validate that all required fields are filled
   const isFormValid = useMemo(() => {
@@ -513,17 +594,17 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
               {/* Classrooms Selection - Single select */}
               <div className="space-y-1">
                 <Label className="text-xs font-semibold">Aula</Label>
-                {classrooms.length === 0 ? (
+                {availableClassrooms.length === 0 ? (
                   <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
                     Cargando aulas...
                   </div>
-                ) : classrooms.length > 8 ? (
+                ) : availableClassrooms.length > 8 ? (
                   <SearchableSelect
                     value={config.classroomIds?.[0] || ''}
                     onValueChange={(value) => {
                       setConfig({ ...config, classroomIds: value ? [value] : [] });
                     }}
-                    options={classrooms.sort((a, b) => a.code.localeCompare(b.code)).map((classroom) => ({
+                    options={availableClassrooms.sort((a, b) => a.code.localeCompare(b.code)).map((classroom) => ({
                       value: classroom.id,
                       label: classroom.code
                     }))}
@@ -542,7 +623,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                       <SelectValue placeholder="Seleccionar aula" />
                     </SelectTrigger>
                     <SelectContent>
-                      {classrooms.sort((a, b) => a.code.localeCompare(b.code)).map((classroom) => (
+                      {availableClassrooms.sort((a, b) => a.code.localeCompare(b.code)).map((classroom) => (
                         <SelectItem key={classroom.id} value={classroom.id}>
                           {classroom.code}
                         </SelectItem>

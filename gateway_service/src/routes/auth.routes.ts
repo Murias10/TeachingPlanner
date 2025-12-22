@@ -1,5 +1,5 @@
 import express from 'express';
-import { login, validateToken, getProfile, logout, forgotPassword, verifyOTP, resetPassword, activateAccount, googleInitiate, googleCallback, googleDisconnect, googleStatus, getCalendarSyncs, createCalendarSync, deleteCalendarSync, toggleCalendarSync, syncNow } from '@/controllers/auth.controller';
+import { login, validateToken, getProfile, logout, forgotPassword, verifyOTP, resetPassword, activateAccount, googleInitiate, googleCallback, googleDisconnect, googleStatus, getCalendarSyncs, toggleCalendarSync, syncNow, deleteAllUserCalendarSyncs } from '@/controllers/auth.controller';
 
 const router = express.Router();
 
@@ -22,10 +22,9 @@ router.get('/auth/google/callback', googleCallback);
 router.post('/auth/google/disconnect', googleDisconnect);
 router.get('/auth/google/status', googleStatus);
 
-// Calendar sync routes
+// Calendar sync routes (academic calendars)
 router.get('/calendar-sync', getCalendarSyncs);
-router.post('/calendar-sync', createCalendarSync);
-router.delete('/calendar-sync/:id', deleteCalendarSync);
+router.delete('/calendar-sync/user/all', deleteAllUserCalendarSyncs);
 router.patch('/calendar-sync/:id/toggle', toggleCalendarSync);
 router.post('/calendar-sync/:id/sync-now', syncNow);
 

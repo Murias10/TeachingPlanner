@@ -57,6 +57,26 @@ export const useGoogleAuth = () => {
     const disconnect = useCallback(async (): Promise<{ success: boolean; message?: string }> => {
         setIsLoading(true);
         try {
+            // First, try to get a valid access token to delete Google calendars
+            // Note: For now, we proceed without token which will skip Google Calendar deletion
+            // but will still clean up the database records
+            let accessToken: string | undefined;
+
+            // Delete all calendar syncs (this will also delete Google calendars if token is available)
+            try {
+                await fetch(`${VITE_GATEWAY_API_URL}/calendar-sync/user/all`, {
+                    method: 'DELETE',
+                    headers: getAuthHeaders({
+                        'Content-Type': 'application/json'
+                    }),
+                    body: JSON.stringify({ accessToken })
+                });
+            } catch (error) {
+                console.warn('Error deleting calendar syncs:', error);
+                // Continue with disconnect even if this fails
+            }
+
+            // Now disconnect the Google account
             const response = await fetch(`${VITE_GATEWAY_API_URL}/auth/google/disconnect`, {
                 method: 'POST',
                 headers: getAuthHeaders(),

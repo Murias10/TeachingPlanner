@@ -1,29 +1,39 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Spinner } from "@/components/ui/spinner";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { useCalendarSync } from "@/hooks/google/useCalendarSync";
 import { useFloatingAlert } from "@/hooks/useFloatingAlert";
 import { Navigate, useNavigate } from "react-router-dom";
-import { Calendar, RefreshCw, Trash2, ArrowLeft } from "lucide-react";
-import { useCoursesByDegreeId } from "@/hooks/course/useCoursesByDegreeId";
+import { Calendar, RefreshCw, ArrowLeft } from "lucide-react";
 import { useDegrees } from "@/hooks/degree/useDegrees";
+import { useGoogleAuth } from "@/hooks/google/useGoogleAuth";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
 const CalendarSyncPage = () => {
     const { setItems } = useBreadcrumbContext();
     const { user } = useAuth();
     const { triggerAlert } = useFloatingAlert();
     const navigate = useNavigate();
-    const { syncs, isSyncsLoading, createSync, deleteSync, toggleSync, syncNow, isLoading } = useCalendarSync();
+    const { syncs, isSyncsLoading, toggleSync, syncNow, isLoading } = useCalendarSync();
     const { data: degrees = [] } = useDegrees();
+    const { getStatus } = useGoogleAuth();
 
-    const [selectedDegreeId, setSelectedDegreeId] = useState<string | null>(null);
-    const { data: courses = [] } = useCoursesByDegreeId(selectedDegreeId);
+    const [selectedDegreeId, setSelectedDegreeId] = useState<string>("all");
+    const [accessToken, setAccessToken] = useState<string | null>(null);
+    const [syncsWithAccess, setSyncsWithAccess] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         setItems([
@@ -32,51 +42,29 @@ const CalendarSyncPage = () => {
         ]);
     }, [setItems]);
 
-    // Seleccionar el primer grado por defecto
+    // Get Google access token
     useEffect(() => {
-        if (degrees.length > 0 && !selectedDegreeId) {
-            setSelectedDegreeId(degrees[0].id);
+        const fetchToken = async () => {
+            const status = await getStatus();
+            if (status?.connected) {
+                setAccessToken("placeholder");
+            }
+        };
+        fetchToken();
+    }, [getStatus]);
+
+    // Filtrar calendarios por titulación
+    const filteredSyncs = useMemo(() => {
+        if (selectedDegreeId === "all") {
+            return syncs;
         }
-    }, [degrees, selectedDegreeId]);
+        return syncs.filter(sync => sync.degreeId === selectedDegreeId);
+    }, [syncs, selectedDegreeId]);
 
     // Protección: Solo ADMIN puede acceder
     if (user?.role !== 'ADMIN') {
         return <Navigate to="/degrees" replace />;
     }
-
-    const handleCreateSync = async (calendarId: string) => {
-        const result = await createSync(calendarId);
-        if (result.success) {
-            triggerAlert({
-                title: "Sincronización creada",
-                description: "El calendario se sincronizará automáticamente con Google Calendar",
-                variant: "success"
-            });
-        } else {
-            triggerAlert({
-                title: "Error",
-                description: result.message || "Error al crear sincronización",
-                variant: "destructive"
-            });
-        }
-    };
-
-    const handleDeleteSync = async (syncId: string) => {
-        const result = await deleteSync(syncId);
-        if (result.success) {
-            triggerAlert({
-                title: "Sincronización eliminada",
-                description: "El calendario ya no se sincronizará con Google Calendar",
-                variant: "success"
-            });
-        } else {
-            triggerAlert({
-                title: "Error",
-                description: result.message || "Error al eliminar sincronización",
-                variant: "destructive"
-            });
-        }
-    };
 
     const handleToggleSync = async (syncId: string) => {
         const result = await toggleSync(syncId);
@@ -96,7 +84,25 @@ const CalendarSyncPage = () => {
     };
 
     const handleSyncNow = async (syncId: string) => {
-        const result = await syncNow(syncId);
+        if (!accessToken) {
+            triggerAlert({
+                title: "Error",
+                description: "No se pudo obtener el token de acceso",
+                variant: "destructive"
+            });
+            return;
+        }
+
+        setSyncsWithAccess(prev => new Set(prev).add(syncId));
+
+        const result = await syncNow(syncId, accessToken);
+
+        setSyncsWithAccess(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(syncId);
+            return newSet;
+        });
+
         if (result.success) {
             triggerAlert({
                 title: "Sincronización iniciada",
@@ -112,12 +118,16 @@ const CalendarSyncPage = () => {
         }
     };
 
-    const isSynced = (calendarId: string) => {
-        return syncs.some(sync => sync.calendarId === calendarId);
-    };
+    const getSyncStatusBadge = (status: string) => {
+        const statusMap = {
+            'IDLE': { label: 'Inactivo', variant: 'secondary' as const },
+            'SYNCING': { label: 'Sincronizando', variant: 'default' as const },
+            'SUCCESS': { label: 'Éxito', variant: 'default' as const },
+            'ERROR': { label: 'Error', variant: 'destructive' as const }
+        };
 
-    const getSyncForCalendar = (calendarId: string) => {
-        return syncs.find(sync => sync.calendarId === calendarId);
+        const config = statusMap[status as keyof typeof statusMap] || { label: status, variant: 'secondary' as const };
+        return <Badge variant={config.variant}>{config.label}</Badge>;
     };
 
     if (isSyncsLoading) {
@@ -148,140 +158,127 @@ const CalendarSyncPage = () => {
             </div>
 
             {/* Info Card */}
-            <Card>
-                <CardContent className="pt-6">
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <p className="text-sm text-blue-800">
-                            <strong>Nota:</strong> Los calendarios sincronizados se actualizarán automáticamente cada 5 minutos.
-                            Los cambios en TeachingPlanner se reflejarán en Google Calendar y viceversa.
-                        </p>
-                    </div>
-                </CardContent>
-            </Card>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-800">
+                    <strong>Nota:</strong> Se crea un Google Calendar por cada aula automáticamente al conectar tu cuenta de Google.
+                    Los eventos de los calendarios académicos activados se distribuyen a las aulas según su ubicación.
+                    Las sincronizaciones se actualizan automáticamente cada 5 minutos.
+                </p>
+            </div>
 
-            {/* Selector de Grado */}
+            {/* Toolbar con selector de titulación */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Selecciona un Grado</CardTitle>
-                    <CardDescription>Elige el grado para ver sus calendarios disponibles</CardDescription>
+                    <CardTitle>Calendarios Académicos</CardTitle>
+                    <CardDescription>
+                        Activa o desactiva la sincronización de calendarios académicos con Google Calendar
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {degrees.map((degree) => (
-                            <Button
-                                key={degree.id}
-                                variant={selectedDegreeId === degree.id ? "default" : "outline"}
-                                onClick={() => setSelectedDegreeId(degree.id)}
-                                className="justify-start"
-                            >
-                                {degree.name}
-                            </Button>
-                        ))}
+                    <div className="flex items-center gap-4 mb-4">
+                        <span className="text-sm font-medium">Filtrar por titulación:</span>
+                        <Select value={selectedDegreeId} onValueChange={setSelectedDegreeId}>
+                            <SelectTrigger className="w-[300px]">
+                                <SelectValue placeholder="Selecciona una titulación" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Todas las titulaciones</SelectItem>
+                                {degrees.map((degree) => (
+                                    <SelectItem key={degree.id} value={degree.id}>
+                                        {degree.acronym} - {degree.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Table */}
+                    <div className="rounded-md border">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Titulación</TableHead>
+                                    <TableHead>Curso</TableHead>
+                                    <TableHead>Semestre</TableHead>
+                                    <TableHead>Estado</TableHead>
+                                    <TableHead>Última Sincronización</TableHead>
+                                    <TableHead className="text-right">Acciones</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {filteredSyncs.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                                            {selectedDegreeId === "all"
+                                                ? "No hay calendarios académicos disponibles"
+                                                : "No hay calendarios para esta titulación"}
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    filteredSyncs.map((sync) => (
+                                        <TableRow key={sync.id}>
+                                            <TableCell className="font-medium">
+                                                <div>
+                                                    <div className="font-semibold">{sync.degreeAcronym}</div>
+                                                    <div className="text-xs text-muted-foreground">{sync.degreeName}</div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>{sync.courseName}</TableCell>
+                                            <TableCell>{sync.semester}</TableCell>
+                                            <TableCell>
+                                                <div className="flex flex-col gap-1">
+                                                    {getSyncStatusBadge(sync.syncStatus)}
+                                                    {sync.errorMessage && (
+                                                        <span className="text-xs text-destructive">
+                                                            {sync.errorMessage}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                {sync.lastSyncAt ? (
+                                                    <span className="text-sm">
+                                                        {new Date(sync.lastSyncAt).toLocaleString()}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-sm text-muted-foreground">Nunca</span>
+                                                )}
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-xs text-muted-foreground">
+                                                            {sync.syncEnabled ? 'Activo' : 'Inactivo'}
+                                                        </span>
+                                                        <Switch
+                                                            checked={sync.syncEnabled}
+                                                            onCheckedChange={() => handleToggleSync(sync.id)}
+                                                            disabled={isLoading}
+                                                        />
+                                                    </div>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="icon"
+                                                        onClick={() => handleSyncNow(sync.id)}
+                                                        disabled={isLoading || !sync.syncEnabled || syncsWithAccess.has(sync.id)}
+                                                        title="Sincronizar ahora"
+                                                    >
+                                                        {syncsWithAccess.has(sync.id) ? (
+                                                            <Spinner />
+                                                        ) : (
+                                                            <RefreshCw className="h-4 w-4" />
+                                                        )}
+                                                    </Button>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
                     </div>
                 </CardContent>
             </Card>
-
-            {/* Lista de Calendarios (Cursos) */}
-            {selectedDegreeId && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Calendarios Disponibles</CardTitle>
-                        <CardDescription>
-                            Gestiona qué calendarios se sincronizan con Google Calendar
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {courses.length === 0 ? (
-                            <p className="text-sm text-muted-foreground text-center py-8">
-                                No hay cursos disponibles para este grado
-                            </p>
-                        ) : (
-                            <div className="space-y-3">
-                                {courses.map((course) => {
-                                    const calendars = course.calendars.map((calendar, index) => ({
-                                        id: calendar.id,
-                                        name: `${course.startYear}/${course.endYear} - Semestre ${index + 1}`,
-                                        semester: index + 1
-                                    }));
-
-                                    return calendars.map((calendar) => {
-                                        const sync = getSyncForCalendar(calendar.id);
-                                        const synced = isSynced(calendar.id);
-
-                                        return (
-                                            <div
-                                                key={calendar.id}
-                                                className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                                            >
-                                                <div className="flex items-center gap-3 flex-1">
-                                                    <Calendar className="h-5 w-5 text-muted-foreground" />
-                                                    <div className="flex-1">
-                                                        <p className="font-medium">{calendar.name}</p>
-                                                        <p className="text-sm text-muted-foreground">
-                                                            {degrees.find(d => d.id === selectedDegreeId)?.acronym}
-                                                        </p>
-                                                    </div>
-
-                                                    {synced && (
-                                                        <div className="flex items-center gap-2">
-                                                            <Badge variant={sync?.syncEnabled ? "default" : "secondary"}>
-                                                                {sync?.syncEnabled ? "Activo" : "Pausado"}
-                                                            </Badge>
-                                                            {sync?.lastSyncAt && (
-                                                                <span className="text-xs text-muted-foreground">
-                                                                    Última sync: {new Date(sync.lastSyncAt).toLocaleString()}
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                <div className="flex items-center gap-2">
-                                                    {synced && sync ? (
-                                                        <>
-                                                            <Switch
-                                                                checked={sync.syncEnabled}
-                                                                onCheckedChange={() => handleToggleSync(sync.id)}
-                                                                disabled={isLoading}
-                                                            />
-                                                            <Button
-                                                                variant="outline"
-                                                                size="icon"
-                                                                onClick={() => handleSyncNow(sync.id)}
-                                                                disabled={isLoading || !sync.syncEnabled}
-                                                                title="Sincronizar ahora"
-                                                            >
-                                                                {isLoading ? <Spinner /> : <RefreshCw className="h-4 w-4" />}
-                                                            </Button>
-                                                            <Button
-                                                                variant="outline"
-                                                                size="icon"
-                                                                onClick={() => handleDeleteSync(sync.id)}
-                                                                disabled={isLoading}
-                                                                title="Eliminar sincronización"
-                                                            >
-                                                                <Trash2 className="h-4 w-4" />
-                                                            </Button>
-                                                        </>
-                                                    ) : (
-                                                        <Button
-                                                            onClick={() => handleCreateSync(calendar.id)}
-                                                            disabled={isLoading}
-                                                        >
-                                                            {isLoading && <Spinner />}
-                                                            Sincronizar
-                                                        </Button>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        );
-                                    });
-                                })}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-            )}
         </div>
     );
 };

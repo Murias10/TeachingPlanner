@@ -29,9 +29,12 @@ router.get('/calendar-sync', authenticateToken, async (req: AuthRequest, res: Re
             success: true,
             data: syncs.map(sync => ({
                 id: sync.id,
-                calendarId: sync.calendar?.id,
-                calendarName: sync.googleCalendarName,
-                googleCalendarId: sync.googleCalendarId,
+                calendarId: sync.calendar.id,
+                courseName: `${sync.calendar.course.startYear}/${sync.calendar.course.endYear}`,
+                semester: sync.calendar.semester,
+                degreeId: sync.calendar.course.degree.id,
+                degreeName: sync.calendar.course.degree.name,
+                degreeAcronym: sync.calendar.course.degree.acronym,
                 syncEnabled: sync.syncEnabled,
                 syncStatus: sync.syncStatus,
                 lastSyncAt: sync.lastSyncAt,
@@ -42,76 +45,6 @@ router.get('/calendar-sync', authenticateToken, async (req: AuthRequest, res: Re
         res.status(500).json({
             success: false,
             message: error.message || 'Failed to get calendar syncs'
-        });
-    }
-});
-
-/**
- * Create a new calendar sync configuration
- */
-router.post('/calendar-sync', authenticateToken, async (req: AuthRequest, res: Response) => {
-    try {
-        if (!req.user) {
-            res.status(401).json({ success: false, message: 'Unauthorized' });
-            return;
-        }
-
-        const { calendarId } = req.body;
-
-        if (!calendarId) {
-            res.status(400).json({ success: false, message: 'Calendar ID is required' });
-            return;
-        }
-
-        const sync = await GoogleCalendarService.createCalendarSync(
-            req.user.userId,
-            calendarId,
-            req.user.email
-        );
-
-        res.status(201).json({
-            success: true,
-            message: 'Calendar sync created',
-            data: {
-                id: sync.id,
-                calendarId: sync.calendar?.id,
-                syncEnabled: sync.syncEnabled,
-                syncStatus: sync.syncStatus
-            }
-        });
-    } catch (error: any) {
-        res.status(500).json({
-            success: false,
-            message: error.message || 'Failed to create calendar sync'
-        });
-    }
-});
-
-/**
- * Delete a calendar sync configuration
- */
-router.delete('/calendar-sync/:id', authenticateToken, async (req: AuthRequest, res: Response) => {
-    try {
-        if (!req.user) {
-            res.status(401).json({ success: false, message: 'Unauthorized' });
-            return;
-        }
-
-        const { id } = req.params;
-        const { accessToken } = req.body;
-
-        const deleted = await GoogleCalendarService.deleteCalendarSync(id, accessToken);
-
-        if (!deleted) {
-            res.status(404).json({ success: false, message: 'Calendar sync not found' });
-            return;
-        }
-
-        res.json({ success: true, message: 'Calendar sync deleted' });
-    } catch (error: any) {
-        res.status(500).json({
-            success: false,
-            message: error.message || 'Failed to delete calendar sync'
         });
     }
 });
@@ -176,6 +109,33 @@ router.post('/calendar-sync/:id/sync-now', authenticateToken, async (req: AuthRe
         res.status(500).json({
             success: false,
             message: error.message || 'Failed to sync calendar'
+        });
+    }
+});
+
+/**
+ * Delete all calendar syncs for the current user (used when disconnecting Google account)
+ */
+router.delete('/calendar-sync/user/all', authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+        if (!req.user) {
+            res.status(401).json({ success: false, message: 'Unauthorized' });
+            return;
+        }
+
+        const { accessToken } = req.body;
+
+        const result = await GoogleCalendarService.deleteAllUserSyncs(req.user.userId, accessToken);
+
+        res.json({
+            success: true,
+            message: `Deleted ${result.deletedCount} calendar syncs and ${result.deletedGoogleCalendars} Google calendars`,
+            data: result
+        });
+    } catch (error: any) {
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to delete all calendar syncs'
         });
     }
 });

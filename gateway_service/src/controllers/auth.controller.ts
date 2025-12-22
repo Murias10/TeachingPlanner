@@ -126,24 +126,11 @@ export const googleStatus = (req: Request, res: Response, next: NextFunction) =>
         method: 'GET'
     });
 
-// Calendar sync routes
+// Calendar sync routes (academic calendars, not classrooms)
 export const getCalendarSyncs = (req: Request, res: Response, next: NextFunction) =>
     proxyRequest(req, res, next, {
         url: `${SERVICES.PLANNER}/calendar-sync`,
         method: 'GET'
-    });
-
-export const createCalendarSync = (req: Request, res: Response, next: NextFunction) =>
-    proxyRequest(req, res, next, {
-        url: `${SERVICES.PLANNER}/calendar-sync`,
-        method: 'POST',
-        body: req.body
-    });
-
-export const deleteCalendarSync = (req: Request, res: Response, next: NextFunction) =>
-    proxyRequest(req, res, next, {
-        url: `${SERVICES.PLANNER}/calendar-sync/${req.params.id}`,
-        method: 'DELETE'
     });
 
 export const toggleCalendarSync = (req: Request, res: Response, next: NextFunction) =>
@@ -155,5 +142,13 @@ export const toggleCalendarSync = (req: Request, res: Response, next: NextFuncti
 export const syncNow = (req: Request, res: Response, next: NextFunction) =>
     proxyRequest(req, res, next, {
         url: `${SERVICES.PLANNER}/calendar-sync/${req.params.id}/sync-now`,
-        method: 'POST'
+        method: 'POST',
+        body: req.body
+    });
+
+export const deleteAllUserCalendarSyncs = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/calendar-sync/user/all`,
+        method: 'DELETE',
+        body: req.body
     });

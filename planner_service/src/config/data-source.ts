@@ -10,16 +10,17 @@ import { PeriodicEvent } from '@/entities/periodic_event.entity';
 import { Day } from '@/entities/day.entity';
 import { EventRequest } from '@/entities/event-request.entity';
 import { CalendarSync } from '@/entities/calendar-sync.entity';
+import { GoogleClassroomCalendar } from '@/entities/google-classroom-calendar.entity';
 
 export function createAppDataSource() {
   return new DataSource({
     type: 'mariadb',
     host: process.env.PLANNER_DATABASE_HOST,
-    port: parseInt(process.env.PLANNER_DATABASE_PORT ?? '', 10),
+    port: Number.parseInt(process.env.PLANNER_DATABASE_PORT ?? '', 10),
     username: process.env.PLANNER_DATABASE_USER,
     password: process.env.PLANNER_DATABASE_PASSWORD,
     database: process.env.PLANNER_DATABASE_DATABASE,
-    entities: [Degree, Course, Calendar, Classroom, Subject, Group, Day, PuntualEvent, PeriodicEvent, EventRequest, CalendarSync],
+    entities: [Degree, Course, Calendar, Classroom, Subject, Group, Day, PuntualEvent, PeriodicEvent, EventRequest, CalendarSync, GoogleClassroomCalendar],
     synchronize: true,
     logging: true,
   });

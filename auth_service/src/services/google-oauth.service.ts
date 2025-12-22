@@ -89,10 +89,44 @@ export class GoogleOAuthService {
 
             await this.userRepository.save(user);
 
+            // Initialize Google Calendars in planner_service
+            try {
+                await this.initializeGoogleCalendars(userId, tokens.access_token, user.email);
+            } catch (initError) {
+                console.error('Error initializing Google Calendars:', initError);
+                // Don't fail the whole process if calendar initialization fails
+            }
+
             return { success: true, message: 'Google account connected successfully' };
         } catch (error) {
             console.error('Error handling OAuth callback:', error);
             return { success: false, message: 'Failed to connect Google account' };
+        }
+    }
+
+    private async initializeGoogleCalendars(userId: string, accessToken: string, userEmail: string): Promise<void> {
+        try {
+            const plannerServiceUrl = process.env.PLANNER_SERVICE_URL || 'http://planner_service:5001';
+
+            const response = await fetch(`${plannerServiceUrl}/google-calendars/initialize`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    userId,
+                    accessToken,
+                    userEmail
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.text();
+                throw new Error(`Failed to initialize Google Calendars: ${error}`);
+            }
+        } catch (error) {
+            console.error('Error calling planner_service to initialize calendars:', error);
+            throw error;
         }
     }
 
@@ -115,11 +149,11 @@ export class GoogleOAuthService {
                 }
             }
 
-            // Clear Google fields
-            user.googleAccessToken = undefined;
-            user.googleRefreshToken = undefined;
-            user.googleId = undefined;
-            user.googleTokenExpiry = undefined;
+            // Clear Google fields - using null instead of undefined for proper DB persistence
+            user.googleAccessToken = null as any;
+            user.googleRefreshToken = null as any;
+            user.googleId = null as any;
+            user.googleTokenExpiry = null as any;
             user.googleCalendarSyncEnabled = false;
 
             await this.userRepository.save(user);

@@ -194,74 +194,85 @@ const CalendarSyncPage = () => {
                                     </TableRow>
                                 ) : (
                                     filteredSyncs.map((sync) => (
-                                        <TableRow key={sync.id}>
-                                            <TableCell className="font-medium">
-                                                <div>
-                                                    <div className="font-semibold">{sync.degreeAcronym}</div>
-                                                    <div className="text-xs text-muted-foreground">{sync.degreeName}</div>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>{sync.courseName}</TableCell>
-                                            <TableCell>{sync.semester}</TableCell>
-                                            <TableCell>
-                                                <div className="flex flex-col gap-2">
-                                                    {getSyncStatusBadge(sync.syncStatus)}
-                                                    {sync.syncStatus === 'SYNCING' && sync.totalCalendars && (
-                                                        <div className="space-y-1 min-w-[200px]">
+                                        <>
+                                            <TableRow key={sync.id}>
+                                                <TableCell className="font-medium">
+                                                    <div>
+                                                        <div className="font-semibold">{sync.degreeAcronym}</div>
+                                                        <div className="text-xs text-muted-foreground">{sync.degreeName}</div>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>{sync.courseName}</TableCell>
+                                                <TableCell>{sync.semester}</TableCell>
+                                                <TableCell>
+                                                    <div className="flex flex-col gap-2">
+                                                        {getSyncStatusBadge(sync.syncStatus)}
+                                                        {sync.errorMessage && (
+                                                            <span className="text-xs text-destructive">
+                                                                {sync.errorMessage}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    {sync.lastSyncAt ? (
+                                                        <span className="text-sm">
+                                                            {new Date(sync.lastSyncAt).toLocaleString()}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-sm text-muted-foreground">Nunca</span>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-xs text-muted-foreground">
+                                                                {sync.syncEnabled ? 'Activo' : 'Inactivo'}
+                                                            </span>
+                                                            <Switch
+                                                                checked={sync.syncEnabled}
+                                                                onCheckedChange={() => handleToggleSync(sync.id)}
+                                                                disabled={isLoading || sync.syncStatus === 'SYNCING'}
+                                                            />
+                                                        </div>
+                                                        <Button
+                                                            variant="outline"
+                                                            size="icon"
+                                                            onClick={() => handleSyncNow(sync.id)}
+                                                            disabled={isLoading || !sync.syncEnabled || sync.syncStatus === 'SYNCING' || syncsWithAccess.has(sync.id)}
+                                                            title="Sincronizar ahora"
+                                                        >
+                                                            {syncsWithAccess.has(sync.id) || sync.syncStatus === 'SYNCING' ? (
+                                                                <Spinner />
+                                                            ) : (
+                                                                <RefreshCw className="h-4 w-4" />
+                                                            )}
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                            {/* Progress row - shown only when syncing */}
+                                            {sync.syncStatus === 'SYNCING' && sync.totalCalendars && (
+                                                <TableRow key={`${sync.id}-progress`} className="bg-muted/50 hover:bg-muted/50">
+                                                    <TableCell colSpan={6} className="py-4">
+                                                        <div className="space-y-2">
+                                                            <div className="flex items-center justify-between text-sm">
+                                                                <span className="font-medium text-muted-foreground">
+                                                                    {sync.currentOperation || 'Sincronizando...'}
+                                                                </span>
+                                                                <span className="text-muted-foreground">
+                                                                    {sync.processedCalendars || 0} / {sync.totalCalendars} completados
+                                                                </span>
+                                                            </div>
                                                             <Progress
                                                                 value={(sync.processedCalendars || 0) / sync.totalCalendars * 100}
                                                                 className="h-2"
                                                             />
-                                                            <div className="flex justify-between text-xs text-muted-foreground">
-                                                                <span>{sync.currentOperation || 'Sincronizando...'}</span>
-                                                                <span>{sync.processedCalendars || 0}/{sync.totalCalendars}</span>
-                                                            </div>
                                                         </div>
-                                                    )}
-                                                    {sync.errorMessage && (
-                                                        <span className="text-xs text-destructive">
-                                                            {sync.errorMessage}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                {sync.lastSyncAt ? (
-                                                    <span className="text-sm">
-                                                        {new Date(sync.lastSyncAt).toLocaleString()}
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-sm text-muted-foreground">Nunca</span>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <div className="flex items-center justify-end gap-2">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-xs text-muted-foreground">
-                                                            {sync.syncEnabled ? 'Activo' : 'Inactivo'}
-                                                        </span>
-                                                        <Switch
-                                                            checked={sync.syncEnabled}
-                                                            onCheckedChange={() => handleToggleSync(sync.id)}
-                                                            disabled={isLoading || sync.syncStatus === 'SYNCING'}
-                                                        />
-                                                    </div>
-                                                    <Button
-                                                        variant="outline"
-                                                        size="icon"
-                                                        onClick={() => handleSyncNow(sync.id)}
-                                                        disabled={isLoading || !sync.syncEnabled || sync.syncStatus === 'SYNCING' || syncsWithAccess.has(sync.id)}
-                                                        title="Sincronizar ahora"
-                                                    >
-                                                        {syncsWithAccess.has(sync.id) || sync.syncStatus === 'SYNCING' ? (
-                                                            <Spinner />
-                                                        ) : (
-                                                            <RefreshCw className="h-4 w-4" />
-                                                        )}
-                                                    </Button>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
+                                                    </TableCell>
+                                                </TableRow>
+                                            )}
+                                        </>
                                     ))
                                 )}
                             </TableBody>

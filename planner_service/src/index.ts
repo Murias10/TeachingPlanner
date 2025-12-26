@@ -7,9 +7,7 @@ import subjectRouter from '@/routes/subject.routes';
 import calendarRouter from '@/routes/calendar.routes';
 import eventRequestRouter from '@/routes/event-request.routes';
 import calendarSyncRouter from '@/routes/calendar-sync.routes';
-import googleCalendarInitRouter from '@/routes/google-calendar-init.routes';
 import groupRouter from '@/routes/group.routes';
-import { startCalendarSyncJob } from '@/jobs/calendar-sync.job';
 
 const port = process.env.PLANNER_SERVICE_PORT;
 
@@ -23,16 +21,15 @@ const startServer = async () => {
     app.use(calendarRouter);
     app.use(eventRequestRouter);
     app.use(calendarSyncRouter);
-    app.use(googleCalendarInitRouter);
     app.use(groupRouter);
 
     app.listen(port, () => {
         console.log(`🚀 App listening on port ${port}`);
 
-        // Start calendar sync job if Google Calendar sync is enabled
-        if (process.env.GOOGLE_CALENDAR_SYNC_ENABLED === 'true') {
-            startCalendarSyncJob();
-        }
+        // Automatic sync disabled - admin can manually sync from UI
+        // if (process.env.GOOGLE_CALENDAR_SYNC_ENABLED === 'true') {
+        //     startCalendarSyncJob();
+        // }
     });
 };
 

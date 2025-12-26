@@ -1019,14 +1019,20 @@ export const createPuntualEvent = async (req: AuditedRequest, res: Response) => 
         }
 
         // Validar que la fecha esté dentro del rango del calendario
+        // Normalizar todas las fechas a medianoche para comparación justa
         const eventDateObj = new Date(eventDate);
+        eventDateObj.setHours(0, 0, 0, 0);
+
         const calendarStartDate = new Date(calendar.start);
+        calendarStartDate.setHours(0, 0, 0, 0);
+
         const calendarEndDate = new Date(calendar.end);
+        calendarEndDate.setHours(0, 0, 0, 0);
 
         if (eventDateObj < calendarStartDate || eventDateObj > calendarEndDate) {
             res.status(400).json({
                 status: 'error',
-                message: `Event date must be between ${calendar.start} and ${calendar.end}`,
+                message: `Event date must be between ${calendar.start.toISOString().split('T')[0]} and ${calendar.end.toISOString().split('T')[0]}`,
                 data: null
             });
             return;
@@ -1242,15 +1248,19 @@ export const updatePuntualEvent = async (req: AuditedRequest, res: Response) => 
 
         const calendar = puntualEvent.day.calendar;
         const eventDateObj = new Date(eventDate);
+        eventDateObj.setHours(0, 0, 0, 0);
 
         // Validar que la nueva fecha esté dentro del rango del calendario
         const calendarStartDate = new Date(calendar.start);
+        calendarStartDate.setHours(0, 0, 0, 0);
+
         const calendarEndDate = new Date(calendar.end);
+        calendarEndDate.setHours(0, 0, 0, 0);
 
         if (eventDateObj < calendarStartDate || eventDateObj > calendarEndDate) {
             res.status(400).json({
                 status: 'error',
-                message: `Event date must be between ${calendar.start} and ${calendar.end}`,
+                message: `Event date must be between ${calendar.start.toISOString().split('T')[0]} and ${calendar.end.toISOString().split('T')[0]}`,
                 data: null
             });
             return;

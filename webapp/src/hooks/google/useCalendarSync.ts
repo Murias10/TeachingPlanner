@@ -15,6 +15,9 @@ export interface CalendarSync {
     syncStatus: string;
     lastSyncAt?: string;
     errorMessage?: string;
+    totalCalendars?: number;
+    processedCalendars?: number;
+    currentOperation?: string;
 }
 
 export const useCalendarSync = () => {
@@ -38,6 +41,16 @@ export const useCalendarSync = () => {
             return result.data || [];
         },
         enabled: true,
+        // Auto-refresh every 2 seconds if any sync is in progress
+        refetchInterval: (query) => {
+            const data = query.state.data;
+            if (!data || !Array.isArray(data)) return false;
+            const hasSyncing = data.some(sync => sync.syncStatus === 'SYNCING');
+            return hasSyncing ? 2000 : false;
+        },
+        // Keep data fresh
+        staleTime: 0,
+        gcTime: 0,
     });
 
     // Activar/desactivar sincronización
@@ -57,7 +70,10 @@ export const useCalendarSync = () => {
                 };
             }
 
+            // Invalidate and refetch to update UI immediately
             await queryClient.invalidateQueries({ queryKey: ['calendarSyncs'] });
+            await queryClient.refetchQueries({ queryKey: ['calendarSyncs'] });
+
             return { success: true };
         } catch (error) {
             console.error('Error toggling calendar sync:', error);
@@ -70,32 +86,51 @@ export const useCalendarSync = () => {
         }
     }, [queryClient]);
 
-    // Sincronizar ahora
-    const syncNow = useCallback(async (syncId: string, accessToken: string): Promise<{ success: boolean; message?: string }> => {
+    // Sincronizar ahora (el token se obtiene en el backend)
+    const syncNow = useCallback(async (syncId: string): Promise<{ success: boolean; message?: string }> => {
         setIsLoading(true);
+
+        // Optimistically update the UI to show SYNCING state immediately
+        queryClient.setQueryData<CalendarSync[]>(['calendarSyncs'], (oldData) => {
+            if (!oldData) return oldData;
+            return oldData.map(sync =>
+                sync.id === syncId
+                    ? { ...sync, syncStatus: 'SYNCING', errorMessage: undefined, totalCalendars: undefined, processedCalendars: undefined, currentOperation: 'Iniciando sincronización...' }
+                    : sync
+            );
+        });
+
         try {
             const response = await fetch(`${VITE_GATEWAY_API_URL}/calendar-sync/${syncId}/sync-now`, {
                 method: 'POST',
-                headers: {
-                    ...getAuthHeaders(),
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ accessToken }),
+                headers: getAuthHeaders(),
             });
 
             const data = await response.json();
 
             if (!response.ok) {
+                // Revert optimistic update on error
+                await queryClient.invalidateQueries({ queryKey: ['calendarSyncs'] });
+                await queryClient.refetchQueries({ queryKey: ['calendarSyncs'] });
+
                 return {
                     success: false,
                     message: data.message || 'Error al sincronizar'
                 };
             }
 
+            // Refetch to get the actual state from backend
             await queryClient.invalidateQueries({ queryKey: ['calendarSyncs'] });
+            await queryClient.refetchQueries({ queryKey: ['calendarSyncs'] });
+
             return { success: true, message: data.message };
         } catch (error) {
             console.error('Error syncing now:', error);
+
+            // Revert optimistic update on error
+            await queryClient.invalidateQueries({ queryKey: ['calendarSyncs'] });
+            await queryClient.refetchQueries({ queryKey: ['calendarSyncs'] });
+
             return {
                 success: false,
                 message: error instanceof Error ? error.message : 'Network error'

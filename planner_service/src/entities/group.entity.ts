@@ -27,7 +27,7 @@ export class Group extends AuditedEntity {
     @Column('varchar', { length: 50, name: 'TYPE' })
     type!: string;
 
-    /** Language of instruction for this group (e.g., 'EN', 'ES', 'CA') */
+    /** Language of instruction for this group (e.g., 'EN', 'ES') */
     @Column('varchar', { length: 2, name: 'LANGUAGE' })
     language!: string;
 

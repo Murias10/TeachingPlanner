@@ -10,10 +10,10 @@ import { useFloatingAlert } from "@/hooks/useFloatingAlert";
 import { Navigate, useNavigate } from "react-router-dom";
 import { Calendar, RefreshCw, ArrowLeft } from "lucide-react";
 import { useDegrees } from "@/hooks/degree/useDegrees";
-import { useGoogleAuth } from "@/hooks/google/useGoogleAuth";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import {
     Select,
     SelectContent,
@@ -29,10 +29,8 @@ const CalendarSyncPage = () => {
     const navigate = useNavigate();
     const { syncs, isSyncsLoading, toggleSync, syncNow, isLoading } = useCalendarSync();
     const { data: degrees = [] } = useDegrees();
-    const { getStatus } = useGoogleAuth();
 
     const [selectedDegreeId, setSelectedDegreeId] = useState<string>("all");
-    const [accessToken, setAccessToken] = useState<string | null>(null);
     const [syncsWithAccess, setSyncsWithAccess] = useState<Set<string>>(new Set());
 
     useEffect(() => {
@@ -41,17 +39,6 @@ const CalendarSyncPage = () => {
             { label: "Sincronización con Google", href: "/calendar-sync" }
         ]);
     }, [setItems]);
-
-    // Get Google access token
-    useEffect(() => {
-        const fetchToken = async () => {
-            const status = await getStatus();
-            if (status?.connected) {
-                setAccessToken("placeholder");
-            }
-        };
-        fetchToken();
-    }, [getStatus]);
 
     // Filtrar calendarios por titulación
     const filteredSyncs = useMemo(() => {
@@ -84,18 +71,9 @@ const CalendarSyncPage = () => {
     };
 
     const handleSyncNow = async (syncId: string) => {
-        if (!accessToken) {
-            triggerAlert({
-                title: "Error",
-                description: "No se pudo obtener el token de acceso",
-                variant: "destructive"
-            });
-            return;
-        }
-
         setSyncsWithAccess(prev => new Set(prev).add(syncId));
 
-        const result = await syncNow(syncId, accessToken);
+        const result = await syncNow(syncId);
 
         setSyncsWithAccess(prev => {
             const newSet = new Set(prev);
@@ -160,9 +138,9 @@ const CalendarSyncPage = () => {
             {/* Info Card */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <p className="text-sm text-blue-800">
-                    <strong>Nota:</strong> Se crea un Google Calendar por cada aula automáticamente al conectar tu cuenta de Google.
-                    Los eventos de los calendarios académicos activados se distribuyen a las aulas según su ubicación.
-                    Las sincronizaciones se actualizan automáticamente cada 5 minutos.
+                    <strong>Nota:</strong> Cuando actives un calendario académico y lo sincronices, se crearán automáticamente Google Calendars
+                    para las aulas que tengan eventos de ese calendario. Los eventos se distribuirán a las aulas según su ubicación.
+                    La sincronización es manual - usa el botón "Sincronizar ahora" para actualizar los calendarios.
                 </p>
             </div>
 
@@ -226,8 +204,20 @@ const CalendarSyncPage = () => {
                                             <TableCell>{sync.courseName}</TableCell>
                                             <TableCell>{sync.semester}</TableCell>
                                             <TableCell>
-                                                <div className="flex flex-col gap-1">
+                                                <div className="flex flex-col gap-2">
                                                     {getSyncStatusBadge(sync.syncStatus)}
+                                                    {sync.syncStatus === 'SYNCING' && sync.totalCalendars && (
+                                                        <div className="space-y-1 min-w-[200px]">
+                                                            <Progress
+                                                                value={(sync.processedCalendars || 0) / sync.totalCalendars * 100}
+                                                                className="h-2"
+                                                            />
+                                                            <div className="flex justify-between text-xs text-muted-foreground">
+                                                                <span>{sync.currentOperation || 'Sincronizando...'}</span>
+                                                                <span>{sync.processedCalendars || 0}/{sync.totalCalendars}</span>
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                     {sync.errorMessage && (
                                                         <span className="text-xs text-destructive">
                                                             {sync.errorMessage}
@@ -253,17 +243,17 @@ const CalendarSyncPage = () => {
                                                         <Switch
                                                             checked={sync.syncEnabled}
                                                             onCheckedChange={() => handleToggleSync(sync.id)}
-                                                            disabled={isLoading}
+                                                            disabled={isLoading || sync.syncStatus === 'SYNCING'}
                                                         />
                                                     </div>
                                                     <Button
                                                         variant="outline"
                                                         size="icon"
                                                         onClick={() => handleSyncNow(sync.id)}
-                                                        disabled={isLoading || !sync.syncEnabled || syncsWithAccess.has(sync.id)}
+                                                        disabled={isLoading || !sync.syncEnabled || sync.syncStatus === 'SYNCING' || syncsWithAccess.has(sync.id)}
                                                         title="Sincronizar ahora"
                                                     >
-                                                        {syncsWithAccess.has(sync.id) ? (
+                                                        {syncsWithAccess.has(sync.id) || sync.syncStatus === 'SYNCING' ? (
                                                             <Spinner />
                                                         ) : (
                                                             <RefreshCw className="h-4 w-4" />

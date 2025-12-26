@@ -89,12 +89,12 @@ export class GoogleOAuthService {
 
             await this.userRepository.save(user);
 
-            // Initialize Google Calendars in planner_service
+            // Initialize CalendarSync entries only (lightweight, no Google Calendar creation)
             try {
-                await this.initializeGoogleCalendars(userId, tokens.access_token, user.email);
+                await this.initializeCalendarSyncEntries(userId, user.email);
             } catch (initError) {
-                console.error('Error initializing Google Calendars:', initError);
-                // Don't fail the whole process if calendar initialization fails
+                console.error('Error initializing calendar sync entries:', initError);
+                // Don't fail the whole process if initialization fails
             }
 
             return { success: true, message: 'Google account connected successfully' };
@@ -104,28 +104,27 @@ export class GoogleOAuthService {
         }
     }
 
-    private async initializeGoogleCalendars(userId: string, accessToken: string, userEmail: string): Promise<void> {
+    private async initializeCalendarSyncEntries(userId: string, userEmail: string): Promise<void> {
         try {
             const plannerServiceUrl = process.env.PLANNER_SERVICE_URL || 'http://planner_service:5001';
 
-            const response = await fetch(`${plannerServiceUrl}/google-calendars/initialize`, {
+            const response = await fetch(`${plannerServiceUrl}/calendar-sync/initialize`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     userId,
-                    accessToken,
                     userEmail
                 })
             });
 
             if (!response.ok) {
                 const error = await response.text();
-                throw new Error(`Failed to initialize Google Calendars: ${error}`);
+                throw new Error(`Failed to initialize calendar sync entries: ${error}`);
             }
         } catch (error) {
-            console.error('Error calling planner_service to initialize calendars:', error);
+            console.error('Error calling planner_service to initialize sync entries:', error);
             throw error;
         }
     }
@@ -137,10 +136,47 @@ export class GoogleOAuthService {
                 return { success: false, message: 'User not found' };
             }
 
-            // Revoke token if exists
+            let accessToken: string | null = null;
+
+            // Decrypt access token if exists (we'll need it to delete Google Calendars)
             if (user.googleAccessToken) {
                 try {
-                    const accessToken = this.decrypt(user.googleAccessToken);
+                    accessToken = this.decrypt(user.googleAccessToken);
+                } catch (decryptError) {
+                    console.warn('Failed to decrypt access token:', decryptError);
+                }
+            }
+
+            // Delete calendar syncs and Google Calendars via planner_service
+            if (accessToken) {
+                try {
+                    const plannerServiceUrl = process.env.PLANNER_SERVICE_URL || 'http://planner_service:5001';
+                    const response = await fetch(`${plannerServiceUrl}/calendar-sync/cleanup`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            userId,
+                            accessToken
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.text();
+                        console.warn('Failed to delete calendar syncs:', error);
+                    } else {
+                        const result = await response.json();
+                        console.log('Calendar syncs deleted:', result);
+                    }
+                } catch (deleteError) {
+                    console.warn('Error calling planner_service to delete syncs:', deleteError);
+                }
+            }
+
+            // Revoke token from Google
+            if (accessToken) {
+                try {
                     await fetch(`https://oauth2.googleapis.com/revoke?token=${accessToken}`, {
                         method: 'POST'
                     });

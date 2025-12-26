@@ -49,6 +49,18 @@ export class CalendarSync extends AuditedEntity {
     @Column('text', { name: 'ERROR_MESSAGE', nullable: true })
     errorMessage?: string;
 
+    /** Total calendars to process in current sync */
+    @Column('int', { name: 'TOTAL_CALENDARS', nullable: true })
+    totalCalendars?: number;
+
+    /** Calendars processed so far in current sync */
+    @Column('int', { name: 'PROCESSED_CALENDARS', nullable: true })
+    processedCalendars?: number;
+
+    /** Current operation description */
+    @Column('varchar', { name: 'CURRENT_OPERATION', length: 255, nullable: true })
+    currentOperation?: string;
+
     /** Academic calendar this sync configuration belongs to */
     @ManyToOne(() => Calendar, {
         onDelete: 'CASCADE',

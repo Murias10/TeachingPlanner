@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import VITE_GATEWAY_API_URL from '@/config/api';
 import { getAuthHeaders } from '@/utils/authHeaders';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface GoogleAuthStatus {
     connected: boolean;
@@ -8,6 +9,7 @@ interface GoogleAuthStatus {
 }
 
 export const useGoogleAuth = () => {
+    const queryClient = useQueryClient();
     const [isLoading, setIsLoading] = useState(false);
 
     const getStatus = useCallback(async (): Promise<GoogleAuthStatus | null> => {
@@ -57,26 +59,8 @@ export const useGoogleAuth = () => {
     const disconnect = useCallback(async (): Promise<{ success: boolean; message?: string }> => {
         setIsLoading(true);
         try {
-            // First, try to get a valid access token to delete Google calendars
-            // Note: For now, we proceed without token which will skip Google Calendar deletion
-            // but will still clean up the database records
-            let accessToken: string | undefined;
-
-            // Delete all calendar syncs (this will also delete Google calendars if token is available)
-            try {
-                await fetch(`${VITE_GATEWAY_API_URL}/calendar-sync/user/all`, {
-                    method: 'DELETE',
-                    headers: getAuthHeaders({
-                        'Content-Type': 'application/json'
-                    }),
-                    body: JSON.stringify({ accessToken })
-                });
-            } catch (error) {
-                console.warn('Error deleting calendar syncs:', error);
-                // Continue with disconnect even if this fails
-            }
-
-            // Now disconnect the Google account
+            // Disconnect the Google account
+            // The auth_service will handle deleting calendar syncs and Google calendars
             const response = await fetch(`${VITE_GATEWAY_API_URL}/auth/google/disconnect`, {
                 method: 'POST',
                 headers: getAuthHeaders(),
@@ -85,11 +69,55 @@ export const useGoogleAuth = () => {
             const data = await response.json();
 
             if (!response.ok) {
+                setIsLoading(false);
                 return {
                     success: false,
                     message: data.message || 'Error al desconectar Google Calendar'
                 };
             }
+
+            // Poll calendar syncs to ensure all calendars are deleted
+            // Keep checking every 2 seconds until no calendar syncs remain
+            const pollInterval = 2000;
+            const maxAttempts = 60; // 2 minutes max
+            let attempts = 0;
+
+            while (attempts < maxAttempts) {
+                attempts++;
+
+                try {
+                    const syncsResponse = await fetch(`${VITE_GATEWAY_API_URL}/calendar-sync`, {
+                        method: 'GET',
+                        headers: getAuthHeaders(),
+                    });
+
+                    if (syncsResponse.ok) {
+                        const syncsResult = await syncsResponse.json();
+                        const syncsData = syncsResult.data || [];
+
+                        // If no more syncs exist, deletion is complete
+                        if (syncsData.length === 0) {
+                            console.log('All calendar syncs deleted successfully');
+                            break;
+                        }
+
+                        console.log(`Waiting for ${syncsData.length} calendar sync(s) to be deleted...`);
+                    }
+                } catch (pollError) {
+                    console.warn('Error polling calendar syncs:', pollError);
+                }
+
+                // Wait before next poll
+                await new Promise(resolve => setTimeout(resolve, pollInterval));
+            }
+
+            if (attempts >= maxAttempts) {
+                console.warn('Timed out waiting for calendar syncs to be deleted');
+            }
+
+            // Invalidate queries to refresh the UI
+            await queryClient.invalidateQueries({ queryKey: ['calendarSyncs'] });
+            await queryClient.invalidateQueries({ queryKey: ['googleAuthStatus'] });
 
             return { success: true };
         } catch (error) {
@@ -101,7 +129,7 @@ export const useGoogleAuth = () => {
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [queryClient]);
 
     return {
         getStatus,

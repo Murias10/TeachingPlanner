@@ -7,7 +7,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { Edit, Trash2, Calendar, XCircle, CheckCircle, Replace } from "lucide-react";
+import { Edit, Trash2, Calendar, XCircle, CheckCircle, Replace, Undo } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface CalendarEventWrapperProps {
@@ -25,6 +25,7 @@ interface CalendarEventWrapperProps {
   onEditSeries?: (event: CalendarEvent) => void;
   onReplaceEvent?: (event: CalendarEvent) => void;
   onDeleteSeries?: (event: CalendarEvent) => void;
+  onRevertCancellation?: (event: CalendarEvent) => void;
 }
 
 export function CalendarEventWrapper({
@@ -39,6 +40,7 @@ export function CalendarEventWrapper({
   onEditSeries,
   onReplaceEvent,
   onDeleteSeries,
+  onRevertCancellation,
 }: CalendarEventWrapperProps) {
   const { user } = useAuth();
   const calendarEvent = event.resource;
@@ -46,6 +48,7 @@ export function CalendarEventWrapper({
   const isProfessor = user?.role === 'PROFESSOR';
   const isPendingRequest = calendarEvent?.isPending === true;
   const isPeriodicEvent = calendarEvent?.type === 'periodic';
+  const isCancelled = calendarEvent?.cancelled === true;
 
   if (!calendarEvent) {
     return <div className="h-full w-full">{event.title}</div>;
@@ -101,6 +104,11 @@ export function CalendarEventWrapper({
     onDeleteSeries?.(calendarEvent);
   };
 
+  const handleRevertCancellation = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    onRevertCancellation?.(calendarEvent);
+  };
+
   // Renderizar contenido del evento sin menú contextual para non-admin o en solicitudes pendientes para professor
   const renderEventContent = () => {
     // Extraer el grupo y la hora del título (formato esperado: "Grupo - HH:MM")
@@ -124,6 +132,30 @@ export function CalendarEventWrapper({
   // Si no es ADMIN ni PROFESSOR, mostrar solo el contenido sin menú contextual
   if (!isAdmin && !isProfessor) {
     return renderEventContent();
+  }
+
+  // Si es un evento cancelado y el usuario es ADMIN
+  if (isCancelled && isAdmin) {
+    return (
+      <ContextMenu>
+        <ContextMenuTrigger className="h-full w-full cursor-pointer">
+          {renderEventContent()}
+        </ContextMenuTrigger>
+        <ContextMenuContent className="w-56">
+          <ContextMenuItem onClick={handleViewDetails}>
+            <Calendar />
+            Ver detalles
+          </ContextMenuItem>
+
+          <ContextMenuSeparator />
+
+          <ContextMenuItem onClick={handleRevertCancellation}>
+            <Undo />
+            Revertir cancelación
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
+    );
   }
 
   // Si es una solicitud pendiente y el usuario es ADMIN

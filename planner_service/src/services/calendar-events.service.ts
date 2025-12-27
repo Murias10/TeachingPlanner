@@ -80,7 +80,10 @@ export class CalendarEventsService {
       eventosPeriodicos
     );
 
-    return eventosFiltrados;
+    // PASO 6: Añadir eventos cancelados
+    const eventosCancelados = this.añadirEventosCancelados(diasDelCalendario);
+
+    return [...eventosFiltrados, ...eventosCancelados];
   }
 
   /**
@@ -136,6 +139,29 @@ export class CalendarEventsService {
         }
       }
     }
+  }
+
+  /**
+   * Añade eventos cancelados al resultado final
+   * Los eventos cancelados se muestran en el calendario con una estética diferente
+   */
+  private static añadirEventosCancelados(diasDelCalendario: any[]): any[] {
+    const eventosCancelados: any[] = [];
+
+    for (const dia of diasDelCalendario) {
+      for (const eventoPuntual of dia.puntualEvents || []) {
+        if (!eventoPuntual.cancelled) continue;
+
+        const claveFecha = this.obtenerClaveFecha(dia.date);
+        const evento = this.crearObjetoEventoPuntual(eventoPuntual, dia, claveFecha);
+        // Marcar explícitamente como cancelado
+        evento.cancelled = true;
+
+        eventosCancelados.push(evento);
+      }
+    }
+
+    return eventosCancelados;
   }
 
   /**

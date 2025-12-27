@@ -9,7 +9,7 @@ import { usePendingRequestsAsEvents } from "@/hooks/calendar/usePendingRequestsA
 import { useSubjectsWithEventsAndGroupsByCourseAndSemester } from "@/hooks/subject/useSubjectsWithEventsAndGroupsByCourseIdAndSemester";
 import { CalendarEvent } from "@/types/CalendarEvent";
 import ClassFilter, { FilterValues } from "@/components/ClassFilter";
-import { FileText, BookOpen, DoorOpen, Languages, Users, GraduationCap } from "lucide-react";
+import { FileText, BookOpen, DoorOpen, Languages, Users, GraduationCap, XCircle } from "lucide-react";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -194,7 +194,8 @@ export default function CalendarPage() {
         grupos: [],
         aula: [],
         idioma: [],
-        curso: []
+        curso: [],
+        mostrarCancelados: ['si']  // Por defecto mostrar eventos cancelados
     });
 
     // Estado para colapsar/expandir filtros
@@ -218,6 +219,11 @@ export default function CalendarPage() {
     const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);
     const [eventToDelete, setEventToDelete] = useState<CalendarEvent | undefined>(undefined);
     const [deleteType, setDeleteType] = useState<'event' | 'series'>('event');
+
+    // Estado para el diálogo de revertir cancelación
+    const [isRevertConfirmationOpen, setIsRevertConfirmationOpen] = useState(false);
+    const [eventToRevert, setEventToRevert] = useState<CalendarEvent | undefined>(undefined);
+    const [isRevertingEvent, setIsRevertingEvent] = useState(false);
 
     // Estado para solicitud de eventos
     const [isSolicitudDrawerOpen, setIsSolicitudDrawerOpen] = useState(false);
@@ -403,16 +409,30 @@ export default function CalendarPage() {
                 label: 'Idioma',
                 options: sortAlphabetically(Array.from(uniqueLanguages)),
                 icon: Languages
-            }
+            },
+            ...(isAdmin ? [{
+                category: 'mostrarCancelados' as const,
+                label: 'Eventos Cancelados',
+                options: ['si'],
+                icon: XCircle
+            }] : [])
         ];
-    }, [allEvents, availableGrupos, subjectYearMap]);
+    }, [allEvents, availableGrupos, subjectYearMap, isAdmin]);
 
     // Filtrar eventos según los filtros activos
     const filteredEvents = useMemo(() => {
         if (allEvents.length === 0) return [];
 
         return allEvents.filter(event => {
-            const hasActiveFilters = Object.values(filters).some(arr => arr.length > 0);
+            // Filtro por eventos cancelados - se aplica siempre
+            if (event.cancelled && !filters.mostrarCancelados.includes('si')) {
+                return false;
+            }
+
+            // Verificar si hay otros filtros activos (excluyendo mostrarCancelados)
+            const otherFilters = { ...filters };
+            delete (otherFilters as any).mostrarCancelados;
+            const hasActiveFilters = Object.values(otherFilters).some(arr => arr.length > 0);
             if (!hasActiveFilters) return true;
 
             // Filtro por tipo de grupo
@@ -1082,6 +1102,40 @@ export default function CalendarPage() {
         setIsDeleteConfirmationOpen(true);
     };
 
+    const handleRevertCancellation = (event: CalendarEvent) => {
+        setEventToRevert(event);
+        setIsRevertConfirmationOpen(true);
+    };
+
+    const handleConfirmRevert = async () => {
+        if (!eventToRevert || !eventToRevert.puntualEventId) return;
+
+        setIsRevertingEvent(true);
+
+        try {
+            const response = await fetch(`${VITE_GATEWAY_API_URL}/calendar/puntual-event/${eventToRevert.puntualEventId}`, {
+                method: 'DELETE',
+                headers: getAuthHeaders()
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Error al revertir la cancelación');
+            }
+
+            // Refetch calendar events
+            refetch();
+
+            setIsRevertConfirmationOpen(false);
+            setEventToRevert(undefined);
+        } catch (error) {
+            console.error('Error al revertir la cancelación:', error);
+            alert('Error al revertir la cancelación del evento');
+        } finally {
+            setIsRevertingEvent(false);
+        }
+    };
+
     // Event request handler for creating a new request
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleSolicitud = async (calendarIdParam: string, _eventType: string, config: any) => {
@@ -1160,6 +1214,7 @@ export default function CalendarPage() {
             onEditSeries={handleEditSeries}
             onReplaceEvent={handleReplaceEvent}
             onDeleteSeries={handleDeleteSeries}
+            onRevertCancellation={handleRevertCancellation}
         />
     );
 
@@ -1238,6 +1293,7 @@ export default function CalendarPage() {
                             </TooltipProvider>
                         )}
                     </div>
+
                     <div className="flex-1" />
                     {user?.role === 'PROFESSOR' && (
                         <TooltipProvider>
@@ -1331,6 +1387,16 @@ export default function CalendarPage() {
                                         backgroundColor = '#ef4444';
                                         textColor = '#7f1d1d'; // Rojo oscuro
                                         opacity = 0.6;
+                                        return {
+                                            style: {
+                                                backgroundColor,
+                                                color: textColor,
+                                                opacity,
+                                                border: '1px solid white',
+                                                borderRadius: '10px',
+                                                textDecoration: 'line-through',
+                                            }
+                                        };
                                     }
                                     // Eventos pendientes (solicitudes)
                                     else if (calendarEvent?.isPending) {
@@ -1428,6 +1494,17 @@ export default function CalendarPage() {
                         ? '¿Estás seguro de que deseas eliminar toda la serie de eventos? Esta acción no se puede deshacer y eliminará todos los eventos de esta serie.'
                         : undefined
                 }
+            />
+
+            {/* Revert Cancellation Confirmation Dialog */}
+            <DeleteEventConfirmationDialog
+                open={isRevertConfirmationOpen}
+                onOpenChange={setIsRevertConfirmationOpen}
+                onConfirm={handleConfirmRevert}
+                isLoading={isRevertingEvent}
+                subjectName={eventToRevert?.subject?.name || 'esta asignatura'}
+                title='Revertir cancelación'
+                description='¿Estás seguro de que deseas revertir la cancelación de este evento? El evento volverá a aparecer en el calendario.'
             />
 
             {/* Event Request Dialog - Solo para PROFESSOR */}

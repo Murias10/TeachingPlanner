@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { formatGroupForDisplay, getGroupAcronym } from '@/utils/groupFormatUtils';
 import { GROUP_TYPE_LABELS, LANGUAGE_LABELS } from '@/constants/groupTypes';
 
-type FilterCategory = 'tipoGrupo' | 'asignatura' | 'grupos' | 'aula' | 'idioma' | 'curso';
+type FilterCategory = 'tipoGrupo' | 'asignatura' | 'grupos' | 'aula' | 'idioma' | 'curso' | 'mostrarCancelados';
 
 export interface FilterValues {
   tipoGrupo: string[];
@@ -17,6 +17,7 @@ export interface FilterValues {
   aula: string[];
   idioma: string[];
   curso: string[];
+  mostrarCancelados: string[];
 }
 
 interface FilterOption {
@@ -48,7 +49,8 @@ export default function ClassFilter({
     grupos: '',
     aula: '',
     idioma: '',
-    curso: ''
+    curso: '',
+    mostrarCancelados: ''
   });
 
   const SEARCH_THRESHOLD = 8; // Mostrar búsqueda si hay más de 8 opciones
@@ -104,7 +106,8 @@ export default function ClassFilter({
       grupos: [],
       aula: [],
       idioma: [],
-      curso: []
+      curso: [],
+      mostrarCancelados: []
     });
   };
 
@@ -117,6 +120,9 @@ export default function ClassFilter({
     }
     if (category === 'grupos') {
       return formatGroupForDisplay(value);
+    }
+    if (category === 'mostrarCancelados') {
+      return 'Mostrar eventos cancelados';
     }
     return value;
   };

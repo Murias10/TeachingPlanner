@@ -1,6 +1,6 @@
 import express from 'express';
 import multer from 'multer';
-import { getDegrees, getCourses, getCoursesByDegreeId, getCoursesByDegreeAcronym, getSubjects, getSubjectsByDegreeId, getSubjectsWithEventsAndGroupsByCourseAndSemester, getClassrooms, createClassroom, deleteClassroom, updateClassroom, createDegree, deleteDegree, deleteSubject, createSubject, updateSubject, deleteCourse, deleteCalendar, getDegreeByAcronym, createCourse, createCalendar, getCalendarById, createCalendarWithImport, getCalendarEvents, getPendingRequestsAsEvents, exportCalendar, updateCourse, updateDegree, createPuntualEvent, updatePuntualEvent, createPeriodicEvent, deletePuntualEvent, createEventRequest, getEventRequests, getEventRequestById, approveEventRequest, rejectEventRequest, deleteEventRequest, createGroup, deleteGroup } from '@/controllers/planner.controller';
+import { getDegrees, getCourses, getCoursesByDegreeId, getCoursesByDegreeAcronym, getSubjects, getSubjectsByDegreeId, getSubjectsWithEventsAndGroupsByCourseAndSemester, getClassrooms, createClassroom, deleteClassroom, updateClassroom, createDegree, deleteDegree, deleteSubject, createSubject, updateSubject, deleteCourse, deleteCalendar, getDegreeByAcronym, createCourse, createCalendar, getCalendarById, createCalendarWithImport, getCalendarEvents, getPendingRequestsAsEvents, exportCalendar, updateCourse, updateDegree, createPuntualEvent, updatePuntualEvent, createPeriodicEvent, deletePuntualEvent, deletePeriodicEvent, createEventRequest, getEventRequests, getEventRequestById, approveEventRequest, rejectEventRequest, deleteEventRequest, createGroup, deleteGroup, updateGroupPlanifiedHours } from '@/controllers/planner.controller';
 
 // Configurar multer para el gateway
 const storage = multer.memoryStorage();
@@ -84,6 +84,8 @@ router.post('/calendar/periodic-event', createPeriodicEvent);
 
 router.delete('/calendar/puntual-event/:eventId', deletePuntualEvent);
 
+router.delete('/calendar/periodic-event/:eventId', deletePeriodicEvent);
+
 router.get('/calendar/:id/events', getCalendarEvents);
 
 router.get('/calendar/:id/pending-requests', getPendingRequestsAsEvents);
@@ -111,5 +113,7 @@ router.delete('/event-request/:id', deleteEventRequest);
 router.post('/group', createGroup);
 
 router.delete('/group/:id', deleteGroup);
+
+router.patch('/group/:id/planified-hours', updateGroupPlanifiedHours);
 
 export default router;

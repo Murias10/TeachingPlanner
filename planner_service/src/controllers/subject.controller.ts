@@ -410,7 +410,8 @@ export const getSubjectsWithGroupsByCourseAndSemester = async (req: AuditedReque
                 gr.ID as group_id,
                 gr.NUMBER as group_number,
                 gr.TYPE as group_type,
-                gr.LANGUAGE as group_language
+                gr.LANGUAGE as group_language,
+                gr.PLANIFIED_HOURS as group_planified_hours
             FROM CALENDARS ca
             JOIN COURSES co ON co.ID = ca.ID_COURSE
             JOIN SUBJECTS sb ON sb.ID_DEGREE = co.ID_DEGREE
@@ -437,6 +438,7 @@ export const getSubjectsWithGroupsByCourseAndSemester = async (req: AuditedReque
             group_number: number | null;
             group_type: string | null;
             group_language: string | null;
+            group_planified_hours: number | null;
         };
 
         (result as SubjectGroupRow[]).forEach(row => {
@@ -449,7 +451,8 @@ export const getSubjectsWithGroupsByCourseAndSemester = async (req: AuditedReque
                 group_id,
                 group_number,
                 group_type,
-                group_language
+                group_language,
+                group_planified_hours
             } = row;
 
             if (!groupedBySubject.has(subject_id)) {
@@ -470,6 +473,7 @@ export const getSubjectsWithGroupsByCourseAndSemester = async (req: AuditedReque
                     number: group_number,
                     type: group_type,
                     language: group_language,
+                    planifiedHours: group_planified_hours,
                 });
             }
         });

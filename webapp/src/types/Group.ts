@@ -8,4 +8,5 @@ export interface Group {
     type: string;
     language: string;
     events: Event[];
+    planifiedHours?: number;
 }

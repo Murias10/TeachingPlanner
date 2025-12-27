@@ -36,6 +36,7 @@ import { Bell } from "lucide-react";
 import { generateGoogleCalendarCSV, downloadCSV } from "@/utils/csvExport";
 import { generateGroupId } from "@/utils/groupFormatUtils";
 import { sortAlphabetically, sortGruposByAcronymTypeNumber } from "@/utils/filterSortingUtils";
+import { getAuthHeaders } from "@/utils/authHeaders";
 
 // Configurar moment para usar español y que la semana empiece en lunes
 moment.locale('es', {
@@ -216,6 +217,7 @@ export default function CalendarPage() {
     // Estado para el diálogo de eliminación de evento
     const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);
     const [eventToDelete, setEventToDelete] = useState<CalendarEvent | undefined>(undefined);
+    const [deleteType, setDeleteType] = useState<'event' | 'series'>('event');
 
     // Estado para solicitud de eventos
     const [isSolicitudDrawerOpen, setIsSolicitudDrawerOpen] = useState(false);
@@ -890,35 +892,130 @@ export default function CalendarPage() {
     };
 
     const handleDeleteEvent = (event: CalendarEvent) => {
-        // Solo permitir eliminar eventos puntuales
-        if (event.type === 'periodic') {
-            console.log('Periodic events deletion not yet implemented');
-            return;
-        }
-
         setEventToDelete(event);
+        setDeleteType('event');
         setIsDeleteConfirmationOpen(true);
     };
 
     const handleConfirmDelete = async () => {
-        if (!eventToDelete || !eventToDelete.puntualEventId) return;
+        if (!eventToDelete) return;
 
-        const result = await deletePuntualEvent(eventToDelete.puntualEventId, refetch);
+        // Si es eliminar serie completa
+        if (deleteType === 'series') {
+            if (!eventToDelete.periodicEventId) {
+                triggerAlert({
+                    title: 'Error',
+                    description: 'No se pudo identificar el evento periódico',
+                    variant: 'destructive'
+                });
+                return;
+            }
 
-        if (result.success) {
-            triggerAlert({
-                title: 'Evento eliminado',
-                description: 'El evento ha sido eliminado correctamente',
-                variant: 'success'
-            });
-            setIsDeleteConfirmationOpen(false);
-            setEventToDelete(undefined);
+            try {
+                const response = await fetch(`${VITE_GATEWAY_API_URL}/calendar/periodic-event/${eventToDelete.periodicEventId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        ...getAuthHeaders(),
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    triggerAlert({
+                        title: 'Serie eliminada',
+                        description: 'La serie de eventos ha sido eliminada correctamente',
+                        variant: 'success'
+                    });
+                    setIsDeleteConfirmationOpen(false);
+                    setEventToDelete(undefined);
+                    refetch();
+                } else {
+                    triggerAlert({
+                        title: 'Error',
+                        description: result.message || 'No se pudo eliminar la serie de eventos',
+                        variant: 'destructive'
+                    });
+                }
+            } catch (error) {
+                triggerAlert({
+                    title: 'Error',
+                    description: error instanceof Error ? error.message : 'Error al eliminar la serie de eventos',
+                    variant: 'destructive'
+                });
+            }
+            return;
+        }
+
+        // Si es un evento periódico individual, crear un evento puntual cancelado
+        if (eventToDelete.type === 'periodic') {
+            try {
+                const response = await fetch(`${VITE_GATEWAY_API_URL}/calendar/puntual-event`, {
+                    method: 'POST',
+                    headers: {
+                        ...getAuthHeaders(),
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        calendarId: calendarId,
+                        eventDate: eventToDelete.date,
+                        startTime: eventToDelete.startTime,
+                        endTime: eventToDelete.endTime,
+                        subjectId: eventToDelete.subject?.id || null,
+                        groupIds: eventToDelete.groups.map(g => g.id),
+                        classroomIds: eventToDelete.classrooms.map(c => c.id),
+                        comment: eventToDelete.comment || '',
+                        cancelled: true
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    triggerAlert({
+                        title: 'Evento cancelado',
+                        description: 'El evento ha sido cancelado correctamente',
+                        variant: 'success'
+                    });
+                    setIsDeleteConfirmationOpen(false);
+                    setEventToDelete(undefined);
+                    refetch();
+                } else {
+                    triggerAlert({
+                        title: 'Error al cancelar',
+                        description: result.message || 'No se pudo cancelar el evento',
+                        variant: 'destructive'
+                    });
+                }
+            } catch (error) {
+                triggerAlert({
+                    title: 'Error',
+                    description: error instanceof Error ? error.message : 'Error al cancelar el evento',
+                    variant: 'destructive'
+                });
+            }
         } else {
-            triggerAlert({
-                title: 'Error al eliminar',
-                description: result.message || 'No se pudo eliminar el evento',
-                variant: 'destructive'
-            });
+            // Si es un evento puntual, eliminarlo normalmente
+            if (!eventToDelete.puntualEventId) return;
+
+            const result = await deletePuntualEvent(eventToDelete.puntualEventId, refetch);
+
+            if (result.success) {
+                triggerAlert({
+                    title: 'Evento eliminado',
+                    description: 'El evento ha sido eliminado correctamente',
+                    variant: 'success'
+                });
+                setIsDeleteConfirmationOpen(false);
+                setEventToDelete(undefined);
+            } else {
+                triggerAlert({
+                    title: 'Error al eliminar',
+                    description: result.message || 'No se pudo eliminar el evento',
+                    variant: 'destructive'
+                });
+            }
         }
     };
 
@@ -967,6 +1064,22 @@ export default function CalendarPage() {
                 variant: 'destructive'
             });
         }
+    };
+
+    const handleEditSeries = (event: CalendarEvent) => {
+        // TODO: Implement edit series logic
+        console.log('Edit series:', event);
+    };
+
+    const handleReplaceEvent = (event: CalendarEvent) => {
+        // TODO: Implement replace event logic
+        console.log('Replace event:', event);
+    };
+
+    const handleDeleteSeries = (event: CalendarEvent) => {
+        setEventToDelete(event);
+        setDeleteType('series');
+        setIsDeleteConfirmationOpen(true);
     };
 
     // Event request handler for creating a new request
@@ -1044,6 +1157,9 @@ export default function CalendarPage() {
             onRejectRequest={handleRejectRequest}
             onReviewRequest={handleReviewRequest}
             onDeleteRequest={handleDeleteRequest}
+            onEditSeries={handleEditSeries}
+            onReplaceEvent={handleReplaceEvent}
+            onDeleteSeries={handleDeleteSeries}
         />
     );
 
@@ -1306,6 +1422,12 @@ export default function CalendarPage() {
                 onConfirm={handleConfirmDelete}
                 isLoading={isDeletingEvent}
                 subjectName={eventToDelete?.subject?.name || 'esta asignatura'}
+                title={deleteType === 'series' ? 'Eliminar serie de eventos' : undefined}
+                description={
+                    deleteType === 'series'
+                        ? '¿Estás seguro de que deseas eliminar toda la serie de eventos? Esta acción no se puede deshacer y eliminará todos los eventos de esta serie.'
+                        : undefined
+                }
             />
 
             {/* Event Request Dialog - Solo para PROFESSOR */}

@@ -8,13 +8,14 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { TimePicker } from '@/components/ui/time-picker';
 import { Textarea } from '@/components/ui/textarea';
 import { es } from 'date-fns/locale';
-import { format } from 'date-fns';
+import { format, getDay, parseISO } from 'date-fns';
 import type { RecurrenceConfig, FrequencyType, WeekDay, EndsType, CustomFrequencyUnit } from '@/types/RecurrenceConfig';
 import { useClassrooms } from '@/hooks/classroom/useClassrooms';
 import { useSubjectsByDegreeId } from '@/hooks/subject/useSubjectsByDegreeId';
@@ -57,6 +58,13 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
   const [eventType, setEventType] = useState<string>('T');
   const [openStartTime, setOpenStartTime] = useState(false);
   const [openEndTime, setOpenEndTime] = useState(false);
+  const [allowEditPlanifiedHours, setAllowEditPlanifiedHours] = useState(false);
+  const [initialGroupHours, setInitialGroupHours] = useState<number>(0); // Store initial hours from selected group
+
+  // Hooks must be declared before effects
+  const { data: classrooms = [] } = useClassrooms();
+  const { data: subjects = [], isLoading: isLoadingSubjects } = useSubjectsByDegreeId(degreeId || null);
+  const { data: subjectsWithGroups = [] } = useSubjectsWithEventsAndGroupsByCourseAndSemester(courseId || null, semester || null);
 
   // Actualizar config cuando cambien los props iniciales
   React.useEffect(() => {
@@ -91,11 +99,72 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
     }));
   }, [eventType]);
 
-  const { data: classrooms = [] } = useClassrooms();
-  const { data: subjects = [], isLoading: isLoadingSubjects } = useSubjectsByDegreeId(degreeId || null);
+  // Clear group and classroom selections when subject changes
+  React.useEffect(() => {
+    setConfig(prev => ({
+      ...prev,
+      groupIds: [],
+      classroomIds: []
+    }));
+  }, [config.subjectId]);
 
-  // Get all subjects with their groups using the same hook as GroupPage
-  const { data: subjectsWithGroups = [] } = useSubjectsWithEventsAndGroupsByCourseAndSemester(courseId || null, semester || null);
+  // Update planified hours when group is selected
+  React.useEffect(() => {
+    if (config.groupIds && config.groupIds.length > 0 && config.frequency === 'weekly') {
+      const selectedGroupId = config.groupIds[0];
+      const selectedSubject = subjectsWithGroups.find(s => s.id === config.subjectId);
+      const selectedGroup = selectedSubject?.groups?.find(g => g.id === selectedGroupId);
+
+      if (selectedGroup) {
+        const groupHours = selectedGroup.planifiedHours || 0;
+        setConfig(prev => ({
+          ...prev,
+          planifiedHours: groupHours
+        }));
+        // Store initial hours to determine if checkbox should appear
+        setInitialGroupHours(groupHours);
+        // Reset checkbox when changing groups
+        setAllowEditPlanifiedHours(false);
+      }
+    } else {
+      // Reset planified hours when group is deselected
+      setConfig(prev => ({
+        ...prev,
+        planifiedHours: 0
+      }));
+      setInitialGroupHours(0);
+      setAllowEditPlanifiedHours(false);
+    }
+  }, [config.groupIds, config.subjectId, config.frequency, subjectsWithGroups]);
+
+  // Pre-select weekday when frequency is 'weekly' and initialDate is provided
+  React.useEffect(() => {
+    if (config.frequency === 'weekly' && initialDate && (!config.weekDays || config.weekDays.length === 0)) {
+      try {
+        const date = parseISO(initialDate);
+        const dayOfWeek = getDay(date); // 0=Sunday, 1=Monday, 2=Tuesday, etc.
+
+        // Map day number to WeekDay character
+        const dayMap: { [key: number]: WeekDay } = {
+          1: 'L', // Monday
+          2: 'M', // Tuesday
+          3: 'X', // Wednesday
+          4: 'J', // Thursday
+          5: 'V', // Friday
+        };
+
+        const selectedDay = dayMap[dayOfWeek];
+        if (selectedDay) {
+          setConfig(prev => ({
+            ...prev,
+            weekDays: [selectedDay]
+          }));
+        }
+      } catch (error) {
+        console.error('Error parsing initial date:', error);
+      }
+    }
+  }, [config.frequency, initialDate, config.weekDays]);
 
   // Filter subjects by semester
   const filteredSubjects = useMemo(() => {
@@ -358,23 +427,6 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
               </div>
             </div>
 
-            {/* Planified Hours - Only visible when frequency is 'weekly' */}
-            {config.frequency === 'weekly' && (
-              <div className="space-y-1">
-                <Label htmlFor="planified-hours" className="text-xs font-semibold">Horas Planificadas</Label>
-                <Input
-                  id="planified-hours"
-                  type="number"
-                  min="0"
-                  step="0.5"
-                  value={config.planifiedHours || ''}
-                  onChange={(e) => setConfig({ ...config, planifiedHours: parseFloat(e.target.value) || 0 })}
-                  placeholder="Ej: 30"
-                  className="h-8 text-xs"
-                />
-              </div>
-            )}
-
             {/* Subject Selection - Always visible */}
             <div className="space-y-1">
               <Label className="text-xs font-semibold">Asignatura</Label>
@@ -544,6 +596,41 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
                 )}
               </div>
             </div>
+
+            {/* Planified Hours - Only visible when frequency is 'weekly' and group is selected */}
+            {config.frequency === 'weekly' && config.groupIds && config.groupIds.length > 0 && (
+              <div className="space-y-2">
+                <Label htmlFor="planified-hours" className="text-xs font-semibold">Horas Planificadas</Label>
+                <Input
+                  id="planified-hours"
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  value={config.planifiedHours || ''}
+                  onChange={(e) => setConfig({ ...config, planifiedHours: parseFloat(e.target.value) || 0 })}
+                  placeholder="Ej: 30"
+                  className="h-8 text-xs"
+                  disabled={initialGroupHours > 0 && !allowEditPlanifiedHours}
+                  required={initialGroupHours === 0}
+                />
+                {initialGroupHours > 0 && (
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="allow-edit-hours"
+                      checked={allowEditPlanifiedHours}
+                      onCheckedChange={(checked) => setAllowEditPlanifiedHours(!!checked)}
+                      className="h-3.5 w-3.5"
+                    />
+                    <label
+                      htmlFor="allow-edit-hours"
+                      className="text-xs text-muted-foreground cursor-pointer"
+                    >
+                      Modificar las horas planificadas puede afectar a todos los eventos de este grupo
+                    </label>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Custom Frequency Options - Only visible for custom frequency */}
             {config.frequency === 'custom' && (

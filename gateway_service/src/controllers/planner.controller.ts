@@ -260,6 +260,12 @@ export const deletePuntualEvent = (req: Request, res: Response, next: NextFuncti
         url: `${SERVICES.PLANNER}/calendar/puntual-event/${req.params.eventId}`,
         method: 'DELETE'
     });
+
+export const deletePeriodicEvent = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/calendar/periodic-event/${req.params.eventId}`,
+        method: 'DELETE'
+    });
 // ============================================
 // Event Request Controllers (Proxy to planner_service)
 // ============================================
@@ -320,4 +326,11 @@ export const deleteGroup = (req: Request, res: Response, next: NextFunction) =>
     proxyRequest(req, res, next, {
         url: `${SERVICES.PLANNER}/group/${req.params.id}`,
         method: 'DELETE'
+    });
+
+export const updateGroupPlanifiedHours = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/group/${req.params.id}/planified-hours`,
+        method: 'PATCH',
+        body: req.body
     });

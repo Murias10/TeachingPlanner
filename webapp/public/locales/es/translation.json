@@ -397,6 +397,13 @@
                         "drop": {
                             "description": "Solo archivos .txt",
                             "title": "Arrastra archivos aquí o haz clic para seleccionar"
+                        },
+                        "error": {
+                            "planifiedHours": {
+                                "mismatch": "Horas planificadas inconsistentes para el grupo {{group}}",
+                                "title": "Error de validación en horas planificadas",
+                                "noImport": "No se importó ningún dato debido a errores en las horas planificadas. Todos los eventos del mismo grupo deben tener el mismo número de horas planificadas."
+                            }
                         }
                     }
                 },
@@ -571,13 +578,17 @@
                 "name": "Nombre",
                 "acronym": "Acrónimo",
                 "semester": "Semestre",
-                "year": "Curso"
+                "year": "Curso",
+                "planifiedHours": "Horas planificadas"
             },
             "no.results": "No se encontraron grupos.",
             "actions": {
                 "select.groups": "Seleccionar grupos",
-                "select.groups.tooltip": "Selecciona grupos para visaulizar en el calendario"
-            }
+                "select.groups.tooltip": "Selecciona grupos para visaulizar en el calendario",
+                "edit.planifiedHours": "Editar horas planificadas"
+            },
+            "planifiedHours": "Horas planificadas",
+            "editPlanifiedHours": "Editar horas planificadas"
         },
         "degrees": {
             "filter.placeholder": "Filtrar por nombre...",

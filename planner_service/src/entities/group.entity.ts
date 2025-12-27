@@ -31,6 +31,10 @@ export class Group extends AuditedEntity {
     @Column('varchar', { length: 2, name: 'LANGUAGE' })
     language!: string;
 
+    /** Total planned hours for this group */
+    @Column('decimal', { name: 'PLANIFIED_HOURS', precision: 10, scale: 2, nullable: true })
+    planifiedHours?: number;
+
     /** Subject this group belongs to */
     @ManyToOne(() => Subject, (subject) => subject.groups, {
         onDelete: 'CASCADE',

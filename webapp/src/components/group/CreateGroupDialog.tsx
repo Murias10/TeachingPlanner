@@ -160,7 +160,7 @@ const CreateGroupDialog: React.FC<CreateGroupDialogProps> = ({ open, onOpenChang
                     )}
                 </div>
 
-                <DialogFooter className="gap-2 sm:gap-0">
+                <DialogFooter className="gap-2">
                     <Button variant="outline" onClick={handleCancel} className="w-full sm:w-auto">
                         Cancelar
                     </Button>

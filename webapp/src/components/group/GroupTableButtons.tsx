@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Subject } from "@/types/Subject"
-import { ChevronsRight, Trash2, Users } from "lucide-react"
+import { ChevronsRight, Trash2, Users, Check, X } from "lucide-react"
 import {
     Sheet,
     SheetContent,
@@ -11,12 +11,16 @@ import {
     SheetFooter,
     SheetClose
 } from "@/components/ui/sheet"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Group } from "@/types/Group"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
+import { Input } from "@/components/ui/input"
 import { useTranslation } from "react-i18next"
+import VITE_GATEWAY_API_URL from "@/config/api"
+import { getAuthHeaders } from "@/utils/authHeaders"
+import { useFloatingAlert } from "@/hooks/useFloatingAlert"
 
 type Props = {
     readonly subject: Subject
@@ -26,9 +30,13 @@ type Props = {
 export function GroupTableButtons({ subject, onDeleteGroup }: Readonly<Props>) {
 
     const { t } = useTranslation()
+    const { triggerAlert } = useFloatingAlert()
 
     const [open, setOpen] = useState(false)
     const [selectedGroups, setSelectedGroups] = useState<string[]>([])
+    const [editingGroupId, setEditingGroupId] = useState<string | null>(null)
+    const [editingHours, setEditingHours] = useState<string>("")
+    const [groupHours, setGroupHours] = useState<Record<string, number | undefined>>({})
 
     const groupTypes = [
         { code: "T", label: "Teoría", color: "bg-blue-100 text-blue-800" },
@@ -37,12 +45,17 @@ export function GroupTableButtons({ subject, onDeleteGroup }: Readonly<Props>) {
         { code: "TG", label: "Tutoría Grupal", color: "bg-orange-100 text-orange-800" }
     ]
 
-    const groupsByType = groupTypes.map(({ code, label, color }) => ({
-        code,
-        label,
-        color,
-        groups: subject.groups?.filter(g => g.type === code) || []
-    })).filter(({ groups }) => groups.length > 0)
+    const groupsByType = groupTypes.map(({ code, label, color }) => {
+        const allGroups = subject.groups?.filter(g => g.type === code) || []
+        return {
+            code,
+            label,
+            color,
+            groups: allGroups,
+            groupsES: allGroups.filter(g => g.language === 'ES'),
+            groupsEN: allGroups.filter(g => g.language === 'EN')
+        }
+    }).filter(({ groups }) => groups.length > 0)
 
     const toggleGroupSelection = (groupId: string) => {
         setSelectedGroups(prev =>
@@ -67,6 +80,65 @@ export function GroupTableButtons({ subject, onDeleteGroup }: Readonly<Props>) {
             setSelectedGroups([])
             setOpen(false)
         }
+    }
+
+    const startEditingHours = (group: Group, e: React.MouseEvent) => {
+        e.stopPropagation()
+        setEditingGroupId(group.id)
+        setEditingHours(group.planifiedHours?.toString() || "0")
+    }
+
+    const cancelEditingHours = () => {
+        setEditingGroupId(null)
+        setEditingHours("")
+    }
+
+    const saveEditingHours = async (groupId: string) => {
+        const hours = parseFloat(editingHours)
+        if (isNaN(hours) || hours < 0) {
+            triggerAlert({
+                title: "Error",
+                description: "Las horas deben ser un número válido mayor o igual a 0",
+                variant: "destructive"
+            })
+            return
+        }
+
+        try {
+            const response = await fetch(`${VITE_GATEWAY_API_URL}/group/${groupId}/planified-hours`, {
+                method: 'PATCH',
+                headers: {
+                    ...getAuthHeaders(),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ planifiedHours: hours })
+            })
+
+            if (!response.ok) {
+                throw new Error('Error al actualizar horas planificadas')
+            }
+
+            // Update local state
+            setGroupHours(prev => ({ ...prev, [groupId]: hours }))
+            setEditingGroupId(null)
+            setEditingHours("")
+
+            triggerAlert({
+                title: "Horas actualizadas",
+                description: "Las horas planificadas se han actualizado correctamente",
+                variant: "success"
+            })
+        } catch (error) {
+            triggerAlert({
+                title: "Error",
+                description: error instanceof Error ? error.message : "Error al actualizar horas",
+                variant: "destructive"
+            })
+        }
+    }
+
+    const getGroupHours = (group: Group): number => {
+        return groupHours[group.id] ?? group.planifiedHours ?? 0
     }
 
     const hasGroups = subject.groups && subject.groups.length > 0;
@@ -98,54 +170,213 @@ export function GroupTableButtons({ subject, onDeleteGroup }: Readonly<Props>) {
 
                     <Separator />
 
-                    <ScrollArea className="flex-1 px-4">
-                        <div className="grid grid-cols-2 gap-4 py-3">
-                            {groupsByType.map(({ code, label, color, groups }) => (
-                                <div key={code} className="space-y-2">
-                                    <Badge className={`${color} text-xs px-2 py-0.5`}>
-                                        {label}
-                                    </Badge>
-
-                                    <div className="grid grid-cols-2 gap-1.5">
-                                        {groups.map((group: Group) => (
-                                            <div
-                                                key={group.id}
-                                                className="relative flex items-center py-1.5 px-2 rounded border hover:bg-accent/50 transition-colors group"
-                                            >
-                                                <label
-                                                    className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer"
-                                                >
-                                                    <Checkbox
-                                                        checked={selectedGroups.includes(group.id)}
-                                                        onCheckedChange={() => toggleGroupSelection(group.id)}
-                                                        className="h-3.5 w-3.5 shrink-0"
-                                                    />
-                                                    <div className="flex items-baseline gap-1.5 min-w-0">
-                                                        <span className="text-xs font-medium truncate">
-                                                            {group.type}.{group.language === 'EN' ? 'I-' : ''}{group.number}
-                                                        </span>
-                                                        <span className="text-[10px] text-muted-foreground shrink-0">
-                                                            {group.language === 'EN' ? 'EN' : 'ES'}
-                                                        </span>
-                                                    </div>
-                                                </label>
-                                                {onDeleteGroup && (
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        onClick={(e) => handleDeleteGroup(group.id, e)}
-                                                        className="h-5 w-5 opacity-0 group-hover:opacity-100 hover:bg-destructive hover:text-destructive-foreground transition-opacity shrink-0"
-                                                    >
-                                                        <Trash2 className="h-3 w-3" />
-                                                    </Button>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
+                    <Tabs defaultValue={groupsByType[0]?.code} className="flex-1 flex flex-col">
+                        <TabsList className="w-full justify-start h-auto p-0 bg-transparent">
+                            {groupsByType.map(({ code, label }) => (
+                                <TabsTrigger
+                                    key={code}
+                                    value={code}
+                                    className="data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                                >
+                                    {label}
+                                </TabsTrigger>
                             ))}
-                        </div>
-                    </ScrollArea>
+                        </TabsList>
+
+                        {groupsByType.map(({ code, groupsES, groupsEN }) => (
+                            <TabsContent key={code} value={code} className="flex-1 m-0">
+                                <ScrollArea className="h-full">
+                                    <div className="grid grid-cols-2 gap-4 p-4">
+                                        {/* Columna Español */}
+                                        {groupsES.length > 0 && (
+                                            <div className="space-y-2">
+                                                <div className="text-sm font-medium text-muted-foreground px-2">
+                                                    Español
+                                                </div>
+                                                <div className="space-y-1.5">
+                                                    {groupsES.map((group: Group) => (
+                                                        <div
+                                                            key={group.id}
+                                                            className="relative flex items-center justify-between py-1.5 px-2 rounded border hover:bg-accent/50 transition-colors group"
+                                                        >
+                                                            <label
+                                                                className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer"
+                                                            >
+                                                                <Checkbox
+                                                                    checked={selectedGroups.includes(group.id)}
+                                                                    onCheckedChange={() => toggleGroupSelection(group.id)}
+                                                                    className="h-3.5 w-3.5 shrink-0"
+                                                                />
+                                                                <span className="text-xs font-medium truncate">
+                                                                    {group.type}.{group.number}
+                                                                </span>
+                                                            </label>
+
+                                                            <div className="flex items-center gap-1">
+                                                                {getGroupHours(group) === 0 ? (
+                                                                    <span className="text-[10px] text-muted-foreground px-1.5 py-0.5">
+                                                                        {getGroupHours(group)}h
+                                                                    </span>
+                                                                ) : editingGroupId === group.id ? (
+                                                                    <>
+                                                                        <Input
+                                                                            type="number"
+                                                                            min="0"
+                                                                            step="0.5"
+                                                                            value={editingHours}
+                                                                            onChange={(e) => setEditingHours(e.target.value)}
+                                                                            className="h-6 w-16 text-xs px-1.5"
+                                                                            autoFocus
+                                                                            onKeyDown={(e) => {
+                                                                                if (e.key === 'Enter') {
+                                                                                    saveEditingHours(group.id)
+                                                                                } else if (e.key === 'Escape') {
+                                                                                    cancelEditingHours()
+                                                                                }
+                                                                            }}
+                                                                        />
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            onClick={() => saveEditingHours(group.id)}
+                                                                            className="h-5 w-5 shrink-0"
+                                                                        >
+                                                                            <Check className="h-3 w-3 text-green-600" />
+                                                                        </Button>
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            onClick={cancelEditingHours}
+                                                                            className="h-5 w-5 shrink-0"
+                                                                        >
+                                                                            <X className="h-3 w-3 text-red-600" />
+                                                                        </Button>
+                                                                    </>
+                                                                ) : (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => startEditingHours(group, e)}
+                                                                        className="text-[10px] text-muted-foreground hover:text-foreground cursor-pointer px-1.5 py-0.5 rounded hover:bg-accent transition-colors"
+                                                                        title="Click para editar horas planificadas"
+                                                                    >
+                                                                        {getGroupHours(group)}h
+                                                                    </button>
+                                                                )}
+
+                                                                {onDeleteGroup && (
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        onClick={(e) => handleDeleteGroup(group.id, e)}
+                                                                        className="h-5 w-5 opacity-0 group-hover:opacity-100 hover:bg-destructive hover:text-destructive-foreground transition-opacity shrink-0"
+                                                                    >
+                                                                        <Trash2 className="h-3 w-3" />
+                                                                    </Button>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Columna Inglés */}
+                                        {groupsEN.length > 0 && (
+                                            <div className="space-y-2">
+                                                <div className="text-sm font-medium text-muted-foreground px-2">
+                                                    Inglés
+                                                </div>
+                                                <div className="space-y-1.5">
+                                                    {groupsEN.map((group: Group) => (
+                                                        <div
+                                                            key={group.id}
+                                                            className="relative flex items-center justify-between py-1.5 px-2 rounded border hover:bg-accent/50 transition-colors group"
+                                                        >
+                                                            <label
+                                                                className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer"
+                                                            >
+                                                                <Checkbox
+                                                                    checked={selectedGroups.includes(group.id)}
+                                                                    onCheckedChange={() => toggleGroupSelection(group.id)}
+                                                                    className="h-3.5 w-3.5 shrink-0"
+                                                                />
+                                                                <span className="text-xs font-medium truncate">
+                                                                    {group.type}.I-{group.number}
+                                                                </span>
+                                                            </label>
+
+                                                            <div className="flex items-center gap-1">
+                                                                {getGroupHours(group) === 0 ? (
+                                                                    <span className="text-[10px] text-muted-foreground px-1.5 py-0.5">
+                                                                        {getGroupHours(group)}h
+                                                                    </span>
+                                                                ) : editingGroupId === group.id ? (
+                                                                    <>
+                                                                        <Input
+                                                                            type="number"
+                                                                            min="0"
+                                                                            step="0.5"
+                                                                            value={editingHours}
+                                                                            onChange={(e) => setEditingHours(e.target.value)}
+                                                                            className="h-6 w-16 text-xs px-1.5"
+                                                                            autoFocus
+                                                                            onKeyDown={(e) => {
+                                                                                if (e.key === 'Enter') {
+                                                                                    saveEditingHours(group.id)
+                                                                                } else if (e.key === 'Escape') {
+                                                                                    cancelEditingHours()
+                                                                                }
+                                                                            }}
+                                                                        />
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            onClick={() => saveEditingHours(group.id)}
+                                                                            className="h-5 w-5 shrink-0"
+                                                                        >
+                                                                            <Check className="h-3 w-3 text-green-600" />
+                                                                        </Button>
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            onClick={cancelEditingHours}
+                                                                            className="h-5 w-5 shrink-0"
+                                                                        >
+                                                                            <X className="h-3 w-3 text-red-600" />
+                                                                        </Button>
+                                                                    </>
+                                                                ) : (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => startEditingHours(group, e)}
+                                                                        className="text-[10px] text-muted-foreground hover:text-foreground cursor-pointer px-1.5 py-0.5 rounded hover:bg-accent transition-colors"
+                                                                        title="Click para editar horas planificadas"
+                                                                    >
+                                                                        {getGroupHours(group)}h
+                                                                    </button>
+                                                                )}
+
+                                                                {onDeleteGroup && (
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        onClick={(e) => handleDeleteGroup(group.id, e)}
+                                                                        className="h-5 w-5 opacity-0 group-hover:opacity-100 hover:bg-destructive hover:text-destructive-foreground transition-opacity shrink-0"
+                                                                    >
+                                                                        <Trash2 className="h-3 w-3" />
+                                                                    </Button>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </ScrollArea>
+                            </TabsContent>
+                        ))}
+                    </Tabs>
 
                     <Separator />
 

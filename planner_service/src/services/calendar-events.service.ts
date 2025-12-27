@@ -266,7 +266,7 @@ export class CalendarEventsService {
 
   /**
    * Obtiene las horas programadas para un grupo específico
-   * Busca el primer evento periódico que pertenezca a ese grupo
+   * Obtiene las horas directamente del grupo (Group.planifiedHours)
    */
   private static obtenerHorasProgramadasDelGrupo(
     claveGrupo: string,
@@ -275,7 +275,8 @@ export class CalendarEventsService {
     for (const eventoPeriodico of eventosPeriodicos) {
       for (const grupo of eventoPeriodico.groups) {
         if (this.construirClaveGrupo(grupo) === claveGrupo) {
-          return eventoPeriodico.planifiedHours;
+          // Return planified hours from Group instead of PeriodicEvent
+          return grupo.planifiedHours ?? null;
         }
       }
     }

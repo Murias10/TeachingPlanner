@@ -7,7 +7,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { Edit, Trash2, Calendar, XCircle, CheckCircle } from "lucide-react";
+import { Edit, Trash2, Calendar, XCircle, CheckCircle, Replace } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface CalendarEventWrapperProps {
@@ -22,6 +22,9 @@ interface CalendarEventWrapperProps {
   onRejectRequest?: (event: CalendarEvent) => void;
   onReviewRequest?: (event: CalendarEvent) => void;
   onDeleteRequest?: (event: CalendarEvent) => void;
+  onEditSeries?: (event: CalendarEvent) => void;
+  onReplaceEvent?: (event: CalendarEvent) => void;
+  onDeleteSeries?: (event: CalendarEvent) => void;
 }
 
 export function CalendarEventWrapper({
@@ -33,12 +36,16 @@ export function CalendarEventWrapper({
   onRejectRequest,
   onReviewRequest,
   onDeleteRequest,
+  onEditSeries,
+  onReplaceEvent,
+  onDeleteSeries,
 }: CalendarEventWrapperProps) {
   const { user } = useAuth();
   const calendarEvent = event.resource;
   const isAdmin = user?.role === 'ADMIN';
   const isProfessor = user?.role === 'PROFESSOR';
   const isPendingRequest = calendarEvent?.isPending === true;
+  const isPeriodicEvent = calendarEvent?.type === 'periodic';
 
   if (!calendarEvent) {
     return <div className="h-full w-full">{event.title}</div>;
@@ -77,6 +84,21 @@ export function CalendarEventWrapper({
   const handleDeleteRequest = (e: React.MouseEvent<HTMLDivElement>) => {
     e.preventDefault();
     onDeleteRequest?.(calendarEvent);
+  };
+
+  const handleEditSeries = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    onEditSeries?.(calendarEvent);
+  };
+
+  const handleReplaceEvent = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    onReplaceEvent?.(calendarEvent);
+  };
+
+  const handleDeleteSeries = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    onDeleteSeries?.(calendarEvent);
   };
 
   // Renderizar contenido del evento sin menú contextual para non-admin o en solicitudes pendientes para professor
@@ -164,6 +186,48 @@ export function CalendarEventWrapper({
 
   // Si es un evento regular y el usuario es ADMIN
   if (isAdmin && !isPendingRequest) {
+    // Menú para eventos periódicos
+    if (isPeriodicEvent) {
+      return (
+        <ContextMenu>
+          <ContextMenuTrigger className="h-full w-full cursor-pointer">
+            {renderEventContent()}
+          </ContextMenuTrigger>
+          <ContextMenuContent className="w-56">
+            <ContextMenuItem onClick={handleViewDetails}>
+              <Calendar />
+              Ver detalles
+            </ContextMenuItem>
+
+            <ContextMenuSeparator />
+
+            <ContextMenuItem onClick={handleEditSeries}>
+              <Edit />
+              Editar serie de eventos
+            </ContextMenuItem>
+
+            <ContextMenuItem onClick={handleReplaceEvent}>
+              <Replace />
+              Reemplazar evento
+            </ContextMenuItem>
+
+            <ContextMenuSeparator />
+
+            <ContextMenuItem variant="destructive" onClick={handleDelete}>
+              <Trash2 />
+              Eliminar evento
+            </ContextMenuItem>
+
+            <ContextMenuItem variant="destructive" onClick={handleDeleteSeries}>
+              <Trash2 />
+              Eliminar serie de eventos
+            </ContextMenuItem>
+          </ContextMenuContent>
+        </ContextMenu>
+      );
+    }
+
+    // Menú para eventos puntuales
     return (
       <ContextMenu>
         <ContextMenuTrigger className="h-full w-full cursor-pointer">

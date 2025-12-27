@@ -481,6 +481,25 @@ export class CalendarImportService {
       };
     }
 
+    // First pass: Parse all lines and validate planified hours consistency per group
+    interface ParsedEvent {
+      lineNumber: number;
+      year: number;
+      subjectAcronym: string;
+      groupType: string;
+      groupNumber: number;
+      language: string;
+      weekDay: string;
+      startTime: string;
+      endTime: string;
+      classroomCode: string;
+      eventCharacter: string;
+      planifiedHours: number;
+    }
+
+    const parsedEvents: ParsedEvent[] = [];
+    const groupPlanifiedHours = new Map<string, { hours: number[]; lines: number[] }>();
+
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
       if (!line) continue;
@@ -525,18 +544,99 @@ export class CalendarImportService {
         if (isNaN(planifiedHours) || planifiedHours < 0) continue;
         if (!eventCharacter) continue;
 
-        const subject = await subjectRepo.findOne({ where: { acronym: subjectAcronym } });
+        // Store parsed event
+        parsedEvents.push({
+          lineNumber: i + 1,
+          year,
+          subjectAcronym,
+          groupType,
+          groupNumber,
+          language,
+          weekDay: weekDayUpper,
+          startTime,
+          endTime,
+          classroomCode,
+          eventCharacter,
+          planifiedHours
+        });
+
+        // Track planified hours per group
+        const groupKey = `${subjectAcronym}.${groupType}.${groupNumber}.${language}`;
+        if (!groupPlanifiedHours.has(groupKey)) {
+          groupPlanifiedHours.set(groupKey, { hours: [], lines: [] });
+        }
+        const groupData = groupPlanifiedHours.get(groupKey)!;
+        groupData.hours.push(planifiedHours);
+        groupData.lines.push(i + 1);
+      } catch (error) {
+        // Continue on error
+      }
+    }
+
+    // Validate: all events for the same group must have the same planified hours
+    for (const [groupKey, groupData] of groupPlanifiedHours.entries()) {
+      const uniqueHours = [...new Set(groupData.hours)];
+      if (uniqueHours.length > 1) {
+        const hoursDetail = uniqueHours.map(h => `${h}h`).join(', ');
+        const linesDetail = groupData.lines.join(', ');
+        errors.push(`Grupo ${groupKey}: Horas planificadas inconsistentes (${hoursDetail}) en líneas ${linesDetail}`);
+      }
+    }
+
+    // If validation failed, return errors without processing anything
+    if (errors.length > 0) {
+      return {
+        processed: false,
+        error: 'Validación de horas planificadas fallida',
+        totalLines: lines.filter(line => line.trim()).length,
+        processedCount: 0,
+        errorCount: errors.length,
+        events: [],
+        errors
+      };
+    }
+
+    // Second pass: Process events (validation passed)
+    // Track groups to update their planifiedHours
+    const groupsToUpdate = new Map<string, { group: Group; planifiedHours: number }>();
+
+    for (const event of parsedEvents) {
+      try {
+        const subject = await subjectRepo.findOne({ where: { acronym: event.subjectAcronym } });
         if (!subject) continue;
 
-        let group = await groupRepo.findOne({ where: { number: groupNumber, type: groupType, language, subject: { id: subject.id } }, relations: ['subject'] });
+        let group = await groupRepo.findOne({
+          where: {
+            number: event.groupNumber,
+            type: event.groupType,
+            language: event.language,
+            subject: { id: subject.id }
+          },
+          relations: ['subject']
+        });
+
+        const groupKey = `${event.subjectAcronym}.${event.groupType}.${event.groupNumber}.${event.language}`;
+
         if (!group) {
-          group = groupRepo.create({ number: groupNumber, type: groupType, language, subject });
+          group = groupRepo.create({
+            number: event.groupNumber,
+            type: event.groupType,
+            language: event.language,
+            subject,
+            planifiedHours: event.planifiedHours,
+            createdBy: userEmail
+          });
           await groupRepo.save(group);
         }
 
-        let classroom = await classroomRepo.findOne({ where: { code: classroomCode } });
+        // Track this group for planifiedHours update (always add to ensure existing groups are updated)
+        if (!groupsToUpdate.has(groupKey)) {
+          groupsToUpdate.set(groupKey, { group, planifiedHours: event.planifiedHours });
+        }
+
+        let classroom = await classroomRepo.findOne({ where: { code: event.classroomCode } });
         if (!classroom) {
-          classroom = classroomRepo.create({ code: classroomCode, gisUrl: '' });
+          classroom = classroomRepo.create({ code: event.classroomCode, gisUrl: '', createdBy: userEmail });
           await classroomRepo.save(classroom);
         }
 
@@ -545,49 +645,79 @@ export class CalendarImportService {
           .leftJoinAndSelect('event.groups', 'group')
           .leftJoinAndSelect('event.classrooms', 'classroom')
           .where('event.calendar = :calendarId', { calendarId: calendar.id })
-          .andWhere('event.year = :year', { year })
-          .andWhere('event.weekDay = :weekDay', { weekDay: weekDayUpper })
-          .andWhere('event.startTime = :startTime', { startTime })
-          .andWhere('event.endTime = :endTime', { endTime })
+          .andWhere('event.year = :year', { year: event.year })
+          .andWhere('event.weekDay = :weekDay', { weekDay: event.weekDay })
+          .andWhere('event.startTime = :startTime', { startTime: event.startTime })
+          .andWhere('event.endTime = :endTime', { endTime: event.endTime })
           .andWhere('group.id = :groupId', { groupId: group.id })
           .andWhere('classroom.id = :classroomId', { classroomId: classroom.id })
           .getOne();
 
         if (existingEvent) {
           let hasChanges = false;
-          if (existingEvent.eventCharacter !== eventCharacter) {
-            existingEvent.eventCharacter = eventCharacter;
+          if (existingEvent.eventCharacter !== event.eventCharacter) {
+            existingEvent.eventCharacter = event.eventCharacter;
             hasChanges = true;
           }
-          if (existingEvent.planifiedHours !== planifiedHours) {
-            existingEvent.planifiedHours = planifiedHours;
+          if (existingEvent.planifiedHours !== event.planifiedHours) {
+            existingEvent.planifiedHours = event.planifiedHours;
             hasChanges = true;
           }
           if (hasChanges) {
             await periodicEventRepo.save(existingEvent);
-            processedEvents.push({ subject: subjectAcronym, groupType, groupNumber, language, action: 'updated', line: i + 1 });
+            processedEvents.push({
+              subject: event.subjectAcronym,
+              groupType: event.groupType,
+              groupNumber: event.groupNumber,
+              language: event.language,
+              action: 'updated',
+              line: event.lineNumber
+            });
           } else {
-            processedEvents.push({ subject: subjectAcronym, groupType, groupNumber, language, action: 'skipped', line: i + 1 });
+            processedEvents.push({
+              subject: event.subjectAcronym,
+              groupType: event.groupType,
+              groupNumber: event.groupNumber,
+              language: event.language,
+              action: 'skipped',
+              line: event.lineNumber
+            });
           }
         } else {
           const periodicEvent = periodicEventRepo.create({
             calendar,
-            year,
-            weekDay: weekDayUpper,
-            startTime,
-            endTime,
-            eventCharacter,
-            planifiedHours,
+            year: event.year,
+            weekDay: event.weekDay,
+            startTime: event.startTime,
+            endTime: event.endTime,
+            eventCharacter: event.eventCharacter,
+            planifiedHours: event.planifiedHours,
             groups: [group],
             classrooms: [classroom],
             createdBy: userEmail
           });
           await periodicEventRepo.save(periodicEvent);
-          processedEvents.push({ subject: subjectAcronym, groupType, groupNumber, language, action: 'created', line: i + 1 });
+          processedEvents.push({
+            subject: event.subjectAcronym,
+            groupType: event.groupType,
+            groupNumber: event.groupNumber,
+            language: event.language,
+            action: 'created',
+            line: event.lineNumber
+          });
         }
       } catch (error) {
         // Continue on error
       }
+    }
+
+    // Update Group.planifiedHours for all affected groups
+    for (const { group, planifiedHours } of groupsToUpdate.values()) {
+      // Always update to ensure correct value, even if it seems the same
+      group.planifiedHours = planifiedHours;
+      group.updatedBy = userEmail;
+      group.updatedAt = new Date();
+      await groupRepo.save(group);
     }
 
     return {

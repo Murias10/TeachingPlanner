@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AppDataSource } from '@/config/data-source';
 import { Group } from '@/entities/group.entity';
 import { Subject } from '@/entities/subject.entity';
+import { PeriodicEvent } from '@/entities/periodic_event.entity';
 import { AuditedRequest } from '@/middleware/auth.middleware';
 
 /**
@@ -134,6 +135,96 @@ export const deleteGroup = async (req: AuditedRequest, res: Response) => {
         res.status(500).json({
             status: 'error',
             message: 'Error deleting group',
+            error: error instanceof Error ? error.message : 'Unknown error',
+        });
+    }
+};
+
+/**
+ * Update planified hours for a group
+ * Updates both the Group entity and all associated PeriodicEvents
+ */
+export const updatePlanifiedHours = async (req: AuditedRequest, res: Response) => {
+    const { id } = req.params;
+    const { planifiedHours } = req.body;
+    const userEmail = req.user?.email;
+
+    if (!id) {
+        res.status(400).json({
+            status: 'error',
+            message: 'Group ID is required',
+        });
+        return;
+    }
+
+    if (planifiedHours === undefined || planifiedHours === null) {
+        res.status(400).json({
+            status: 'error',
+            message: 'Planified hours is required',
+        });
+        return;
+    }
+
+    if (typeof planifiedHours !== 'number' || planifiedHours < 0) {
+        res.status(400).json({
+            status: 'error',
+            message: 'Planified hours must be a non-negative number',
+        });
+        return;
+    }
+
+    try {
+        const groupRepo = AppDataSource.getRepository(Group);
+        const periodicEventRepo = AppDataSource.getRepository(PeriodicEvent);
+
+        const group = await groupRepo.findOne({
+            where: { id },
+            relations: ['subject'],
+        });
+
+        if (!group) {
+            res.status(404).json({
+                status: 'error',
+                message: 'Group not found',
+            });
+            return;
+        }
+
+        // Update group's planified hours
+        group.planifiedHours = planifiedHours;
+        group.updatedBy = userEmail;
+        group.updatedAt = new Date();
+        await groupRepo.save(group);
+
+        // Update all periodic events associated with this group
+        const periodicEvents = await periodicEventRepo
+            .createQueryBuilder('event')
+            .leftJoinAndSelect('event.groups', 'group')
+            .where('group.id = :groupId', { groupId: id })
+            .getMany();
+
+        for (const event of periodicEvents) {
+            event.planifiedHours = planifiedHours;
+            event.updatedBy = userEmail;
+            event.updatedAt = new Date();
+            await periodicEventRepo.save(event);
+        }
+
+        console.log(`[Group Update] Updated planified hours to ${planifiedHours} for group ${group.type}-${group.number} and ${periodicEvents.length} periodic events`);
+
+        res.status(200).json({
+            status: 'success',
+            message: 'Planified hours updated successfully',
+            data: {
+                group,
+                updatedEventsCount: periodicEvents.length,
+            },
+        });
+    } catch (error) {
+        console.error('Error updating planified hours:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error updating planified hours',
             error: error instanceof Error ? error.message : 'Unknown error',
         });
     }

@@ -16,6 +16,8 @@ interface DeleteEventConfirmationDialogProps {
   onConfirm: () => void;
   isLoading?: boolean;
   subjectName?: string;
+  title?: string;
+  description?: string;
 }
 
 export function DeleteEventConfirmationDialog({
@@ -23,7 +25,9 @@ export function DeleteEventConfirmationDialog({
   onOpenChange,
   onConfirm,
   isLoading = false,
-  subjectName = 'esta asignatura'
+  subjectName = 'esta asignatura',
+  title,
+  description
 }: DeleteEventConfirmationDialogProps) {
   const { t } = useTranslation();
 
@@ -32,13 +36,16 @@ export function DeleteEventConfirmationDialog({
     onOpenChange(false);
   };
 
+  const dialogTitle = title || t("dialog.delete.title");
+  const dialogDescription = description || `¿Estás seguro de que deseas eliminar este evento de '${subjectName}'?`;
+
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>{t("dialog.delete.title")}</AlertDialogTitle>
+          <AlertDialogTitle>{dialogTitle}</AlertDialogTitle>
           <AlertDialogDescription>
-            {`¿Estás seguro de que deseas eliminar este evento de '${subjectName}'?`}
+            {dialogDescription}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

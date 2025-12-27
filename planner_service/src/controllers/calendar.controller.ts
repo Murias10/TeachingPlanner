@@ -987,7 +987,7 @@ export const exportCalendar = async (req: AuditedRequest, res: Response) => {
 
 export const createPuntualEvent = async (req: AuditedRequest, res: Response) => {
     try {
-        const { calendarId, eventDate, startTime, endTime, subjectId, groupIds = [], classroomIds = [], comment = '' } = req.body;
+        const { calendarId, eventDate, startTime, endTime, subjectId, groupIds = [], classroomIds = [], comment = '', cancelled = false } = req.body;
 
         // Validaciones
         if (!calendarId || !eventDate || !startTime || !endTime) {
@@ -1129,7 +1129,7 @@ export const createPuntualEvent = async (req: AuditedRequest, res: Response) => 
             day: day,
             startTime: startTime,
             endTime: endTime,
-            cancelled: false,
+            cancelled: cancelled,
             comment: comment || '',
             groups: groups,
             classrooms: classrooms,
@@ -1206,6 +1206,90 @@ export const deletePuntualEvent = async (req: AuditedRequest, res: Response) => 
         res.status(500).json({
             status: 'error',
             message: 'Error deleting puntual event',
+            data: error instanceof Error ? error.message : error
+        });
+    }
+};
+
+/**
+ * Delete a periodic event series
+ * Deletes the PeriodicEvent record from the database
+ */
+export const deletePeriodicEvent = async (req: AuditedRequest, res: Response) => {
+    try {
+        const { eventId } = req.params;
+
+        // Validations
+        if (!eventId) {
+            res.status(400).json({
+                status: 'error',
+                message: 'Missing required field: eventId',
+                data: null
+            });
+            return;
+        }
+
+        const periodicEventRepo = AppDataSource.getRepository(PeriodicEvent);
+        const groupRepo = AppDataSource.getRepository(Group);
+
+        // Find the periodic event
+        const periodicEvent = await periodicEventRepo.findOne({
+            where: { id: eventId },
+            relations: ['groups']
+        });
+
+        if (!periodicEvent) {
+            res.status(404).json({
+                status: 'error',
+                message: 'Periodic event not found',
+                data: null
+            });
+            return;
+        }
+
+        // Set updatedBy and updatedAt before deleting (to keep record of who deleted it and when)
+        const userEmail = getUserEmailFromRequest(req);
+        periodicEvent.updatedBy = userEmail;
+        periodicEvent.updatedAt = new Date();
+        await periodicEventRepo.save(periodicEvent);
+
+        // Get groups before deleting the event
+        const groupsToCheck = periodicEvent.groups;
+
+        // Delete the periodic event
+        await periodicEventRepo.remove(periodicEvent);
+
+        // Check if this was the last PeriodicEvent for each group
+        for (const group of groupsToCheck) {
+            const remainingPeriodicEvents = await periodicEventRepo
+                .createQueryBuilder('event')
+                .leftJoinAndSelect('event.groups', 'group')
+                .where('group.id = :groupId', { groupId: group.id })
+                .getCount();
+
+            // If no more PeriodicEvents exist for this group, set planifiedHours to 0
+            if (remainingPeriodicEvents === 0) {
+                group.planifiedHours = 0;
+                group.updatedBy = userEmail;
+                group.updatedAt = new Date();
+                await groupRepo.save(group);
+                console.log(`[Periodic Event Delete] Reset planified hours to 0 for group ${group.type}-${group.number} (no more periodic events)`);
+            }
+        }
+
+        console.log(`[Periodic Event Delete] Deleted periodic event ${eventId} by ${userEmail}`);
+
+        res.status(200).json({
+            status: 'success',
+            message: 'Periodic event series deleted successfully',
+            data: null
+        });
+
+    } catch (error) {
+        console.error('Error deleting periodic event:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error deleting periodic event',
             data: error instanceof Error ? error.message : error
         });
     }
@@ -1435,6 +1519,35 @@ export const createPeriodicEvent = async (req: AuditedRequest, res: Response) =>
         });
 
         const savedEvent = await periodicEventRepo.save(periodicEvent);
+
+        // Update Group.planifiedHours for all groups in this event
+        for (const group of groups) {
+            if (group.planifiedHours !== planifiedHours) {
+                group.planifiedHours = planifiedHours;
+                group.updatedBy = userEmail;
+                group.updatedAt = new Date();
+                await groupRepo.save(group);
+                console.log(`[Periodic Event Create] Updated planified hours to ${planifiedHours} for group ${group.type}-${group.number}`);
+
+                // Update ALL PeriodicEvents associated with this group
+                const allPeriodicEventsForGroup = await periodicEventRepo
+                    .createQueryBuilder('event')
+                    .leftJoinAndSelect('event.groups', 'group')
+                    .where('group.id = :groupId', { groupId: group.id })
+                    .getMany();
+
+                for (const event of allPeriodicEventsForGroup) {
+                    if (event.planifiedHours !== planifiedHours) {
+                        event.planifiedHours = planifiedHours;
+                        event.updatedBy = userEmail;
+                        event.updatedAt = new Date();
+                        await periodicEventRepo.save(event);
+                    }
+                }
+
+                console.log(`[Periodic Event Create] Updated ${allPeriodicEventsForGroup.length} periodic events for group ${group.type}-${group.number}`);
+            }
+        }
 
         res.status(201).json({
             status: 'success',

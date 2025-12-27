@@ -752,12 +752,9 @@ export default function CalendarPage() {
                         refetch();
                     },
                     onError: (error: Error & { statusCode?: number }) => {
-                        const statusCode = error.statusCode || 500;
-                        const errorKey = statusCode === 400 || statusCode === 409 ? statusCode.toString() : 'default';
-
                         triggerAlert({
-                            title: t(`alerts.puntualEvent.error.${errorKey}.title`),
-                            description: t(`alerts.puntualEvent.error.${errorKey}.description`),
+                            title: t('alerts.puntualEvent.error.title'),
+                            description: t(error.message),
                             variant: 'destructive'
                         });
                     }
@@ -900,7 +897,7 @@ export default function CalendarPage() {
                 onError: (error: Error & { statusCode?: number }) => {
                     triggerAlert({
                         title: 'Error al actualizar',
-                        description: error.message || 'No se pudo actualizar el evento',
+                        description: t(error.message) || 'No se pudo actualizar el evento',
                         variant: 'destructive'
                     });
                 }
@@ -1172,8 +1169,6 @@ export default function CalendarPage() {
                 comment: config.comment || ''
             };
 
-            console.log('[Replace Event] Request body:', requestBody);
-
             const response = await fetch(`${VITE_GATEWAY_API_URL}/calendar/replace-event`, {
                 method: 'POST',
                 headers: getAuthHeaders({
@@ -1194,7 +1189,7 @@ export default function CalendarPage() {
             setEventToReplace(null);
         } catch (error) {
             console.error('Error al reemplazar el evento:', error);
-            alert('Error al reemplazar el evento');
+            alert(error instanceof Error ? t(error.message) : 'Error al reemplazar el evento');
         }
     };
 

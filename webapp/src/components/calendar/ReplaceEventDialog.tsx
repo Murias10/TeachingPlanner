@@ -99,8 +99,6 @@ const ReplaceEventDialog: React.FC<ReplaceEventDialogProps> = ({
       comment
     };
 
-    console.log('[ReplaceEventDialog] Config being sent:', config);
-
     onSave(config);
     onOpenChange(false);
   };

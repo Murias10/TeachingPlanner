@@ -1091,15 +1091,28 @@ export const createPuntualEvent = async (req: AuditedRequest, res: Response) => 
 
             console.log(`[Conflict Detection]   Shares group: ${sharesGroup}, Shares classroom: ${sharesClassroom}`);
 
-            return sharesGroup && sharesClassroom;
+            // Conflicto si comparte grupo O aula (no necesita compartir ambos)
+            return sharesGroup || sharesClassroom;
         });
 
         console.log('[Conflict Detection] Total conflicts found:', conflictingEvents?.length || 0);
 
         if (conflictingEvents && conflictingEvents.length > 0) {
+            // Determinar el tipo específico de conflicto
+            const firstConflict = conflictingEvents[0];
+            const sharesGroup = firstConflict.groups?.some(g => groupIds.includes(g.id)) || groupIds.length === 0;
+            const sharesClassroom = firstConflict.classrooms?.some(c => classroomIds.includes(c.id)) || classroomIds.length === 0;
+
+            let conflictMessage = 'alerts.puntualEvent.error.shared_both';
+            if (sharesGroup && !sharesClassroom) {
+                conflictMessage = 'alerts.puntualEvent.error.shared_group';
+            } else if (!sharesGroup && sharesClassroom) {
+                conflictMessage = 'alerts.puntualEvent.error.shared_classroom';
+            }
+
             res.status(409).json({
                 status: 'error',
-                message: 'Time conflict: Same group/classroom already has an event at this time',
+                message: conflictMessage,
                 data: {
                     conflicts: conflictingEvents.map(e => ({
                         id: e.id,
@@ -1391,13 +1404,26 @@ export const updatePuntualEvent = async (req: AuditedRequest, res: Response) => 
             const sharesGroup = event.groups?.some(g => groupIds.includes(g.id)) || groupIds.length === 0;
             const sharesClassroom = event.classrooms?.some(c => classroomIds.includes(c.id)) || classroomIds.length === 0;
 
-            return sharesGroup && sharesClassroom;
+            // Conflicto si comparte grupo O aula (no necesita compartir ambos)
+            return sharesGroup || sharesClassroom;
         });
 
         if (conflictingEvents && conflictingEvents.length > 0) {
+            // Determinar el tipo específico de conflicto
+            const firstConflict = conflictingEvents[0];
+            const sharesGroup = firstConflict.groups?.some(g => groupIds.includes(g.id)) || groupIds.length === 0;
+            const sharesClassroom = firstConflict.classrooms?.some(c => classroomIds.includes(c.id)) || classroomIds.length === 0;
+
+            let conflictMessage = 'alerts.puntualEvent.error.shared_both';
+            if (sharesGroup && !sharesClassroom) {
+                conflictMessage = 'alerts.puntualEvent.error.shared_group';
+            } else if (!sharesGroup && sharesClassroom) {
+                conflictMessage = 'alerts.puntualEvent.error.shared_classroom';
+            }
+
             res.status(409).json({
                 status: 'error',
-                message: 'Time conflict: Same group/classroom already has an event at this time',
+                message: conflictMessage,
                 data: {
                     conflicts: conflictingEvents.map(e => ({
                         id: e.id,
@@ -1575,8 +1601,6 @@ export const createPeriodicEvent = async (req: AuditedRequest, res: Response) =>
  */
 export const replacePeriodicEvent = async (req: AuditedRequest, res: Response) => {
     try {
-        console.log('[Replace Event] Request body received:', JSON.stringify(req.body, null, 2));
-
         const {
             calendarId,
             originalDate,
@@ -1589,19 +1613,6 @@ export const replacePeriodicEvent = async (req: AuditedRequest, res: Response) =
             classroomIds = [],
             comment = ''
         } = req.body;
-
-        console.log('[Replace Event] Parsed fields:', {
-            calendarId,
-            originalDate,
-            originalStartTime,
-            originalEndTime,
-            newEventDate,
-            newStartTime,
-            newEndTime,
-            groupIds,
-            classroomIds,
-            comment
-        });
 
         // Validaciones
         if (!calendarId || !originalDate || !originalStartTime || !originalEndTime || !newEventDate || !newStartTime || !newEndTime) {
@@ -1715,12 +1726,6 @@ export const replacePeriodicEvent = async (req: AuditedRequest, res: Response) =
         }
 
         // PASO 3: Verificar conflictos en la nueva fecha/hora
-        console.log('[Replace Event - Conflict Detection] Checking for conflicts in new date/time');
-        console.log('[Replace Event - Conflict Detection] New event time:', newStartTime, '-', newEndTime);
-        console.log('[Replace Event - Conflict Detection] GroupIds:', groupIds);
-        console.log('[Replace Event - Conflict Detection] ClassroomIds:', classroomIds);
-        console.log('[Replace Event - Conflict Detection] Existing events on new day:', newDay.puntualEvents?.length || 0);
-
         const conflictingEvents = newDay.puntualEvents?.filter(event => {
             const eventStart = event.startTime;
             const eventEnd = event.endTime;
@@ -1733,15 +1738,26 @@ export const replacePeriodicEvent = async (req: AuditedRequest, res: Response) =
             // Verificar si comparte aula
             const sharesClassroom = event.classrooms?.some(c => classroomIds.includes(c.id)) || classroomIds.length === 0;
 
-            return sharesGroup && sharesClassroom;
+            // Conflicto si comparte grupo O aula (no necesita compartir ambos)
+            return sharesGroup || sharesClassroom;
         });
 
-        console.log('[Replace Event - Conflict Detection] Total conflicts found:', conflictingEvents?.length || 0);
-
         if (conflictingEvents && conflictingEvents.length > 0) {
+            // Determinar el tipo específico de conflicto
+            const firstConflict = conflictingEvents[0];
+            const sharesGroup = firstConflict.groups?.some(g => groupIds.includes(g.id)) || groupIds.length === 0;
+            const sharesClassroom = firstConflict.classrooms?.some(c => classroomIds.includes(c.id)) || classroomIds.length === 0;
+
+            let conflictMessage = 'alerts.puntualEvent.error.shared_both';
+            if (sharesGroup && !sharesClassroom) {
+                conflictMessage = 'alerts.puntualEvent.error.shared_group';
+            } else if (!sharesGroup && sharesClassroom) {
+                conflictMessage = 'alerts.puntualEvent.error.shared_classroom';
+            }
+
             res.status(409).json({
                 status: 'error',
-                message: 'Time conflict: Same group/classroom already has an event at this time',
+                message: conflictMessage,
                 data: {
                     conflicts: conflictingEvents.map(e => ({
                         id: e.id,

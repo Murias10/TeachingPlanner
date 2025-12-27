@@ -255,14 +255,12 @@ export const createPeriodicEvent = (req: Request, res: Response, next: NextFunct
         body: req.body
     });
 
-export const replacePeriodicEvent = (req: Request, res: Response, next: NextFunction) => {
-    console.log('[Gateway - Replace Event] Received body:', JSON.stringify(req.body, null, 2));
-    return proxyRequest(req, res, next, {
+export const replacePeriodicEvent = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
         url: `${SERVICES.PLANNER}/calendar/replace-event`,
         method: 'POST',
         body: req.body
     });
-};
 
 export const deletePuntualEvent = (req: Request, res: Response, next: NextFunction) =>
     proxyRequest(req, res, next, {

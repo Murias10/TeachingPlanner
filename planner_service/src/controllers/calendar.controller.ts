@@ -1566,3 +1566,258 @@ export const createPeriodicEvent = async (req: AuditedRequest, res: Response) =>
         });
     }
 };
+
+/**
+ * Replace a periodic event occurrence with a new puntual event
+ * Creates two puntual events atomically:
+ * 1. A cancelled event at the original date/time
+ * 2. A replacement event at the new date/time
+ */
+export const replacePeriodicEvent = async (req: AuditedRequest, res: Response) => {
+    try {
+        console.log('[Replace Event] Request body received:', JSON.stringify(req.body, null, 2));
+
+        const {
+            calendarId,
+            originalDate,
+            originalStartTime,
+            originalEndTime,
+            newEventDate,
+            newStartTime,
+            newEndTime,
+            groupIds = [],
+            classroomIds = [],
+            comment = ''
+        } = req.body;
+
+        console.log('[Replace Event] Parsed fields:', {
+            calendarId,
+            originalDate,
+            originalStartTime,
+            originalEndTime,
+            newEventDate,
+            newStartTime,
+            newEndTime,
+            groupIds,
+            classroomIds,
+            comment
+        });
+
+        // Validaciones
+        if (!calendarId || !originalDate || !originalStartTime || !originalEndTime || !newEventDate || !newStartTime || !newEndTime) {
+            res.status(400).json({
+                status: 'error',
+                message: 'Missing required fields: calendarId, originalDate, originalStartTime, originalEndTime, newEventDate, newStartTime, newEndTime',
+                data: null
+            });
+            return;
+        }
+
+        const dayRepo = AppDataSource.getRepository(Day);
+        const puntualEventRepo = AppDataSource.getRepository(PuntualEvent);
+        const groupRepo = AppDataSource.getRepository(Group);
+        const classroomRepo = AppDataSource.getRepository(Classroom);
+        const calendarRepo = AppDataSource.getRepository(Calendar);
+
+        // Verificar que el calendario existe
+        const calendar = await calendarRepo.findOne({
+            where: { id: calendarId }
+        });
+
+        if (!calendar) {
+            res.status(404).json({
+                status: 'error',
+                message: 'Calendar not found',
+                data: null
+            });
+            return;
+        }
+
+        // Obtener los grupos
+        const groups = groupIds.length > 0
+            ? await groupRepo.find({ where: { id: In(groupIds) } })
+            : [];
+
+        // Obtener las aulas
+        const classrooms = classroomIds.length > 0
+            ? await classroomRepo.find({ where: { id: In(classroomIds) } })
+            : [];
+
+        // Obtener usuario autenticado
+        const userEmail = getUserEmailFromRequest(req);
+
+        // PASO 1: Buscar el día original
+        const originalDateObj = new Date(originalDate);
+        originalDateObj.setHours(0, 0, 0, 0);
+
+        const originalDay = await dayRepo.findOne({
+            where: {
+                date: originalDateObj,
+                calendar: { id: calendarId }
+            },
+            relations: ['puntualEvents', 'puntualEvents.groups', 'puntualEvents.classrooms']
+        });
+
+        if (!originalDay) {
+            res.status(400).json({
+                status: 'error',
+                message: 'The original date does not exist in the calendar',
+                data: null
+            });
+            return;
+        }
+
+        // PASO 2: Buscar el día del nuevo evento
+        const newEventDateObj = new Date(newEventDate);
+        newEventDateObj.setHours(0, 0, 0, 0);
+
+        // Validar que la fecha esté dentro del rango del calendario
+        const calendarStartDate = new Date(calendar.start);
+        calendarStartDate.setHours(0, 0, 0, 0);
+
+        const calendarEndDate = new Date(calendar.end);
+        calendarEndDate.setHours(0, 0, 0, 0);
+
+        if (newEventDateObj < calendarStartDate || newEventDateObj > calendarEndDate) {
+            res.status(400).json({
+                status: 'error',
+                message: `New event date must be between ${calendar.start.toISOString().split('T')[0]} and ${calendar.end.toISOString().split('T')[0]}`,
+                data: null
+            });
+            return;
+        }
+
+        const newDay = await dayRepo.findOne({
+            where: {
+                date: newEventDateObj,
+                calendar: { id: calendarId }
+            },
+            relations: ['puntualEvents', 'puntualEvents.groups', 'puntualEvents.classrooms']
+        });
+
+        if (!newDay) {
+            res.status(400).json({
+                status: 'error',
+                message: 'The new event date does not exist in the calendar',
+                data: null
+            });
+            return;
+        }
+
+        // Validar que el día sea lectivo
+        if (!newDay.lective) {
+            res.status(400).json({
+                status: 'error',
+                message: 'Cannot create events on non-lective days',
+                data: null
+            });
+            return;
+        }
+
+        // PASO 3: Verificar conflictos en la nueva fecha/hora
+        console.log('[Replace Event - Conflict Detection] Checking for conflicts in new date/time');
+        console.log('[Replace Event - Conflict Detection] New event time:', newStartTime, '-', newEndTime);
+        console.log('[Replace Event - Conflict Detection] GroupIds:', groupIds);
+        console.log('[Replace Event - Conflict Detection] ClassroomIds:', classroomIds);
+        console.log('[Replace Event - Conflict Detection] Existing events on new day:', newDay.puntualEvents?.length || 0);
+
+        const conflictingEvents = newDay.puntualEvents?.filter(event => {
+            const eventStart = event.startTime;
+            const eventEnd = event.endTime;
+            const hasTimeOverlap = newStartTime < eventEnd && newEndTime > eventStart;
+
+            if (!hasTimeOverlap) return false;
+
+            // Verificar si comparte grupo
+            const sharesGroup = event.groups?.some(g => groupIds.includes(g.id)) || groupIds.length === 0;
+            // Verificar si comparte aula
+            const sharesClassroom = event.classrooms?.some(c => classroomIds.includes(c.id)) || classroomIds.length === 0;
+
+            return sharesGroup && sharesClassroom;
+        });
+
+        console.log('[Replace Event - Conflict Detection] Total conflicts found:', conflictingEvents?.length || 0);
+
+        if (conflictingEvents && conflictingEvents.length > 0) {
+            res.status(409).json({
+                status: 'error',
+                message: 'Time conflict: Same group/classroom already has an event at this time',
+                data: {
+                    conflicts: conflictingEvents.map(e => ({
+                        id: e.id,
+                        startTime: e.startTime,
+                        endTime: e.endTime
+                    }))
+                }
+            });
+            return;
+        }
+
+        // PASO 4: Crear transacción para ambas operaciones atómicas
+        const queryRunner = AppDataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
+
+        try {
+            // Crear evento cancelado en la fecha original
+            const cancelledEvent = puntualEventRepo.create({
+                day: originalDay,
+                startTime: originalStartTime,
+                endTime: originalEndTime,
+                cancelled: true,
+                comment: `Evento reemplazado - ${comment}`,
+                groups: groups,
+                classrooms: classrooms,
+                createdBy: userEmail
+            });
+
+            await queryRunner.manager.save(cancelledEvent);
+
+            console.log(`[Replace Event] Created cancelled event at ${originalDate} ${originalStartTime}-${originalEndTime}`);
+
+            // Crear evento de reemplazo en la nueva fecha
+            const replacementEvent = puntualEventRepo.create({
+                day: newDay,
+                startTime: newStartTime,
+                endTime: newEndTime,
+                cancelled: false,
+                comment: comment || '',
+                groups: groups,
+                classrooms: classrooms,
+                createdBy: userEmail
+            });
+
+            await queryRunner.manager.save(replacementEvent);
+
+            console.log(`[Replace Event] Created replacement event at ${newEventDate} ${newStartTime}-${newEndTime}`);
+
+            // Commit de la transacción
+            await queryRunner.commitTransaction();
+
+            res.status(201).json({
+                status: 'success',
+                message: 'Event replaced successfully',
+                data: {
+                    cancelledEvent,
+                    replacementEvent
+                }
+            });
+
+        } catch (error) {
+            // Rollback en caso de error
+            await queryRunner.rollbackTransaction();
+            throw error;
+        } finally {
+            // Liberar el queryRunner
+            await queryRunner.release();
+        }
+
+    } catch (error) {
+        console.error('Error replacing periodic event:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error replacing periodic event',
+            data: error instanceof Error ? error.message : error
+        });
+    }
+};

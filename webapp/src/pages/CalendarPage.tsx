@@ -22,6 +22,8 @@ import { CalendarEventWrapper } from "@/components/calendar/CalendarEventWrapper
 import VITE_GATEWAY_API_URL from "@/config/api";
 import { EventDetailsDrawer } from "@/components/calendar/EventDetailsDrawer";
 import { DeleteEventConfirmationDialog } from "@/components/calendar/DeleteEventConfirmationDialog";
+import { ReplaceEventConfirmationDialog } from "@/components/calendar/ReplaceEventConfirmationDialog";
+import ReplaceEventDialog from "@/components/calendar/ReplaceEventDialog";
 import { useCreatePuntualEvent } from "@/hooks/calendar/useCreatePuntualEvent";
 import { useCreatePeriodicEvent } from "@/hooks/calendar/useCreatePeriodicEvent";
 import { useUpdatePuntualEvent } from "@/hooks/calendar/useUpdatePuntualEvent";
@@ -224,6 +226,11 @@ export default function CalendarPage() {
     const [isRevertConfirmationOpen, setIsRevertConfirmationOpen] = useState(false);
     const [eventToRevert, setEventToRevert] = useState<CalendarEvent | undefined>(undefined);
     const [isRevertingEvent, setIsRevertingEvent] = useState(false);
+
+    // Estado para el diálogo de reemplazo de evento
+    const [isReplaceConfirmationOpen, setIsReplaceConfirmationOpen] = useState(false);
+    const [isReplaceEventDialogOpen, setIsReplaceEventDialogOpen] = useState(false);
+    const [eventToReplace, setEventToReplace] = useState<CalendarEvent | null>(null);
 
     // Estado para solicitud de eventos
     const [isSolicitudDrawerOpen, setIsSolicitudDrawerOpen] = useState(false);
@@ -1091,11 +1098,6 @@ export default function CalendarPage() {
         console.log('Edit series:', event);
     };
 
-    const handleReplaceEvent = (event: CalendarEvent) => {
-        // TODO: Implement replace event logic
-        console.log('Replace event:', event);
-    };
-
     const handleDeleteSeries = (event: CalendarEvent) => {
         setEventToDelete(event);
         setDeleteType('series');
@@ -1133,6 +1135,66 @@ export default function CalendarPage() {
             alert('Error al revertir la cancelación del evento');
         } finally {
             setIsRevertingEvent(false);
+        }
+    };
+
+    // Replace event handlers
+    const handleReplaceEvent = (event: CalendarEvent) => {
+        setEventToReplace(event);
+        setIsReplaceConfirmationOpen(true);
+    };
+
+    const handleConfirmReplaceIntent = () => {
+        setIsReplaceConfirmationOpen(false);
+        setIsReplaceEventDialogOpen(true);
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const handleSaveReplaceEvent = async (config: any) => {
+        if (!calendarId) return;
+
+        try {
+            // Extraer solo la fecha en formato YYYY-MM-DD de originalDate si viene como timestamp ISO
+            const originalDateStr = config.originalDate.includes('T')
+                ? config.originalDate.split('T')[0]
+                : config.originalDate;
+
+            const requestBody = {
+                calendarId: calendarId,
+                originalDate: originalDateStr,
+                originalStartTime: config.originalStartTime,
+                originalEndTime: config.originalEndTime,
+                newEventDate: config.newEventDate,
+                newStartTime: config.newStartTime,
+                newEndTime: config.newEndTime,
+                groupIds: config.groupIds,
+                classroomIds: config.classroomIds,
+                comment: config.comment || ''
+            };
+
+            console.log('[Replace Event] Request body:', requestBody);
+
+            const response = await fetch(`${VITE_GATEWAY_API_URL}/calendar/replace-event`, {
+                method: 'POST',
+                headers: getAuthHeaders({
+                    'Content-Type': 'application/json'
+                }),
+                body: JSON.stringify(requestBody)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Error al reemplazar el evento');
+            }
+
+            // Refetch calendar events
+            refetch();
+
+            setIsReplaceEventDialogOpen(false);
+            setEventToReplace(null);
+        } catch (error) {
+            console.error('Error al reemplazar el evento:', error);
+            alert('Error al reemplazar el evento');
         }
     };
 
@@ -1505,6 +1567,31 @@ export default function CalendarPage() {
                 subjectName={eventToRevert?.subject?.name || 'esta asignatura'}
                 title='Revertir cancelación'
                 description='¿Estás seguro de que deseas revertir la cancelación de este evento? El evento volverá a aparecer en el calendario.'
+            />
+
+            {/* Replace Event Confirmation Dialog */}
+            <ReplaceEventConfirmationDialog
+                open={isReplaceConfirmationOpen}
+                onOpenChange={setIsReplaceConfirmationOpen}
+                onConfirm={handleConfirmReplaceIntent}
+                eventInfo={eventToReplace ? {
+                    groupName: eventToReplace.groups.map(g => {
+                        const subject = eventToReplace.subject;
+                        const langPrefix = g.language === 'EN' ? 'I-' : '';
+                        return `${subject?.acronym}.${g.type}.${langPrefix}${g.number}`;
+                    }).join(', '),
+                    date: new Date(eventToReplace.date).toLocaleDateString('es-ES'),
+                    time: eventToReplace.startTime
+                } : undefined}
+            />
+
+            {/* Replace Event Dialog */}
+            <ReplaceEventDialog
+                open={isReplaceEventDialogOpen}
+                onOpenChange={setIsReplaceEventDialogOpen}
+                onSave={handleSaveReplaceEvent}
+                eventToReplace={eventToReplace}
+                lectiveDates={lectiveDates}
             />
 
             {/* Event Request Dialog - Solo para PROFESSOR */}

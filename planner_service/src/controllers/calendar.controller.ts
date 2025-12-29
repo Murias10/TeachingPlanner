@@ -1594,6 +1594,124 @@ export const createPeriodicEvent = async (req: AuditedRequest, res: Response) =>
 };
 
 /**
+ * Update a periodic event
+ * Only updates the base PeriodicEvent record
+ * Does not validate future conflicts or modify existing PuntualEvents
+ * Allows editing: startTime, endTime, classrooms, and planifiedHours
+ */
+export const updatePeriodicEvent = async (req: AuditedRequest, res: Response) => {
+    try {
+        const { eventId } = req.params;
+        const { startTime, endTime, classroomIds = [], planifiedHours } = req.body;
+
+        // Validaciones
+        if (!eventId) {
+            res.status(400).json({
+                status: 'error',
+                message: 'Missing required field: eventId',
+                data: null
+            });
+            return;
+        }
+
+        if (!startTime || !endTime) {
+            res.status(400).json({
+                status: 'error',
+                message: 'Missing required fields: startTime, endTime',
+                data: null
+            });
+            return;
+        }
+
+        const periodicEventRepo = AppDataSource.getRepository(PeriodicEvent);
+        const classroomRepo = AppDataSource.getRepository(Classroom);
+        const groupRepo = AppDataSource.getRepository(Group);
+
+        // Buscar el evento periódico con sus relaciones
+        const periodicEvent = await periodicEventRepo.findOne({
+            where: { id: eventId },
+            relations: ['groups', 'classrooms']
+        });
+
+        if (!periodicEvent) {
+            res.status(404).json({
+                status: 'error',
+                message: 'Periodic event not found',
+                data: null
+            });
+            return;
+        }
+
+        // Obtener las nuevas aulas si se proporcionaron
+        const classrooms = classroomIds.length > 0
+            ? await classroomRepo.find({ where: { id: In(classroomIds) } })
+            : [];
+
+        // Obtener usuario autenticado
+        const userEmail = getUserEmailFromRequest(req);
+
+        // Actualizar el evento periódico
+        periodicEvent.startTime = startTime;
+        periodicEvent.endTime = endTime;
+        periodicEvent.classrooms = classrooms;
+        periodicEvent.updatedBy = userEmail;
+        periodicEvent.updatedAt = new Date();
+
+        // Si se proporcionaron horas planificadas, actualizarlas
+        if (planifiedHours !== undefined && planifiedHours !== null) {
+            periodicEvent.planifiedHours = planifiedHours;
+
+            // Update Group.planifiedHours for all groups in this event
+            for (const group of periodicEvent.groups) {
+                if (group.planifiedHours !== planifiedHours) {
+                    group.planifiedHours = planifiedHours;
+                    group.updatedBy = userEmail;
+                    group.updatedAt = new Date();
+                    await groupRepo.save(group);
+                    console.log(`[Periodic Event Update] Updated planified hours to ${planifiedHours} for group ${group.type}-${group.number}`);
+
+                    // Update ALL PeriodicEvents associated with this group
+                    const allPeriodicEventsForGroup = await periodicEventRepo
+                        .createQueryBuilder('event')
+                        .leftJoinAndSelect('event.groups', 'group')
+                        .where('group.id = :groupId', { groupId: group.id })
+                        .getMany();
+
+                    for (const event of allPeriodicEventsForGroup) {
+                        if (event.planifiedHours !== planifiedHours) {
+                            event.planifiedHours = planifiedHours;
+                            event.updatedBy = userEmail;
+                            event.updatedAt = new Date();
+                            await periodicEventRepo.save(event);
+                        }
+                    }
+
+                    console.log(`[Periodic Event Update] Updated ${allPeriodicEventsForGroup.length} periodic events for group ${group.type}-${group.number}`);
+                }
+            }
+        }
+
+        const savedEvent = await periodicEventRepo.save(periodicEvent);
+
+        res.status(200).json({
+            status: 'success',
+            message: 'Periodic event updated successfully',
+            data: {
+                event: savedEvent
+            }
+        });
+
+    } catch (error) {
+        console.error('Error updating periodic event:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error updating periodic event',
+            data: error instanceof Error ? error.message : error
+        });
+    }
+};
+
+/**
  * Replace a periodic event occurrence with a new puntual event
  * Creates two puntual events atomically:
  * 1. A cancelled event at the original date/time

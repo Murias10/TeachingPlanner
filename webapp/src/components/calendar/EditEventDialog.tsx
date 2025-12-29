@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -56,22 +57,37 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
   const [eventType, setEventType] = useState<string>('T');
   const [openStartTime, setOpenStartTime] = useState(false);
   const [openEndTime, setOpenEndTime] = useState(false);
+  const [allowEditPlanifiedHours, setAllowEditPlanifiedHours] = useState(false);
+  const [initialGroupHours, setInitialGroupHours] = useState<number>(0); // Store initial hours from selected group
+  const [initialConfig, setInitialConfig] = useState<RecurrenceConfig | null>(null); // Store initial config to detect changes
 
   const previousEventTypeRef = React.useRef<string>('T');
 
   // Actualizar config cuando cambie el evento
   useEffect(() => {
     if (event) {
+      // Para eventos periódicos, usar las horas planificadas del grupo
+      const planifiedHours = event.type === 'periodic' && event.groups.length > 0
+        ? event.groups[0].planifiedHours || 0
+        : 0;
+
+      // Para eventos periódicos, extraer el día de la semana del evento
+      let weekDays: WeekDay[] = [];
+      if (event.type === 'periodic' && event.weekDay) {
+        // El weekDay ya viene en formato de letra (L, M, X, J, V, S, D) desde la base de datos
+        weekDays = [event.weekDay as WeekDay];
+      }
+
       const newConfig: RecurrenceConfig = {
         frequency: event.type === 'periodic' ? 'weekly' : 'no-repeat',
         interval: 1,
-        weekDays: [],
+        weekDays: weekDays,
         endsType: 'never',
         endsOnDate: '',
         endsAfterOccurrences: 1,
         startTime: event.startTime,
         endTime: event.endTime,
-        planifiedHours: 0,
+        planifiedHours: planifiedHours,
         eventDate: event.date,
         customStartDate: event.date,
         customFrequencyUnit: 'week',
@@ -83,6 +99,13 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
       };
 
       setConfig(newConfig);
+      setInitialConfig(newConfig); // Save initial config for comparison
+
+      // Initialize planified hours state for periodic events
+      if (event.type === 'periodic' && planifiedHours > 0) {
+        setInitialGroupHours(planifiedHours);
+        setAllowEditPlanifiedHours(false);
+      }
 
       // Set event type from first group
       if (event.groups.length > 0) {
@@ -105,6 +128,25 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
       previousEventTypeRef.current = eventType;
     }
   }, [eventType]);
+
+  // Clear group selection when subject changes
+  const previousSubjectIdRef = React.useRef<string | undefined>(undefined);
+  React.useEffect(() => {
+    // Skip the first run (when component mounts)
+    if (previousSubjectIdRef.current === undefined) {
+      previousSubjectIdRef.current = config.subjectId;
+      return;
+    }
+
+    // Only clear groups if subject actually changed
+    if (config.subjectId !== previousSubjectIdRef.current) {
+      setConfig(prev => ({
+        ...prev,
+        groupIds: []
+      }));
+    }
+    previousSubjectIdRef.current = config.subjectId;
+  }, [config.subjectId]);
 
   const { data: classrooms = [] } = useClassrooms();
   const { data: subjects = [], isLoading: isLoadingSubjects } = useSubjectsByDegreeId(degreeId || null);
@@ -199,6 +241,29 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
     return true;
   }, [config.subjectId, config.groupIds, config.classroomIds, eventType, config.frequency, config.eventDate, config.weekDays, config.planifiedHours, config.customStartDate, config.customFrequencyUnit, config.interval]);
 
+  // Detect if there are any changes from the initial config
+  const hasChanges = useMemo(() => {
+    if (!initialConfig) return false;
+
+    // Helper function to compare arrays
+    const arraysEqual = (a: any[], b: any[]) => {
+      if (a.length !== b.length) return false;
+      const sortedA = [...a].sort();
+      const sortedB = [...b].sort();
+      return sortedA.every((val, idx) => val === sortedB[idx]);
+    };
+
+    // Compare each field that can be edited
+    return (
+      config.startTime !== initialConfig.startTime ||
+      config.endTime !== initialConfig.endTime ||
+      config.subjectId !== initialConfig.subjectId ||
+      !arraysEqual(config.groupIds || [], initialConfig.groupIds || []) ||
+      !arraysEqual(config.classroomIds || [], initialConfig.classroomIds || []) ||
+      (allowEditPlanifiedHours && config.planifiedHours !== initialConfig.planifiedHours)
+    );
+  }, [config, initialConfig, allowEditPlanifiedHours]);
+
   const weekDays: { value: WeekDay; label: string }[] = [
     { value: 'L', label: 'L' },
     { value: 'M', label: 'M' },
@@ -273,7 +338,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
             {/* Frequency Selection */}
             <div className="space-y-1">
               <Label className="text-xs font-semibold">Frecuencia</Label>
-              <Select value={config.frequency} onValueChange={(value) => handleFrequencyChange(value as FrequencyType)}>
+              <Select value={config.frequency} onValueChange={(value) => handleFrequencyChange(value as FrequencyType)} disabled>
                 <SelectTrigger className="h-8 text-xs w-full">
                   <SelectValue />
                 </SelectTrigger>
@@ -413,23 +478,6 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                 </Popover>
               </div>
             </div>
-
-            {/* Planified Hours - Only visible when frequency is 'weekly' */}
-            {config.frequency === 'weekly' && (
-              <div className="space-y-1">
-                <Label htmlFor="planified-hours" className="text-xs font-semibold">Horas Planificadas</Label>
-                <Input
-                  id="planified-hours"
-                  type="number"
-                  min="0"
-                  step="0.5"
-                  value={config.planifiedHours || ''}
-                  onChange={(e) => setConfig({ ...config, planifiedHours: parseFloat(e.target.value) || 0 })}
-                  placeholder="Ej: 30"
-                  className="h-8 text-xs"
-                />
-              </div>
-            )}
 
             {/* Subject Selection - Always visible */}
             <div className="space-y-1">
@@ -600,6 +648,41 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                 )}
               </div>
             </div>
+
+            {/* Planified Hours - Only visible when frequency is 'weekly' and group is selected */}
+            {config.frequency === 'weekly' && config.groupIds && config.groupIds.length > 0 && (
+              <div className="space-y-2">
+                <Label htmlFor="planified-hours" className="text-xs font-semibold">Horas Planificadas</Label>
+                <Input
+                  id="planified-hours"
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  value={config.planifiedHours || ''}
+                  onChange={(e) => setConfig({ ...config, planifiedHours: parseFloat(e.target.value) || 0 })}
+                  placeholder="Ej: 30"
+                  className="h-8 text-xs"
+                  disabled={initialGroupHours > 0 && !allowEditPlanifiedHours}
+                  required={initialGroupHours === 0}
+                />
+                {initialGroupHours > 0 && (
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="allow-edit-hours"
+                      checked={allowEditPlanifiedHours}
+                      onCheckedChange={(checked) => setAllowEditPlanifiedHours(!!checked)}
+                      className="h-3.5 w-3.5"
+                    />
+                    <label
+                      htmlFor="allow-edit-hours"
+                      className="text-xs text-muted-foreground cursor-pointer"
+                    >
+                      Modificar las horas planificadas puede afectar a todos los eventos de este grupo
+                    </label>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Custom Frequency Options - Only visible for custom frequency */}
             {config.frequency === 'custom' && (
@@ -793,7 +876,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
           </Button>
           <Button
             onClick={handleSave}
-            disabled={!isFormValid}
+            disabled={!isFormValid || !hasChanges}
             className="h-8 text-xs"
           >
             Guardar

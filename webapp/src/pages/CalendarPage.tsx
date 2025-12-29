@@ -27,6 +27,7 @@ import ReplaceEventDialog from "@/components/calendar/ReplaceEventDialog";
 import { useCreatePuntualEvent } from "@/hooks/calendar/useCreatePuntualEvent";
 import { useCreatePeriodicEvent } from "@/hooks/calendar/useCreatePeriodicEvent";
 import { useUpdatePuntualEvent } from "@/hooks/calendar/useUpdatePuntualEvent";
+import { useUpdatePeriodicEvent } from "@/hooks/calendar/useUpdatePeriodicEvent";
 import { useDeletePuntualEvent } from "@/hooks/calendar/useDeletePuntualEvent";
 import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -140,6 +141,7 @@ export default function CalendarPage() {
     const { mutate: createPuntualEvent } = useCreatePuntualEvent();
     const { mutate: createPeriodicEvent } = useCreatePeriodicEvent();
     const { mutate: updatePuntualEvent } = useUpdatePuntualEvent();
+    const { mutate: updatePeriodicEvent } = useUpdatePeriodicEvent();
     const { deletePuntualEvent, isDeleting: isDeletingEvent } = useDeletePuntualEvent();
     const crearSolicitud = useCrearSolicitud();
     const deleteRequest = useDeleteRequest();
@@ -867,47 +869,85 @@ export default function CalendarPage() {
     };
 
     const handleUpdateEvent = (_eventId: string, config: RecurrenceConfig) => {
-        if (!eventToEdit?.puntualEventId || !config.eventDate) return;
+        if (!eventToEdit) return;
 
-        // Convertir la fecha ISO completa a formato YYYY-MM-DD
-        const eventDateOnly = config.eventDate.split('T')[0];
-
-        updatePuntualEvent(
-            {
-                eventId: eventToEdit.puntualEventId,
-                eventDate: eventDateOnly,
-                startTime: config.startTime,
-                endTime: config.endTime,
-                subjectId: config.subjectId,
-                groupIds: config.groupIds,
-                classroomIds: config.classroomIds || [],
-                comment: config.comment
-            },
-            {
-                onSuccess: () => {
-                    setIsEditEventDialogOpen(false);
-                    setEventToEdit(null);
-                    refetch();
-                    triggerAlert({
-                        title: 'Evento actualizado',
-                        description: 'El evento ha sido actualizado correctamente',
-                        variant: 'success'
-                    });
+        // Actualizar evento periódico
+        if (eventToEdit.type === 'periodic' && eventToEdit.periodicEventId) {
+            updatePeriodicEvent(
+                {
+                    eventId: eventToEdit.periodicEventId,
+                    startTime: config.startTime,
+                    endTime: config.endTime,
+                    classroomIds: config.classroomIds || [],
+                    planifiedHours: config.planifiedHours
                 },
-                onError: (error: Error & { statusCode?: number }) => {
-                    triggerAlert({
-                        title: 'Error al actualizar',
-                        description: t(error.message) || 'No se pudo actualizar el evento',
-                        variant: 'destructive'
-                    });
+                {
+                    onSuccess: () => {
+                        setIsEditEventDialogOpen(false);
+                        setEventToEdit(null);
+                        refetch();
+                        triggerAlert({
+                            title: 'Evento periódico actualizado',
+                            description: 'El evento periódico ha sido actualizado correctamente',
+                            variant: 'success'
+                        });
+                    },
+                    onError: (error: Error & { statusCode?: number }) => {
+                        triggerAlert({
+                            title: 'Error al actualizar',
+                            description: t(error.message) || 'No se pudo actualizar el evento periódico',
+                            variant: 'destructive'
+                        });
+                    }
                 }
-            }
-        );
+            );
+            return;
+        }
+
+        // Actualizar evento puntual
+        if (eventToEdit.type === 'puntual' && eventToEdit.puntualEventId && config.eventDate) {
+            // Convertir la fecha ISO completa a formato YYYY-MM-DD
+            const eventDateOnly = config.eventDate.split('T')[0];
+
+            updatePuntualEvent(
+                {
+                    eventId: eventToEdit.puntualEventId,
+                    eventDate: eventDateOnly,
+                    startTime: config.startTime,
+                    endTime: config.endTime,
+                    subjectId: config.subjectId,
+                    groupIds: config.groupIds,
+                    classroomIds: config.classroomIds || [],
+                    comment: config.comment
+                },
+                {
+                    onSuccess: () => {
+                        setIsEditEventDialogOpen(false);
+                        setEventToEdit(null);
+                        refetch();
+                        triggerAlert({
+                            title: 'Evento actualizado',
+                            description: 'El evento ha sido actualizado correctamente',
+                            variant: 'success'
+                        });
+                    },
+                    onError: (error: Error & { statusCode?: number }) => {
+                        triggerAlert({
+                            title: 'Error al actualizar',
+                            description: t(error.message) || 'No se pudo actualizar el evento',
+                            variant: 'destructive'
+                        });
+                    }
+                }
+            );
+        }
     };
 
     const handleEditEvent = (event?: CalendarEvent) => {
         const eventToUse = event || selectedEvent;
 
+        // Solo permitir editar eventos puntuales directamente
+        // Los eventos periódicos se editan mediante handleEditSeries
         if (eventToUse && eventToUse.type === 'puntual') {
             setEventToEdit(eventToUse);
             setIsEditEventDialogOpen(true);
@@ -1091,8 +1131,12 @@ export default function CalendarPage() {
     };
 
     const handleEditSeries = (event: CalendarEvent) => {
-        // TODO: Implement edit series logic
-        console.log('Edit series:', event);
+        // Solo permitir editar series de eventos periódicos con eventCharacter === 'N'
+        if (event.type === 'periodic' && event.eventCharacter === 'N') {
+            setEventToEdit(event);
+            setIsEditEventDialogOpen(true);
+            setIsEventDetailsDrawerOpen(false);
+        }
     };
 
     const handleDeleteSeries = (event: CalendarEvent) => {

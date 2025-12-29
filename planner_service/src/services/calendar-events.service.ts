@@ -577,7 +577,8 @@ export class CalendarEventsService {
         id: grupo.id,
         number: grupo.number,
         type: grupo.type,
-        language: grupo.language
+        language: grupo.language,
+        planifiedHours: grupo.planifiedHours
       })),
       classrooms: eventoPeriodico.classrooms.map((aula: any) => ({
         id: aula.id,
@@ -587,6 +588,8 @@ export class CalendarEventsService {
       type: 'periodic',
       cancelled: false,
       periodicEventId: eventoPeriodico.id,
+      eventCharacter: eventoPeriodico.eventCharacter,
+      weekDay: eventoPeriodico.weekDay,
       dayCharacter: dia?.dayCharacter || '',
       dayComment: dia?.comment || ''
     };

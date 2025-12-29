@@ -233,10 +233,13 @@ export function CalendarEventWrapper({
 
             <ContextMenuSeparator />
 
-            <ContextMenuItem onClick={handleEditSeries}>
-              <Edit />
-              Editar serie de eventos
-            </ContextMenuItem>
+            {/* Solo mostrar "Editar serie" para eventos con eventCharacter === 'N' */}
+            {calendarEvent.eventCharacter === 'N' && (
+              <ContextMenuItem onClick={handleEditSeries}>
+                <Edit />
+                Editar serie de eventos
+              </ContextMenuItem>
+            )}
 
             <ContextMenuItem onClick={handleReplaceEvent}>
               <Replace />

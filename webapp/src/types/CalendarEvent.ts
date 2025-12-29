@@ -15,6 +15,8 @@ export interface CalendarEvent {
     cancelled: boolean;
     periodicEventId?: string; // ID del evento periódico original (si type === 'periodic')
     puntualEventId?: string; // ID del evento puntual original (si type === 'puntual')
+    eventCharacter?: string; // Carácter del evento periódico (N = Normal, etc.)
+    weekDay?: string; // Día de la semana del evento periódico (Monday, Tuesday, etc.)
     dayCharacter: string;
     dayComment: string;
     comment?: string;

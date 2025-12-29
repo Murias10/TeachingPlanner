@@ -22,6 +22,15 @@ interface EventDetailsDrawerProps {
 export function EventDetailsDrawer({ open, onOpenChange, event }: EventDetailsDrawerProps) {
     if (!event) return null;
 
+    // DEBUG: Log para verificar qué llega en el evento
+    if (event.type === 'periodic') {
+        console.log('EventDetailsDrawer - Evento periódico:', {
+            eventCharacter: event.eventCharacter,
+            dayCharacter: event.dayCharacter,
+            fullEvent: event
+        });
+    }
+
     const eventTypeLabel = event.type === 'periodic' ? 'Evento Periódico' : 'Evento Puntual';
     const eventTypeVariant = event.type === 'periodic' ? 'default' : 'secondary';
 
@@ -141,6 +150,19 @@ export function EventDetailsDrawer({ open, onOpenChange, event }: EventDetailsDr
                             <Input
                                 id="event-day-character"
                                 value={event.dayCharacter}
+                                disabled={true}
+                                className="bg-muted"
+                            />
+                        </div>
+                    )}
+
+                    {/* Carácter del evento (solo para eventos periódicos) */}
+                    {event.type === 'periodic' && event.eventCharacter && (
+                        <div className="space-y-2 max-w-sm mx-auto w-full">
+                            <Label htmlFor="event-character">Carácter del Evento</Label>
+                            <Input
+                                id="event-character"
+                                value={event.eventCharacter}
                                 disabled={true}
                                 className="bg-muted"
                             />

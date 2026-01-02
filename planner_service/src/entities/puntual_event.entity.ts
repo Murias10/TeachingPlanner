@@ -34,7 +34,7 @@ export class PuntualEvent extends AuditedEntity {
     endTime!: string;
 
     /** Indicates if this event has been cancelled */
-    @Column('boolean', { name: 'CANCELLED' })
+    @Column('boolean', { name: 'CANCELLED', default: false })
     cancelled!: boolean;
 
     /** Additional comments or notes about this event */

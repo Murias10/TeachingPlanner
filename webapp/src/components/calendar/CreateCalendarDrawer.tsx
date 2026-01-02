@@ -62,6 +62,8 @@ export const CreateCalendarDrawer = ({
     const [endDate, setEndDate] = useState<Date | undefined>();
     const [holidayDates, setHolidayDates] = useState<Date[]>([]);
     const [dateError, setDateError] = useState("");
+    const [startDateOpen, setStartDateOpen] = useState(false);
+    const [endDateOpen, setEndDateOpen] = useState(false);
 
     // Import tab states
     const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
@@ -308,7 +310,7 @@ export const CreateCalendarDrawer = ({
                                         <Label className="text-xs font-semibold">
                                             {t("drawer.calendar.create.tabs.manual.start.date")}
                                         </Label>
-                                        <Popover modal={true}>
+                                        <Popover modal={true} open={startDateOpen} onOpenChange={setStartDateOpen}>
                                             <PopoverTrigger asChild>
                                                 <Button
                                                     variant="outline"
@@ -326,6 +328,7 @@ export const CreateCalendarDrawer = ({
                                                     onSelect={(date) => {
                                                         if (date && !isDateDisabled(date)) {
                                                             setStartDate(date);
+                                                            setStartDateOpen(false);
                                                         }
                                                     }}
                                                     disabled={isDateDisabled}
@@ -342,7 +345,7 @@ export const CreateCalendarDrawer = ({
                                         <Label className="text-xs font-semibold">
                                             {t("drawer.calendar.create.tabs.manual.end.date")}
                                         </Label>
-                                        <Popover modal={true}>
+                                        <Popover modal={true} open={endDateOpen} onOpenChange={setEndDateOpen}>
                                             <PopoverTrigger asChild>
                                                 <Button
                                                     variant="outline"
@@ -360,6 +363,7 @@ export const CreateCalendarDrawer = ({
                                                     onSelect={(date) => {
                                                         if (date && !isDateDisabled(date) && (!startDate || date > startDate)) {
                                                             setEndDate(date);
+                                                            setEndDateOpen(false);
                                                         }
                                                     }}
                                                     disabled={(date) => isDateDisabled(date) || (startDate ? date <= startDate : false)}

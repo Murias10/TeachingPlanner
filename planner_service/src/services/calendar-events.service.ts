@@ -1,6 +1,7 @@
 import { AppDataSource } from '@/config/data-source';
 import { Day } from '@/entities/day.entity';
 import { PeriodicEvent } from '@/entities/periodic_event.entity';
+import { EVENT_CHARACTERS } from '@/constants/event-characters.constants';
 
 /**
  * CalendarEventsService
@@ -12,7 +13,7 @@ import { PeriodicEvent } from '@/entities/periodic_event.entity';
  * Responsabilidades principales:
  * - Calcular y respetar los presupuestos de horas para cada grupo de curso
  * - Gestionar cancelaciones de eventos y conflictos
- * - Implementar la lógica de "horas compartidas" para eventos con carácter 'N'
+ * - Implementar la lógica de "horas compartidas" para eventos con carácter Normal (N)
  * - Distribuir eventos equitativamente usando programación round-robin
  */
 export class CalendarEventsService {
@@ -49,8 +50,8 @@ export class CalendarEventsService {
     // PASO 1: Añadir eventos puntuales no cancelados
     this.añadirEventosPuntualesAlMap(diasDelCalendario, eventosPorGrupo);
 
-    // PASO 2: Procesar eventos periódicos con carácter 'N' (horas compartidas)
-    const eventosN = eventosPeriodicos.filter(e => e.eventCharacter.toUpperCase() === 'N');
+    // PASO 2: Procesar eventos periódicos con carácter Normal (horas compartidas)
+    const eventosN = eventosPeriodicos.filter(e => e.eventCharacter.toUpperCase() === EVENT_CHARACTERS.NORMAL);
     this.procesarEventosPeriodicosN(
       eventosN,
       diasDelCalendario,
@@ -60,7 +61,7 @@ export class CalendarEventsService {
     );
 
     // PASO 3: Procesar eventos periódicos NO-N (nueva lógica por dayCharacter)
-    const eventosNoN = eventosPeriodicos.filter(e => e.eventCharacter.toUpperCase() !== 'N');
+    const eventosNoN = eventosPeriodicos.filter(e => e.eventCharacter.toUpperCase() !== EVENT_CHARACTERS.NORMAL);
     this.procesarEventosPeriodicosNoN(
       eventosNoN,
       diasDelCalendario,
@@ -376,7 +377,8 @@ export class CalendarEventsService {
       cancelled: false,
       puntualEventId: eventoPuntual.id,
       dayCharacter: dia.dayCharacter || '',
-      dayComment: dia.comment || ''
+      dayComment: dia.comment || '',
+      comment: eventoPuntual.comment || ''
     };
   }
 
@@ -389,10 +391,10 @@ export class CalendarEventsService {
   }
 
   /**
-   * Procesa eventos periódicos con carácter 'N' usando horas compartidas
+   * Procesa eventos periódicos con carácter Normal (N) usando horas compartidas
    *
    * CONCEPTO DE HORAS COMPARTIDAS:
-   * Múltiples eventos 'N' para el mismo grupo comparten UN ÚNICO presupuesto de horas.
+   * Múltiples eventos Normal para el mismo grupo comparten UN ÚNICO presupuesto de horas.
    * Se distribuyen usando algoritmo round-robin para equidad.
    */
   private static procesarEventosPeriodicosN(

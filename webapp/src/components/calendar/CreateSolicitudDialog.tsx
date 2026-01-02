@@ -15,10 +15,11 @@ import { TimePicker } from '@/components/ui/time-picker';
 import { Textarea } from '@/components/ui/textarea';
 import { es } from 'date-fns/locale';
 import { format } from 'date-fns';
-import type { RecurrenceConfig, FrequencyType, WeekDay, EndsType, CustomFrequencyUnit } from '@/types/RecurrenceConfig';
+import type { RecurrenceConfig, FrequencyType, WeekDay, EndsType, CustomFrequencyUnit, MonthlyPatternType } from '@/types/RecurrenceConfig';
 import { useClassrooms } from '@/hooks/classroom/useClassrooms';
 import { useSubjectsByDegreeId } from '@/hooks/subject/useSubjectsByDegreeId';
 import { useSubjectsWithEventsAndGroupsByCourseAndSemester } from '@/hooks/subject/useSubjectsWithEventsAndGroupsByCourseIdAndSemester';
+import { getMonthlyPatternLabels } from '@/utils/customPatternCalculator';
 
 interface CreateSolicitudDialogProps {
   open: boolean;
@@ -60,7 +61,7 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
     eventDate: format(new Date(), 'yyyy-MM-dd'),
     customStartDate: format(new Date(), 'yyyy-MM-dd'),
     customFrequencyUnit: 'week',
-    customMonthlyPattern: '',
+    monthlyPatternType: 'day-of-month',
     subjectId: undefined,
     groupIds: [],
     classroomIds: [],
@@ -86,7 +87,7 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
       eventDate: initialDate || format(new Date(), 'yyyy-MM-dd'),
       customStartDate: initialDate || format(new Date(), 'yyyy-MM-dd'),
       customFrequencyUnit: 'week',
-      customMonthlyPattern: '',
+      monthlyPatternType: 'day-of-month',
       subjectId: undefined,
       groupIds: [],
       classroomIds: [],
@@ -115,6 +116,19 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
     if (!semester) return subjects;
     return subjects.filter(subject => subject.semester === semester);
   }, [subjects, semester]);
+
+  // Calculate monthly pattern labels based on customStartDate
+  const monthlyPatternLabels = useMemo(() => {
+    if (!config.customStartDate) {
+      return { dayOfMonth: '', dayOfWeek: '' };
+    }
+    try {
+      const startDate = new Date(config.customStartDate);
+      return getMonthlyPatternLabels(startDate);
+    } catch {
+      return { dayOfMonth: '', dayOfWeek: '' };
+    }
+  }, [config.customStartDate]);
 
   // Extract groups from subjects with groups for the selected subject and filter by event type
   const availableGroups = useMemo(() => {
@@ -620,25 +634,15 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
                   <div className="space-y-2">
                     <Label className="text-xs font-semibold">Patrón Mensual</Label>
                     <Select
-                      value={config.customMonthlyPattern || 'day-of-month'}
-                      onValueChange={(value) => setConfig({ ...config, customMonthlyPattern: value })}
+                      value={config.monthlyPatternType || 'day-of-month'}
+                      onValueChange={(value: MonthlyPatternType) => setConfig({ ...config, monthlyPatternType: value })}
                     >
-                      <SelectTrigger className="h-8 px-3 text-xs font-normal w-full">
-                        <SelectValue />
+                      <SelectTrigger className="h-8 text-xs w-full">
+                        <SelectValue placeholder="Seleccionar patrón" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="day-of-month">
-                          Cada mes el {config.customStartDate ? new Date(config.customStartDate).getDate() : '?'}
-                        </SelectItem>
-                        <SelectItem value="weekday-of-month">
-                          {config.customStartDate ? (() => {
-                            const date = new Date(config.customStartDate);
-                            const dayOfWeek = date.toLocaleDateString('es-ES', { weekday: 'long' });
-                            const week = Math.ceil(date.getDate() / 7);
-                            const weekNames = ['primer', 'segundo', 'tercer', 'cuarto', 'quinto'];
-                            return `Cada mes el ${weekNames[week - 1]} ${dayOfWeek}`;
-                          })() : '?'}
-                        </SelectItem>
+                        <SelectItem value="day-of-month">{monthlyPatternLabels.dayOfMonth}</SelectItem>
+                        <SelectItem value="day-of-week">{monthlyPatternLabels.dayOfWeek}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

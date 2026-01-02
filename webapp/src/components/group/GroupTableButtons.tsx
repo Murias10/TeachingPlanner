@@ -155,7 +155,7 @@ export function GroupTableButtons({ subject, onDeleteGroup }: Readonly<Props>) {
                 {t("table.groups.actions.select.groups")}<ChevronsRight />
             </Button>
 
-            <Sheet open={open} onOpenChange={setOpen}>
+            <Sheet open={open} onOpenChange={setOpen} modal={true}>
                 <SheetContent className="flex flex-col w-full sm:max-w-2xl p-0">
                     <SheetHeader className="px-4 pt-4 pb-3 space-y-1">
                         <SheetTitle className="text-base font-semibold flex items-center gap-2">

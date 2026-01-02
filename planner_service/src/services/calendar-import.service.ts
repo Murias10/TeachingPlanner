@@ -7,6 +7,52 @@ import { Calendar } from '@/entities/calendar.entity';
 import { Day } from '@/entities/day.entity';
 import { PeriodicEvent } from '@/entities/periodic_event.entity';
 import { PuntualEvent } from '@/entities/puntual_event.entity';
+import { EVENT_CHARACTERS, findAvailableCharacter } from '@/constants/event-characters.constants';
+import { esSemanaPar, calcularNumeroSemanaDesdeInicio } from '@/utils/calendar-week.utils';
+
+/**
+ * Interface for P/I conflict detection results
+ */
+interface ConflictDetectionResult {
+  hasConflict: boolean;
+  conflictType: 'none' | 'P_only' | 'I_only' | 'both_PI' | 'irregular';
+  conflicts: Array<{
+    character: 'P' | 'I';
+    expectedCharacter: 'P' | 'I' | 'F';
+    affectedDays: Array<{
+      date: Date;
+      actualCharacter: string;
+      expectedCharacter: string;
+      weekNumber: number;
+    }>;
+  }>;
+  statistics: {
+    totalDays: number;
+    lectiveDays: number;
+    daysWithP: number;
+    daysWithI: number;
+    expectedPDays: number;
+    expectedIDays: number;
+    conflictingDays: number;
+  };
+  recommendation: string;
+}
+
+/**
+ * Interface for character substitution results
+ */
+interface SubstitutionResult {
+  performed: boolean;
+  substitutions: Array<{
+    oldCharacter: string;
+    newCharacter: string;
+    reason: string;
+    daysUpdated: number;
+    eventsUpdated: number;
+  }>;
+  updatedCharactersInUse: string;
+  summary: string;
+}
 
 /**
  * Service for handling calendar file imports
@@ -441,6 +487,33 @@ export class CalendarImportService {
       }
     }
 
+    // Update CHARACTERS_IN_USE after all days have been processed
+    // Get all dayCharacter values (which can be multi-character strings)
+    const dayCharacters = await dayRepo
+      .createQueryBuilder('day')
+      .select('day.dayCharacter', 'character')
+      .where('day.calendar = :calendarId', { calendarId: calendar.id })
+      .andWhere('day.dayCharacter IS NOT NULL')
+      .andWhere('day.dayCharacter != :empty', { empty: '' })
+      .getRawMany();
+
+    // Extract individual characters from all dayCharacter strings and remove duplicates
+    const allCharactersSet = new Set<string>();
+    dayCharacters.forEach(row => {
+      const charString = row.character as string;
+      // Split the string into individual characters
+      for (const char of charString) {
+        allCharactersSet.add(char);
+      }
+    });
+
+    // Sort characters alphabetically (case-sensitive: uppercase first, then lowercase)
+    const charactersInUse = Array.from(allCharactersSet).sort().join('');
+    calendar.charactersInUse = charactersInUse;
+    await calendarRepo.save(calendar);
+
+    console.log(`[CALENDARIO] Characters in use updated: "${charactersInUse}"`);
+
     return {
       processed: true,
       calendarId: calendar.id,
@@ -452,6 +525,260 @@ export class CalendarImportService {
       errorCount: errors.length,
       days: processedDays,
       errors
+    };
+  }
+
+  /**
+   * Detects P/I character conflicts between imported TXT and our week parity system
+   * @param calendar - The calendar entity with start date
+   * @param days - All days from calendario.txt import
+   * @returns ConflictDetectionResult with analysis and recommendations
+   */
+  private static detectPIConflicts(calendar: Calendar, days: Day[]): ConflictDetectionResult {
+    const pConflicts: Array<{
+      date: Date;
+      actualCharacter: string;
+      expectedCharacter: string;
+      weekNumber: number;
+    }> = [];
+
+    const iConflicts: Array<{
+      date: Date;
+      actualCharacter: string;
+      expectedCharacter: string;
+      weekNumber: number;
+    }> = [];
+
+    let totalDays = 0;
+    let lectiveDays = 0;
+    let daysWithP = 0;
+    let daysWithI = 0;
+    let expectedPDays = 0;
+    let expectedIDays = 0;
+
+    // Analyze each day
+    for (const day of days) {
+      totalDays++;
+
+      if (!day.lective) {
+        // Non-lective days should always be 'F'
+        if (day.dayCharacter === EVENT_CHARACTERS.PAR || day.dayCharacter === EVENT_CHARACTERS.IMPAR) {
+          console.warn(`[P/I Detection] Non-lective day ${day.date} has character '${day.dayCharacter}'`);
+        }
+        continue;
+      }
+
+      lectiveDays++;
+
+      // Calculate expected character based on week parity
+      const isPar = esSemanaPar(day.date, calendar.start);
+      const expectedChar = isPar ? EVENT_CHARACTERS.PAR : EVENT_CHARACTERS.IMPAR;
+      const weekNumber = calcularNumeroSemanaDesdeInicio(day.date, calendar.start);
+
+      // Track expected counts
+      if (expectedChar === EVENT_CHARACTERS.PAR) {
+        expectedPDays++;
+      }
+      if (expectedChar === EVENT_CHARACTERS.IMPAR) {
+        expectedIDays++;
+      }
+
+      // Track actual counts
+      if (day.dayCharacter === EVENT_CHARACTERS.PAR) {
+        daysWithP++;
+      }
+      if (day.dayCharacter === EVENT_CHARACTERS.IMPAR) {
+        daysWithI++;
+      }
+
+      // Detect conflicts
+      if (day.dayCharacter === EVENT_CHARACTERS.PAR && expectedChar !== EVENT_CHARACTERS.PAR) {
+        pConflicts.push({
+          date: day.date,
+          actualCharacter: day.dayCharacter,
+          expectedCharacter: expectedChar,
+          weekNumber
+        });
+      }
+
+      if (day.dayCharacter === EVENT_CHARACTERS.IMPAR && expectedChar !== EVENT_CHARACTERS.IMPAR) {
+        iConflicts.push({
+          date: day.date,
+          actualCharacter: day.dayCharacter,
+          expectedCharacter: expectedChar,
+          weekNumber
+        });
+      }
+    }
+
+    // Determine conflict type
+    let conflictType: 'none' | 'P_only' | 'I_only' | 'both_PI' | 'irregular' = 'none';
+    let hasConflict = false;
+
+    if (pConflicts.length > 0 || iConflicts.length > 0) {
+      hasConflict = true;
+
+      if (pConflicts.length > 0 && iConflicts.length > 0) {
+        conflictType = 'both_PI';
+      } else if (pConflicts.length > 0) {
+        conflictType = 'P_only';
+      } else {
+        conflictType = 'I_only';
+      }
+
+      // Check for irregular patterns (not a clean biweekly split)
+      // If total conflicts is not close to half of lective days, it's irregular
+      const totalConflicts = pConflicts.length + iConflicts.length;
+      const expectedConflicts = Math.floor(lectiveDays / 2);
+
+      if (Math.abs(totalConflicts - expectedConflicts) > lectiveDays * 0.2) {
+        conflictType = 'irregular';
+      }
+    }
+
+    // Generate recommendation
+    let recommendation = '';
+    if (!hasConflict) {
+      recommendation = 'No P/I conflicts detected. Imported calendar uses standard week parity.';
+    } else if (conflictType === 'irregular') {
+      recommendation = `IRREGULAR PATTERN: P/I characters do not follow a biweekly pattern. Manual review required. Found ${pConflicts.length + iConflicts.length} conflicts across ${lectiveDays} lective days.`;
+    } else if (conflictType === 'both_PI') {
+      recommendation = `FULL CONFLICT: Both P and I characters conflict with expected week parity. P conflicts: ${pConflicts.length}, I conflicts: ${iConflicts.length}. Substitution recommended for both characters.`;
+    } else if (conflictType === 'P_only') {
+      recommendation = `PARTIAL CONFLICT: P character conflicts with expected pattern (${pConflicts.length} days affected). I character is not used or matches. Substitution recommended for P.`;
+    } else {
+      recommendation = `PARTIAL CONFLICT: I character conflicts with expected pattern (${iConflicts.length} days affected). P character is not used or matches. Substitution recommended for I.`;
+    }
+
+    return {
+      hasConflict,
+      conflictType,
+      conflicts: [
+        ...(pConflicts.length > 0 ? [{
+          character: EVENT_CHARACTERS.PAR,
+          expectedCharacter: EVENT_CHARACTERS.IMPAR,
+          affectedDays: pConflicts
+        }] : []),
+        ...(iConflicts.length > 0 ? [{
+          character: EVENT_CHARACTERS.IMPAR,
+          expectedCharacter: EVENT_CHARACTERS.PAR,
+          affectedDays: iConflicts
+        }] : [])
+      ],
+      statistics: {
+        totalDays,
+        lectiveDays,
+        daysWithP,
+        daysWithI,
+        expectedPDays,
+        expectedIDays,
+        conflictingDays: pConflicts.length + iConflicts.length
+      },
+      recommendation
+    };
+  }
+
+  /**
+   * Performs character substitution for conflicting P/I characters
+   * @param calendar - The calendar entity to update
+   * @param conflictDetection - The conflict detection results
+   * @param days - All days that may need character updates
+   * @returns SubstitutionResult with details of performed substitutions
+   */
+  private static async performCharacterSubstitution(
+    calendar: Calendar,
+    conflictDetection: ConflictDetectionResult,
+    days: Day[]
+  ): Promise<SubstitutionResult> {
+    const dayRepo = AppDataSource.getRepository(Day);
+    const calendarRepo = AppDataSource.getRepository(Calendar);
+    const substitutions: Array<{
+      oldCharacter: string;
+      newCharacter: string;
+      reason: string;
+      daysUpdated: number;
+      eventsUpdated: number;
+    }> = [];
+
+    // If no conflicts or irregular pattern, skip substitution
+    if (!conflictDetection.hasConflict || conflictDetection.conflictType === 'irregular') {
+      return {
+        performed: false,
+        substitutions: [],
+        updatedCharactersInUse: calendar.charactersInUse,
+        summary: conflictDetection.conflictType === 'irregular'
+          ? 'Substitution skipped: Irregular pattern detected. Manual review required.'
+          : 'No substitution needed: No P/I conflicts detected.'
+      };
+    }
+
+    // Build substitution map
+    const substitutionMap = new Map<string, string>();
+    let currentCharactersInUse = calendar.charactersInUse;
+
+    for (const conflict of conflictDetection.conflicts) {
+      const oldChar = conflict.character;
+
+      try {
+        // Find available character
+        const newChar = findAvailableCharacter(currentCharactersInUse);
+        substitutionMap.set(oldChar, newChar);
+
+        // Add new character to charactersInUse (remove old one and add new one)
+        currentCharactersInUse = currentCharactersInUse.replace(oldChar, '') + newChar;
+
+        console.log(`[Character Substitution] Will substitute '${oldChar}' → '${newChar}'`);
+      } catch (error) {
+        // Character limit exceeded
+        throw new Error(`Cannot perform substitution: ${(error as Error).message}`);
+      }
+    }
+
+    // Perform substitutions in database
+    for (const [oldChar, newChar] of substitutionMap.entries()) {
+      let daysUpdated = 0;
+      let reason = '';
+
+      // Find the conflict details for this character
+      const conflictDetail = conflictDetection.conflicts.find(c => c.character === oldChar);
+      if (conflictDetail) {
+        reason = `Character '${oldChar}' conflicts with expected week parity pattern (${conflictDetail.affectedDays.length} days affected)`;
+      }
+
+      // Update all days with this character
+      const daysToUpdate = days.filter(day => day.dayCharacter === oldChar);
+      for (const day of daysToUpdate) {
+        day.dayCharacter = newChar;
+        await dayRepo.save(day);
+        daysUpdated++;
+      }
+
+      substitutions.push({
+        oldCharacter: oldChar,
+        newCharacter: newChar,
+        reason,
+        daysUpdated,
+        eventsUpdated: 0 // Events will be created later with correct character
+      });
+
+      console.log(`[Character Substitution] Updated ${daysUpdated} days: '${oldChar}' → '${newChar}'`);
+    }
+
+    // Update calendar's charactersInUse
+    calendar.charactersInUse = currentCharactersInUse;
+    await calendarRepo.save(calendar);
+
+    // Generate summary
+    const totalDaysUpdated = substitutions.reduce((sum, s) => sum + s.daysUpdated, 0);
+    const summary = `Successfully substituted ${substitutions.length} character(s): ${substitutions.map(s => `'${s.oldCharacter}'→'${s.newCharacter}'`).join(', ')}. Total days updated: ${totalDaysUpdated}.`;
+
+    console.log(`[Character Substitution] ${summary}`);
+
+    return {
+      performed: true,
+      substitutions,
+      updatedCharactersInUse: currentCharactersInUse,
+      summary
     };
   }
 
@@ -479,6 +806,43 @@ export class CalendarImportService {
         events: [],
         errors: ['Calendar not found. Please process calendario.txt first.']
       };
+    }
+
+    // Detect P/I conflicts before processing events
+    const dayRepo = AppDataSource.getRepository(Day);
+    const allDays = await dayRepo.find({
+      where: { calendar: { id: calendar.id } },
+      order: { date: 'ASC' }
+    });
+
+    const conflictDetection = this.detectPIConflicts(calendar, allDays);
+
+    const conflictReport = {
+      detected: conflictDetection.hasConflict,
+      type: conflictDetection.conflictType,
+      summary: conflictDetection.recommendation,
+      details: conflictDetection.conflicts,
+      statistics: conflictDetection.statistics
+    };
+
+    console.log('[P/I Conflict Detection] Analysis complete:', {
+      hasConflict: conflictReport.detected,
+      type: conflictReport.type
+    });
+
+    if (conflictReport.detected) {
+      console.warn('[P/I Conflict Detection] CONFLICTS DETECTED:', conflictReport);
+    }
+
+    // Perform character substitution if conflicts detected
+    const substitutionResult = await this.performCharacterSubstitution(
+      calendar,
+      conflictDetection,
+      allDays
+    );
+
+    if (substitutionResult.performed) {
+      console.log('[Character Substitution] Substitution performed:', substitutionResult.summary);
     }
 
     // First pass: Parse all lines and validate planified hours consistency per group
@@ -726,7 +1090,9 @@ export class CalendarImportService {
       processedCount: processedEvents.length,
       errorCount: errors.length,
       events: processedEvents,
-      errors
+      errors,
+      piConflictDetection: conflictReport,
+      piSubstitution: substitutionResult
     };
   }
 
@@ -790,19 +1156,7 @@ export class CalendarImportService {
           language = 'ES';
         }
 
-        const cancelled = startTimeStr === '-1';
-        let startTime: string, endTime: string;
-
-        if (cancelled) {
-          const normalizeTime = (time: string) => time.replace('.', ':');
-          startTime = normalizeTime(endTimeStr);
-          endTime = '00:00';
-        } else {
-          const normalizeTime = (time: string) => time.replace('.', ':');
-          startTime = normalizeTime(startTimeStr);
-          endTime = normalizeTime(endTimeStr);
-        }
-
+        // Obtener entidades necesarias ANTES de procesar cancelaciones
         const dayEntity = await dayRepo.findOne({ where: { calendar: { id: calendar.id }, date } });
         if (!dayEntity) continue;
 
@@ -813,6 +1167,94 @@ export class CalendarImportService {
         if (!group) {
           group = groupRepo.create({ number: groupNumber, type: groupType, language, subject });
           await groupRepo.save(group);
+        }
+
+        // Procesar hora de inicio y fin
+        const cancelled = startTimeStr === '-1';
+        let startTime: string, endTime: string;
+
+        // Debug log
+        if (cancelled) {
+          console.log(`[EXCEPCIONES DEBUG] Evento cancelado detectado: ${dateStr} - ${subjectAcronym}.${groupType}.${groupInfo} - startTimeStr="${startTimeStr}" endTimeStr="${endTimeStr}"`);
+        }
+
+        if (cancelled) {
+          // Para eventos cancelados, endTimeStr contiene la hora de FIN del evento original
+          // Necesitamos obtener la hora de INICIO para que la cancelación funcione correctamente
+          const normalizeTime = (time: string) => time.replace('.', ':');
+          const endTimeNormalized = normalizeTime(endTimeStr);
+
+          // Obtener día de la semana (L, M, X, J, V)
+          const dayOfWeek = this.getDayLetterFromDate(date);
+
+          console.log(`[EXCEPCIONES DEBUG] Buscando evento para cancelar: día=${dayOfWeek}, grupo=${group.id}, endTime=${endTimeNormalized}`);
+
+          // CASO 1: Buscar evento puntual existente en esa fecha exacta (prioridad)
+          // Esto cubre el caso de querer cancelar un evento puntual de reemplazo
+          const periodicEventRepo = AppDataSource.getRepository(PeriodicEvent);
+          const existingPuntualEvent = await puntualEventRepo
+            .createQueryBuilder('event')
+            .leftJoinAndSelect('event.groups', 'group')
+            .leftJoinAndSelect('event.day', 'day')
+            .leftJoin('day.calendar', 'calendar')
+            .where('calendar.id = :calendarId', { calendarId: calendar.id })
+            .andWhere('day.date = :date', { date })
+            .andWhere('group.id = :groupId', { groupId: group.id })
+            .andWhere('event.endTime = :endTime', { endTime: endTimeNormalized })
+            .andWhere('event.cancelled = :cancelled', { cancelled: false })
+            .getOne();
+
+          if (existingPuntualEvent) {
+            // Encontramos un evento puntual con la misma hora de fin
+            // Normalizar startTime para remover segundos (ej: "18:00:00" -> "18:00")
+            const normalizeTimeForComparison = (time: string) => time.substring(0, 5);
+            startTime = normalizeTimeForComparison(existingPuntualEvent.startTime);
+            endTime = endTimeNormalized;
+            console.log(`[EXCEPCIONES DEBUG] Encontrado evento puntual: startTime=${startTime}, endTime=${endTime}`);
+          } else {
+            // CASO 2: Buscar evento periódico que coincida con este grupo en este día de la semana
+            const periodicEvents = await periodicEventRepo.find({
+              where: {
+                calendar: { id: calendar.id },
+                weekDay: dayOfWeek
+              },
+              relations: ['groups']
+            });
+
+            console.log(`[EXCEPCIONES DEBUG] Eventos periódicos encontrados para día ${dayOfWeek}:`, periodicEvents.map(pe => ({
+              id: pe.id,
+              startTime: pe.startTime,
+              endTime: pe.endTime,
+              grupos: pe.groups.map(g => g.id)
+            })));
+
+            // Encontrar el evento periódico que pertenece a este grupo y termina a esta hora
+            // Normalizar ambas horas para comparación (remover segundos si existen)
+            const normalizeTimeForComparison = (time: string) => time.substring(0, 5); // "18:00:00" -> "18:00"
+            const matchingPeriodicEvent = periodicEvents.find(pe =>
+              pe.groups.some(g => g.id === group.id) &&
+              normalizeTimeForComparison(pe.endTime) === endTimeNormalized
+            );
+
+            if (matchingPeriodicEvent) {
+              // Encontramos el evento periódico - usar su startTime (también normalizado)
+              startTime = normalizeTimeForComparison(matchingPeriodicEvent.startTime);
+              endTime = endTimeNormalized;
+              console.log(`[EXCEPCIONES DEBUG] Encontrado evento periódico: startTime=${startTime}, endTime=${endTime}`);
+            } else {
+              // CASO 3: Fallback - asumir duración de 1 hora
+              const [hours, mins] = endTimeNormalized.split(':').map(Number);
+              const startHour = hours - 1;
+              startTime = `${String(startHour).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+              endTime = endTimeNormalized;
+
+              console.warn(`[EXCEPCIONES] No se encontró evento periódico ni puntual para ${subjectAcronym}.${groupType}.${groupInfo} en ${dateStr}. Asumiendo duración de 1 hora: ${startTime} - ${endTime}`);
+            }
+          }
+        } else {
+          const normalizeTime = (time: string) => time.replace('.', ':');
+          startTime = normalizeTime(startTimeStr);
+          endTime = normalizeTime(endTimeStr);
         }
 
         let classroom = await classroomRepo.findOne({ where: { code: classroomCode } });
@@ -849,6 +1291,7 @@ export class CalendarImportService {
             processedEvents.push({ date: dateStr, subject: subjectAcronym, action: 'skipped', line: i + 1 });
           }
         } else {
+          console.log(`[EXCEPCIONES DEBUG] Creando nuevo evento - cancelled=${cancelled}, startTime=${startTime}, endTime=${endTime}`);
           const puntualEvent = puntualEventRepo.create({ day: dayEntity, startTime, endTime, cancelled, comment, groups: [group], classrooms: [classroom], createdBy: userEmail });
           await puntualEventRepo.save(puntualEvent);
           processedEvents.push({ date: dateStr, subject: subjectAcronym, action: 'created', line: i + 1 });
@@ -866,5 +1309,24 @@ export class CalendarImportService {
       events: processedEvents,
       errors
     };
+  }
+
+  /**
+   * Obtiene la letra del día de la semana (L, M, X, J, V) a partir de una fecha
+   * @param date Fecha
+   * @returns 'L' | 'M' | 'X' | 'J' | 'V' | '' (vacío para sábado/domingo)
+   */
+  private static getDayLetterFromDate(date: Date): string {
+    const dayOfWeek = date.getDay(); // 0=Domingo, 1=Lunes, ..., 6=Sábado
+
+    const dayMap: Record<number, string> = {
+      1: 'L', // Lunes
+      2: 'M', // Martes
+      3: 'X', // Miércoles
+      4: 'J', // Jueves
+      5: 'V'  // Viernes
+    };
+
+    return dayMap[dayOfWeek] || '';
   }
 }

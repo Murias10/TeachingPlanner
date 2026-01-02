@@ -34,10 +34,15 @@ interface CreateCourseDrawerProps {
 
 const generateYearOptions = (): string[] => {
     const currentYear = new Date().getFullYear();
-    return Array.from({ length: 100 }, (_, i) => {
+    const years: string[] = [];
+
+    // Generar 10 años anteriores y 10 años siguientes (21 años en total)
+    for (let i = -10; i <= 10; i++) {
         const start = currentYear + i;
-        return `${start}-${start + 1}`;
-    });
+        years.push(`${start}-${start + 1}`);
+    }
+
+    return years;
 };
 
 export const CreateCourseDrawer = ({

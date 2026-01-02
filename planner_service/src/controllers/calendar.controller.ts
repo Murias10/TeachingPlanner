@@ -21,6 +21,8 @@ import { CalendarFormattingService } from '@/services/calendar-formatting.servic
 import { CalendarRepositoryService } from '@/services/calendar-repository.service';
 import { CalendarImportService } from '@/services/calendar-import.service';
 import { CalendarEventsService } from '@/services/calendar-events.service';
+import { EVENT_CHARACTERS, DAY_CHARACTERS, AVAILABLE_CHARACTERS, MAX_EVENT_TYPES } from '@/constants/event-characters.constants';
+import { esSemanaPar } from '@/utils/calendar-week.utils';
 
 export const getCalendars = async (_req: AuditedRequest, res: Response) => {
     try {
@@ -123,9 +125,9 @@ export const createCalendar = async (req: AuditedRequest, res: Response) => {
         const parts = dateString.split(/[-T]/);
         if (parts.length >= 3) {
             // Crear fecha a mediodía en zona horaria de Madrid para evitar cambios de día
-            const year = parseInt(parts[0]);
-            const month = parseInt(parts[1]) - 1;
-            const day = parseInt(parts[2]);
+            const year = Number.parseInt(parts[0]);
+            const month = Number.parseInt(parts[1]) - 1;
+            const day = Number.parseInt(parts[2]);
             const date = new Date(year, month, day, 12, 0, 0, 0);
             return date;
         }
@@ -174,6 +176,7 @@ export const createCalendar = async (req: AuditedRequest, res: Response) => {
             semester,
             start: startDate,
             end: endDate,
+            charactersInUse: `${EVENT_CHARACTERS.NORMAL}${EVENT_CHARACTERS.PAR}${EVENT_CHARACTERS.IMPAR}`, // Inicializar con N, P, I
             createdBy: userEmail
         });
 
@@ -193,8 +196,10 @@ export const createCalendar = async (req: AuditedRequest, res: Response) => {
 
         // Crear Day records para cada día del calendario
         const days: Day[] = [];
-        const currentDate = new Date(startDate);
-        currentDate.setHours(0, 0, 0, 0);
+        // Crear copias para no modificar las fechas originales
+        const startDateNormalized = new Date(startDate);
+        startDateNormalized.setHours(0, 0, 0, 0);
+        const currentDate = new Date(startDateNormalized);
         const endDateAdjusted = new Date(endDate);
         endDateAdjusted.setHours(0, 0, 0, 0);
 
@@ -208,11 +213,14 @@ export const createCalendar = async (req: AuditedRequest, res: Response) => {
             const isLective = !isWeekend && !isHoliday;
 
             // Determinar el carácter del día
-            let dayCharacter = 'NORMAL';
-            if (isWeekend) {
-                dayCharacter = 'WEEKEND';
-            } else if (isHoliday) {
-                dayCharacter = 'HOLIDAY';
+            let dayCharacter = '';
+            if (isLective) {
+                // Días lectivos: solo P o I según semana par/impar (sin N)
+                const esPar = esSemanaPar(currentDate, startDateNormalized);
+                dayCharacter = esPar ? EVENT_CHARACTERS.PAR : EVENT_CHARACTERS.IMPAR;
+            } else {
+                // Fines de semana y festivos usan 'F'
+                dayCharacter = DAY_CHARACTERS.NON_LECTIVE;
             }
 
             const day = dayRepo.create({
@@ -235,8 +243,9 @@ export const createCalendar = async (req: AuditedRequest, res: Response) => {
 
         console.log(`[Calendar Creation] Created ${days.length} days for calendar ${savedCalendar.id}`);
         console.log(`[Calendar Creation] Lective days: ${days.filter(d => d.lective).length}`);
-        console.log(`[Calendar Creation] Weekend days: ${days.filter(d => d.dayCharacter === 'WEEKEND').length}`);
-        console.log(`[Calendar Creation] Holiday days: ${days.filter(d => d.dayCharacter === 'HOLIDAY').length}`);
+        console.log(`[Calendar Creation] Par weeks (P): ${days.filter(d => d.dayCharacter === EVENT_CHARACTERS.PAR).length}`);
+        console.log(`[Calendar Creation] Impar weeks (I): ${days.filter(d => d.dayCharacter === EVENT_CHARACTERS.IMPAR).length}`);
+        console.log(`[Calendar Creation] Non-lective days (F): ${days.filter(d => d.dayCharacter === DAY_CHARACTERS.NON_LECTIVE).length}`);
 
         res.status(201).json({
             status: "success",
@@ -1480,7 +1489,7 @@ export const updatePuntualEvent = async (req: AuditedRequest, res: Response) => 
 
 export const createPeriodicEvent = async (req: AuditedRequest, res: Response) => {
     try {
-        const { calendarId, weekDay, startTime, endTime, planifiedHours, groupIds = [], classroomIds = [] } = req.body;
+        const { calendarId, weekDay, startTime, endTime, planifiedHours, eventCharacter, groupIds = [], classroomIds = [] } = req.body;
 
         // Validaciones
         if (!calendarId || !weekDay || !startTime || !endTime || !planifiedHours) {
@@ -1511,12 +1520,45 @@ export const createPeriodicEvent = async (req: AuditedRequest, res: Response) =>
             return;
         }
 
+        // Determinar el eventCharacter a usar (del request o por defecto 'N')
+        const finalEventCharacter = eventCharacter || EVENT_CHARACTERS.NORMAL;
+
+        // Validar que el eventCharacter sea válido del pool disponible
+        const allValidCharacters = AVAILABLE_CHARACTERS + EVENT_CHARACTERS.NORMAL + EVENT_CHARACTERS.PAR + EVENT_CHARACTERS.IMPAR;
+        if (!allValidCharacters.includes(finalEventCharacter)) {
+            res.status(400).json({
+                status: 'error',
+                message: `Invalid eventCharacter: '${finalEventCharacter}'. Must be one of the supported characters.`,
+                data: null
+            });
+            return;
+        }
+
+        // Verificar si se ha alcanzado el límite de caracteres
+        if (!calendar.charactersInUse.includes(finalEventCharacter) && calendar.charactersInUse.length >= MAX_EVENT_TYPES) {
+            res.status(400).json({
+                status: 'error',
+                message: `Calendar has reached the maximum limit of ${MAX_EVENT_TYPES} different event types.`,
+                data: null
+            });
+            return;
+        }
+
+        // Si el carácter no está en uso, agregarlo
+        if (!calendar.charactersInUse.includes(finalEventCharacter)) {
+            calendar.charactersInUse += finalEventCharacter;
+            calendar.updatedBy = getUserEmailFromRequest(req);
+            calendar.updatedAt = new Date();
+            await calendarRepo.save(calendar);
+            console.log(`[Periodic Event Create] Added character '${finalEventCharacter}' to calendar charactersInUse: ${calendar.charactersInUse}`);
+        }
+
         // Obtener los grupos con su relación de subject
         const groups = groupIds.length > 0
             ? await groupRepo.find({
                 where: { id: In(groupIds) },
                 relations: ['subject']
-              })
+            })
             : [];
 
         // Obtener las aulas
@@ -1537,7 +1579,7 @@ export const createPeriodicEvent = async (req: AuditedRequest, res: Response) =>
             startTime: startTime,
             endTime: endTime,
             planifiedHours: planifiedHours,
-            eventCharacter: 'N', // Por defecto para eventos creados por profesores
+            eventCharacter: finalEventCharacter,
             year: groupYear,
             groups: groups,
             classrooms: classrooms,
@@ -1594,6 +1636,220 @@ export const createPeriodicEvent = async (req: AuditedRequest, res: Response) =>
 };
 
 /**
+ * Create a custom periodic event with specific affected dates
+ * Updates Days.dayCharacter for each affected date
+ * Creates PeriodicEvent records for each unique weekDay
+ */
+export const createCustomPeriodicEvent = async (req: AuditedRequest, res: Response) => {
+    try {
+        const {
+            calendarId,
+            affectedDates, // Array de fechas YYYY-MM-DD
+            startTime,
+            endTime,
+            planifiedHours,
+            eventCharacter,
+            groupIds = [],
+            classroomIds = []
+        } = req.body;
+
+        // Validaciones
+        if (!calendarId || !affectedDates || !Array.isArray(affectedDates) || affectedDates.length === 0) {
+            res.status(400).json({
+                status: 'error',
+                message: 'Missing required fields: calendarId, affectedDates (must be non-empty array)',
+                data: null
+            });
+            return;
+        }
+
+        if (!startTime || !endTime || !planifiedHours) {
+            res.status(400).json({
+                status: 'error',
+                message: 'Missing required fields: startTime, endTime, planifiedHours',
+                data: null
+            });
+            return;
+        }
+
+        const calendarRepo = AppDataSource.getRepository(Calendar);
+        const dayRepo = AppDataSource.getRepository(Day);
+        const periodicEventRepo = AppDataSource.getRepository(PeriodicEvent);
+        const groupRepo = AppDataSource.getRepository(Group);
+        const classroomRepo = AppDataSource.getRepository(Classroom);
+
+        // Verificar que el calendario existe
+        const calendar = await calendarRepo.findOne({
+            where: { id: calendarId }
+        });
+
+        if (!calendar) {
+            res.status(404).json({
+                status: 'error',
+                message: 'Calendar not found',
+                data: null
+            });
+            return;
+        }
+
+        // Determinar el eventCharacter a usar
+        const finalEventCharacter = eventCharacter || (await import('@/constants/event-characters.constants').then(m => m.findAvailableCharacter(calendar.charactersInUse)));
+
+        // Validar que el eventCharacter sea válido del pool disponible
+        const allValidCharacters = AVAILABLE_CHARACTERS + EVENT_CHARACTERS.NORMAL + EVENT_CHARACTERS.PAR + EVENT_CHARACTERS.IMPAR;
+        if (!allValidCharacters.includes(finalEventCharacter)) {
+            res.status(400).json({
+                status: 'error',
+                message: `Invalid eventCharacter: '${finalEventCharacter}'. Must be one of the supported characters.`,
+                data: null
+            });
+            return;
+        }
+
+        // Verificar si se ha alcanzado el límite de caracteres
+        if (!calendar.charactersInUse.includes(finalEventCharacter) && calendar.charactersInUse.length >= MAX_EVENT_TYPES) {
+            res.status(400).json({
+                status: 'error',
+                message: `Calendar has reached the maximum limit of ${MAX_EVENT_TYPES} different event types.`,
+                data: null
+            });
+            return;
+        }
+
+        // Si el carácter no está en uso, agregarlo
+        if (!calendar.charactersInUse.includes(finalEventCharacter)) {
+            calendar.charactersInUse += finalEventCharacter;
+            calendar.updatedBy = getUserEmailFromRequest(req);
+            calendar.updatedAt = new Date();
+            await calendarRepo.save(calendar);
+            console.log(`[Custom Periodic Event Create] Added character '${finalEventCharacter}' to calendar charactersInUse: ${calendar.charactersInUse}`);
+        }
+
+        // Actualizar Days.dayCharacter para cada fecha afectada
+        let daysUpdated = 0;
+        const weekDaysSet = new Set<string>();
+
+        for (const dateStr of affectedDates) {
+            const date = new Date(dateStr + 'T00:00:00'); // Medianoche para coincidir con formato de BD
+            const day = await dayRepo.findOne({
+                where: {
+                    date: date,
+                    calendar: { id: calendarId }
+                }
+            });
+
+            if (day && day.lective) {
+                // Agregar el nuevo carácter al dayCharacter existente si no está ya
+                if (!day.dayCharacter.includes(finalEventCharacter)) {
+                    day.dayCharacter += finalEventCharacter;
+                    day.updatedBy = getUserEmailFromRequest(req);
+                    day.updatedAt = new Date();
+                    await dayRepo.save(day);
+                    daysUpdated++;
+                }
+
+                // Registrar el día de la semana
+                const dayOfWeek = date.getDay();
+                const weekDayLetter = ['D', 'L', 'M', 'X', 'J', 'V', 'S'][dayOfWeek];
+                weekDaysSet.add(weekDayLetter);
+            }
+        }
+
+        console.log(`[Custom Periodic Event Create] Updated ${daysUpdated} days with character '${finalEventCharacter}'`);
+
+        // Obtener los grupos con su relación de subject
+        const groups = groupIds.length > 0
+            ? await groupRepo.find({
+                where: { id: In(groupIds) },
+                relations: ['subject']
+            })
+            : [];
+
+        // Obtener las aulas
+        const classrooms = classroomIds.length > 0
+            ? await classroomRepo.find({ where: { id: In(classroomIds) } })
+            : [];
+
+        // Obtener usuario autenticado
+        const userEmail = getUserEmailFromRequest(req);
+
+        // Obtener el año del primer grupo
+        const groupYear = groups.length > 0 && groups[0].subject ? groups[0].subject.year : new Date(calendar.start).getFullYear();
+
+        // Crear PeriodicEvent para cada día de la semana único
+        const createdEvents = [];
+        for (const weekDay of Array.from(weekDaysSet)) {
+            const periodicEvent = periodicEventRepo.create({
+                calendar: calendar,
+                weekDay: weekDay,
+                startTime: startTime,
+                endTime: endTime,
+                planifiedHours: planifiedHours,
+                eventCharacter: finalEventCharacter,
+                year: groupYear,
+                groups: groups,
+                classrooms: classrooms,
+                createdBy: userEmail
+            });
+
+            const savedEvent = await periodicEventRepo.save(periodicEvent);
+            createdEvents.push(savedEvent);
+        }
+
+        console.log(`[Custom Periodic Event Create] Created ${createdEvents.length} periodic event(s) for weekDays: ${Array.from(weekDaysSet).join(', ')}`);
+
+        // Update Group.planifiedHours for all groups in this event
+        for (const group of groups) {
+            if (group.planifiedHours !== planifiedHours) {
+                group.planifiedHours = planifiedHours;
+                group.updatedBy = userEmail;
+                group.updatedAt = new Date();
+                await groupRepo.save(group);
+                console.log(`[Custom Periodic Event Create] Updated planified hours to ${planifiedHours} for group ${group.type}-${group.number}`);
+
+                // Update ALL PeriodicEvents associated with this group
+                const allPeriodicEventsForGroup = await periodicEventRepo
+                    .createQueryBuilder('event')
+                    .leftJoinAndSelect('event.groups', 'group')
+                    .where('group.id = :groupId', { groupId: group.id })
+                    .getMany();
+
+                for (const event of allPeriodicEventsForGroup) {
+                    if (event.planifiedHours !== planifiedHours) {
+                        event.planifiedHours = planifiedHours;
+                        event.updatedBy = userEmail;
+                        event.updatedAt = new Date();
+                        await periodicEventRepo.save(event);
+                    }
+                }
+
+                console.log(`[Custom Periodic Event Create] Updated ${allPeriodicEventsForGroup.length} periodic events for group ${group.type}-${group.number}`);
+            }
+        }
+
+        res.status(201).json({
+            status: 'success',
+            message: 'Custom periodic events created successfully',
+            data: {
+                events: createdEvents,
+                eventCharacter: finalEventCharacter,
+                affectedDatesCount: affectedDates.length,
+                daysUpdated: daysUpdated,
+                weekDays: Array.from(weekDaysSet)
+            }
+        });
+
+    } catch (error) {
+        console.error('Error creating custom periodic event:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error creating custom periodic event',
+            data: error instanceof Error ? error.message : error
+        });
+    }
+};
+
+/**
  * Update a periodic event
  * Only updates the base PeriodicEvent record
  * Does not validate future conflicts or modify existing PuntualEvents
@@ -1602,7 +1858,7 @@ export const createPeriodicEvent = async (req: AuditedRequest, res: Response) =>
 export const updatePeriodicEvent = async (req: AuditedRequest, res: Response) => {
     try {
         const { eventId } = req.params;
-        const { startTime, endTime, classroomIds = [], planifiedHours } = req.body;
+        const { startTime, endTime, classroomIds = [], planifiedHours, weekDay } = req.body;
 
         // Validaciones
         if (!eventId) {
@@ -1654,6 +1910,9 @@ export const updatePeriodicEvent = async (req: AuditedRequest, res: Response) =>
         periodicEvent.startTime = startTime;
         periodicEvent.endTime = endTime;
         periodicEvent.classrooms = classrooms;
+        if (weekDay !== undefined && weekDay !== null) {
+            periodicEvent.weekDay = weekDay;
+        }
         periodicEvent.updatedBy = userEmail;
         periodicEvent.updatedAt = new Date();
 

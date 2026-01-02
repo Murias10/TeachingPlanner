@@ -15,7 +15,7 @@ import {
     DropdownMenuLabel,
     DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal, Trash2, ChevronsRight, Plus } from "lucide-react"
+import { MoreHorizontal, Trash2, ChevronsRight, Plus, Users } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
 type Props = {
@@ -34,6 +34,10 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
 
     const goToCalendar = (semester: number) => {
         navigate(`${course.startYear}/${course.endYear}/semester/${semester}/calendar`)
+    }
+
+    const goToManageGroups = (semester: number) => {
+        navigate(`${course.startYear}/${course.endYear}/semester/${semester}/calendar/groups`)
     }
 
     // Funciones auxiliares para encontrar calendarios por semestre
@@ -64,6 +68,21 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
                         </TooltipContent>
                     </Tooltip>
                     <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="size-10"
+                                    onClick={() => goToManageGroups(1)}
+                                >
+                                    <Users />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Gestionar grupos</p>
+                            </TooltipContent>
+                        </Tooltip>
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button
@@ -121,6 +140,21 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
                         </TooltipContent>
                     </Tooltip>
                     <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="size-10"
+                                    onClick={() => goToManageGroups(2)}
+                                >
+                                    <Users />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Gestionar grupos</p>
+                            </TooltipContent>
+                        </Tooltip>
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button

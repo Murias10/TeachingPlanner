@@ -26,9 +26,13 @@ import { ReplaceEventConfirmationDialog } from "@/components/calendar/ReplaceEve
 import ReplaceEventDialog from "@/components/calendar/ReplaceEventDialog";
 import { useCreatePuntualEvent } from "@/hooks/calendar/useCreatePuntualEvent";
 import { useCreatePeriodicEvent } from "@/hooks/calendar/useCreatePeriodicEvent";
+import { useCreateCustomPeriodicEvent } from "@/hooks/calendar/useCreateCustomPeriodicEvent";
 import { useUpdatePuntualEvent } from "@/hooks/calendar/useUpdatePuntualEvent";
 import { useUpdatePeriodicEvent } from "@/hooks/calendar/useUpdatePeriodicEvent";
 import { useDeletePuntualEvent } from "@/hooks/calendar/useDeletePuntualEvent";
+import { useCalendarById } from "@/hooks/calendar/useCalendarById";
+import { useAvailableCharacter } from "@/hooks/calendar/useAvailableCharacter";
+import { calculateAffectedDates, getAffectedDatesSummary } from "@/utils/customPatternCalculator";
 import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCrearSolicitud } from "@/hooks/event-request/useCrearSolicitud";
@@ -40,6 +44,7 @@ import { generateGoogleCalendarCSV, downloadCSV } from "@/utils/csvExport";
 import { generateGroupId } from "@/utils/groupFormatUtils";
 import { sortAlphabetically, sortGruposByAcronymTypeNumber } from "@/utils/filterSortingUtils";
 import { getAuthHeaders } from "@/utils/authHeaders";
+import { EVENT_CHARACTERS } from "@/constants/eventCharacters";
 
 // Configurar moment para usar español y que la semana empiece en lunes
 moment.locale('es', {
@@ -138,14 +143,6 @@ export default function CalendarPage() {
     const navigate = useNavigate();
     const { triggerAlert } = useFloatingAlertContext();
     const { user } = useAuth();
-    const { mutate: createPuntualEvent } = useCreatePuntualEvent();
-    const { mutate: createPeriodicEvent } = useCreatePeriodicEvent();
-    const { mutate: updatePuntualEvent } = useUpdatePuntualEvent();
-    const { mutate: updatePeriodicEvent } = useUpdatePeriodicEvent();
-    const { deletePuntualEvent, isDeleting: isDeletingEvent } = useDeletePuntualEvent();
-    const crearSolicitud = useCrearSolicitud();
-    const deleteRequest = useDeleteRequest();
-    const isAdmin = user?.role === 'ADMIN';
 
     // Extraer el acrónimo de la URL
     const { acronym, startYear, endYear, semester } = useParams<{ acronym: string, startYear: string, endYear: string, semester: string }>()
@@ -158,6 +155,19 @@ export default function CalendarPage() {
         endYear || null,
         semester || null
     );
+
+    // Hooks que dependen de calendarId
+    const { mutate: createPuntualEvent } = useCreatePuntualEvent();
+    const { mutate: createPeriodicEvent } = useCreatePeriodicEvent();
+    const { mutate: createCustomPeriodicEvent } = useCreateCustomPeriodicEvent();
+    const { mutate: updatePuntualEvent } = useUpdatePuntualEvent();
+    const { mutate: updatePeriodicEvent } = useUpdatePeriodicEvent();
+    const { deletePuntualEvent, isDeleting: isDeletingEvent } = useDeletePuntualEvent();
+    const { data: calendarDetails } = useCalendarById(calendarId);
+    const { availableCharacter } = useAvailableCharacter(calendarDetails?.charactersInUse);
+    const crearSolicitud = useCrearSolicitud();
+    const deleteRequest = useDeleteRequest();
+    const isAdmin = user?.role === 'ADMIN';
 
     // Obtener eventos de solicitudes pendientes
     const { data: pendingData, isLoading: isLoadingPending, refetch: refetchPendingRequests } = usePendingRequestsAsEvents(calendarId);
@@ -765,8 +775,8 @@ export default function CalendarPage() {
             return;
         }
 
-        // Manejar eventos periódicos semanales
-        if (config.frequency === 'weekly') {
+        // Manejar eventos periódicos semanales, quincenales par e impar
+        if (config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd') {
             if (!config.weekDays || config.weekDays.length === 0) {
                 triggerAlert({
                     title: 'Error',
@@ -785,43 +795,90 @@ export default function CalendarPage() {
                 return;
             }
 
-            createPeriodicEvent(
-                {
-                    calendarId,
-                    weekDay: config.weekDays[0],
-                    startTime: config.startTime,
-                    endTime: config.endTime,
-                    planifiedHours: config.planifiedHours,
-                    groupIds: config.groupIds,
-                    classroomIds: config.classroomIds || []
-                },
-                {
-                    onSuccess: () => {
+            // Crear un evento para cada día de la semana seleccionado
+            let createdCount = 0;
+            let errorCount = 0;
+            const totalDays = config.weekDays.length;
+
+            const createNextEvent = (index: number) => {
+                if (index >= totalDays) {
+                    // Todos los eventos han sido procesados
+                    if (errorCount === 0) {
                         triggerAlert({
                             title: 'Éxito',
-                            description: 'Evento periódico creado correctamente',
+                            description: `${createdCount} evento(s) periódico(s) creado(s) correctamente`,
                             variant: 'success'
                         });
                         setIsCreateEventDialogOpen(false);
                         refetch();
-                    },
-                    onError: (error: Error & { statusCode?: number }) => {
-                        const errorMessage = error.message || 'Error al crear el evento periódico';
-
+                    } else if (createdCount > 0) {
                         triggerAlert({
-                            title: 'Error',
-                            description: errorMessage,
-                            variant: 'destructive'
+                            title: 'Parcialmente completado',
+                            description: `${createdCount} evento(s) creado(s), ${errorCount} error(es)`,
+                            variant: 'default'
                         });
+                        setIsCreateEventDialogOpen(false);
+                        refetch();
                     }
+                    return;
                 }
-            );
+
+                createPeriodicEvent(
+                    {
+                        calendarId,
+                        weekDay: config.weekDays[index],
+                        startTime: config.startTime,
+                        endTime: config.endTime,
+                        planifiedHours: config.planifiedHours,
+                        eventCharacter: config.eventCharacter,
+                        groupIds: config.groupIds,
+                        classroomIds: config.classroomIds || []
+                    },
+                    {
+                        onSuccess: () => {
+                            createdCount++;
+                            createNextEvent(index + 1);
+                        },
+                        onError: (error: Error & { statusCode?: number }) => {
+                            errorCount++;
+                            console.error(`Error creating event for day ${config.weekDays[index]}:`, error);
+
+                            if (index === 0) {
+                                // Si falla el primero, mostrar error y no continuar
+                                const errorMessage = error.message || 'Error al crear el evento periódico';
+                                triggerAlert({
+                                    title: 'Error',
+                                    description: errorMessage,
+                                    variant: 'destructive'
+                                });
+                            } else {
+                                // Si falla uno posterior, continuar con el siguiente
+                                createNextEvent(index + 1);
+                            }
+                        }
+                    }
+                );
+            };
+
+            // Iniciar la creación secuencial de eventos
+            createNextEvent(0);
             return;
         }
 
         // Manejar eventos periódicos con frecuencia personalizada
         if (config.frequency === 'custom') {
+            console.log('[Custom Frequency] Validando configuración:', {
+                customStartDate: config.customStartDate,
+                customFrequencyUnit: config.customFrequencyUnit,
+                interval: config.interval,
+                weekDays: config.weekDays,
+                planifiedHours: config.planifiedHours,
+                calendarDetails,
+                availableCharacter
+            });
+
             if (!config.customStartDate || !config.customFrequencyUnit || config.interval <= 0) {
+                console.log('[Custom Frequency] Error: Campos incompletos');
                 triggerAlert({
                     title: 'Error',
                     description: 'Por favor completa todos los campos de la frecuencia personalizada',
@@ -830,7 +887,9 @@ export default function CalendarPage() {
                 return;
             }
 
+            // Validar weekDays solo para frecuencia semanal
             if (config.customFrequencyUnit === 'week' && (!config.weekDays || config.weekDays.length === 0)) {
+                console.log('[Custom Frequency] Error: No hay días de la semana seleccionados para frecuencia semanal');
                 triggerAlert({
                     title: 'Error',
                     description: 'Por favor selecciona al menos un día de la semana',
@@ -839,24 +898,150 @@ export default function CalendarPage() {
                 return;
             }
 
-            // TODO: Implementar lógica de creación de eventos periódicos con frecuencia personalizada
-            console.log('Creating custom frequency periodic event:', {
-                calendarId,
-                customStartDate: config.customStartDate,
-                customFrequencyUnit: config.customFrequencyUnit,
-                interval: config.interval,
-                weekDays: config.weekDays,
-                startTime: config.startTime,
-                endTime: config.endTime,
-                groupIds: config.groupIds,
-                classroomIds: config.classroomIds
+            if (config.planifiedHours <= 0) {
+                console.log('[Custom Frequency] Error: Horas planificadas inválidas:', config.planifiedHours);
+                triggerAlert({
+                    title: 'Error',
+                    description: 'Por favor especifica las horas planificadas',
+                    variant: 'destructive'
+                });
+                return;
+            }
+
+            // Obtener las fechas del calendario desde course.calendars
+            const currentCalendar = course?.calendars?.find(cal => cal.id === calendarId) as any;
+            console.log('[Custom Frequency] Calendario encontrado:', {
+                currentCalendar,
+                hasStart: !!currentCalendar?.start,
+                hasEnd: !!currentCalendar?.end,
+                start: currentCalendar?.start,
+                end: currentCalendar?.end,
+                allKeys: currentCalendar ? Object.keys(currentCalendar) : []
             });
 
-            triggerAlert({
-                title: 'Funcionalidad en desarrollo',
-                description: 'La creación de eventos con frecuencia personalizada está siendo implementada',
-                variant: 'default'
+            if (!currentCalendar?.start || !currentCalendar?.end) {
+                console.log('[Custom Frequency] Error: Información del calendario no disponible', {
+                    course,
+                    calendarId,
+                    currentCalendar
+                });
+                triggerAlert({
+                    title: 'Error',
+                    description: 'No se pudo obtener la información del calendario',
+                    variant: 'destructive'
+                });
+                return;
+            }
+
+            if (!availableCharacter) {
+                console.log('[Custom Frequency] Error: No hay caracteres disponibles');
+                triggerAlert({
+                    title: 'Límite alcanzado',
+                    description: 'Se ha alcanzado el límite máximo de tipos de eventos para este calendario',
+                    variant: 'destructive'
+                });
+                return;
+            }
+
+            console.log('[Custom Frequency] Todas las validaciones pasaron, calculando fechas afectadas...');
+
+            // Calcular las fechas afectadas
+            let affectedDates: string[];
+            try {
+                const calendarStartDate = new Date(currentCalendar.start);
+                const customStartDate = new Date(config.customStartDate);
+                const calendarEndDate = new Date(currentCalendar.end);
+
+                // Determinar fecha límite según endsType
+                let effectiveEndDate = calendarEndDate;
+                if (config.endsType === 'on' && config.endsOnDate) {
+                    const userEndDate = new Date(config.endsOnDate);
+                    effectiveEndDate = userEndDate < calendarEndDate ? userEndDate : calendarEndDate;
+                }
+
+                affectedDates = calculateAffectedDates({
+                    calendarStart: calendarStartDate,
+                    startDate: customStartDate,
+                    endDate: effectiveEndDate,
+                    interval: config.interval,
+                    unit: config.customFrequencyUnit || 'week',
+                    weekDays: config.weekDays,
+                    endsType: config.endsType,
+                    endsOnDate: config.endsOnDate,
+                    endsAfterOccurrences: config.endsAfterOccurrences,
+                    monthlyPatternType: config.monthlyPatternType
+                });
+
+                if (affectedDates.length === 0) {
+                    triggerAlert({
+                        title: 'Sin fechas',
+                        description: 'No se encontraron fechas que cumplan con el patrón especificado',
+                        variant: 'destructive'
+                    });
+                    return;
+                }
+
+                const summary = getAffectedDatesSummary(affectedDates);
+                console.log('[Custom Pattern] Fechas afectadas:', {
+                    total: summary.totalDates,
+                    primera: summary.firstDate,
+                    última: summary.lastDate,
+                    porDía: summary.datesByWeekDay
+                });
+            } catch (error) {
+                console.error('[Custom Pattern] Error al calcular fechas:', error);
+                triggerAlert({
+                    title: 'Error',
+                    description: error instanceof Error ? error.message : 'Error al calcular las fechas afectadas',
+                    variant: 'destructive'
+                });
+                return;
+            }
+
+            // Crear el evento periódico personalizado
+            console.log('[Custom Frequency] Creando evento con payload:', {
+                calendarId,
+                affectedDates,
+                startTime: config.startTime,
+                endTime: config.endTime,
+                planifiedHours: config.planifiedHours,
+                eventCharacter: availableCharacter,
+                groupIds: config.groupIds,
+                classroomIds: config.classroomIds || []
             });
+
+            createCustomPeriodicEvent(
+                {
+                    calendarId,
+                    affectedDates: affectedDates,
+                    startTime: config.startTime,
+                    endTime: config.endTime,
+                    planifiedHours: config.planifiedHours,
+                    eventCharacter: availableCharacter,
+                    groupIds: config.groupIds,
+                    classroomIds: config.classroomIds || []
+                },
+                {
+                    onSuccess: (data) => {
+                        const summary = getAffectedDatesSummary(affectedDates);
+                        setIsCreateEventDialogOpen(false);
+                        refetch();
+                        triggerAlert({
+                            title: 'Evento personalizado creado',
+                            description: `Se crearon ${data.data.events.length} evento(s) periódico(s) con patrón personalizado (${summary.totalDates} fechas afectadas)`,
+                            variant: 'success'
+                        });
+                    },
+                    onError: (error) => {
+                        const errorMessage = error.message || 'Error al crear el evento periódico personalizado';
+                        triggerAlert({
+                            title: 'Error',
+                            description: errorMessage,
+                            variant: 'destructive'
+                        });
+                    }
+                }
+            );
             return;
         }
 
@@ -878,6 +1063,7 @@ export default function CalendarPage() {
                     eventId: eventToEdit.periodicEventId,
                     startTime: config.startTime,
                     endTime: config.endTime,
+                    weekDay: config.weekDays && config.weekDays.length > 0 ? config.weekDays[0] : undefined,
                     classroomIds: config.classroomIds || [],
                     planifiedHours: config.planifiedHours
                 },
@@ -1131,8 +1317,12 @@ export default function CalendarPage() {
     };
 
     const handleEditSeries = (event: CalendarEvent) => {
-        // Solo permitir editar series de eventos periódicos con eventCharacter === 'N'
-        if (event.type === 'periodic' && event.eventCharacter === 'N') {
+        // Permitir editar series de eventos periódicos con eventCharacter Normal, Par o Impar
+        if (event.type === 'periodic' && (
+            event.eventCharacter === EVENT_CHARACTERS.NORMAL ||
+            event.eventCharacter === EVENT_CHARACTERS.PAR ||
+            event.eventCharacter === EVENT_CHARACTERS.IMPAR
+        )) {
             setEventToEdit(event);
             setIsEditEventDialogOpen(true);
             setIsEventDetailsDrawerOpen(false);
@@ -1372,7 +1562,6 @@ export default function CalendarPage() {
                                 onExport={handleExportCalendar}
                                 onExportCSV={handleExportToCSV}
                                 onCreateEvent={handleCreateEvent}
-                                onManageGroups={() => navigate(`/degrees/${acronym}/courses/${startYear}/${endYear}/semester/${semester}/calendar/groups`)}
                             />
                         )}
                         {isAdmin && (
@@ -1556,6 +1745,7 @@ export default function CalendarPage() {
                 initialStartTime={dragStartTime}
                 initialEndTime={dragEndTime}
                 lectiveDates={lectiveDates}
+                calendarEndDate={data?.endDate}
             />
 
             {/* Edit Event Dialog */}

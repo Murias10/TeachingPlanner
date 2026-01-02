@@ -22,7 +22,7 @@ export function createAppDataSource() {
     database: process.env.PLANNER_DATABASE_DATABASE,
     entities: [Degree, Course, Calendar, Classroom, Subject, Group, Day, PuntualEvent, PeriodicEvent, EventRequest, CalendarSync, GoogleClassroomCalendar],
     synchronize: true,
-    logging: true,
+    logging: false,
   });
 }
 

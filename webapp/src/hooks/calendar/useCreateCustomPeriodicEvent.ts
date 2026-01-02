@@ -3,38 +3,51 @@ import { useRef } from "react";
 import { getAuthHeaders } from '@/utils/authHeaders';
 import VITE_GATEWAY_API_URL from "@/config/api";
 
-export interface CreatePeriodicEventPayload {
+export interface CreateCustomPeriodicEventPayload {
     calendarId: string;
-    weekDay: string; // 'L', 'M', 'X', 'J', 'V'
+    affectedDates: string[]; // Array de fechas YYYY-MM-DD
     startTime: string; // HH:mm format
     endTime: string; // HH:mm format
     planifiedHours: number;
-    eventCharacter?: string; // 'N', 'P', 'I', or custom character
+    eventCharacter: string; // Custom character assigned
     groupIds?: string[];
     classroomIds?: string[];
 }
 
-export interface CreatePeriodicEventResponse {
+export interface CreateCustomPeriodicEventResponse {
     status: 'success' | 'error';
     message: string;
-    data: null;
+    data: {
+        events: Array<{
+            id: string;
+            weekDay: string;
+            startTime: string;
+            endTime: string;
+            planifiedHours: number;
+            eventCharacter: string;
+        }>;
+        eventCharacter: string;
+        affectedDatesCount: number;
+        daysUpdated: number;
+        weekDays: string[];
+    };
 }
 
 interface ApiError extends Error {
     statusCode?: number;
 }
 
-interface CreatePeriodicEventOptions {
-    onSuccess?: (data: CreatePeriodicEventResponse) => void;
+interface CreateCustomPeriodicEventOptions {
+    onSuccess?: (data: CreateCustomPeriodicEventResponse) => void;
     onError?: (error: ApiError) => void;
 }
 
-export function useCreatePeriodicEvent() {
-    const callbacksRef = useRef<CreatePeriodicEventOptions | undefined>(undefined);
+export function useCreateCustomPeriodicEvent() {
+    const callbacksRef = useRef<CreateCustomPeriodicEventOptions | undefined>(undefined);
 
-    const mutation = useMutation<CreatePeriodicEventResponse, ApiError, CreatePeriodicEventPayload>({
-        mutationFn: async (payload: CreatePeriodicEventPayload) => {
-            const res = await fetch(`${VITE_GATEWAY_API_URL}/calendar/periodic-event`, {
+    const mutation = useMutation<CreateCustomPeriodicEventResponse, ApiError, CreateCustomPeriodicEventPayload>({
+        mutationFn: async (payload: CreateCustomPeriodicEventPayload) => {
+            const res = await fetch(`${VITE_GATEWAY_API_URL}/calendar/custom-periodic-event`, {
                 method: 'POST',
                 headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify(payload),
@@ -63,7 +76,7 @@ export function useCreatePeriodicEvent() {
 
     return {
         ...mutation,
-        mutate: (payload: CreatePeriodicEventPayload, options?: CreatePeriodicEventOptions) => {
+        mutate: (payload: CreateCustomPeriodicEventPayload, options?: CreateCustomPeriodicEventOptions) => {
             callbacksRef.current = options;
             mutation.mutate(payload);
         },

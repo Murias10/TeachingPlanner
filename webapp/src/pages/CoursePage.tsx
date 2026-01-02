@@ -15,11 +15,13 @@ import { useEditCourse } from "@/hooks/course/useEditCourse"
 import { useDeleteCalendar } from "@/hooks/calendar/useDeleteCalendar"
 import { useDegreeByAcronym } from "@/hooks/degree/useDegreeByAcronym"
 import { useImportCalendar } from "@/hooks/calendar/useImportCalendar"
+import { useQueryClient } from "@tanstack/react-query"
 import { CreateCourseDrawer } from "@/components/course/CreateCourseDrawer"
 import { EditCourseDrawer, EditCourseFormData } from "@/components/course/EditCourseDrawer"
 import { CreateCalendarDrawer } from "@/components/calendar/CreateCalendarDrawer"
+import SubstitutionReportDialog from "@/components/calendar/SubstitutionReportDialog"
 import { CourseFormData, Course } from "@/types/Course"
-import { CalendarFormData, CalendarDrawerData } from "@/types/Calendar"
+import { CalendarFormData, CalendarDrawerData, PIConflictDetection, PISubstitution } from "@/types/Calendar"
 import { useCoursesByDegreeId } from "@/hooks/course/useCoursesByDegreeId"
 import VITE_GATEWAY_API_URL from "@/config/api"
 import { getAuthHeaders } from "@/utils/authHeaders"
@@ -49,6 +51,7 @@ export default function CoursePage() {
     const { deleteCalendar } = useDeleteCalendar()
     const { importCalendar } = useImportCalendar()
     const { setItems } = useBreadcrumbContext()
+    const queryClient = useQueryClient()
 
     // Obtener degree desde el acrónimo de la URL
     const {
@@ -81,6 +84,11 @@ export default function CoursePage() {
     const [openCalendarDrawer, setOpenCalendarDrawer] = useState(false)
     const [calendarDrawerData, setCalendarDrawerData] = useState<CalendarDrawerData | null>(null)
     const [deleteState, setDeleteState] = useState<DeleteState>({ type: null })
+    const [openSubstitutionDialog, setOpenSubstitutionDialog] = useState(false)
+    const [substitutionData, setSubstitutionData] = useState<{
+        conflictDetection?: PIConflictDetection;
+        substitution?: PISubstitution;
+    }>({});
 
     // Configurar breadcrumb
     useEffect(() => {
@@ -356,8 +364,21 @@ export default function CoursePage() {
                         files: formData.files!,
                     },
                     {
-                        onSuccess: () => {
+                        onSuccess: (data) => {
                             handleCloseCalendarDrawer();
+
+                            // Verificar si hay datos de sustitución para mostrar
+                            const hasConflictData = data?.importResult?.events?.piConflictDetection?.detected ||
+                                                   data?.importResult?.events?.piSubstitution?.performed;
+
+                            if (hasConflictData) {
+                                // Guardar los datos de sustitución y mostrar el diálogo
+                                setSubstitutionData({
+                                    conflictDetection: data?.importResult?.events?.piConflictDetection,
+                                    substitution: data?.importResult?.events?.piSubstitution
+                                });
+                                setOpenSubstitutionDialog(true);
+                            }
 
                             triggerAlert({
                                 title: t("alerts.calendar.success.create.title"),
@@ -367,6 +388,10 @@ export default function CoursePage() {
                                 }),
                                 variant: "success"
                             });
+
+                            // Invalidar cache de calendarios y eventos
+                            queryClient.invalidateQueries({ queryKey: ["calendar"] });
+                            queryClient.invalidateQueries({ queryKey: ["calendar-events"] });
 
                             refetch();
                             resolve();
@@ -411,6 +436,10 @@ export default function CoursePage() {
                     }),
                     variant: "success"
                 });
+
+                // Invalidar cache de calendarios y eventos
+                queryClient.invalidateQueries({ queryKey: ["calendar"] });
+                queryClient.invalidateQueries({ queryKey: ["calendar-events"] });
 
                 refetch();
             } catch (error) {
@@ -575,6 +604,13 @@ export default function CoursePage() {
             />
 
             <DeleteConfirmationDialog {...getDeleteDialogProps()} />
+
+            <SubstitutionReportDialog
+                open={openSubstitutionDialog}
+                onOpenChange={setOpenSubstitutionDialog}
+                conflictDetection={substitutionData.conflictDetection}
+                substitution={substitutionData.substitution}
+            />
         </>
     )
 }

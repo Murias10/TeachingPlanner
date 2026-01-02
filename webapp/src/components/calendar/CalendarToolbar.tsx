@@ -1,19 +1,17 @@
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Download, Plus, FileSpreadsheet, Users } from 'lucide-react';
+import { Download, Plus, FileSpreadsheet } from 'lucide-react';
 
 interface CalendarToolbarProps {
   onExport?: () => void;
   onExportCSV?: () => void;
   onCreateEvent?: () => void;
-  onManageGroups?: () => void;
 }
 
 const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
   onExport,
   onExportCSV,
   onCreateEvent,
-  onManageGroups,
 }) => {
 
   return (
@@ -34,24 +32,6 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
           </TooltipTrigger>
           <TooltipContent>Crear nuevo evento</TooltipContent>
         </Tooltip>
-
-        {/* Manage Groups Button */}
-        {onManageGroups && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onManageGroups}
-                className="h-9 gap-2"
-              >
-                <Users className="w-4 h-4" />
-                <span className="hidden sm:inline text-xs">Gestionar grupos</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Gestionar grupos de asignaturas</TooltipContent>
-          </Tooltip>
-        )}
 
         {/* Export CSV Button */}
         <Tooltip>

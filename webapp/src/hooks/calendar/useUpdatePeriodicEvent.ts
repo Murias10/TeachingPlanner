@@ -7,6 +7,7 @@ export interface UpdatePeriodicEventPayload {
     eventId: string;
     startTime: string; // HH:mm format
     endTime: string; // HH:mm format
+    weekDay?: string; // L, M, X, J, V, S, D
     classroomIds?: string[];
     planifiedHours?: number;
 }

@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/context-menu";
 import { Edit, Trash2, Calendar, XCircle, CheckCircle, Replace, Undo } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { EVENT_CHARACTERS } from "@/constants/eventCharacters";
 
 interface CalendarEventWrapperProps {
   event: {
@@ -233,8 +234,10 @@ export function CalendarEventWrapper({
 
             <ContextMenuSeparator />
 
-            {/* Solo mostrar "Editar serie" para eventos con eventCharacter === 'N' */}
-            {calendarEvent.eventCharacter === 'N' && (
+            {/* Mostrar "Editar serie" para eventos semanales y quincenales (Normal, Par, Impar) */}
+            {(calendarEvent.eventCharacter === EVENT_CHARACTERS.NORMAL ||
+              calendarEvent.eventCharacter === EVENT_CHARACTERS.PAR ||
+              calendarEvent.eventCharacter === EVENT_CHARACTERS.IMPAR) && (
               <ContextMenuItem onClick={handleEditSeries}>
                 <Edit />
                 Editar serie de eventos

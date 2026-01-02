@@ -80,7 +80,7 @@ const CreateGroupDialog: React.FC<CreateGroupDialogProps> = ({ open, onOpenChang
     const isFormValid = subjectId && type && language;
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
+        <Dialog open={open} onOpenChange={onOpenChange} modal={true}>
             <DialogContent className="sm:max-w-[600px]">
                 <DialogHeader className="space-y-3">
                     <DialogTitle className="text-2xl">Crear nuevo grupo</DialogTitle>

@@ -32,6 +32,15 @@ export class Calendar extends AuditedEntity {
     @Column('smallint', { name: 'SEMESTER' })
     semester!: number;
 
+    /**
+     * Characters currently in use in this calendar
+     * Stores all event characters assigned to periodic events or days
+     * Example: "NPI" means Normal, Par, and Impar are in use
+     * Maximum length: 200 characters to support ~90 different event types
+     */
+    @Column('varchar', { length: 200, name: 'CHARACTERS_IN_USE', default: '' })
+    charactersInUse!: string;
+
     /** Days contained in this calendar */
     @OneToMany(() => Day, (day) => day.calendar)
     days!: Day[];

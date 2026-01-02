@@ -66,6 +66,7 @@ export const useImportCalendar = () => {
     return {
         importCalendar: mutation.mutate,
         isImporting: mutation.isPending,
-        error: mutation.error?.message || null
+        error: mutation.error?.message || null,
+        data: mutation.data
     };
 };

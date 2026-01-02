@@ -16,11 +16,14 @@ import { TimePicker } from '@/components/ui/time-picker';
 import { Textarea } from '@/components/ui/textarea';
 import { es } from 'date-fns/locale';
 import { format } from 'date-fns';
-import type { RecurrenceConfig, FrequencyType, WeekDay, EndsType, CustomFrequencyUnit } from '@/types/RecurrenceConfig';
+import type { RecurrenceConfig, FrequencyType, WeekDay, EndsType, CustomFrequencyUnit, MonthlyPatternType } from '@/types/RecurrenceConfig';
 import type { CalendarEvent } from '@/types/CalendarEvent';
 import { useClassrooms } from '@/hooks/classroom/useClassrooms';
 import { useSubjectsByDegreeId } from '@/hooks/subject/useSubjectsByDegreeId';
 import { useSubjectsWithEventsAndGroupsByCourseAndSemester } from '@/hooks/subject/useSubjectsWithEventsAndGroupsByCourseIdAndSemester';
+import { EVENT_CHARACTERS } from '@/constants/eventCharacters';
+import { getCharacterDescription } from '@/utils/eventCharacterUtils';
+import { getMonthlyPatternLabels } from '@/utils/customPatternCalculator';
 
 interface EditEventDialogProps {
   open: boolean;
@@ -47,7 +50,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
     eventDate: format(new Date(), 'yyyy-MM-dd'),
     customStartDate: format(new Date(), 'yyyy-MM-dd'),
     customFrequencyUnit: 'week',
-    customMonthlyPattern: '',
+    monthlyPatternType: 'day-of-month',
     subjectId: undefined,
     groupIds: [],
     classroomIds: [],
@@ -78,8 +81,26 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
         weekDays = [event.weekDay as WeekDay];
       }
 
+      // Determinar la frecuencia basándose en el eventCharacter
+      let frequency: FrequencyType = 'no-repeat';
+      if (event.type === 'periodic') {
+        if (event.eventCharacter === EVENT_CHARACTERS.NORMAL) {
+          frequency = 'weekly';
+        } else if (event.eventCharacter === EVENT_CHARACTERS.PAR) {
+          frequency = 'biweekly-even';
+        } else if (event.eventCharacter === EVENT_CHARACTERS.IMPAR) {
+          frequency = 'biweekly-odd';
+        } else if (event.eventCharacter) {
+          // Cualquier otro carácter es personalizado
+          frequency = 'custom';
+        } else {
+          // Fallback si no hay eventCharacter
+          frequency = 'weekly';
+        }
+      }
+
       const newConfig: RecurrenceConfig = {
-        frequency: event.type === 'periodic' ? 'weekly' : 'no-repeat',
+        frequency: frequency,
         interval: 1,
         weekDays: weekDays,
         endsType: 'never',
@@ -91,11 +112,12 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
         eventDate: event.date,
         customStartDate: event.date,
         customFrequencyUnit: 'week',
-        customMonthlyPattern: '',
+        monthlyPatternType: 'day-of-month',
         subjectId: event.subject?.id,
         groupIds: event.groups.map(g => g.id),
         classroomIds: event.classrooms.map(c => c.id),
         comment: event.comment || '',
+        eventCharacter: event.eventCharacter,
       };
 
       setConfig(newConfig);
@@ -178,6 +200,19 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
     return subjects.filter(subject => subject.semester === semester);
   }, [subjects, semester]);
 
+  // Calculate monthly pattern labels based on customStartDate
+  const monthlyPatternLabels = useMemo(() => {
+    if (!config.customStartDate) {
+      return { dayOfMonth: '', dayOfWeek: '' };
+    }
+    try {
+      const startDate = new Date(config.customStartDate);
+      return getMonthlyPatternLabels(startDate);
+    } catch {
+      return { dayOfMonth: '', dayOfWeek: '' };
+    }
+  }, [config.customStartDate]);
+
   // Extract groups from subjects with groups for the selected subject and filter by event type
   const availableGroups = useMemo(() => {
     if (!config.subjectId) return [];
@@ -230,12 +265,13 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
       return !!config.eventDate;
     }
 
-    if (config.frequency === 'weekly') {
+    if (config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd') {
       return config.weekDays && config.weekDays.length > 0 && config.planifiedHours > 0;
     }
 
     if (config.frequency === 'custom') {
-      return !!config.customStartDate && !!config.customFrequencyUnit && config.interval > 0 && config.weekDays && config.weekDays.length > 0;
+      // Custom patterns are read-only in edit mode, so just basic validation
+      return true;
     }
 
     return true;
@@ -260,7 +296,9 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
       config.subjectId !== initialConfig.subjectId ||
       !arraysEqual(config.groupIds || [], initialConfig.groupIds || []) ||
       !arraysEqual(config.classroomIds || [], initialConfig.classroomIds || []) ||
-      (allowEditPlanifiedHours && config.planifiedHours !== initialConfig.planifiedHours)
+      !arraysEqual(config.weekDays || [], initialConfig.weekDays || []) ||
+      (allowEditPlanifiedHours && config.planifiedHours !== initialConfig.planifiedHours) ||
+      config.comment !== initialConfig.comment
     );
   }, [config, initialConfig, allowEditPlanifiedHours]);
 
@@ -290,24 +328,36 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
   const getSummary = (): string => {
     if (config.frequency === 'no-repeat') return 'No se repite';
     if (config.frequency === 'weekly') return 'Semanalmente';
+    if (config.frequency === 'biweekly-even') return 'Quincenal (Semanas Pares)';
+    if (config.frequency === 'biweekly-odd') return 'Quincenal (Semanas Impares)';
 
-    if (config.frequency === 'custom' && config.interval > 0 && config.customFrequencyUnit) {
-      let unitLabel = '';
-      if (config.customFrequencyUnit === 'day') {
-        unitLabel = config.interval === 1 ? 'día' : 'días';
-      } else if (config.customFrequencyUnit === 'week') {
-        unitLabel = config.interval === 1 ? 'semana' : 'semanas';
-      } else if (config.customFrequencyUnit === 'month') {
-        unitLabel = config.interval === 1 ? 'mes' : 'meses';
+    if (config.frequency === 'custom') {
+      // Para eventos personalizados existentes, mostrar el carácter
+      if (config.eventCharacter) {
+        return getCharacterDescription(config.eventCharacter);
       }
 
-      let summary = `Cada ${config.interval} ${unitLabel}`;
+      // Para eventos nuevos (no deberían llegar aquí en EditDialog)
+      if (config.interval > 0 && config.customFrequencyUnit) {
+        let unitLabel = '';
+        if (config.customFrequencyUnit === 'day') {
+          unitLabel = config.interval === 1 ? 'día' : 'días';
+        } else if (config.customFrequencyUnit === 'week') {
+          unitLabel = config.interval === 1 ? 'semana' : 'semanas';
+        } else if (config.customFrequencyUnit === 'month') {
+          unitLabel = config.interval === 1 ? 'mes' : 'meses';
+        }
 
-      if (config.customFrequencyUnit === 'week' && config.weekDays.length > 0) {
-        summary += ` los ${config.weekDays.join(', ')}`;
+        let summary = `Cada ${config.interval} ${unitLabel}`;
+
+        if (config.customFrequencyUnit === 'week' && config.weekDays.length > 0) {
+          summary += ` los ${config.weekDays.join(', ')}`;
+        }
+
+        return summary;
       }
 
-      return summary;
+      return 'Personalizado';
     }
 
     return 'Personalizado';
@@ -345,15 +395,36 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                 <SelectContent>
                   <SelectItem value="no-repeat">No se repite</SelectItem>
                   <SelectItem value="weekly">Semanalmente</SelectItem>
+                  <SelectItem value="biweekly-even">Quincenal (Semanas Pares)</SelectItem>
+                  <SelectItem value="biweekly-odd">Quincenal (Semanas Impares)</SelectItem>
                   <SelectItem value="custom">Personalizado</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
+            {/* Custom Pattern Info - Read-only display for custom periodic events */}
+            {config.frequency === 'custom' && config.eventCharacter && (
+              <div className="space-y-2 p-3 border border-blue-200 rounded bg-blue-50 dark:bg-blue-950 dark:border-blue-800">
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-center w-8 h-8 rounded bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-bold">
+                    {config.eventCharacter}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs font-semibold text-blue-900 dark:text-blue-100">
+                      Patrón Personalizado
+                    </p>
+                    <p className="text-xs text-blue-700 dark:text-blue-300">
+                      Este evento utiliza un patrón de recurrencia personalizado. No se puede editar la frecuencia.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Date, Start Time, End Time in same row */}
             <div className="space-y-1">
               <Label className="text-xs font-semibold">
-                {config.frequency === 'weekly' ? 'Día y Horario' : config.frequency === 'custom' ? 'Fecha Inicio y Horario' : 'Fecha y Horario'}
+                {(config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd') ? 'Día y Horario' : config.frequency === 'custom' ? 'Fecha Inicio y Horario' : 'Fecha y Horario'}
               </Label>
               <div className="flex gap-2">
                 {/* Date Selection - for no-repeat */}
@@ -384,8 +455,8 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                   </Popover>
                 )}
 
-                {/* Weekday Selection - for weekly */}
-                {config.frequency === 'weekly' && (
+                {/* Weekday Selection - for weekly and biweekly */}
+                {(config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd') && (
                   <Select
                     value={config.weekDays[0] || ''}
                     onValueChange={(value) => setConfig({ ...config, weekDays: [value as WeekDay] })}
@@ -649,8 +720,8 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
               </div>
             </div>
 
-            {/* Planified Hours - Only visible when frequency is 'weekly' and group is selected */}
-            {config.frequency === 'weekly' && config.groupIds && config.groupIds.length > 0 && (
+            {/* Planified Hours - Only visible when frequency is periodic and group is selected */}
+            {(config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd') && config.groupIds && config.groupIds.length > 0 && (
               <div className="space-y-2">
                 <Label htmlFor="planified-hours" className="text-xs font-semibold">Horas Planificadas</Label>
                 <Input
@@ -744,25 +815,15 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                   <div className="space-y-2">
                     <Label className="text-xs font-semibold">Patrón Mensual</Label>
                     <Select
-                      value={config.customMonthlyPattern || 'day-of-month'}
-                      onValueChange={(value) => setConfig({ ...config, customMonthlyPattern: value })}
+                      value={config.monthlyPatternType || 'day-of-month'}
+                      onValueChange={(value: MonthlyPatternType) => setConfig({ ...config, monthlyPatternType: value })}
                     >
-                      <SelectTrigger className="h-8 px-3 text-xs font-normal w-full">
-                        <SelectValue />
+                      <SelectTrigger className="h-8 text-xs w-full">
+                        <SelectValue placeholder="Seleccionar patrón" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="day-of-month">
-                          Cada mes el {config.customStartDate ? new Date(config.customStartDate).getDate() : '?'}
-                        </SelectItem>
-                        <SelectItem value="weekday-of-month">
-                          {config.customStartDate ? (() => {
-                            const date = new Date(config.customStartDate);
-                            const dayOfWeek = date.toLocaleDateString('es-ES', { weekday: 'long' });
-                            const week = Math.ceil(date.getDate() / 7);
-                            const weekNames = ['primer', 'segundo', 'tercer', 'cuarto', 'quinto'];
-                            return `Cada mes el ${weekNames[week - 1]} ${dayOfWeek}`;
-                          })() : '?'}
-                        </SelectItem>
+                        <SelectItem value="day-of-month">{monthlyPatternLabels.dayOfMonth}</SelectItem>
+                        <SelectItem value="day-of-week">{monthlyPatternLabels.dayOfWeek}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -28,7 +29,9 @@ import {
     Upload,
     X,
     CheckCircle,
-    ChevronDownIcon
+    ChevronDownIcon,
+    ChevronLeft,
+    ChevronRight
 } from "lucide-react";
 import { CalendarFormData, CalendarDrawerData } from "@/types/Calendar";
 
@@ -58,9 +61,11 @@ export const CreateCalendarDrawer = ({
     const [activeTab, setActiveTab] = useState("manual");
 
     // Manual tab states
+    const [currentStep, setCurrentStep] = useState(1);
     const [startDate, setStartDate] = useState<Date | undefined>();
     const [endDate, setEndDate] = useState<Date | undefined>();
-    const [holidayDates, setHolidayDates] = useState<Date[]>([]);
+    const [selectedHolidayDates, setSelectedHolidayDates] = useState<Date[]>([]);
+    const [holidays, setHolidays] = useState<Array<{ date: Date; comment: string }>>([]);
     const [dateError, setDateError] = useState("");
     const [startDateOpen, setStartDateOpen] = useState(false);
     const [endDateOpen, setEndDateOpen] = useState(false);
@@ -133,9 +138,11 @@ export const CreateCalendarDrawer = ({
     useEffect(() => {
         if (!open) {
             setIsLoading(false);
+            setCurrentStep(1);
             setStartDate(undefined);
             setEndDate(undefined);
-            setHolidayDates([]);
+            setSelectedHolidayDates([]);
+            setHolidays([]);
             setDateError("");
             setUploadedFiles([]);
             setActiveTab("manual");
@@ -155,12 +162,75 @@ export const CreateCalendarDrawer = ({
         }
     }, [startDate, endDate]);
 
+    // Step navigation helpers
+    const canGoNext = () => {
+        if (currentStep === 1) {
+            return startDate && endDate && !dateError;
+        }
+        if (currentStep === 2) {
+            return true; // Can always proceed from step 2 (holidays are optional)
+        }
+        return false;
+    };
+
+    const handleNext = () => {
+        if (currentStep === 1 && canGoNext()) {
+            setCurrentStep(2);
+        } else if (currentStep === 2) {
+            // Initialize holidays array from selected dates
+            const newHolidays = selectedHolidayDates.map(date => ({
+                date,
+                comment: ''
+            }));
+            setHolidays(newHolidays);
+
+            if (selectedHolidayDates.length > 0) {
+                setCurrentStep(3);
+            } else {
+                // Skip step 3 if no holidays selected
+                handleFinalSave();
+            }
+        }
+    };
+
+    const handlePrevious = () => {
+        if (currentStep > 1) {
+            setCurrentStep(currentStep - 1);
+        }
+    };
+
+    const handleUpdateHolidayComment = (index: number, comment: string) => {
+        setHolidays(prev => {
+            const updated = [...prev];
+            updated[index] = { ...updated[index], comment };
+            return updated;
+        });
+    };
+
+    const handleFinalSave = async () => {
+        if (!courseId || !semester || !startDate || !endDate) return;
+
+        setIsLoading(true);
+
+        try {
+            const manualData: CalendarFormData = {
+                courseId,
+                semester,
+                startDate,
+                endDate,
+                holidays: holidays.length > 0 ? holidays : undefined
+            };
+
+            await onSave(manualData);
+        } catch (error) {
+            console.error('Error saving calendar:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const handleSave = async () => {
         if (!courseId || !semester) return;
-
-        if (activeTab === "manual" && (!startDate || !endDate || dateError)) {
-            return;
-        }
 
         if (activeTab === "import" && uploadedFiles.length === 0) {
             return;
@@ -190,17 +260,6 @@ export const CreateCalendarDrawer = ({
                 };
 
                 await onSave(importData);
-            } else {
-                // Modo manual
-                const manualData: CalendarFormData = {
-                    courseId,
-                    semester,
-                    startDate,
-                    endDate,
-                    holidayDates: holidayDates.length > 0 ? holidayDates : undefined
-                };
-
-                await onSave(manualData);
             }
         } catch (error) {
             console.error('Error saving calendar:', error);
@@ -263,10 +322,6 @@ export const CreateCalendarDrawer = ({
         return uploadedFiles.find(file => file.name === fileName);
     };
 
-    const isManualFormValid = startDate && endDate && !dateError;
-    const isImportFormValid = uploadedFiles.length === 5;
-    const isFormValid = activeTab === "manual" ? isManualFormValid : isImportFormValid;
-
     if (!calendarData) return null;
 
     return (
@@ -303,99 +358,139 @@ export const CreateCalendarDrawer = ({
                         {/* Tab Manual */}
                         <TabsContent value="manual" className="space-y-4 mt-6 flex flex-col h-full">
                             <div className="w-full space-y-4 flex flex-col h-full">
-                                {/* Date Pickers en la misma fila */}
-                                <div className="grid grid-cols-2 gap-3">
-                                    {/* Date Picker para fecha de inicio */}
-                                    <div className="space-y-1.5">
-                                        <Label className="text-xs font-semibold">
-                                            {t("drawer.calendar.create.tabs.manual.start.date")}
-                                        </Label>
-                                        <Popover modal={true} open={startDateOpen} onOpenChange={setStartDateOpen}>
-                                            <PopoverTrigger asChild>
-                                                <Button
-                                                    variant="outline"
-                                                    className="w-full justify-start text-left font-normal text-xs h-9"
-                                                    disabled={isLoading}
-                                                >
-                                                    {startDate ? format(startDate, "dd/MM/yyyy") : t("drawer.calendar.create.tabs.manual.select.date")}
-                                                    <ChevronDownIcon className="ml-auto h-4 w-4" />
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0" align="start">
-                                                <CalendarComponent
-                                                    mode="single"
-                                                    selected={startDate}
-                                                    onSelect={(date) => {
-                                                        if (date && !isDateDisabled(date)) {
-                                                            setStartDate(date);
-                                                            setStartDateOpen(false);
-                                                        }
-                                                    }}
-                                                    disabled={isDateDisabled}
-                                                    weekStartsOn={1}
-                                                    locale={es}
-                                                    defaultMonth={getDefaultMonth()}
-                                                />
-                                            </PopoverContent>
-                                    </Popover>
+                                {/* Step Indicator */}
+                                <div className="flex items-center justify-center gap-2">
+                                    <div className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-semibold ${currentStep === 1 ? 'bg-primary text-primary-foreground' : currentStep > 1 ? 'bg-green-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                                        1
                                     </div>
-
-                                    {/* Date Picker para fecha de fin */}
-                                    <div className="space-y-1.5">
-                                        <Label className="text-xs font-semibold">
-                                            {t("drawer.calendar.create.tabs.manual.end.date")}
-                                        </Label>
-                                        <Popover modal={true} open={endDateOpen} onOpenChange={setEndDateOpen}>
-                                            <PopoverTrigger asChild>
-                                                <Button
-                                                    variant="outline"
-                                                    className="w-full justify-start text-left font-normal text-xs h-9"
-                                                    disabled={!startDate || isLoading}
-                                                >
-                                                    {endDate ? format(endDate, "dd/MM/yyyy") : t("drawer.calendar.create.tabs.manual.select.date")}
-                                                    <ChevronDownIcon className="ml-auto h-4 w-4" />
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0" align="start">
-                                                <CalendarComponent
-                                                    mode="single"
-                                                    selected={endDate}
-                                                    onSelect={(date) => {
-                                                        if (date && !isDateDisabled(date) && (!startDate || date > startDate)) {
-                                                            setEndDate(date);
-                                                            setEndDateOpen(false);
-                                                        }
-                                                    }}
-                                                    disabled={(date) => isDateDisabled(date) || (startDate ? date <= startDate : false)}
-                                                    weekStartsOn={1}
-                                                    locale={es}
-                                                    defaultMonth={getDefaultMonth()}
-                                                />
-                                            </PopoverContent>
-                                        </Popover>
+                                    <div className={`h-0.5 w-12 ${currentStep > 1 ? 'bg-green-500' : 'bg-muted'}`} />
+                                    <div className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-semibold ${currentStep === 2 ? 'bg-primary text-primary-foreground' : currentStep > 2 ? 'bg-green-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                                        2
+                                    </div>
+                                    <div className={`h-0.5 w-12 ${currentStep > 2 ? 'bg-green-500' : 'bg-muted'}`} />
+                                    <div className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-semibold ${currentStep === 3 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                                        3
                                     </div>
                                 </div>
 
-                                {/* Calendar para seleccionar días festivos */}
-                                <div className="space-y-2 flex flex-col min-h-0 flex-1">
-                                    <div className="flex items-center justify-between">
-                                        <h4 className="text-xs font-semibold">
-                                            {t("drawer.calendar.create.tabs.manual.holidays")}
-                                        </h4>
-                                        {holidayDates.length > 0 && (
-                                            <Badge variant="outline" className="text-xs">
-                                                {holidayDates.length}
-                                            </Badge>
+                                {/* Step 1: Date Selection */}
+                                {currentStep === 1 && (
+                                    <div className="space-y-4 flex flex-col flex-1">
+                                        <div className="space-y-2">
+                                            <h3 className="text-sm font-semibold">Paso 1: Selecciona las fechas del calendario</h3>
+                                            <p className="text-xs text-muted-foreground">
+                                                Selecciona la fecha de inicio y fin del calendario académico
+                                            </p>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {/* Date Picker para fecha de inicio */}
+                                            <div className="space-y-1.5">
+                                                <Label className="text-xs font-semibold">
+                                                    {t("drawer.calendar.create.tabs.manual.start.date")}
+                                                </Label>
+                                                <Popover modal={true} open={startDateOpen} onOpenChange={setStartDateOpen}>
+                                                    <PopoverTrigger asChild>
+                                                        <Button
+                                                            variant="outline"
+                                                            className="w-full justify-start text-left font-normal text-xs h-9"
+                                                            disabled={isLoading}
+                                                        >
+                                                            {startDate ? format(startDate, "dd/MM/yyyy") : t("drawer.calendar.create.tabs.manual.select.date")}
+                                                            <ChevronDownIcon className="ml-auto h-4 w-4" />
+                                                        </Button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-auto p-0" align="start">
+                                                        <CalendarComponent
+                                                            mode="single"
+                                                            selected={startDate}
+                                                            onSelect={(date) => {
+                                                                if (date && !isDateDisabled(date)) {
+                                                                    setStartDate(date);
+                                                                    setStartDateOpen(false);
+                                                                }
+                                                            }}
+                                                            disabled={isDateDisabled}
+                                                            weekStartsOn={1}
+                                                            locale={es}
+                                                            defaultMonth={getDefaultMonth()}
+                                                        />
+                                                    </PopoverContent>
+                                                </Popover>
+                                            </div>
+
+                                            {/* Date Picker para fecha de fin */}
+                                            <div className="space-y-1.5">
+                                                <Label className="text-xs font-semibold">
+                                                    {t("drawer.calendar.create.tabs.manual.end.date")}
+                                                </Label>
+                                                <Popover modal={true} open={endDateOpen} onOpenChange={setEndDateOpen}>
+                                                    <PopoverTrigger asChild>
+                                                        <Button
+                                                            variant="outline"
+                                                            className="w-full justify-start text-left font-normal text-xs h-9"
+                                                            disabled={!startDate || isLoading}
+                                                        >
+                                                            {endDate ? format(endDate, "dd/MM/yyyy") : t("drawer.calendar.create.tabs.manual.select.date")}
+                                                            <ChevronDownIcon className="ml-auto h-4 w-4" />
+                                                        </Button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-auto p-0" align="start">
+                                                        <CalendarComponent
+                                                            mode="single"
+                                                            selected={endDate}
+                                                            onSelect={(date) => {
+                                                                if (date && !isDateDisabled(date) && (!startDate || date > startDate)) {
+                                                                    setEndDate(date);
+                                                                    setEndDateOpen(false);
+                                                                }
+                                                            }}
+                                                            disabled={(date) => isDateDisabled(date) || (startDate ? date <= startDate : false)}
+                                                            weekStartsOn={1}
+                                                            locale={es}
+                                                            defaultMonth={getDefaultMonth()}
+                                                        />
+                                                    </PopoverContent>
+                                                </Popover>
+                                            </div>
+                                        </div>
+
+                                        {dateError && (
+                                            <div className="rounded-md bg-destructive/10 p-2.5 border border-destructive/30">
+                                                <p className="text-xs text-destructive">{dateError}</p>
+                                            </div>
                                         )}
                                     </div>
-                                    {startDate && endDate ? (
-                                        <>
+                                )}
+
+                                {/* Step 2: Holiday Selection */}
+                                {currentStep === 2 && (
+                                    <div className="space-y-4 flex flex-col flex-1 min-h-0">
+                                        <div className="space-y-2">
+                                            <h3 className="text-sm font-semibold">Paso 2: Selecciona los días festivos</h3>
+                                            <p className="text-xs text-muted-foreground">
+                                                Marca en el calendario los días festivos o no lectivos (opcional)
+                                            </p>
+                                        </div>
+
+                                        <div className="space-y-2 flex flex-col min-h-0 flex-1">
+                                            <div className="flex items-center justify-between">
+                                                <h4 className="text-xs font-semibold">
+                                                    {t("drawer.calendar.create.tabs.manual.holidays")}
+                                                </h4>
+                                                {selectedHolidayDates.length > 0 && (
+                                                    <Badge variant="outline" className="text-xs">
+                                                        {selectedHolidayDates.length}
+                                                    </Badge>
+                                                )}
+                                            </div>
+
                                             <div className="border rounded-lg bg-muted/30 flex justify-center overflow-y-auto flex-1 min-h-0">
                                                 <CalendarComponent
                                                     mode="multiple"
-                                                    selected={holidayDates}
+                                                    selected={selectedHolidayDates}
                                                     onSelect={(dates) => {
-                                                        setHolidayDates(Array.isArray(dates) ? dates : []);
+                                                        setSelectedHolidayDates(Array.isArray(dates) ? dates : []);
                                                     }}
                                                     disabled={(date) => {
                                                         if (!startDate || !endDate) return true;
@@ -406,13 +501,14 @@ export const CreateCalendarDrawer = ({
                                                     defaultMonth={startDate || getDefaultMonth()}
                                                 />
                                             </div>
-                                            {holidayDates.length > 0 && (
+
+                                            {selectedHolidayDates.length > 0 && (
                                                 <div className="space-y-1.5 overflow-y-auto">
                                                     <p className="text-xs font-medium text-muted-foreground">
                                                         {t("drawer.calendar.create.tabs.manual.selected.holidays")}
                                                     </p>
                                                     <div className="flex flex-wrap gap-1.5">
-                                                        {holidayDates.map((date) => (
+                                                        {selectedHolidayDates.map((date) => (
                                                             <Badge key={date.toString()} variant="secondary" className="text-xs">
                                                                 {format(date, "dd/MM/yyyy")}
                                                             </Badge>
@@ -420,19 +516,36 @@ export const CreateCalendarDrawer = ({
                                                     </div>
                                                 </div>
                                             )}
-                                        </>
-                                    ) : (
-                                        <div className="flex items-center justify-center flex-1 text-center">
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Step 3: Holiday Comments */}
+                                {currentStep === 3 && (
+                                    <div className="space-y-4 flex flex-col flex-1 min-h-0">
+                                        <div className="space-y-2">
+                                            <h3 className="text-sm font-semibold">Paso 3: Añade comentarios a los festivos</h3>
                                             <p className="text-xs text-muted-foreground">
-                                                {t("drawer.calendar.create.tabs.manual.select.dates.first")}
+                                                Añade un comentario descriptivo a cada día festivo (ej: "Navidad", "Día del trabajador")
                                             </p>
                                         </div>
-                                    )}
-                                </div>
 
-                                {dateError && (
-                                    <div className="rounded-md bg-destructive/10 p-2.5 border border-destructive/30">
-                                        <p className="text-xs text-destructive">{dateError}</p>
+                                        <div className="space-y-2 flex-1 overflow-y-auto pr-1">
+                                            {holidays.map((holiday, index) => (
+                                                <div key={index} className="space-y-1.5 p-3 border rounded-lg bg-muted/20">
+                                                    <Label className="text-xs font-semibold">
+                                                        {format(holiday.date, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: es })}
+                                                    </Label>
+                                                    <Input
+                                                        type="text"
+                                                        placeholder="Ej: Navidad, Día festivo..."
+                                                        value={holiday.comment}
+                                                        onChange={(e) => handleUpdateHolidayComment(index, e.target.value)}
+                                                        className="text-xs h-8"
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -539,23 +652,59 @@ export const CreateCalendarDrawer = ({
                 </div>
 
                 {/* Botones */}
-                <div className="p-4 flex justify-end space-x-2 border-t">
-                    <DrawerClose asChild>
-                        <Button
-                            variant="outline"
-                            onClick={handleClose}
-                            disabled={isLoading}
-                        >
-                            {t("drawer.calendar.create.cancel")}
-                        </Button>
-                    </DrawerClose>
-                    <Button
-                        disabled={!isFormValid || isLoading}
-                        onClick={handleSave}
-                    >
-                        {isLoading && <Spinner className="mr-2 h-4 w-4" />}
-                        {t("drawer.calendar.create.save")}
-                    </Button>
+                <div className="p-4 flex justify-between border-t">
+                    <div className="flex space-x-2">
+                        {activeTab === "manual" && currentStep > 1 && (
+                            <Button
+                                variant="outline"
+                                onClick={handlePrevious}
+                                disabled={isLoading}
+                            >
+                                <ChevronLeft className="h-4 w-4 mr-1" />
+                                Anterior
+                            </Button>
+                        )}
+                    </div>
+
+                    <div className="flex space-x-2">
+                        <DrawerClose asChild>
+                            <Button
+                                variant="outline"
+                                onClick={handleClose}
+                                disabled={isLoading}
+                            >
+                                {t("drawer.calendar.create.cancel")}
+                            </Button>
+                        </DrawerClose>
+
+                        {activeTab === "manual" ? (
+                            currentStep < 3 ? (
+                                <Button
+                                    disabled={!canGoNext() || isLoading}
+                                    onClick={handleNext}
+                                >
+                                    Siguiente
+                                    <ChevronRight className="h-4 w-4 ml-1" />
+                                </Button>
+                            ) : (
+                                <Button
+                                    disabled={isLoading}
+                                    onClick={handleFinalSave}
+                                >
+                                    {isLoading && <Spinner className="mr-2 h-4 w-4" />}
+                                    {t("drawer.calendar.create.save")}
+                                </Button>
+                            )
+                        ) : (
+                            <Button
+                                disabled={uploadedFiles.length !== 5 || isLoading}
+                                onClick={handleSave}
+                            >
+                                {isLoading && <Spinner className="mr-2 h-4 w-4" />}
+                                {t("drawer.calendar.create.save")}
+                            </Button>
+                        )}
+                    </div>
                 </div>
             </DrawerContent>
         </Drawer>

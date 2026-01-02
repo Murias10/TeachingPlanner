@@ -337,7 +337,10 @@ export default function CoursePage() {
                 semester: formData.semester,
                 start: formData.startDate ? formatDateAsLocal(formData.startDate) : undefined,
                 end: formData.endDate ? formatDateAsLocal(formData.endDate) : undefined,
-                holidayDates: formData.holidayDates?.map(date => formatDateAsLocal(date))
+                holidays: formData.holidays?.map(holiday => ({
+                    date: formatDateAsLocal(holiday.date),
+                    comment: holiday.comment
+                }))
             })
         });
 

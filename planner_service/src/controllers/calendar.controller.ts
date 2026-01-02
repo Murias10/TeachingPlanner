@@ -80,7 +80,7 @@ export const getCalendarById = async (req: AuditedRequest, res: Response) => {
 };
 
 export const createCalendar = async (req: AuditedRequest, res: Response) => {
-    const { idCourse, semester, start, end, holidayDates = [] } = req.body;
+    const { idCourse, semester, start, end, holidays = [] } = req.body;
 
     // Validaciones
     if (!idCourse) {
@@ -182,17 +182,17 @@ export const createCalendar = async (req: AuditedRequest, res: Response) => {
 
         const savedCalendar = await calendarRepo.save(calendar);
 
-        // Crear conjunto de fechas festivas para búsqueda rápida
-        const holidaySet = new Set(
-            (holidayDates as string[]).map((dateStr: string) => {
-                const date = parseSpainDate(dateStr);
-                // Formatear como YYYY-MM-DD para comparación
-                const year = date.getFullYear();
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const day = String(date.getDate()).padStart(2, '0');
-                return `${year}-${month}-${day}`;
-            })
-        );
+        // Crear mapa de fechas festivas con comentarios para búsqueda rápida
+        const holidayMap = new Map<string, string>();
+        (holidays as Array<{ date: string; comment: string }>).forEach((holiday) => {
+            const date = parseSpainDate(holiday.date);
+            // Formatear como YYYY-MM-DD para comparación
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const dateKey = `${year}-${month}-${day}`;
+            holidayMap.set(dateKey, holiday.comment || '');
+        });
 
         // Crear Day records para cada día del calendario
         const days: Day[] = [];
@@ -209,7 +209,7 @@ export const createCalendar = async (req: AuditedRequest, res: Response) => {
 
             // Determinar si es día lectivo
             const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-            const isHoliday = holidaySet.has(dateKey);
+            const isHoliday = holidayMap.has(dateKey);
             const isLective = !isWeekend && !isHoliday;
 
             // Determinar el carácter del día
@@ -223,12 +223,15 @@ export const createCalendar = async (req: AuditedRequest, res: Response) => {
                 dayCharacter = DAY_CHARACTERS.NON_LECTIVE;
             }
 
+            // Obtener el comentario del día festivo si existe
+            const holidayComment = holidayMap.get(dateKey) || '';
+
             const day = dayRepo.create({
                 calendar: savedCalendar,
                 date: new Date(currentDate),
                 lective: isLective,
                 dayCharacter,
-                comment: '',
+                comment: holidayComment,
                 createdBy: userEmail
             });
 

@@ -9,12 +9,17 @@ export interface Calendar {
     charactersInUse?: string;
 }
 
+export interface HolidayWithComment {
+    date: Date;
+    comment: string;
+}
+
 export interface CalendarFormData {
     courseId: string;
     semester: number;
     startDate?: Date;
     endDate?: Date;
-    holidayDates?: Date[];
+    holidays?: HolidayWithComment[];
     files?: File[];
     formData?: FormData;
 }

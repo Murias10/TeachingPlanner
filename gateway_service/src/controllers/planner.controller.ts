@@ -203,6 +203,56 @@ export const createCalendarWithImport = async (req: Request, res: Response) => {
     }
 };
 
+export const importExceptions = async (req: Request, res: Response) => {
+    try {
+        const { calendarId } = req.params;
+        const file = req.file as Express.Multer.File;
+
+        if (!file) {
+            res.status(400).json({
+                status: 'error',
+                message: 'File is required',
+                data: null
+            });
+            return;
+        }
+
+        // Crear FormData para reenviar al planner service
+        const formData = new FormData();
+        formData.append('file', file.buffer, {
+            filename: file.originalname,
+            contentType: file.mimetype,
+        });
+
+        // Usar axios para reenviar correctamente
+        const headers = getProxyHeaders(req, formData.getHeaders());
+        const response = await axios.post(
+            `${SERVICES.PLANNER}/calendar/${calendarId}/import-exceptions`,
+            formData,
+            {
+                headers,
+                maxContentLength: Infinity,
+                maxBodyLength: Infinity,
+            }
+        );
+
+        res.status(response.status).json(response.data);
+
+    } catch (error) {
+        console.error('Error importing exceptions:', error);
+
+        if (axios.isAxiosError(error) && error.response) {
+            res.status(error.response.status).json(error.response.data);
+        } else {
+            res.status(500).json({
+                status: 'error',
+                message: 'Error connecting to planner service',
+                data: error instanceof Error ? error.message : error
+            });
+        }
+    }
+};
+
 
 export const getCalendarById = (req: Request, res: Response, next: NextFunction) =>
     proxyRequest(req, res, next, {

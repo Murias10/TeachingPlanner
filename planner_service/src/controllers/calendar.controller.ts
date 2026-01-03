@@ -2217,3 +2217,53 @@ export const replacePeriodicEvent = async (req: AuditedRequest, res: Response) =
         });
     }
 };
+
+/**
+ * Import exceptions file only - replaces all puntual events for a calendar
+ * Only accessible by ADMIN
+ */
+export const importExceptions = async (req: AuditedRequest, res: Response) => {
+    try {
+        const { calendarId } = req.params;
+        const file = req.file as Express.Multer.File;
+
+        if (!calendarId) {
+            res.status(400).json({
+                status: 'error',
+                message: 'Calendar ID is required',
+                data: null
+            });
+            return;
+        }
+
+        if (!ValidationService.validateUUID(calendarId)) {
+            res.status(400).json({
+                status: 'error',
+                message: 'Invalid UUID format for calendar ID',
+                data: null
+            });
+            return;
+        }
+
+        if (!file || file.originalname !== 'excepciones.txt') {
+            res.status(400).json({
+                status: 'error',
+                message: 'excepciones.txt file is required',
+                data: null
+            });
+            return;
+        }
+
+        const userEmail = getUserEmailFromRequest(req);
+        const result = await CalendarImportService.importExceptionsOnly(file, calendarId, userEmail);
+
+        res.status(200).json(result);
+    } catch (error) {
+        console.error('Error importing exceptions:', error);
+        res.status(500).json({
+            status: 'error',
+            message: error instanceof Error ? error.message : 'Error importing exceptions',
+            data: null
+        });
+    }
+};

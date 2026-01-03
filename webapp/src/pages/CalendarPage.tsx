@@ -17,6 +17,7 @@ import CalendarToolbar from "@/components/calendar/CalendarToolbar";
 import CreateEventDialog from "@/components/calendar/CreateEventDialog";
 import EditEventDialog from "@/components/calendar/EditEventDialog";
 import CreateSolicitudDialog from "@/components/calendar/CreateSolicitudDialog";
+import { ImportExceptionsDialog } from "@/components/calendar/ImportExceptionsDialog";
 import type { RecurrenceConfig } from "@/types/RecurrenceConfig";
 import { CalendarEventWrapper } from "@/components/calendar/CalendarEventWrapper";
 import VITE_GATEWAY_API_URL from "@/config/api";
@@ -32,6 +33,7 @@ import { useUpdatePeriodicEvent } from "@/hooks/calendar/useUpdatePeriodicEvent"
 import { useDeletePuntualEvent } from "@/hooks/calendar/useDeletePuntualEvent";
 import { useCalendarById } from "@/hooks/calendar/useCalendarById";
 import { useAvailableCharacter } from "@/hooks/calendar/useAvailableCharacter";
+import { useImportExceptions } from "@/hooks/calendar/useImportExceptions";
 import { calculateAffectedDates, getAffectedDatesSummary } from "@/utils/customPatternCalculator";
 import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -246,6 +248,10 @@ export default function CalendarPage() {
 
     // Estado para solicitud de eventos
     const [isSolicitudDrawerOpen, setIsSolicitudDrawerOpen] = useState(false);
+
+    // Estado para importar excepciones
+    const [isImportExceptionsDialogOpen, setIsImportExceptionsDialogOpen] = useState(false);
+    const { importExceptionsAsync, isImporting: isImportingExceptions } = useImportExceptions();
 
     // Estado para controlar la fecha actual del calendario
     const [currentDate, setCurrentDate] = useState<Date>(new Date());
@@ -604,6 +610,28 @@ export default function CalendarPage() {
         } catch (error) {
             console.error('Error exporting calendar:', error);
             // TODO: Mostrar mensaje de error al usuario
+        }
+    };
+
+    const handleImportExceptions = async (file: File) => {
+        if (!calendarId) {
+            console.error('No calendar ID available for import');
+            return;
+        }
+
+        try {
+            await importExceptionsAsync({
+                calendarId,
+                file
+            });
+
+            // Close dialog on success
+            setIsImportExceptionsDialogOpen(false);
+
+            // Refetch calendar events
+            await refetch();
+        } catch (error) {
+            console.error('Error importing exceptions:', error);
         }
     };
 
@@ -1562,6 +1590,8 @@ export default function CalendarPage() {
                                 onExport={handleExportCalendar}
                                 onExportCSV={handleExportToCSV}
                                 onCreateEvent={handleCreateEvent}
+                                onImportExceptions={() => setIsImportExceptionsDialogOpen(true)}
+                                isAdmin={isAdmin}
                             />
                         )}
                         {isAdmin && (
@@ -1844,6 +1874,16 @@ export default function CalendarPage() {
                     initialStartTime={dragStartTime}
                     initialEndTime={dragEndTime}
                     lectiveDates={lectiveDates}
+                />
+            )}
+
+            {/* Import Exceptions Dialog - Solo para ADMIN */}
+            {isAdmin && (
+                <ImportExceptionsDialog
+                    open={isImportExceptionsDialogOpen}
+                    onOpenChange={setIsImportExceptionsDialogOpen}
+                    onImport={handleImportExceptions}
+                    isLoading={isImportingExceptions}
                 />
             )}
         </>

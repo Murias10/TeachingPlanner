@@ -79,6 +79,7 @@ export class CalendarImportService {
 
   /**
    * Process all imported files in the correct order
+   * excepciones.txt is optional - will be skipped if not provided
    */
   static async processImportedFiles(
     files: Express.Multer.File[],
@@ -91,6 +92,11 @@ export class CalendarImportService {
 
     for (const fileName of processingOrder) {
       const file = files.find(f => f.originalname === fileName);
+      // excepciones.txt is optional, skip if not provided
+      if (!file && fileName === 'excepciones.txt') {
+        console.log('[Import] excepciones.txt not provided - skipping puntual events import');
+        continue;
+      }
       if (!file) continue;
 
       const content = this.decodeFileContent(file);
@@ -1328,5 +1334,128 @@ export class CalendarImportService {
     };
 
     return dayMap[dayOfWeek] || '';
+  }
+
+  /**
+   * Import exceptions file only - replaces all puntual events for a calendar
+   * @param file - The excepciones.txt file
+   * @param calendarId - The calendar ID to import exceptions for
+   * @param userEmail - User email for audit
+   * @returns Import result with statistics
+   */
+  static async importExceptionsOnly(
+    file: Express.Multer.File,
+    calendarId: string,
+    userEmail: string | null
+  ) {
+    const puntualEventRepo = AppDataSource.getRepository(PuntualEvent);
+    const calendarRepo = AppDataSource.getRepository(Calendar);
+    const groupRepo = AppDataSource.getRepository(Group);
+    const subjectRepo = AppDataSource.getRepository(Subject);
+
+    // Verify calendar exists
+    const calendar = await calendarRepo.findOne({
+      where: { id: calendarId },
+      relations: ['course']
+    });
+
+    if (!calendar) {
+      throw new Error('Calendar not found');
+    }
+
+    const courseId = calendar.course.id;
+    const semester = calendar.semester;
+
+    // Delete all existing puntual events for this calendar
+    const existingEvents = await puntualEventRepo
+      .createQueryBuilder('event')
+      .leftJoin('event.day', 'day')
+      .leftJoin('day.calendar', 'calendar')
+      .where('calendar.id = :calendarId', { calendarId })
+      .getMany();
+
+    const deletedCount = existingEvents.length;
+
+    if (deletedCount > 0) {
+      await puntualEventRepo.remove(existingEvents);
+      console.log(`[Import Exceptions] Deleted ${deletedCount} existing puntual events`);
+    }
+
+    // Process the exceptions file
+    const content = this.decodeFileContent(file);
+    const result = await this.processExcepcionesFile(content, courseId, semester, userEmail);
+
+    // Count groups not found
+    const groupsNotFound: string[] = [];
+
+    // Re-process to validate groups
+    const lines = content.split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+
+      try {
+        const parts = line.split(':');
+        if (parts.length !== 6) continue;
+
+        const [, subjectGroupInfo] = parts.map(p => p.trim());
+        const groupParts = subjectGroupInfo.split('.');
+        if (groupParts.length !== 3) continue;
+
+        const [subjectAcronym, groupType, groupInfo] = groupParts;
+        let language: string, groupNumber: number;
+
+        if (groupInfo.includes('-')) {
+          const groupMatch = groupInfo.match(/^I-(\d+)$/);
+          if (!groupMatch) continue;
+          language = 'EN';
+          groupNumber = parseInt(groupMatch[1], 10);
+        } else {
+          groupNumber = parseInt(groupInfo, 10);
+          if (isNaN(groupNumber)) continue;
+          language = 'ES';
+        }
+
+        const subject = await subjectRepo.findOne({ where: { acronym: subjectAcronym } });
+        if (!subject) {
+          const groupKey = `${subjectAcronym}.${groupType}.${groupNumber}.${language}`;
+          if (!groupsNotFound.includes(groupKey)) {
+            groupsNotFound.push(groupKey);
+          }
+          continue;
+        }
+
+        const group = await groupRepo.findOne({
+          where: {
+            number: groupNumber,
+            type: groupType,
+            language,
+            subject: { id: subject.id }
+          }
+        });
+
+        if (!group) {
+          const groupKey = `${subjectAcronym}.${groupType}.${groupNumber}.${language}`;
+          if (!groupsNotFound.includes(groupKey)) {
+            groupsNotFound.push(groupKey);
+          }
+        }
+      } catch (error) {
+        // Continue on error
+      }
+    }
+
+    return {
+      status: 'success',
+      message: 'Exceptions imported successfully',
+      data: {
+        deletedEvents: deletedCount,
+        createdEvents: result.processedCount,
+        errors: result.errors,
+        groupsNotFound,
+        totalLines: result.totalLines,
+        errorCount: result.errorCount
+      }
+    };
   }
 }

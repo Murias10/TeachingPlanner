@@ -43,11 +43,11 @@ interface CreateCalendarDrawerProps {
 }
 
 const REQUIRED_FILES = [
-    { name: "asignaturas.txt", description: "Información general sobre las asignaturas" },
-    { name: "calendario.txt", description: "Calendario académico con fechas lectivas y festivos" },
-    { name: "horarios.txt", description: "Eventos de clase que se repiten" },
-    { name: "excepciones.txt", description: "Eventos de clase puntuales" },
-    { name: "ubicaciones.txt", description: "Información sobre aulas y laboratorios" }
+    { name: "asignaturas.txt", description: "Información general sobre las asignaturas", required: true },
+    { name: "calendario.txt", description: "Calendario académico con fechas lectivas y festivos", required: true },
+    { name: "horarios.txt", description: "Eventos de clase que se repiten", required: true },
+    { name: "excepciones.txt", description: "Eventos de clase puntuales (opcional)", required: false },
+    { name: "ubicaciones.txt", description: "Información sobre aulas y laboratorios", required: true }
 ];
 
 export const CreateCalendarDrawer = ({
@@ -598,7 +598,7 @@ export const CreateCalendarDrawer = ({
                                             {t("drawer.calendar.create.tabs.import.required.files")}
                                         </h4>
                                         <Badge variant="outline" className="text-xs">
-                                            {uploadedFiles.length}/{REQUIRED_FILES.length}
+                                            {uploadedFiles.filter(f => REQUIRED_FILES.find(rf => rf.name === f.name && rf.required)).length}/{REQUIRED_FILES.filter(f => f.required).length} requeridos
                                         </Badge>
                                     </div>
                                     <div className="space-y-1 overflow-y-auto pr-1 flex-1">
@@ -697,7 +697,11 @@ export const CreateCalendarDrawer = ({
                             )
                         ) : (
                             <Button
-                                disabled={uploadedFiles.length !== 5 || isLoading}
+                                disabled={
+                                    uploadedFiles.filter(f => REQUIRED_FILES.find(rf => rf.name === f.name && rf.required)).length !==
+                                    REQUIRED_FILES.filter(f => f.required).length ||
+                                    isLoading
+                                }
                                 onClick={handleSave}
                             >
                                 {isLoading && <Spinner className="mr-2 h-4 w-4" />}

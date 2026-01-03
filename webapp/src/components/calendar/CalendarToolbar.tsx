@@ -1,17 +1,21 @@
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Download, Plus, FileSpreadsheet } from 'lucide-react';
+import { Download, Plus, FileSpreadsheet, Upload } from 'lucide-react';
 
 interface CalendarToolbarProps {
   onExport?: () => void;
   onExportCSV?: () => void;
   onCreateEvent?: () => void;
+  onImportExceptions?: () => void;
+  isAdmin?: boolean;
 }
 
 const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
   onExport,
   onExportCSV,
   onCreateEvent,
+  onImportExceptions,
+  isAdmin = false,
 }) => {
 
   return (
@@ -32,6 +36,24 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
           </TooltipTrigger>
           <TooltipContent>Crear nuevo evento</TooltipContent>
         </Tooltip>
+
+        {/* Import Exceptions Button - Only for ADMIN */}
+        {isAdmin && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onImportExceptions}
+                className="h-9 gap-2"
+              >
+                <Upload className="w-4 h-4" />
+                <span className="hidden sm:inline text-xs">Importar excepciones</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Importar excepciones.txt para reemplazar eventos puntuales</TooltipContent>
+          </Tooltip>
+        )}
 
         {/* Export CSV Button */}
         <Tooltip>

@@ -1,6 +1,6 @@
 import express from 'express';
 import multer from 'multer';
-import { getDegrees, getCourses, getCoursesByDegreeId, getCoursesByDegreeAcronym, getSubjects, getSubjectsByDegreeId, getSubjectsWithEventsAndGroupsByCourseAndSemester, getClassrooms, createClassroom, deleteClassroom, updateClassroom, createDegree, deleteDegree, deleteSubject, createSubject, updateSubject, deleteCourse, deleteCalendar, getDegreeByAcronym, createCourse, createCalendar, getCalendarById, createCalendarWithImport, importExceptions, getCalendarEvents, getPendingRequestsAsEvents, exportCalendar, updateCourse, updateDegree, createPuntualEvent, updatePuntualEvent, createPeriodicEvent, createCustomPeriodicEvent, updatePeriodicEvent, replacePeriodicEvent, deletePuntualEvent, deletePeriodicEvent, createEventRequest, getEventRequests, getEventRequestById, approveEventRequest, rejectEventRequest, deleteEventRequest, createGroup, deleteGroup, updateGroupPlanifiedHours } from '@/controllers/planner.controller';
+import { getDegrees, getCourses, getCoursesByDegreeId, getCoursesByDegreeAcronym, getSubjects, getSubjectsByDegreeId, getSubjectsWithEventsAndGroupsByCourseAndSemester, getClassrooms, createClassroom, deleteClassroom, updateClassroom, createDegree, deleteDegree, deleteSubject, createSubject, updateSubject, deleteCourse, deleteCalendar, getDegreeByAcronym, createCourse, createCalendar, getCalendarById, createCalendarWithImport, importExceptions, getCalendarEvents, getPendingRequestsAsEvents, exportCalendar, updateCourse, updateDegree, createPuntualEvent, updatePuntualEvent, createPeriodicEvent, createCustomPeriodicEvent, updatePeriodicEvent, updateCustomPeriodicEvent, replacePeriodicEvent, deletePuntualEvent, deletePeriodicEvent, createEventRequest, getEventRequests, getEventRequestById, approveEventRequest, rejectEventRequest, deleteEventRequest, createGroup, deleteGroup, updateGroupPlanifiedHours } from '@/controllers/planner.controller';
 
 // Configurar multer para el gateway
 const storage = multer.memoryStorage();
@@ -87,6 +87,8 @@ router.post('/calendar/periodic-event', createPeriodicEvent);
 router.post('/calendar/custom-periodic-event', createCustomPeriodicEvent);
 
 router.put('/calendar/periodic-event/:eventId', updatePeriodicEvent);
+
+router.put('/calendar/custom-periodic-event', updateCustomPeriodicEvent);
 
 router.post('/calendar/replace-event', replacePeriodicEvent);
 

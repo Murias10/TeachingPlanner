@@ -319,6 +319,13 @@ export const updatePeriodicEvent = (req: Request, res: Response, next: NextFunct
         body: req.body
     });
 
+export const updateCustomPeriodicEvent = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/calendar/custom-periodic-event`,
+        method: 'PUT',
+        body: req.body
+    });
+
 export const replacePeriodicEvent = (req: Request, res: Response, next: NextFunction) =>
     proxyRequest(req, res, next, {
         url: `${SERVICES.PLANNER}/calendar/replace-event`,

@@ -234,10 +234,10 @@ export function CalendarEventWrapper({
 
             <ContextMenuSeparator />
 
-            {/* Mostrar "Editar serie" para eventos semanales y quincenales (Normal, Par, Impar) */}
-            {(calendarEvent.eventCharacter === EVENT_CHARACTERS.NORMAL ||
-              calendarEvent.eventCharacter === EVENT_CHARACTERS.PAR ||
-              calendarEvent.eventCharacter === EVENT_CHARACTERS.IMPAR) && (
+            {/* Mostrar "Editar serie" para eventos periódicos (Normal, Par, Impar y personalizados) */}
+            {/* Solo excluir eventos festivos (F). Los días lectivos no tienen carácter específico */}
+            {calendarEvent.eventCharacter &&
+             calendarEvent.eventCharacter !== EVENT_CHARACTERS.FESTIVO && (
               <ContextMenuItem onClick={handleEditSeries}>
                 <Edit />
                 Editar serie de eventos

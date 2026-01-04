@@ -21,7 +21,7 @@ import type { CalendarEvent } from '@/types/CalendarEvent';
 import { useClassrooms } from '@/hooks/classroom/useClassrooms';
 import { useSubjectsByDegreeId } from '@/hooks/subject/useSubjectsByDegreeId';
 import { useSubjectsWithEventsAndGroupsByCourseAndSemester } from '@/hooks/subject/useSubjectsWithEventsAndGroupsByCourseIdAndSemester';
-import { EVENT_CHARACTERS } from '@/constants/eventCharacters';
+import { EVENT_CHARACTERS, isCustomEventCharacter } from '@/constants/eventCharacters';
 import { getCharacterDescription } from '@/utils/eventCharacterUtils';
 import { getMonthlyPatternLabels } from '@/utils/customPatternCalculator';
 
@@ -65,6 +65,12 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
   const [initialConfig, setInitialConfig] = useState<RecurrenceConfig | null>(null); // Store initial config to detect changes
 
   const previousEventTypeRef = React.useRef<string>('T');
+
+  // Detectar si el evento es periódico personalizado (custom character que no es N, P, I, F)
+  const isCustomPeriodicEvent = useMemo(() => {
+    if (event?.type !== 'periodic') return false;
+    return isCustomEventCharacter(event.eventCharacter);
+  }, [event]);
 
   // Actualizar config cuando cambie el evento
   useEffect(() => {
@@ -385,7 +391,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
 
         <div className="overflow-y-auto flex-1 px-6 py-3">
           <div className="space-y-3">
-            {/* Frequency Selection */}
+            {/* Frequency Selection - Always visible */}
             <div className="space-y-1">
               <Label className="text-xs font-semibold">Frecuencia</Label>
               <Select value={config.frequency} onValueChange={(value) => handleFrequencyChange(value as FrequencyType)} disabled>
@@ -402,33 +408,14 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
               </Select>
             </div>
 
-            {/* Custom Pattern Info - Read-only display for custom periodic events */}
-            {config.frequency === 'custom' && config.eventCharacter && (
-              <div className="space-y-2 p-3 border border-blue-200 rounded bg-blue-50 dark:bg-blue-950 dark:border-blue-800">
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center justify-center w-8 h-8 rounded bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-bold">
-                    {config.eventCharacter}
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-xs font-semibold text-blue-900 dark:text-blue-100">
-                      Patrón Personalizado
-                    </p>
-                    <p className="text-xs text-blue-700 dark:text-blue-300">
-                      Este evento utiliza un patrón de recurrencia personalizado. No se puede editar la frecuencia.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Date, Start Time, End Time in same row */}
             <div className="space-y-1">
               <Label className="text-xs font-semibold">
-                {(config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd') ? 'Día y Horario' : config.frequency === 'custom' ? 'Fecha Inicio y Horario' : 'Fecha y Horario'}
+                {isCustomPeriodicEvent ? 'Horario' : (config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd') ? 'Día y Horario' : config.frequency === 'custom' ? 'Fecha Inicio y Horario' : 'Fecha y Horario'}
               </Label>
               <div className="flex gap-2">
                 {/* Date Selection - for no-repeat */}
-                {config.frequency === 'no-repeat' && (
+                {!isCustomPeriodicEvent && config.frequency === 'no-repeat' && (
                   <Popover modal={true}>
                     <PopoverTrigger asChild>
                       <Button
@@ -456,7 +443,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                 )}
 
                 {/* Weekday Selection - for weekly and biweekly */}
-                {(config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd') && (
+                {!isCustomPeriodicEvent && (config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd') && (
                   <Select
                     value={config.weekDays[0] || ''}
                     onValueChange={(value) => setConfig({ ...config, weekDays: [value as WeekDay] })}
@@ -475,7 +462,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                 )}
 
                 {/* Date Selection - for custom */}
-                {config.frequency === 'custom' && (
+                {!isCustomPeriodicEvent && config.frequency === 'custom' && (
                   <Popover modal={true}>
                     <PopoverTrigger asChild>
                       <Button
@@ -721,7 +708,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
             </div>
 
             {/* Planified Hours - Only visible when frequency is periodic and group is selected */}
-            {(config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd') && config.groupIds && config.groupIds.length > 0 && (
+            {(config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd' || isCustomPeriodicEvent) && config.groupIds && config.groupIds.length > 0 && (
               <div className="space-y-2">
                 <Label htmlFor="planified-hours" className="text-xs font-semibold">Horas Planificadas</Label>
                 <Input
@@ -755,8 +742,8 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
               </div>
             )}
 
-            {/* Custom Frequency Options - Only visible for custom frequency */}
-            {config.frequency === 'custom' && (
+            {/* Custom Frequency Options - Only visible for custom frequency and NOT for custom periodic events in edit mode */}
+            {config.frequency === 'custom' && !isCustomPeriodicEvent && (
               <div className="space-y-3 p-3 border border-primary/20 rounded bg-accent/20">
                 {/* Frequency Unit Selection */}
                 <div className="space-y-1">

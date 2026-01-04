@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRef } from "react";
 import { getAuthHeaders } from '@/utils/authHeaders';
 import VITE_GATEWAY_API_URL from "@/config/api";
@@ -9,7 +9,7 @@ export interface CreateCustomPeriodicEventPayload {
     startTime: string; // HH:mm format
     endTime: string; // HH:mm format
     planifiedHours: number;
-    eventCharacter: string; // Custom character assigned
+    eventCharacter?: string; // Optional - backend will assign if not provided
     groupIds?: string[];
     classroomIds?: string[];
 }
@@ -43,6 +43,7 @@ interface CreateCustomPeriodicEventOptions {
 }
 
 export function useCreateCustomPeriodicEvent() {
+    const queryClient = useQueryClient();
     const callbacksRef = useRef<CreateCustomPeriodicEventOptions | undefined>(undefined);
 
     const mutation = useMutation<CreateCustomPeriodicEventResponse, ApiError, CreateCustomPeriodicEventPayload>({
@@ -62,7 +63,17 @@ export function useCreateCustomPeriodicEvent() {
 
             return res.json();
         },
-        onSuccess: (data) => {
+        onSuccess: (data, variables) => {
+            // Invalidar cache del calendario para actualizar charactersInUse
+            queryClient.invalidateQueries({
+                queryKey: ['calendar', variables.calendarId]
+            });
+
+            // Invalidar eventos del calendario
+            queryClient.invalidateQueries({
+                queryKey: ['calendar-events']
+            });
+
             if (callbacksRef.current?.onSuccess) {
                 callbacksRef.current.onSuccess(data);
             }

@@ -30,9 +30,8 @@ import { useCreatePeriodicEvent } from "@/hooks/calendar/useCreatePeriodicEvent"
 import { useCreateCustomPeriodicEvent } from "@/hooks/calendar/useCreateCustomPeriodicEvent";
 import { useUpdatePuntualEvent } from "@/hooks/calendar/useUpdatePuntualEvent";
 import { useUpdatePeriodicEvent } from "@/hooks/calendar/useUpdatePeriodicEvent";
+import { useUpdateCustomPeriodicEvent } from "@/hooks/calendar/useUpdateCustomPeriodicEvent";
 import { useDeletePuntualEvent } from "@/hooks/calendar/useDeletePuntualEvent";
-import { useCalendarById } from "@/hooks/calendar/useCalendarById";
-import { useAvailableCharacter } from "@/hooks/calendar/useAvailableCharacter";
 import { useImportExceptions } from "@/hooks/calendar/useImportExceptions";
 import { calculateAffectedDates, getAffectedDatesSummary } from "@/utils/customPatternCalculator";
 import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext";
@@ -46,7 +45,7 @@ import { generateGoogleCalendarCSV, downloadCSV } from "@/utils/csvExport";
 import { generateGroupId } from "@/utils/groupFormatUtils";
 import { sortAlphabetically, sortGruposByAcronymTypeNumber } from "@/utils/filterSortingUtils";
 import { getAuthHeaders } from "@/utils/authHeaders";
-import { EVENT_CHARACTERS } from "@/constants/eventCharacters";
+import { EVENT_CHARACTERS, isCustomEventCharacter } from "@/constants/eventCharacters";
 
 // Configurar moment para usar español y que la semana empiece en lunes
 moment.locale('es', {
@@ -164,9 +163,8 @@ export default function CalendarPage() {
     const { mutate: createCustomPeriodicEvent } = useCreateCustomPeriodicEvent();
     const { mutate: updatePuntualEvent } = useUpdatePuntualEvent();
     const { mutate: updatePeriodicEvent } = useUpdatePeriodicEvent();
+    const { updateCustomPeriodicEventAsync } = useUpdateCustomPeriodicEvent();
     const { deletePuntualEvent, isDeleting: isDeletingEvent } = useDeletePuntualEvent();
-    const { data: calendarDetails } = useCalendarById(calendarId);
-    const { availableCharacter } = useAvailableCharacter(calendarDetails?.charactersInUse);
     const crearSolicitud = useCrearSolicitud();
     const deleteRequest = useDeleteRequest();
     const isAdmin = user?.role === 'ADMIN';
@@ -900,9 +898,7 @@ export default function CalendarPage() {
                 customFrequencyUnit: config.customFrequencyUnit,
                 interval: config.interval,
                 weekDays: config.weekDays,
-                planifiedHours: config.planifiedHours,
-                calendarDetails,
-                availableCharacter
+                planifiedHours: config.planifiedHours
             });
 
             if (!config.customStartDate || !config.customFrequencyUnit || config.interval <= 0) {
@@ -961,15 +957,7 @@ export default function CalendarPage() {
                 return;
             }
 
-            if (!availableCharacter) {
-                console.log('[Custom Frequency] Error: No hay caracteres disponibles');
-                triggerAlert({
-                    title: 'Límite alcanzado',
-                    description: 'Se ha alcanzado el límite máximo de tipos de eventos para este calendario',
-                    variant: 'destructive'
-                });
-                return;
-            }
+            // El backend verificará si hay caracteres disponibles y devolverá error si se alcanzó el límite
 
             console.log('[Custom Frequency] Todas las validaciones pasaron, calculando fechas afectadas...');
 
@@ -1027,13 +1015,13 @@ export default function CalendarPage() {
             }
 
             // Crear el evento periódico personalizado
+            // El backend asignará automáticamente el eventCharacter disponible
             console.log('[Custom Frequency] Creando evento con payload:', {
                 calendarId,
                 affectedDates,
                 startTime: config.startTime,
                 endTime: config.endTime,
                 planifiedHours: config.planifiedHours,
-                eventCharacter: availableCharacter,
                 groupIds: config.groupIds,
                 classroomIds: config.classroomIds || []
             });
@@ -1045,7 +1033,6 @@ export default function CalendarPage() {
                     startTime: config.startTime,
                     endTime: config.endTime,
                     planifiedHours: config.planifiedHours,
-                    eventCharacter: availableCharacter,
                     groupIds: config.groupIds,
                     classroomIds: config.classroomIds || []
                 },
@@ -1081,11 +1068,36 @@ export default function CalendarPage() {
         });
     };
 
-    const handleUpdateEvent = (_eventId: string, config: RecurrenceConfig) => {
+    const handleUpdateEvent = async (_eventId: string, config: RecurrenceConfig) => {
         if (!eventToEdit) return;
 
         // Actualizar evento periódico
         if (eventToEdit.type === 'periodic' && eventToEdit.periodicEventId) {
+            // Detectar si es un evento periódico personalizado (custom character)
+            const isCustomPeriodicEvent = isCustomEventCharacter(eventToEdit.eventCharacter);
+
+            // Si es evento personalizado, usar el endpoint de actualización personalizada
+            if (isCustomPeriodicEvent && calendarId) {
+                try {
+                    await updateCustomPeriodicEventAsync({
+                        eventCharacter: eventToEdit.eventCharacter!,
+                        calendarId: calendarId,
+                        startTime: config.startTime,
+                        endTime: config.endTime,
+                        classroomIds: config.classroomIds || [],
+                        planifiedHours: config.planifiedHours
+                    });
+
+                    setIsEditEventDialogOpen(false);
+                    setEventToEdit(null);
+                    refetch();
+                } catch (error) {
+                    console.error('Error al actualizar eventos personalizados:', error);
+                }
+                return;
+            }
+
+            // Si es evento periódico estándar (N, P, I), usar el endpoint normal
             updatePeriodicEvent(
                 {
                     eventId: eventToEdit.periodicEventId,
@@ -1345,12 +1357,10 @@ export default function CalendarPage() {
     };
 
     const handleEditSeries = (event: CalendarEvent) => {
-        // Permitir editar series de eventos periódicos con eventCharacter Normal, Par o Impar
-        if (event.type === 'periodic' && (
-            event.eventCharacter === EVENT_CHARACTERS.NORMAL ||
-            event.eventCharacter === EVENT_CHARACTERS.PAR ||
-            event.eventCharacter === EVENT_CHARACTERS.IMPAR
-        )) {
+        // Permitir editar series de eventos periódicos (incluye eventos personalizados)
+        // Solo excluir eventos festivos (F). Los días lectivos no tienen carácter específico
+        if (event.type === 'periodic' && event.eventCharacter &&
+            event.eventCharacter !== EVENT_CHARACTERS.FESTIVO) {
             setEventToEdit(event);
             setIsEditEventDialogOpen(true);
             setIsEventDetailsDrawerOpen(false);

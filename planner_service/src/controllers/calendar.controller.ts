@@ -21,7 +21,7 @@ import { CalendarFormattingService } from '@/services/calendar-formatting.servic
 import { CalendarRepositoryService } from '@/services/calendar-repository.service';
 import { CalendarImportService } from '@/services/calendar-import.service';
 import { CalendarEventsService } from '@/services/calendar-events.service';
-import { EVENT_CHARACTERS, DAY_CHARACTERS, AVAILABLE_CHARACTERS, MAX_EVENT_TYPES } from '@/constants/event-characters.constants';
+import { EVENT_CHARACTERS, DAY_CHARACTERS, AVAILABLE_CHARACTERS, MAX_EVENT_TYPES, isStandardCharacter } from '@/constants/event-characters.constants';
 import { esSemanaPar } from '@/utils/calendar-week.utils';
 
 export const getCalendars = async (_req: AuditedRequest, res: Response) => {
@@ -1255,12 +1255,11 @@ export const deletePeriodicEvent = async (req: AuditedRequest, res: Response) =>
         }
 
         const periodicEventRepo = AppDataSource.getRepository(PeriodicEvent);
-        const groupRepo = AppDataSource.getRepository(Group);
 
-        // Find the periodic event
+        // Find the periodic event with calendar relation
         const periodicEvent = await periodicEventRepo.findOne({
             where: { id: eventId },
-            relations: ['groups']
+            relations: ['groups', 'calendar']
         });
 
         if (!periodicEvent) {
@@ -1272,35 +1271,98 @@ export const deletePeriodicEvent = async (req: AuditedRequest, res: Response) =>
             return;
         }
 
-        // Set updatedBy and updatedAt before deleting (to keep record of who deleted it and when)
         const userEmail = getUserEmailFromRequest(req);
-        periodicEvent.updatedBy = userEmail;
-        periodicEvent.updatedAt = new Date();
-        await periodicEventRepo.save(periodicEvent);
 
-        // Get groups before deleting the event
-        const groupsToCheck = periodicEvent.groups;
+        // Use transaction to ensure atomicity
+        await AppDataSource.transaction(async (transactionalEntityManager) => {
+            // Set updatedBy and updatedAt before deleting
+            periodicEvent.updatedBy = userEmail;
+            periodicEvent.updatedAt = new Date();
+            await transactionalEntityManager.save(periodicEvent);
 
-        // Delete the periodic event
-        await periodicEventRepo.remove(periodicEvent);
+            // Get data before deleting
+            const groupsToCheck = periodicEvent.groups;
+            const eventCharacter = periodicEvent.eventCharacter;
+            const calendarId = periodicEvent.calendar.id;
 
-        // Check if this was the last PeriodicEvent for each group
-        for (const group of groupsToCheck) {
-            const remainingPeriodicEvents = await periodicEventRepo
-                .createQueryBuilder('event')
-                .leftJoinAndSelect('event.groups', 'group')
-                .where('group.id = :groupId', { groupId: group.id })
-                .getCount();
+            // Delete the periodic event
+            await transactionalEntityManager.remove(periodicEvent);
 
-            // If no more PeriodicEvents exist for this group, set planifiedHours to 0
-            if (remainingPeriodicEvents === 0) {
-                group.planifiedHours = 0;
-                group.updatedBy = userEmail;
-                group.updatedAt = new Date();
-                await groupRepo.save(group);
-                console.log(`[Periodic Event Delete] Reset planified hours to 0 for group ${group.type}-${group.number} (no more periodic events)`);
+            // Check if this was the last PeriodicEvent for each group
+            for (const group of groupsToCheck) {
+                const remainingPeriodicEvents = await transactionalEntityManager
+                    .createQueryBuilder(PeriodicEvent, 'event')
+                    .leftJoinAndSelect('event.groups', 'group')
+                    .where('group.id = :groupId', { groupId: group.id })
+                    .getCount();
+
+                // If no more PeriodicEvents exist for this group, set planifiedHours to 0
+                if (remainingPeriodicEvents === 0) {
+                    group.planifiedHours = 0;
+                    group.updatedBy = userEmail;
+                    group.updatedAt = new Date();
+                    await transactionalEntityManager.save(group);
+                    console.log(`[Periodic Event Delete] Reset planified hours to 0 for group ${group.type}-${group.number} (no more periodic events)`);
+                }
             }
-        }
+
+            // CHARACTER CLEANUP: Only for custom periodic events (not N, P, I, F)
+            if (eventCharacter && !isStandardCharacter(eventCharacter) && eventCharacter !== DAY_CHARACTERS.NON_LECTIVE) {
+                // Check if there are any remaining events with the same character
+                const remainingEventsWithCharacter = await transactionalEntityManager
+                    .createQueryBuilder(PeriodicEvent, 'event')
+                    .leftJoin('event.calendar', 'calendar')
+                    .where('calendar.id = :calendarId', { calendarId })
+                    .andWhere('event.eventCharacter = :eventCharacter', { eventCharacter })
+                    .getCount();
+
+                // If this was the last event using this character, clean it up
+                if (remainingEventsWithCharacter === 0) {
+                    console.log(`[Character Cleanup] No more events using character '${eventCharacter}'. Cleaning up...`);
+
+                    // 1. Remove character from Calendar.charactersInUse
+                    const calendar = await transactionalEntityManager.findOne(Calendar, {
+                        where: { id: calendarId }
+                    });
+
+                    if (calendar && calendar.charactersInUse) {
+                        const updatedCharactersInUse = calendar.charactersInUse
+                            .split('')
+                            .filter(char => char !== eventCharacter)
+                            .join('');
+
+                        calendar.charactersInUse = updatedCharactersInUse;
+                        calendar.updatedBy = userEmail;
+                        calendar.updatedAt = new Date();
+                        await transactionalEntityManager.save(calendar);
+
+                        console.log(`[Character Cleanup] Removed '${eventCharacter}' from Calendar.charactersInUse. Character is now available for reuse.`);
+                    }
+
+                    // 2. Remove character from Day.dayCharacter for all days in this calendar
+                    const daysWithCharacter = await transactionalEntityManager
+                        .createQueryBuilder(Day, 'day')
+                        .leftJoin('day.calendar', 'calendar')
+                        .where('calendar.id = :calendarId', { calendarId })
+                        .andWhere('day.dayCharacter LIKE :pattern', { pattern: `%${eventCharacter}%` })
+                        .getMany();
+
+                    for (const day of daysWithCharacter) {
+                        const updatedDayCharacter = day.dayCharacter
+                            .split('')
+                            .filter(char => char !== eventCharacter)
+                            .join('');
+
+                        day.dayCharacter = updatedDayCharacter;
+                        day.updatedBy = userEmail;
+                        day.updatedAt = new Date();
+                        await transactionalEntityManager.save(day);
+                    }
+
+                    console.log(`[Character Cleanup] Removed '${eventCharacter}' from ${daysWithCharacter.length} days' dayCharacter field`);
+                }
+            }
+        });
 
         console.log(`[Periodic Event Delete] Deleted periodic event ${eventId} by ${userEmail}`);
 
@@ -1968,6 +2030,145 @@ export const updatePeriodicEvent = async (req: AuditedRequest, res: Response) =>
         res.status(500).json({
             status: 'error',
             message: 'Error updating periodic event',
+            data: error instanceof Error ? error.message : error
+        });
+    }
+};
+
+/**
+ * Update all custom periodic events with the same character in a calendar
+ * Updates ALL PeriodicEvent records that share the same eventCharacter
+ * Used for editing custom frequency periodic events created via pattern
+ */
+export const updateCustomPeriodicEvent = async (req: AuditedRequest, res: Response) => {
+    try {
+        const { eventCharacter, calendarId, startTime, endTime, classroomIds = [], planifiedHours } = req.body;
+
+        // Validaciones
+        if (!eventCharacter || !calendarId) {
+            res.status(400).json({
+                status: 'error',
+                message: 'Missing required fields: eventCharacter, calendarId',
+                data: null
+            });
+            return;
+        }
+
+        if (!startTime || !endTime) {
+            res.status(400).json({
+                status: 'error',
+                message: 'Missing required fields: startTime, endTime',
+                data: null
+            });
+            return;
+        }
+
+        // Validate eventCharacter is not a standard character (N, P, I, F)
+        const standardCharacters = ['N', 'P', 'I', 'F'];
+        if (standardCharacters.includes(eventCharacter)) {
+            res.status(400).json({
+                status: 'error',
+                message: 'Cannot update standard periodic events using this endpoint',
+                data: null
+            });
+            return;
+        }
+
+        const periodicEventRepo = AppDataSource.getRepository(PeriodicEvent);
+        const classroomRepo = AppDataSource.getRepository(Classroom);
+        const groupRepo = AppDataSource.getRepository(Group);
+        const dayRepo = AppDataSource.getRepository(Day);
+
+        // Find all PeriodicEvents with this character in this calendar
+        const periodicEvents = await periodicEventRepo
+            .createQueryBuilder('event')
+            .leftJoinAndSelect('event.groups', 'group')
+            .leftJoinAndSelect('event.classrooms', 'classroom')
+            .leftJoin('event.calendar', 'calendar')
+            .where('calendar.id = :calendarId', { calendarId })
+            .andWhere('event.eventCharacter = :eventCharacter', { eventCharacter })
+            .getMany();
+
+        if (periodicEvents.length === 0) {
+            res.status(404).json({
+                status: 'error',
+                message: 'No periodic events found with this character in the calendar',
+                data: null
+            });
+            return;
+        }
+
+        // Get classrooms if provided
+        const classrooms = classroomIds.length > 0
+            ? await classroomRepo.find({ where: { id: In(classroomIds) } })
+            : [];
+
+        // Get user email for audit
+        const userEmail = getUserEmailFromRequest(req);
+
+        // Update all events
+        let updatedCount = 0;
+        for (const event of periodicEvents) {
+            event.startTime = startTime;
+            event.endTime = endTime;
+            event.classrooms = classrooms;
+            event.updatedBy = userEmail;
+            event.updatedAt = new Date();
+
+            // Update planified hours if provided
+            if (planifiedHours !== undefined && planifiedHours !== null) {
+                event.planifiedHours = planifiedHours;
+
+                // Update Group.planifiedHours for all groups in this event
+                for (const group of event.groups) {
+                    if (group.planifiedHours !== planifiedHours) {
+                        group.planifiedHours = planifiedHours;
+                        group.updatedBy = userEmail;
+                        group.updatedAt = new Date();
+                        await groupRepo.save(group);
+                        console.log(`[Custom Periodic Event Update] Updated planified hours to ${planifiedHours} for group ${group.type}-${group.number}`);
+
+                        // Update ALL PeriodicEvents associated with this group
+                        const allPeriodicEventsForGroup = await periodicEventRepo
+                            .createQueryBuilder('event')
+                            .leftJoinAndSelect('event.groups', 'group')
+                            .where('group.id = :groupId', { groupId: group.id })
+                            .getMany();
+
+                        for (const groupEvent of allPeriodicEventsForGroup) {
+                            if (groupEvent.planifiedHours !== planifiedHours) {
+                                groupEvent.planifiedHours = planifiedHours;
+                                groupEvent.updatedBy = userEmail;
+                                groupEvent.updatedAt = new Date();
+                                await periodicEventRepo.save(groupEvent);
+                            }
+                        }
+
+                        console.log(`[Custom Periodic Event Update] Updated ${allPeriodicEventsForGroup.length} periodic events for group ${group.type}-${group.number}`);
+                    }
+                }
+            }
+
+            await periodicEventRepo.save(event);
+            updatedCount++;
+        }
+
+        console.log(`[Custom Periodic Event Update] Updated ${updatedCount} events with character '${eventCharacter}' in calendar ${calendarId}`);
+
+        res.status(200).json({
+            status: 'success',
+            message: 'Custom periodic events updated successfully',
+            data: {
+                updatedCount,
+                eventCharacter
+            }
+        });
+
+    } catch (error) {
+        console.error('Error updating custom periodic events:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error updating custom periodic events',
             data: error instanceof Error ? error.message : error
         });
     }

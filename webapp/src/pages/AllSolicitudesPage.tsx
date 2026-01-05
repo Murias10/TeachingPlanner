@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useParams, Navigate } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
@@ -7,37 +7,32 @@ import { useListarSolicitudes } from "@/hooks/event-request/useListarSolicitudes
 import { useAprobarSolicitud } from "@/hooks/event-request/useAprobarSolicitud";
 import { useRechazarSolicitud } from "@/hooks/event-request/useRechazarSolicitud";
 import { useFloatingAlert } from "@/hooks/useFloatingAlert";
-import { useDegreeByAcronym } from "@/hooks/degree/useDegreeByAcronym";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-    DialogFooter,
-} from "@/components/ui/dialog";
 import { RefreshCw } from "lucide-react";
 import { SolicitudTable } from "@/components/solicitud/SolicitudTable";
 import ApproveRequestDialog from "@/components/solicitud/ApproveRequestDialog";
-import moment from "moment";
+import RejectRequestDialog from "@/components/calendar/RejectRequestDialog";
 
 interface EventRequest {
     id: string;
     professorId: string;
     calendarId: string;
     eventType: 'PUNTUAL' | 'PERIODIC';
-    eventData: Record<string, undefined>;
+    eventData: Record<string, any>;
     status: 'PENDING' | 'APPROVED' | 'REJECTED';
     reviewedBy?: string;
     reviewedAt?: string;
     comments?: string;
     createdAt: string;
+    degreeAcronym?: string | null;
+    degreeName?: string | null;
+    courseStartYear?: number | null;
+    courseEndYear?: number | null;
+    semester?: number | null;
 }
 
-const SolicitudPage = () => {
+const AllSolicitudesPage = () => {
     const { t } = useTranslation();
     const { setItems } = useBreadcrumbContext();
     const { triggerAlert } = useFloatingAlert();
@@ -45,15 +40,12 @@ const SolicitudPage = () => {
     const listarSolicitudes = useListarSolicitudes();
     const aprobarSolicitud = useAprobarSolicitud();
     const rechazarSolicitud = useRechazarSolicitud();
-    const { acronym, startYear, endYear, semester } = useParams<{ acronym: string, startYear: string, endYear: string, semester: string }>();
-    const { data: degree } = useDegreeByAcronym(acronym || null);
 
     const [solicitudes, setSolicitudes] = useState<EventRequest[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [approveDialogOpen, setApproveDialogOpen] = useState(false);
     const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
     const [selectedSolicitud, setSelectedSolicitud] = useState<EventRequest | null>(null);
-    const [comments, setComments] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [statusFilter, setStatusFilter] = useState<'all' | 'PENDING' | 'APPROVED' | 'REJECTED'>('PENDING');
 
@@ -79,13 +71,11 @@ const SolicitudPage = () => {
     // Cargar solicitudes al montar el componente
     useEffect(() => {
         setItems([
-            { label: t("breadcrumb.degrees"), href: "/degrees" },
-            { label: t("breadcrumb.courses"), href: `/degrees/${acronym}/courses` },
-            { label: t("breadcrumb.calendar"), href: `/degrees/${acronym}/courses/${startYear}/${endYear}/semester/${semester}/calendar` },
+            { label: t("breadcrumb.home"), href: "/degrees" },
             { label: "Solicitudes", href: "" },
         ]);
         cargarSolicitudes();
-    }, [setItems, t, acronym, startYear, endYear, semester, cargarSolicitudes]);
+    }, [setItems, t, cargarSolicitudes]);
 
     // Protección: Solo ADMIN puede acceder
     if (user?.role !== 'ADMIN') {
@@ -93,10 +83,8 @@ const SolicitudPage = () => {
     }
 
     const handleApprove = (solicitud: EventRequest) => {
-        console.log('[SolicitudPage] handleApprove called with:', solicitud);
         setSelectedSolicitud(solicitud);
         setApproveDialogOpen(true);
-        console.log('[SolicitudPage] Dialog should open now');
     };
 
     const handleApproveWithData = async (planifiedHours: number | undefined, classroomIds: string[]) => {
@@ -139,11 +127,10 @@ const SolicitudPage = () => {
 
     const handleReject = (solicitud: EventRequest) => {
         setSelectedSolicitud(solicitud);
-        setComments("");
         setRejectDialogOpen(true);
     };
 
-    const handleConfirmReject = async () => {
+    const handleRejectWithComments = async (comments: string) => {
         if (!selectedSolicitud) return;
 
         setIsSubmitting(true);
@@ -179,10 +166,6 @@ const SolicitudPage = () => {
         }
     };
 
-    const getEventTypeLabel = (eventType: string) => {
-        return eventType === 'PUNTUAL' ? 'Puntual' : 'Periódica';
-    };
-
     if (isLoading && solicitudes.length === 0) {
         return (
             <section className="h-full rounded-xl bg-muted/50 flex items-center justify-center m-2 p-10">
@@ -199,10 +182,10 @@ const SolicitudPage = () => {
                 {/* Header */}
                 <div className="px-6 py-5 border-b bg-background">
                     <h1 className="text-2xl font-semibold text-foreground mb-1">
-                        Solicitudes de Eventos
+                        Todas las Solicitudes
                     </h1>
                     <p className="text-sm text-muted-foreground">
-                        Semestre {semester} • {degree?.name || acronym?.toUpperCase()} • {startYear}-{endYear}
+                        Gestión centralizada de solicitudes de eventos de todas las titulaciones
                     </p>
                 </div>
 
@@ -264,73 +247,14 @@ const SolicitudPage = () => {
             />
 
             {/* Reject Request Dialog */}
-            <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Rechazar solicitud</DialogTitle>
-                        <DialogDescription>
-                            Asegúrate de proporcionar un comentario sobre el motivo del rechazo
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    <div className="space-y-4">
-                        {selectedSolicitud && (
-                            <>
-                                <div>
-                                    <label className="text-sm font-medium">Profesor</label>
-                                    <p className="text-sm text-muted-foreground mt-1">
-                                        {selectedSolicitud.professorId}
-                                    </p>
-                                </div>
-                                <div>
-                                    <label className="text-sm font-medium">Tipo de evento</label>
-                                    <p className="text-sm text-muted-foreground mt-1">
-                                        {getEventTypeLabel(selectedSolicitud.eventType)}
-                                    </p>
-                                </div>
-                                <div>
-                                    <label className="text-sm font-medium">Fecha de solicitud</label>
-                                    <p className="text-sm text-muted-foreground mt-1">
-                                        {moment(selectedSolicitud.createdAt).format('DD/MM/YYYY HH:mm')}
-                                    </p>
-                                </div>
-                            </>
-                        )}
-
-                        <div>
-                            <label htmlFor="comments" className="text-sm font-medium">
-                                Comentarios
-                            </label>
-                            <Textarea
-                                id="comments"
-                                placeholder="Proporciona un comentario sobre el motivo del rechazo..."
-                                value={comments}
-                                onChange={(e) => setComments(e.target.value)}
-                                className="mt-2 min-h-20"
-                            />
-                        </div>
-                    </div>
-
-                    <DialogFooter>
-                        <Button
-                            variant="outline"
-                            onClick={() => setRejectDialogOpen(false)}
-                            disabled={isSubmitting}
-                        >
-                            Cancelar
-                        </Button>
-                        <Button
-                            onClick={handleConfirmReject}
-                            disabled={isSubmitting || !comments.trim()}
-                            variant="destructive"
-                        >
-                            {isSubmitting ? 'Procesando...' : 'Rechazar'}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            <RejectRequestDialog
+                open={rejectDialogOpen}
+                onOpenChange={setRejectDialogOpen}
+                onReject={handleRejectWithComments}
+                isSubmitting={isSubmitting}
+            />
         </>
     );
 };
 
-export default SolicitudPage;
+export default AllSolicitudesPage;

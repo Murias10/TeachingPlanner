@@ -35,6 +35,9 @@
             "users": {
                 "title": "Gestión de usuarios"
             },
+            "requests": {
+                "title": "Solicitudes"
+            },
             "reports": {
                 "title": "Informes de uso"
             }
@@ -57,6 +60,7 @@
         "system": "Sistema",
         "logs": "Registros del sistema",
         "users": "Gestión de usuarios",
+        "requests": "Solicitudes",
         "reports": "Informes de uso",
         "faq": "Preguntas frecuentes"
     },
@@ -408,6 +412,9 @@
         "button": {
             "confirm": "Confirmar",
             "cancel": "Cancelar"
+        },
+        "delete": {
+            "title": "Eliminar evento"
         },
         "degrees": {
             "delete": {

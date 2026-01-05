@@ -38,6 +38,11 @@ import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCrearSolicitud } from "@/hooks/event-request/useCrearSolicitud";
 import { useDeleteRequest } from "@/hooks/event-request/useDeleteRequest";
+import { useGetSolicitudById } from "@/hooks/event-request/useGetSolicitudById";
+import { useAprobarSolicitud } from "@/hooks/event-request/useAprobarSolicitud";
+import { useRechazarSolicitud } from "@/hooks/event-request/useRechazarSolicitud";
+import ApproveRequestDialog from "@/components/solicitud/ApproveRequestDialog";
+import RejectRequestDialog from "@/components/calendar/RejectRequestDialog";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Bell } from "lucide-react";
@@ -167,7 +172,21 @@ export default function CalendarPage() {
     const { deletePuntualEvent, isDeleting: isDeletingEvent } = useDeletePuntualEvent();
     const crearSolicitud = useCrearSolicitud();
     const deleteRequest = useDeleteRequest();
+    const aprobarSolicitud = useAprobarSolicitud();
+    const rechazarSolicitud = useRechazarSolicitud();
     const isAdmin = user?.role === 'ADMIN';
+
+    // Estado para revisión de solicitudes desde el calendario
+    const [reviewRequestId, setReviewRequestId] = useState<string | null>(null);
+    const [approveDialogOpen, setApproveDialogOpen] = useState(false);
+    const [isSubmittingApproval, setIsSubmittingApproval] = useState(false);
+    const { data: requestToReview } = useGetSolicitudById(reviewRequestId);
+
+    // Estado para aprobación/rechazo directo
+    const [quickApproveRequestId, setQuickApproveRequestId] = useState<string | null>(null);
+    const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+    const [rejectRequestId, setRejectRequestId] = useState<string | null>(null);
+    const [isSubmittingReject, setIsSubmittingReject] = useState(false);
 
     // Obtener eventos de solicitudes pendientes
     const { data: pendingData, isLoading: isLoadingPending, refetch: refetchPendingRequests } = usePendingRequestsAsEvents(calendarId);
@@ -1314,19 +1333,185 @@ export default function CalendarPage() {
         setIsEventDetailsDrawerOpen(true);
     };
 
-    const handleApproveRequest = (event: CalendarEvent) => {
-        // TODO: Implement approve request logic
-        console.log('Approve request:', event);
+    const handleApproveRequest = async (event: CalendarEvent) => {
+        if (!event.requestId) {
+            triggerAlert({
+                title: 'Error',
+                description: 'No se pudo identificar la solicitud',
+                variant: 'destructive'
+            });
+            return;
+        }
+
+        // Extract the actual request ID
+        let actualRequestId = event.requestId;
+        if (actualRequestId.startsWith('request-')) {
+            actualRequestId = actualRequestId.substring(8);
+        }
+        if (actualRequestId.length > 36) {
+            actualRequestId = actualRequestId.substring(0, 36);
+        }
+
+        setQuickApproveRequestId(actualRequestId);
+
+        // Approve directly without additional data
+        try {
+            const result = await aprobarSolicitud(actualRequestId, undefined, refetchPendingRequests);
+
+            if (result.success) {
+                triggerAlert({
+                    title: 'Solicitud aprobada',
+                    description: 'La solicitud ha sido aprobada y el evento ha sido creado exitosamente',
+                    variant: 'default'
+                });
+                refetch();
+            } else {
+                triggerAlert({
+                    title: 'Error',
+                    description: result.message || 'No se pudo aprobar la solicitud',
+                    variant: 'destructive'
+                });
+            }
+        } catch (error) {
+            triggerAlert({
+                title: 'Error',
+                description: 'Ocurrió un error al aprobar la solicitud',
+                variant: 'destructive'
+            });
+        } finally {
+            setQuickApproveRequestId(null);
+        }
     };
 
     const handleRejectRequest = (event: CalendarEvent) => {
-        // TODO: Implement reject request logic
-        console.log('Reject request:', event);
+        if (!event.requestId) {
+            triggerAlert({
+                title: 'Error',
+                description: 'No se pudo identificar la solicitud',
+                variant: 'destructive'
+            });
+            return;
+        }
+
+        // Extract the actual request ID
+        let actualRequestId = event.requestId;
+        if (actualRequestId.startsWith('request-')) {
+            actualRequestId = actualRequestId.substring(8);
+        }
+        if (actualRequestId.length > 36) {
+            actualRequestId = actualRequestId.substring(0, 36);
+        }
+
+        setRejectRequestId(actualRequestId);
+        setRejectDialogOpen(true);
+    };
+
+    const handleRejectWithComments = async (comments: string) => {
+        if (!rejectRequestId) return;
+
+        setIsSubmittingReject(true);
+
+        try {
+            const result = await rechazarSolicitud(rejectRequestId, comments, refetchPendingRequests);
+
+            if (result.success) {
+                triggerAlert({
+                    title: 'Solicitud rechazada',
+                    description: 'La solicitud ha sido rechazada exitosamente',
+                    variant: 'default'
+                });
+                setRejectDialogOpen(false);
+                setRejectRequestId(null);
+            } else {
+                triggerAlert({
+                    title: 'Error',
+                    description: result.message || 'No se pudo rechazar la solicitud',
+                    variant: 'destructive'
+                });
+            }
+        } catch (error) {
+            triggerAlert({
+                title: 'Error',
+                description: 'Ocurrió un error al rechazar la solicitud',
+                variant: 'destructive'
+            });
+        } finally {
+            setIsSubmittingReject(false);
+        }
     };
 
     const handleReviewRequest = (event: CalendarEvent) => {
-        // TODO: Implement review request logic
-        console.log('Review request:', event);
+        if (!event.requestId) {
+            triggerAlert({
+                title: 'Error',
+                description: 'No se pudo identificar la solicitud',
+                variant: 'destructive'
+            });
+            return;
+        }
+
+        // Extract the actual request ID
+        // requestId format: "request-{uuid}" or "request-{uuid}-{date}"
+        // We need to extract just the UUID part
+        let actualRequestId = event.requestId;
+
+        // Remove 'request-' prefix if present
+        if (actualRequestId.startsWith('request-')) {
+            actualRequestId = actualRequestId.substring(8); // Remove 'request-'
+        }
+
+        // If there's a date suffix (format: -YYYY-MM-DD), remove it
+        // UUID format: 8-4-4-4-12 characters (36 total with dashes)
+        // So we take the first 36 characters
+        if (actualRequestId.length > 36) {
+            actualRequestId = actualRequestId.substring(0, 36);
+        }
+
+        setReviewRequestId(actualRequestId);
+        setApproveDialogOpen(true);
+    };
+
+    const handleApproveWithData = async (planifiedHours: number | undefined, classroomIds: string[]) => {
+        if (!requestToReview) return;
+
+        setIsSubmittingApproval(true);
+
+        try {
+            const result = await aprobarSolicitud(
+                requestToReview.id,
+                { planifiedHours, classroomIds },
+                () => {
+                    refetchPendingRequests();
+                    refetch();
+                }
+            );
+
+            if (result.success) {
+                triggerAlert({
+                    title: 'Solicitud aprobada',
+                    description: 'El evento ha sido creado exitosamente',
+                    variant: 'success'
+                });
+                setApproveDialogOpen(false);
+                setReviewRequestId(null);
+                refetchPendingRequests();
+                refetch();
+            } else {
+                triggerAlert({
+                    title: 'Error',
+                    description: result.message || 'Error al aprobar la solicitud',
+                    variant: 'destructive'
+                });
+            }
+        } catch {
+            triggerAlert({
+                title: 'Error',
+                description: 'Ocurrió un error al aprobar la solicitud',
+                variant: 'destructive'
+            });
+        } finally {
+            setIsSubmittingApproval(false);
+        }
     };
 
     const handleDeleteRequest = async (event: CalendarEvent) => {
@@ -1483,8 +1668,26 @@ export default function CalendarPage() {
                 comment: config.comment || '',
                 cancelled: false
             };
-        } else {
-            // Evento recurrente - mapear los datos necesarios
+        } else if (config.frequency === 'custom') {
+            // Evento custom periodic - calcular affectedDates
+            // Get calendar details from course
+            const calendar = course?.calendars?.find(cal => cal.id === calendarId);
+            const calendarStart = calendar?.startDate ? new Date(calendar.startDate) : new Date();
+            const calendarEnd = calendar?.endDate ? new Date(calendar.endDate) : new Date();
+
+            const affectedDates = calculateAffectedDates({
+                calendarStart,
+                startDate: new Date(config.customStartDate),
+                endDate: calendarEnd,
+                interval: config.interval,
+                unit: config.customFrequencyUnit,
+                weekDays: config.weekDays,
+                endsType: config.endsType,
+                endsOnDate: config.endsOnDate,
+                endsAfterOccurrences: config.endsAfterOccurrences,
+                monthlyPatternType: config.monthlyPatternType
+            });
+
             eventData = {
                 startTime: config.startTime,
                 endTime: config.endTime,
@@ -1492,8 +1695,29 @@ export default function CalendarPage() {
                 groupIds: config.groupIds,
                 classroomIds: config.classroomIds,
                 frequency: config.frequency,
+                affectedDates: affectedDates,
+                planifiedHours: config.endsAfterOccurrences || 0, // Horas planificadas desde endsAfterOccurrences
                 interval: config.interval,
+                customFrequencyUnit: config.customFrequencyUnit,
                 weekDays: config.weekDays,
+                monthlyPatternType: config.monthlyPatternType,
+                endsType: config.endsType,
+                endsOnDate: config.endsOnDate,
+                endsAfterOccurrences: config.endsAfterOccurrences,
+                customStartDate: config.customStartDate
+            };
+        } else {
+            // Evento recurrente estándar (weekly, biweekly-even, biweekly-odd)
+            eventData = {
+                startTime: config.startTime,
+                endTime: config.endTime,
+                subjectId: config.subjectId,
+                groupIds: config.groupIds,
+                classroomIds: config.classroomIds,
+                frequency: config.frequency,
+                weekDays: config.weekDays,
+                planifiedHours: config.planifiedHours || 0, // Opcional - admin completará si falta
+                interval: config.interval,
                 endsType: config.endsType,
                 endsOnDate: config.endsOnDate,
                 endsAfterOccurrences: config.endsAfterOccurrences
@@ -1895,6 +2119,27 @@ export default function CalendarPage() {
                     onImport={handleImportExceptions}
                     isLoading={isImportingExceptions}
                 />
+            )}
+
+            {/* Approve Request Dialog - Solo para ADMIN */}
+            {isAdmin && (
+                <>
+                    <ApproveRequestDialog
+                        open={approveDialogOpen}
+                        onOpenChange={setApproveDialogOpen}
+                        solicitud={requestToReview || null}
+                        onApprove={handleApproveWithData}
+                        isSubmitting={isSubmittingApproval}
+                    />
+
+                    {/* Reject Request Dialog */}
+                    <RejectRequestDialog
+                        open={rejectDialogOpen}
+                        onOpenChange={setRejectDialogOpen}
+                        onReject={handleRejectWithComments}
+                        isSubmitting={isSubmittingReject}
+                    />
+                </>
             )}
         </>
     );

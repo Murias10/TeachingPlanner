@@ -565,36 +565,63 @@ export const getPendingRequestsAsEvents = async (req: AuditedRequest, res: Respo
 
             // Procesar solicitudes PERIÓDICAS
             if (request.eventType === 'PERIODIC') {
-                const { startTime, endTime, groupIds, classroomIds, weekDays, endsType, endsOnDate, endsAfterOccurrences } = eventData;
+                const { startTime, endTime, groupIds, classroomIds, weekDays, frequency, affectedDates } = eventData;
 
                 const { groups, classrooms } = await CalendarRepositoryService.fetchGroupsAndClassrooms(groupIds, classroomIds);
 
-                const days = await dayRepo.find({
-                    where: { calendar: { id } },
-                    order: { date: 'ASC' }
-                });
-
-                const dayMap: { [key: string]: number } = {
-                    'sunday': 0, 'monday': 1, 'tuesday': 2, 'wednesday': 3, 'thursday': 4, 'friday': 5, 'saturday': 6
-                };
-
-                let occurrenceCount = 0;
-                const maxOccurrences = endsType === 'after' ? endsAfterOccurrences : Infinity;
-                const endDate = endsType === 'on' ? new Date(endsOnDate) : new Date(calendar.end);
-
-                for (const day of days) {
-                    if (occurrenceCount >= maxOccurrences || day.date > endDate) break;
-
-                    const dayOfWeek = day.date.getDay();
-                    const matchesWeekDay = weekDays?.some((wd: string) => dayMap[wd.toLowerCase()] === dayOfWeek);
-
-                    if (matchesWeekDay && day.lective) {
-                        pendingEvents.push({
-                            id: `request-${request.id}-${day.date.toISOString().split('T')[0]}`,
-                            type: 'periodic',
-                            ...CalendarFormattingService.formatEventData(groups, classrooms, request, startTime, endTime, day.date.toISOString())
+                // Handle custom frequency events (use pre-calculated affectedDates)
+                if (frequency === 'custom' && affectedDates && affectedDates.length > 0) {
+                    for (const dateStr of affectedDates) {
+                        const day = await dayRepo.findOne({
+                            where: {
+                                date: new Date(dateStr),
+                                calendar: { id }
+                            }
                         });
-                        occurrenceCount++;
+
+                        if (day && day.lective) {
+                            pendingEvents.push({
+                                id: `request-${request.id}-${dateStr}`,
+                                type: 'periodic',
+                                ...CalendarFormattingService.formatEventData(groups, classrooms, request, startTime, endTime, day.date.toISOString())
+                            });
+                        }
+                    }
+                } else {
+                    // Handle standard periodic events (weekly, biweekly-even, biweekly-odd)
+                    const days = await dayRepo.find({
+                        where: { calendar: { id } },
+                        order: { date: 'ASC' }
+                    });
+
+                    // Map weekDay letters (L, M, X, J, V, S, D) to JavaScript day numbers
+                    const weekDayMap: { [key: string]: number } = {
+                        'D': 0, 'L': 1, 'M': 2, 'X': 3, 'J': 4, 'V': 5, 'S': 6
+                    };
+
+                    for (const day of days) {
+                        if (!day.lective) continue;
+
+                        const dayOfWeek = day.date.getDay(); // 0 = Sunday, 1 = Monday, etc.
+                        const matchesWeekDay = weekDays?.some((wd: string) => weekDayMap[wd.toUpperCase()] === dayOfWeek);
+
+                        if (matchesWeekDay) {
+                            // For biweekly events, check week parity
+                            if (frequency === 'biweekly-even' || frequency === 'biweekly-odd') {
+                                const { calcularNumeroSemanaDesdeInicio } = await import('@/utils/calendar-week.utils');
+                                const weekNumber = calcularNumeroSemanaDesdeInicio(day.date, calendar.start);
+                                const isEvenWeek = weekNumber % 2 === 0;
+
+                                if (frequency === 'biweekly-even' && !isEvenWeek) continue;
+                                if (frequency === 'biweekly-odd' && isEvenWeek) continue;
+                            }
+
+                            pendingEvents.push({
+                                id: `request-${request.id}-${day.date.toISOString().split('T')[0]}`,
+                                type: 'periodic',
+                                ...CalendarFormattingService.formatEventData(groups, classrooms, request, startTime, endTime, day.date.toISOString())
+                            });
+                        }
                     }
                 }
             }

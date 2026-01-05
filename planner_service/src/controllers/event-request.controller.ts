@@ -160,10 +160,12 @@ export const getEventRequestById = async (req: AuditedRequest, res: Response) =>
 /**
  * Approve an event request and create the event (ADMIN only)
  * Creates either PUNTUAL_EVENT or PERIODIC_EVENT based on eventType
+ * Admin can complete missing fields (planifiedHours, classroomIds) before approval
  */
 export const approveEventRequest = async (req: AuditedRequest, res: Response) => {
     try {
         const { id } = req.params;
+        const { planifiedHours, classroomIds } = req.body; // Optional fields completed by admin
         const userEmail = getUserEmailFromRequest(req);
 
         // Get the request
@@ -188,12 +190,26 @@ export const approveEventRequest = async (req: AuditedRequest, res: Response) =>
         }
 
         try {
+            // Merge admin-completed data with original request data
+            const completedEventData = {
+                ...eventRequest.eventData,
+                // Override with admin-provided values if present
+                ...(planifiedHours !== undefined && { planifiedHours }),
+                ...(classroomIds !== undefined && { classroomIds }),
+            };
+
+            // Create a modified event request with completed data
+            const completedEventRequest = {
+                ...eventRequest,
+                eventData: completedEventData,
+            };
+
             let createdEventId: string;
 
             if (eventRequest.eventType === 'PUNTUAL') {
-                createdEventId = await createPuntualEventFromRequest(eventRequest);
+                createdEventId = await createPuntualEventFromRequest(completedEventRequest);
             } else {
-                createdEventId = await createPeriodicEventFromRequest(eventRequest);
+                createdEventId = await createPeriodicEventFromRequest(completedEventRequest);
             }
 
             // Update the request status
@@ -451,13 +467,13 @@ export const deleteEventRequest = async (req: AuditedRequest, res: Response) => 
 
 /**
  * Helper function to create a PERIODIC_EVENT from an event request
- * Note: For now, PERIODIC events from solicitations are not supported
- * This is a placeholder for future implementation
+ * Supports both standard frequencies (weekly, biweekly-even, biweekly-odd) and custom patterns
  */
 async function createPeriodicEventFromRequest(eventRequest: EventRequest): Promise<string> {
-    const { eventData } = eventRequest;
-    const { startTime, endTime, frequency } = eventData;
+    const { calendarId, eventData } = eventRequest;
+    const { startTime, endTime, frequency, weekDays, planifiedHours, groupIds = [], classroomIds = [] } = eventData;
 
+    // Validations
     if (!startTime || !endTime) {
         throw new Error('Missing required fields for PERIODIC event: startTime, endTime');
     }
@@ -466,6 +482,259 @@ async function createPeriodicEventFromRequest(eventRequest: EventRequest): Promi
         throw new Error('Missing required field for PERIODIC event: frequency');
     }
 
-    // For now, throw an error as PERIODIC events from solicitations are not yet implemented
-    throw new Error('PERIODIC events from solicitations are not yet implemented. Only PUNTUAL event requests are supported.');
+    // Handle custom periodic events
+    if (frequency === 'custom') {
+        return await createCustomPeriodicEventFromRequest(eventRequest);
+    }
+
+    // Handle standard periodic events (weekly, biweekly-even, biweekly-odd)
+    if (!weekDays || weekDays.length === 0) {
+        throw new Error('Missing required field for PERIODIC event: weekDays');
+    }
+
+    if (!planifiedHours || planifiedHours <= 0) {
+        throw new Error('Missing or invalid planifiedHours for PERIODIC event');
+    }
+
+    // Map frequency to eventCharacter
+    const EVENT_CHARACTERS = {
+        NORMAL: 'N',
+        PAR: 'P',
+        IMPAR: 'I',
+    };
+
+    let eventCharacter: string;
+    if (frequency === 'weekly') {
+        eventCharacter = EVENT_CHARACTERS.NORMAL;
+    } else if (frequency === 'biweekly-even') {
+        eventCharacter = EVENT_CHARACTERS.PAR;
+    } else if (frequency === 'biweekly-odd') {
+        eventCharacter = EVENT_CHARACTERS.IMPAR;
+    } else {
+        throw new Error(`Unsupported frequency: ${frequency}`);
+    }
+
+    const calendarRepo = AppDataSource.getRepository(Calendar);
+    const periodicEventRepo = AppDataSource.getRepository(PeriodicEvent);
+    const groupRepo = AppDataSource.getRepository(Group);
+    const classroomRepo = AppDataSource.getRepository(Classroom);
+
+    // Verify calendar exists
+    const calendar = await calendarRepo.findOne({ where: { id: calendarId } });
+    if (!calendar) {
+        throw new Error('Calendar not found');
+    }
+
+    // Add character to charactersInUse if not already present
+    if (!calendar.charactersInUse.includes(eventCharacter)) {
+        calendar.charactersInUse += eventCharacter;
+        calendar.updatedBy = eventRequest.professorId;
+        calendar.updatedAt = new Date();
+        await calendarRepo.save(calendar);
+        console.log(`[Request Approve - Periodic Event] Added character '${eventCharacter}' to calendar charactersInUse: ${calendar.charactersInUse}`);
+    }
+
+    // Get groups with subject relation
+    const groups = groupIds.length > 0
+        ? await groupRepo.find({
+            where: { id: In(groupIds) },
+            relations: ['subject']
+        })
+        : [];
+
+    // Get classrooms
+    const classrooms = classroomIds.length > 0
+        ? await classroomRepo.find({ where: { id: In(classroomIds) } })
+        : [];
+
+    // Get year from first group
+    const groupYear = groups.length > 0 && groups[0].subject
+        ? groups[0].subject.year
+        : new Date(calendar.start).getFullYear();
+
+    // Create periodic event for each weekDay
+    const createdEventIds: string[] = [];
+
+    for (const weekDay of weekDays) {
+        const periodicEvent = periodicEventRepo.create({
+            calendar: calendar,
+            weekDay: weekDay,
+            startTime: startTime,
+            endTime: endTime,
+            planifiedHours: planifiedHours,
+            eventCharacter: eventCharacter,
+            year: groupYear,
+            groups: groups,
+            classrooms: classrooms,
+            createdBy: eventRequest.professorId
+        });
+
+        const savedEvent = await periodicEventRepo.save(periodicEvent);
+        createdEventIds.push(savedEvent.id);
+    }
+
+    // Update Group.planifiedHours for all groups
+    for (const group of groups) {
+        if (group.planifiedHours !== planifiedHours) {
+            group.planifiedHours = planifiedHours;
+            group.updatedBy = eventRequest.professorId;
+            group.updatedAt = new Date();
+            await groupRepo.save(group);
+
+            // Update ALL PeriodicEvents associated with this group
+            const allPeriodicEventsForGroup = await periodicEventRepo
+                .createQueryBuilder('event')
+                .leftJoinAndSelect('event.groups', 'group')
+                .where('group.id = :groupId', { groupId: group.id })
+                .getMany();
+
+            for (const event of allPeriodicEventsForGroup) {
+                if (event.planifiedHours !== planifiedHours) {
+                    event.planifiedHours = planifiedHours;
+                    event.updatedBy = eventRequest.professorId;
+                    event.updatedAt = new Date();
+                    await periodicEventRepo.save(event);
+                }
+            }
+
+            console.log(`[Request Approve - Periodic Event] Updated planified hours for group ${group.type}-${group.number}`);
+        }
+    }
+
+    console.log(`[Request Approve - Periodic Event] Created ${createdEventIds.length} periodic events`);
+
+    // Return first event ID
+    return createdEventIds[0];
+}
+
+/**
+ * Helper function to create a CUSTOM PERIODIC EVENT from an event request
+ * Handles custom frequency patterns with specific affected dates
+ */
+async function createCustomPeriodicEventFromRequest(eventRequest: EventRequest): Promise<string> {
+    const { calendarId, eventData } = eventRequest;
+    const {
+        startTime,
+        endTime,
+        affectedDates, // Array de fechas calculadas en el frontend
+        planifiedHours,
+        groupIds = [],
+        classroomIds = []
+    } = eventData;
+
+    // Validations
+    if (!startTime || !endTime) {
+        throw new Error('Missing required fields for CUSTOM PERIODIC event: startTime, endTime');
+    }
+
+    if (!affectedDates || affectedDates.length === 0) {
+        throw new Error('Missing or empty affectedDates for CUSTOM PERIODIC event');
+    }
+
+    if (!planifiedHours || planifiedHours <= 0) {
+        throw new Error('Missing or invalid planifiedHours for CUSTOM PERIODIC event');
+    }
+
+    const calendarRepo = AppDataSource.getRepository(Calendar);
+    const periodicEventRepo = AppDataSource.getRepository(PeriodicEvent);
+    const dayRepo = AppDataSource.getRepository(Day);
+    const groupRepo = AppDataSource.getRepository(Group);
+    const classroomRepo = AppDataSource.getRepository(Classroom);
+
+    // Find available character from pool
+    const { findAvailableCharacter } = await import('@/constants/event-characters.constants');
+
+    const calendar = await calendarRepo.findOne({ where: { id: calendarId } });
+    if (!calendar) {
+        throw new Error('Calendar not found');
+    }
+
+    const eventCharacter = findAvailableCharacter(calendar.charactersInUse);
+
+    // Add character to charactersInUse
+    calendar.charactersInUse += eventCharacter;
+    calendar.updatedBy = eventRequest.professorId;
+    calendar.updatedAt = new Date();
+    await calendarRepo.save(calendar);
+    console.log(`[Request Approve - Custom Periodic Event] Added character '${eventCharacter}' to calendar charactersInUse: ${calendar.charactersInUse}`);
+
+    // Get groups and classrooms
+    const groups = groupIds.length > 0
+        ? await groupRepo.find({
+            where: { id: In(groupIds) },
+            relations: ['subject']
+        })
+        : [];
+
+    const classrooms = classroomIds.length > 0
+        ? await classroomRepo.find({ where: { id: In(classroomIds) } })
+        : [];
+
+    const groupYear = groups.length > 0 && groups[0].subject
+        ? groups[0].subject.year
+        : new Date(calendar.start).getFullYear();
+
+    // Find all affected days and group by weekDay
+    const daysByWeekDay = new Map<string, Day[]>();
+
+    for (const dateStr of affectedDates) {
+        const day = await dayRepo.findOne({
+            where: {
+                date: new Date(dateStr),
+                calendar: { id: calendarId }
+            }
+        });
+
+        if (!day) {
+            console.warn(`[Request Approve - Custom Periodic Event] Day not found for date ${dateStr}, skipping`);
+            continue;
+        }
+
+        const weekDayMap: Record<number, string> = {
+            1: 'L', 2: 'M', 3: 'X', 4: 'J', 5: 'V', 6: 'S', 0: 'D'
+        };
+        const weekDay = weekDayMap[new Date(dateStr).getDay()];
+
+        if (!daysByWeekDay.has(weekDay)) {
+            daysByWeekDay.set(weekDay, []);
+        }
+        daysByWeekDay.get(weekDay)!.push(day);
+    }
+
+    // Create one PeriodicEvent per weekDay
+    const createdEventIds: string[] = [];
+
+    for (const [weekDay, days] of daysByWeekDay.entries()) {
+        const periodicEvent = periodicEventRepo.create({
+            calendar: calendar,
+            weekDay: weekDay,
+            startTime: startTime,
+            endTime: endTime,
+            planifiedHours: planifiedHours,
+            eventCharacter: eventCharacter,
+            year: groupYear,
+            groups: groups,
+            classrooms: classrooms,
+            createdBy: eventRequest.professorId
+        });
+
+        const savedEvent = await periodicEventRepo.save(periodicEvent);
+        createdEventIds.push(savedEvent.id);
+
+        // Update Day.dayCharacter for each affected day
+        for (const day of days) {
+            if (!day.dayCharacter.includes(eventCharacter)) {
+                day.dayCharacter += eventCharacter;
+                day.updatedBy = eventRequest.professorId;
+                day.updatedAt = new Date();
+                await dayRepo.save(day);
+            }
+        }
+
+        console.log(`[Request Approve - Custom Periodic Event] Created event for weekDay ${weekDay}, updated ${days.length} days`);
+    }
+
+    console.log(`[Request Approve - Custom Periodic Event] Created ${createdEventIds.length} custom periodic events with character '${eventCharacter}'`);
+
+    return createdEventIds[0];
 }

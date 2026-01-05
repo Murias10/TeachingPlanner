@@ -144,13 +144,12 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
   }, [config.subjectId, subjectsWithGroups, eventType]);
 
   // Validate that all required fields are filled
+  // NOTE: planifiedHours and classroomIds are now optional - admin will complete them
   const isFormValid = useMemo(() => {
     const baseValid = (
       config.subjectId &&
       config.groupIds &&
       config.groupIds.length > 0 &&
-      config.classroomIds &&
-      config.classroomIds.length > 0 &&
       eventType
     );
 
@@ -162,7 +161,7 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
     }
 
     if (config.frequency === 'weekly') {
-      return config.weekDays && config.weekDays.length > 0 && config.planifiedHours > 0;
+      return config.weekDays && config.weekDays.length > 0;
     }
 
     if (config.frequency === 'custom') {
@@ -170,7 +169,7 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
     }
 
     return true;
-  }, [config.subjectId, config.groupIds, config.classroomIds, eventType, config.frequency, config.eventDate, config.weekDays, config.planifiedHours, config.customStartDate, config.customFrequencyUnit, config.interval]);
+  }, [config.subjectId, config.groupIds, eventType, config.frequency, config.eventDate, config.weekDays, config.customStartDate, config.customFrequencyUnit, config.interval]);
 
   const weekDays: { value: WeekDay; label: string }[] = [
     { value: 'L', label: 'L' },

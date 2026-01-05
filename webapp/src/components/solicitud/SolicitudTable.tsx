@@ -42,6 +42,11 @@ interface EventRequest {
     reviewedAt?: string;
     comments?: string;
     createdAt: string;
+    degreeAcronym?: string | null;
+    degreeName?: string | null;
+    courseStartYear?: number | null;
+    courseEndYear?: number | null;
+    semester?: number | null;
 }
 
 interface SolicitudTableProps {

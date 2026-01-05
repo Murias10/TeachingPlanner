@@ -9,16 +9,31 @@ interface AprobarSolicitudResponse {
     data?: any;
 }
 
+interface ApproveRequestData {
+    planifiedHours?: number;
+    classroomIds?: string[];
+}
+
 export const useAprobarSolicitud = () => {
     const aprobarSolicitud = useCallback(async (
         id: string,
+        data?: ApproveRequestData,
         refetch?: () => void
     ): Promise<AprobarSolicitudResponse> => {
         try {
+            // Prepare body with optional completed data
+            const body: ApproveRequestData = {};
+            if (data?.planifiedHours !== undefined) {
+                body.planifiedHours = data.planifiedHours;
+            }
+            if (data?.classroomIds !== undefined && data.classroomIds.length > 0) {
+                body.classroomIds = data.classroomIds;
+            }
+
             const response = await fetch(`${VITE_GATEWAY_API_URL}/event-request/${id}/approve`, {
                 method: "PATCH",
                 headers: getAuthHeaders({ "Content-Type": "application/json" }),
-                body: JSON.stringify({})
+                body: JSON.stringify(body)
             });
 
             let json;

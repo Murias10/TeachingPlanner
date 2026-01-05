@@ -12,11 +12,13 @@ import AppLayout from "@/components/AppLayout";
 import CoursePage from "@/pages/CoursePage";
 import CalendarPage from "@/pages/CalendarPage";
 import SolicitudPage from "@/pages/SolicitudPage";
+import AllSolicitudesPage from "@/pages/AllSolicitudesPage";
 import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
 import CalendarSyncPage from "@/pages/CalendarSyncPage";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Route, Routes, Navigate } from "react-router-dom";
+import HomePage from "./pages/HomePage";
 
 export default function App() {
     return (
@@ -33,6 +35,7 @@ export default function App() {
                     {/* Layout con header + sidebar */}
                     <Route element={<AppLayout />}>
                         {/* Rutas públicas - No requieren autenticación */}
+                        <Route path="home" element={<HomePage />} />
                         <Route path="degrees" element={<DegreePage />} />
                         <Route path="degrees/:acronym/courses" element={<CoursePage />} />
                         <Route path="degrees/:acronym/courses/:startYear/:endYear/semester/:semester/groups" element={<GroupPage />} />
@@ -62,6 +65,15 @@ export default function App() {
                             element={
                                 <ProtectedRoute>
                                     <UserPage />
+                                </ProtectedRoute>
+                            }
+                        />
+
+                        <Route
+                            path="solicitudes"
+                            element={
+                                <ProtectedRoute>
+                                    <AllSolicitudesPage />
                                 </ProtectedRoute>
                             }
                         />

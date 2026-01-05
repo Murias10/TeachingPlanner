@@ -4,6 +4,8 @@ import {
   UserRoundCog,
   Warehouse,
   CalendarDays,
+  Home,
+  ClipboardList,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -36,6 +38,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     },
     main: [
       {
+        title: t("sidebar.main.home.title"),
+        url: "/home",
+        icon: Home,
+        isActive: false,
+        items: [],
+        requiredAuth: false,
+      },
+      {
         title: t("sidebar.main.degrees.title"),
         url: "/degrees",
         icon: CalendarDays,
@@ -56,6 +66,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         name: t("sidebar.system.users.title"),
         url: "/users",
         icon: UserRoundCog,
+        requiredAuth: true,
+      },
+      {
+        name: t("sidebar.system.requests.title"),
+        url: "/solicitudes",
+        icon: ClipboardList,
         requiredAuth: true,
       },
     ],

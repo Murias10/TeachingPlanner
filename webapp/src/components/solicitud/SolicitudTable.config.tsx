@@ -21,6 +21,11 @@ interface EventRequest {
     reviewedAt?: string;
     comments?: string;
     createdAt: string;
+    degreeAcronym?: string | null;
+    degreeName?: string | null;
+    courseStartYear?: number | null;
+    courseEndYear?: number | null;
+    semester?: number | null;
 }
 
 interface ColumnExtraProps {
@@ -65,6 +70,48 @@ export const columns = ({ onApprove, onReject, t }: ColumnExtraProps): ColumnDef
         cell: ({ row }) => <div className="font-medium">{row.getValue("professorId")}</div>,
         meta: {
             label: t("table.solicitudes.columns.professorId")
+        }
+    },
+    {
+        accessorKey: "degreeAcronym",
+        header: () => <div>Titulación</div>,
+        cell: ({ row }) => {
+            const acronym = row.original.degreeAcronym;
+            const name = row.original.degreeName;
+            return (
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <div className="font-medium cursor-help">{acronym || '-'}</div>
+                    </TooltipTrigger>
+                    <TooltipContent>{name || 'Sin información'}</TooltipContent>
+                </Tooltip>
+            );
+        },
+        meta: {
+            label: "Titulación"
+        }
+    },
+    {
+        id: "courseYear",
+        header: () => <div>Curso</div>,
+        cell: ({ row }) => {
+            const startYear = row.original.courseStartYear;
+            const endYear = row.original.courseEndYear;
+            return <div>{startYear && endYear ? `${startYear}-${endYear}` : '-'}</div>;
+        },
+        meta: {
+            label: "Curso"
+        }
+    },
+    {
+        accessorKey: "semester",
+        header: () => <div>Semestre</div>,
+        cell: ({ row }) => {
+            const semester = row.getValue("semester");
+            return <div>{semester || '-'}</div>;
+        },
+        meta: {
+            label: "Semestre"
         }
     },
     {

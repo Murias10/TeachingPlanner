@@ -37,8 +37,11 @@ export class EventRequestService {
         status?: 'PENDING' | 'APPROVED' | 'REJECTED';
         calendarId?: string;
         professorId?: string;
-    }): Promise<EventRequest[]> {
-        let query = this.eventRequestRepository.createQueryBuilder('er');
+    }): Promise<any[]> {
+        let query = this.eventRequestRepository.createQueryBuilder('er')
+            .leftJoinAndSelect('er.calendar', 'calendar')
+            .leftJoinAndSelect('calendar.course', 'course')
+            .leftJoinAndSelect('course.degree', 'degree');
 
         if (filters?.status) {
             query = query.where('er.status = :status', { status: filters.status });
@@ -52,7 +55,17 @@ export class EventRequestService {
             query = query.andWhere('er.professorId = :professorId', { professorId: filters.professorId });
         }
 
-        return await query.orderBy('er.createdAt', 'DESC').getMany();
+        const results = await query.orderBy('er.createdAt', 'DESC').getMany();
+
+        // Transform results to include degree, course info
+        return results.map(er => ({
+            ...er,
+            degreeAcronym: er.calendar?.course?.degree?.acronym || null,
+            degreeName: er.calendar?.course?.degree?.name || null,
+            courseStartYear: er.calendar?.course?.startYear || null,
+            courseEndYear: er.calendar?.course?.endYear || null,
+            semester: er.calendar?.semester || null,
+        }));
     }
 
     /**

@@ -90,24 +90,16 @@ export default function ActivatePage() {
                 });
             }
         } catch (err) {
-            console.error('Error en activación:', err);
             const error = err as AxiosError<{ message?: string; errors?: string[]; status?: string }>;
             let errorMessage = t('error.activation.failed');
-
-            // Log detallado para debugging
-            console.log('Error response:', error.response);
-            console.log('Error status:', error.response?.status);
-            console.log('Error data:', error.response?.data);
 
             if (error.response?.data?.message) {
                 errorMessage = error.response.data.message;
             } else if (error.response?.data?.errors) {
                 errorMessage = error.response.data.errors.map((e: string) => t(e)).join(', ');
             } else if (error.response?.status) {
-                // Mostrar el código de estado HTTP si no hay mensaje
                 errorMessage = `Error ${error.response.status}: ${error.response.statusText || 'Error en la activación'}`;
             } else if (error.message) {
-                // Si es un error de red o axios
                 errorMessage = `Error de conexión: ${error.message}`;
             }
 

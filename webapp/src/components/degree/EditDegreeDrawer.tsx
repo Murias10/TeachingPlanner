@@ -110,6 +110,7 @@ export function EditDegreeDrawer({ open, onOpenChange, onSave, degreeData }: Edi
                             }}
                             placeholder="Ej: Ingeniería Informática"
                             disabled={isLoading}
+                            maxLength={100}
                         />
                     </div>
 
@@ -121,12 +122,13 @@ export function EditDegreeDrawer({ open, onOpenChange, onSave, degreeData }: Edi
                             value={acronym}
                             onChange={(e) => {
                                 const value = e.target.value.toUpperCase();
-                                if (/^[A-Z]*$/.test(value)) {
+                                if (/^[A-Z0-9]*$/.test(value)) {
                                     setAcronym(value);
                                 }
                             }}
                             placeholder="Ej: II"
                             disabled={isLoading}
+                            maxLength={20}
                         />
                     </div>
                 </div>

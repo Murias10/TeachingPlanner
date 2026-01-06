@@ -11,7 +11,7 @@ const Start = () => {
 
     useEffect(() => {
         if (isAuthenticated) {
-            navigate("/degrees")
+            navigate("/home")
         }
     }, [isAuthenticated, navigate])
 
@@ -27,7 +27,7 @@ const Start = () => {
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <Link to="/degrees" className="block">
+                    <Link to="/home" className="block">
                         <Button variant="outline" className="w-full" size="lg">
                             Continuar como invitado
                         </Button>

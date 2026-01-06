@@ -1,8 +1,11 @@
 import { Response } from 'express';
 import { AppDataSource } from '@/config/data-source';
 import { Degree } from '@/entities/degree.entity';
+import { Calendar } from '@/entities/calendar.entity';
+import { Course } from '@/entities/course.entity';
 import { AuditedRequest } from '@/types/audit.types';
 import { getUserEmailFromRequest } from '@/utils/audit.utils';
+import { LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
 
 export const getDegrees = async (_req: AuditedRequest, res: Response) => {
     try {
@@ -274,6 +277,58 @@ export const deleteDegree = async (req: AuditedRequest, res: Response) => {
         res.status(500).json({
             status: "error",
             message: "Unexpected error while deleting degree",
+            data: error instanceof Error ? error.message : error
+        });
+    }
+};
+
+export const getDegreesWithActiveCalendars = async (_req: AuditedRequest, res: Response) => {
+    try {
+        const currentDate = new Date();
+
+        // Query to get degrees that have at least one calendar covering the current date
+        const calendars = await AppDataSource.getRepository(Calendar)
+            .createQueryBuilder('calendar')
+            .leftJoinAndSelect('calendar.course', 'course')
+            .leftJoinAndSelect('course.degree', 'degree')
+            .where('calendar.start <= :currentDate', { currentDate })
+            .andWhere('calendar.end >= :currentDate', { currentDate })
+            .getMany();
+
+        // Group calendars by degree and format response
+        const degreeMap = new Map<string, any>();
+
+        calendars.forEach(calendar => {
+            const degree = calendar.course?.degree;
+            if (degree && !degreeMap.has(degree.id)) {
+                degreeMap.set(degree.id, {
+                    id: degree.id,
+                    name: degree.name,
+                    acronym: degree.acronym,
+                    calendarId: calendar.id,
+                    calendarStart: calendar.start,
+                    calendarEnd: calendar.end,
+                    semester: calendar.semester,
+                    courseStartYear: calendar.course.startYear,
+                    courseEndYear: calendar.course.endYear
+                });
+            }
+        });
+
+        const degrees = Array.from(degreeMap.values());
+
+        res.status(200).json({
+            status: 'success',
+            message: 'Degrees with active calendars fetched successfully',
+            data: {
+                degrees
+            }
+        });
+    } catch (error) {
+        console.error("Error fetching degrees with active calendars:", error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error fetching degrees with active calendars',
             data: error instanceof Error ? error.message : error
         });
     }

@@ -11,6 +11,12 @@ export const getDegrees = (_req: Request, res: Response, next: NextFunction) =>
         method: 'GET'
     });
 
+export const getDegreesWithActiveCalendars = (_req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(_req, res, next, {
+        url: `${SERVICES.PLANNER}/degrees/with-active-calendars`,
+        method: 'GET'
+    });
+
 export const getDegreeByAcronym = (req: Request, res: Response, next: NextFunction) =>
     proxyRequest(req, res, next, {
         url: `${SERVICES.PLANNER}/degree/acronym/${req.params.acronym}`,

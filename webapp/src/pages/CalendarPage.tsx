@@ -182,8 +182,7 @@ export default function CalendarPage() {
     const [isSubmittingApproval, setIsSubmittingApproval] = useState(false);
     const { data: requestToReview } = useGetSolicitudById(reviewRequestId);
 
-    // Estado para aprobación/rechazo directo
-    const [quickApproveRequestId, setQuickApproveRequestId] = useState<string | null>(null);
+    // Estado para rechazo directo
     const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
     const [rejectRequestId, setRejectRequestId] = useState<string | null>(null);
     const [isSubmittingReject, setIsSubmittingReject] = useState(false);
@@ -1352,8 +1351,6 @@ export default function CalendarPage() {
             actualRequestId = actualRequestId.substring(0, 36);
         }
 
-        setQuickApproveRequestId(actualRequestId);
-
         // Approve directly without additional data
         try {
             const result = await aprobarSolicitud(actualRequestId, undefined, refetchPendingRequests);
@@ -1378,8 +1375,6 @@ export default function CalendarPage() {
                 description: 'Ocurrió un error al aprobar la solicitud',
                 variant: 'destructive'
             });
-        } finally {
-            setQuickApproveRequestId(null);
         }
     };
 

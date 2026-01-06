@@ -13,6 +13,8 @@ import { Label } from "@/components/ui/label"
 import { Link, useNavigate } from "react-router-dom"
 import { useAuth } from "@/contexts/AuthContext"
 import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext"
+import { validatePassword } from "@/utils/passwordValidation"
+import { PasswordRequirements } from "@/components/ui/password-requirements"
 
 interface RegisterFormData {
     name: string;
@@ -67,10 +69,12 @@ export function RegisterForm({
                 return;
             }
 
-            if (formData.password.length < 6) {
+            // Validar requisitos de contraseña
+            const passwordValidation = validatePassword(formData.password);
+            if (!passwordValidation.isValid) {
                 triggerAlert({
                     title: 'Error de validación',
-                    description: 'La contraseña debe tener al menos 6 caracteres',
+                    description: passwordValidation.errors.join(', '),
                     variant: 'destructive'
                 });
                 return;
@@ -200,7 +204,7 @@ export function RegisterForm({
                                     id="password"
                                     name="password"
                                     type="password"
-                                    placeholder="••••••••"
+                                    placeholder="Mínimo 8 caracteres"
                                     value={formData.password}
                                     onChange={handleChange}
                                     disabled={isLoading}
@@ -208,13 +212,18 @@ export function RegisterForm({
                                 />
                             </div>
 
+                            <PasswordRequirements
+                                password={formData.password}
+                                showRequirements={formData.password.length > 0}
+                            />
+
                             <div className="grid gap-3">
                                 <Label htmlFor="confirmPassword">Confirmar Contraseña</Label>
                                 <Input
                                     id="confirmPassword"
                                     name="confirmPassword"
                                     type="password"
-                                    placeholder="••••••••"
+                                    placeholder="Confirma tu contraseña"
                                     value={formData.confirmPassword}
                                     onChange={handleChange}
                                     disabled={isLoading}

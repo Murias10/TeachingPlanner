@@ -15,6 +15,7 @@ import { useTranslation } from "react-i18next";
 import { useGoogleAuth } from "@/hooks/google/useGoogleAuth";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Calendar, CheckCircle2, XCircle } from "lucide-react";
+import { PasswordRequirements } from "@/components/ui/password-requirements";
 
 const SettingsPage = () => {
     const { t } = useTranslation();
@@ -408,9 +409,14 @@ const SettingsPage = () => {
                             value={newPassword}
                             onChange={(e) => setNewPassword(e.target.value)}
                             disabled={isUpdatingPassword}
-                            placeholder="Mínimo 6 caracteres"
+                            placeholder="Mínimo 8 caracteres"
                         />
                     </div>
+
+                    <PasswordRequirements
+                        password={newPassword}
+                        showRequirements={newPassword.length > 0}
+                    />
 
                     <div className="space-y-2">
                         <Label htmlFor="confirmPassword">Confirmar Nueva Contraseña *</Label>

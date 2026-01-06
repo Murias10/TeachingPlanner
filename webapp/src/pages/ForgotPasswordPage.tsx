@@ -8,6 +8,7 @@ import { useFloatingAlertContext } from '@/contexts/useFloatingAlertContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { validatePassword } from '@/utils/passwordValidation';
+import { PasswordRequirements } from '@/components/ui/password-requirements';
 
 type Step = 'email' | 'otp' | 'password';
 
@@ -282,12 +283,18 @@ export default function ForgotPasswordPage() {
                                 <Input
                                     id="newPassword"
                                     type="password"
-                                    placeholder="Mínimo 6 caracteres"
+                                    placeholder="Mínimo 8 caracteres"
                                     value={newPassword}
                                     onChange={(e) => setNewPassword(e.target.value)}
                                     disabled={isLoading}
                                 />
                             </div>
+
+                            <PasswordRequirements
+                                password={newPassword}
+                                showRequirements={newPassword.length > 0}
+                            />
+
                             <div className="space-y-2">
                                 <Label htmlFor="confirmPassword">Confirmar Contraseña</Label>
                                 <Input

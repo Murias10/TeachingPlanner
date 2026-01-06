@@ -54,8 +54,14 @@ export function CreateDegreeDrawer({ open, onOpenChange, onSave }: CreateDegreeD
                             id="degree-name"
                             name="degree-name"
                             value={name}
-                            onChange={(e) => setName(e.target.value)}
+                            onChange={(e) => {
+                                const value = e.target.value;
+                                if (/^[A-ZÁÉÍÓÚÑ\s]*$/.test(value.toUpperCase())) {
+                                    setName(value);
+                                }
+                            }}
                             placeholder="Ej: Máster de Ingeniería Web"
+                            maxLength={100}
                         />
                     </div>
                     <div className="space-y-2 max-w-sm mx-auto">
@@ -64,8 +70,14 @@ export function CreateDegreeDrawer({ open, onOpenChange, onSave }: CreateDegreeD
                             id="degree-acronym"
                             name="degree-acronym"
                             value={acronym}
-                            onChange={(e) => setAcronym(e.target.value.toUpperCase())}
+                            onChange={(e) => {
+                                const value = e.target.value.toUpperCase();
+                                if (/^[A-Z0-9]*$/.test(value)) {
+                                    setAcronym(value);
+                                }
+                            }}
                             placeholder="Ej: MIW"
+                            maxLength={20}
                         />
                     </div>
                 </div>

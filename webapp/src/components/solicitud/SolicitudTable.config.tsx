@@ -107,8 +107,8 @@ export const columns = ({ onApprove, onReject, t }: ColumnExtraProps): ColumnDef
         accessorKey: "semester",
         header: () => <div>Semestre</div>,
         cell: ({ row }) => {
-            const semester = row.getValue("semester");
-            return <div>{semester || '-'}</div>;
+            const semester = row.getValue("semester") as number | null;
+            return <div>{semester ? String(semester) : '-'}</div>;
         },
         meta: {
             label: "Semestre"

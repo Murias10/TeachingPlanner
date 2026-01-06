@@ -160,7 +160,7 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
       return !!config.eventDate;
     }
 
-    if (config.frequency === 'weekly') {
+    if (config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd') {
       return config.weekDays && config.weekDays.length > 0;
     }
 
@@ -197,6 +197,8 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
   const getSummary = (): string => {
     if (config.frequency === 'no-repeat') return 'No se repite';
     if (config.frequency === 'weekly') return 'Semanalmente';
+    if (config.frequency === 'biweekly-even') return 'Quincenal (Semanas Pares)';
+    if (config.frequency === 'biweekly-odd') return 'Quincenal (Semanas Impares)';
 
     if (config.frequency === 'custom' && config.interval > 0 && config.customFrequencyUnit) {
       let unitLabel = '';
@@ -252,6 +254,8 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
                 <SelectContent>
                   <SelectItem value="no-repeat">No se repite</SelectItem>
                   <SelectItem value="weekly">Semanalmente</SelectItem>
+                  <SelectItem value="biweekly-even">Quincenal (Semanas Pares)</SelectItem>
+                  <SelectItem value="biweekly-odd">Quincenal (Semanas Impares)</SelectItem>
                   <SelectItem value="custom">Personalizado</SelectItem>
                 </SelectContent>
               </Select>
@@ -260,7 +264,7 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
             {/* Date, Start Time, End Time in same row */}
             <div className="space-y-1">
               <Label className="text-xs font-semibold">
-                {config.frequency === 'weekly' ? 'Día y Horario' : config.frequency === 'custom' ? 'Fecha Inicio y Horario' : 'Fecha y Horario'}
+                {config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd' ? 'Día y Horario' : config.frequency === 'custom' ? 'Fecha Inicio y Horario' : 'Fecha y Horario'}
               </Label>
               <div className="flex gap-2">
                 {/* Date Selection - for no-repeat */}
@@ -291,8 +295,8 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
                   </Popover>
                 )}
 
-                {/* Weekday Selection - for weekly */}
-                {config.frequency === 'weekly' && (
+                {/* Weekday Selection - for weekly and biweekly */}
+                {(config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd') && (
                   <Select
                     value={config.weekDays[0] || ''}
                     onValueChange={(value) => setConfig({ ...config, weekDays: [value as WeekDay] })}
@@ -386,8 +390,8 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
               </div>
             </div>
 
-            {/* Planified Hours - Only visible when frequency is 'weekly' */}
-            {config.frequency === 'weekly' && (
+            {/* Planified Hours - Only visible when frequency is 'weekly' or biweekly */}
+            {(config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd') && (
               <div className="space-y-1">
                 <Label htmlFor="planified-hours" className="text-xs font-semibold">Horas Planificadas</Label>
                 <Input

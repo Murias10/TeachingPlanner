@@ -87,7 +87,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   // Filtrar items según la autenticación del usuario
   const filteredMain = data.main.filter(item => !item.requiredAuth || isAuthenticated);
-  const filteredSystem = data.system.filter(item => !item.requiredAuth || isAuthenticated);
+  const filteredSystem = data.system.filter(item => {
+    if (!item.requiredAuth) return true;
+    if (!isAuthenticated) return false;
+    // Solo mostrar opciones de sistema si es ADMIN
+    if (item.url === '/solicitudes' || item.url === '/users') return user?.role === 'ADMIN';
+    return true;
+  });
   const filteredExtra = data.extra.filter(item => !item.requiredAuth || isAuthenticated);
 
   return (
@@ -99,7 +105,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <Link to="/degrees" className="flex items-center gap-3">
+              <Link to="/home" className="flex items-center gap-3">
                 <img
                   src="/favicon.svg"
                   alt="Logo"

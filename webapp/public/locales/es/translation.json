@@ -708,6 +708,37 @@
             }
         }
     },
+    "home": {
+        "selectDegree": "Selecciona una titulación",
+        "selectDegreeMessage": "Selecciona una titulación para ver su calendario",
+        "noActiveCalendars": "No hay calendarios activos",
+        "noActiveCalendarsMessage": "No hay ninguna titulación con calendario activo para la fecha actual. Los calendarios aparecerán aquí cuando estén dentro del período lectivo."
+    },
+    "calendar": {
+        "next": "Siguiente",
+        "previous": "Anterior",
+        "today": "Hoy",
+        "month": "Mes",
+        "week": "Semana",
+        "day": "Día",
+        "agenda": "Agenda",
+        "date": "Fecha",
+        "time": "Hora",
+        "noEvents": "No hay eventos en este rango",
+        "showMore": "+{{count}} más",
+        "event": {
+            "label": "Evento"
+        },
+        "filters": {
+            "year": "Curso",
+            "subject": "Asignatura",
+            "groupType": "Tipo de grupo",
+            "groups": "Grupos",
+            "classroom": "Aula",
+            "language": "Idioma",
+            "showCancelled": "Mostrar cancelados"
+        }
+    },
     "validation": {
         "failed": "Error de validación"
     },

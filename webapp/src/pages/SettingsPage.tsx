@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
 import { useUpdateUser } from "@/hooks/user/useUpdateUser";
 import { useUpdatePassword } from "@/hooks/user/useUpdatePassword";
-import { useFloatingAlert } from "@/hooks/useFloatingAlert";
+import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext";
 import { validatePassword } from "@/utils/passwordValidation";
 import { useTranslation } from "react-i18next";
 import { useGoogleAuth } from "@/hooks/google/useGoogleAuth";
@@ -23,7 +23,7 @@ const SettingsPage = () => {
     const { user, updateUser: updateUserInContext } = useAuth();
     const { updateUser } = useUpdateUser();
     const { updatePassword } = useUpdatePassword();
-    const { triggerAlert } = useFloatingAlert();
+    const { triggerAlert } = useFloatingAlertContext();
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const { getStatus, initiateConnection, disconnect, isLoading: isGoogleLoading } = useGoogleAuth();

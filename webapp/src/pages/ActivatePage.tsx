@@ -12,7 +12,7 @@ import { validatePassword as validatePasswordUtil } from '@/utils/passwordValida
 import { PasswordRequirements } from '@/components/ui/password-requirements';
 import { useFloatingAlertContext } from '@/contexts/useFloatingAlertContext';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_GATEWAY_API_URL || 'http://localhost:8080';
 
 export default function ActivatePage() {
     const { t } = useTranslation();
@@ -90,17 +90,29 @@ export default function ActivatePage() {
                 });
             }
         } catch (err) {
-            const error = err as AxiosError<{ message?: string; errors?: string[] }>;
+            console.error('Error en activación:', err);
+            const error = err as AxiosError<{ message?: string; errors?: string[]; status?: string }>;
             let errorMessage = t('error.activation.failed');
+
+            // Log detallado para debugging
+            console.log('Error response:', error.response);
+            console.log('Error status:', error.response?.status);
+            console.log('Error data:', error.response?.data);
 
             if (error.response?.data?.message) {
                 errorMessage = error.response.data.message;
             } else if (error.response?.data?.errors) {
                 errorMessage = error.response.data.errors.map((e: string) => t(e)).join(', ');
+            } else if (error.response?.status) {
+                // Mostrar el código de estado HTTP si no hay mensaje
+                errorMessage = `Error ${error.response.status}: ${error.response.statusText || 'Error en la activación'}`;
+            } else if (error.message) {
+                // Si es un error de red o axios
+                errorMessage = `Error de conexión: ${error.message}`;
             }
 
             triggerAlert({
-                title: t('error'),
+                title: 'Error de activación',
                 description: errorMessage,
                 variant: 'destructive'
             });

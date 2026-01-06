@@ -1,15 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { CheckCircle, XCircle, Eye, EyeOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import axios, { AxiosError } from 'axios';
-import { validatePassword as validatePasswordUtil, getPasswordRequirements } from '@/utils/passwordValidation';
+import { validatePassword as validatePasswordUtil } from '@/utils/passwordValidation';
+import { PasswordRequirements } from '@/components/ui/password-requirements';
+import { useFloatingAlertContext } from '@/contexts/useFloatingAlertContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -18,51 +19,48 @@ export default function ActivatePage() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const token = searchParams.get('token');
+    const { triggerAlert } = useFloatingAlertContext();
 
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
-    const [validationErrors, setValidationErrors] = useState<string[]>([]);
-
-    useEffect(() => {
-        if (!token) {
-            setError('error.token.missing');
-        }
-    }, [token]);
 
     const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newPassword = e.target.value;
         setPassword(newPassword);
-
-        if (newPassword) {
-            const validation = validatePasswordUtil(newPassword);
-            setValidationErrors(validation.errors.map(err => t(err)));
-        } else {
-            setValidationErrors([]);
-        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setError(null);
 
         if (!token) {
-            setError('error.token.missing');
+            triggerAlert({
+                title: t('error'),
+                description: t('error.token.missing'),
+                variant: 'destructive'
+            });
             return;
         }
 
         if (password !== confirmPassword) {
-            setError('error.passwords.do.not.match');
+            triggerAlert({
+                title: t('error'),
+                description: t('error.passwords.do.not.match'),
+                variant: 'destructive'
+            });
             return;
         }
 
         const passwordValidation = validatePasswordUtil(password);
         if (!passwordValidation.isValid) {
-            setValidationErrors(passwordValidation.errors.map(err => t(err)));
+            triggerAlert({
+                title: t('error.password.invalid.title'),
+                description: passwordValidation.errors.map(err => t(err)).join(', '),
+                variant: 'destructive'
+            });
             return;
         }
 
@@ -76,21 +74,36 @@ export default function ActivatePage() {
 
             if (response.data.success) {
                 setSuccess(true);
+                triggerAlert({
+                    title: t('activation.success.title'),
+                    description: t('activation.success.description'),
+                    variant: 'success'
+                });
                 setTimeout(() => {
                     navigate('/login');
-                }, 3000);
+                }, 2000);
             } else {
-                setError(response.data.message || 'error.activation.failed');
+                triggerAlert({
+                    title: t('error'),
+                    description: response.data.message || t('error.activation.failed'),
+                    variant: 'destructive'
+                });
             }
         } catch (err) {
             const error = err as AxiosError<{ message?: string; errors?: string[] }>;
+            let errorMessage = t('error.activation.failed');
+
             if (error.response?.data?.message) {
-                setError(error.response.data.message);
+                errorMessage = error.response.data.message;
             } else if (error.response?.data?.errors) {
-                setValidationErrors(error.response.data.errors.map((e: string) => t(e)));
-            } else {
-                setError('error.activation.failed');
+                errorMessage = error.response.data.errors.map((e: string) => t(e)).join(', ');
             }
+
+            triggerAlert({
+                title: t('error'),
+                description: errorMessage,
+                variant: 'destructive'
+            });
         } finally {
             setIsLoading(false);
         }
@@ -153,12 +166,6 @@ export default function ActivatePage() {
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleSubmit} className="space-y-4">
-                        {error && (
-                            <Alert variant="destructive">
-                                <AlertDescription>{t(error)}</AlertDescription>
-                            </Alert>
-                        )}
-
                         <div className="space-y-2">
                             <Label htmlFor="password">{t('password')}</Label>
                             <div className="relative">
@@ -167,6 +174,7 @@ export default function ActivatePage() {
                                     type={showPassword ? 'text' : 'password'}
                                     value={password}
                                     onChange={handlePasswordChange}
+                                    placeholder="Mínimo 8 caracteres"
                                     required
                                     disabled={isLoading}
                                 />
@@ -186,6 +194,11 @@ export default function ActivatePage() {
                             </div>
                         </div>
 
+                        <PasswordRequirements
+                            password={password}
+                            showRequirements={password.length > 0}
+                        />
+
                         <div className="space-y-2">
                             <Label htmlFor="confirmPassword">{t('confirm.password')}</Label>
                             <div className="relative">
@@ -194,6 +207,7 @@ export default function ActivatePage() {
                                     type={showConfirmPassword ? 'text' : 'password'}
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
+                                    placeholder="Confirma tu contraseña"
                                     required
                                     disabled={isLoading}
                                 />
@@ -213,32 +227,10 @@ export default function ActivatePage() {
                             </div>
                         </div>
 
-                        {validationErrors.length > 0 && (
-                            <Alert>
-                                <AlertDescription>
-                                    <p className="font-semibold mb-2">{t('password.requirements')}:</p>
-                                    <ul className="list-disc list-inside space-y-1 text-sm">
-                                        {validationErrors.map((err, idx) => (
-                                            <li key={idx} className="text-destructive">{err}</li>
-                                        ))}
-                                    </ul>
-                                </AlertDescription>
-                            </Alert>
-                        )}
-
-                        <div className="bg-muted p-3 rounded-md text-sm">
-                            <p className="font-semibold mb-2">{t('password.requirements')}:</p>
-                            <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                                {getPasswordRequirements().map((req, idx) => (
-                                    <li key={idx}>{t(req)}</li>
-                                ))}
-                            </ul>
-                        </div>
-
                         <Button
                             type="submit"
                             className="w-full"
-                            disabled={isLoading || validationErrors.length > 0 || !password || !confirmPassword}
+                            disabled={isLoading || !password || !confirmPassword}
                         >
                             {isLoading ? (
                                 <>

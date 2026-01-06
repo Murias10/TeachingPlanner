@@ -42,6 +42,16 @@ const SettingsPage = () => {
     const [confirmPassword, setConfirmPassword] = useState("");
     const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
+    // Validar contraseña en tiempo real
+    const passwordValidation = validatePassword(newPassword);
+    const passwordsMatch = newPassword === confirmPassword;
+    const isPasswordFormValid =
+        currentPassword.length > 0 &&
+        newPassword.length > 0 &&
+        confirmPassword.length > 0 &&
+        passwordValidation.isValid &&
+        passwordsMatch;
+
     // Google Calendar state
     const [googleConnected, setGoogleConnected] = useState(false);
     const [googleEmail, setGoogleEmail] = useState<string | undefined>();
@@ -428,12 +438,15 @@ const SettingsPage = () => {
                             disabled={isUpdatingPassword}
                             placeholder="Confirma tu nueva contraseña"
                         />
+                        {confirmPassword.length > 0 && !passwordsMatch && (
+                            <p className="text-sm text-destructive">Las contraseñas no coinciden</p>
+                        )}
                     </div>
 
                     <div className="flex justify-end">
                         <Button
                             onClick={handlePasswordUpdate}
-                            disabled={isUpdatingPassword}
+                            disabled={isUpdatingPassword || !isPasswordFormValid}
                         >
                             {isUpdatingPassword && <Spinner />}
                             {isUpdatingPassword ? "Actualizando..." : "Cambiar Contraseña"}

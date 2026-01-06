@@ -104,13 +104,13 @@ export function RegisterForm({
             if (success) {
                 triggerAlert({
                     title: '¡Registro exitoso!',
-                    description: 'Tu cuenta ha sido creada correctamente',
+                    description: 'Tu cuenta ha sido creada correctamente. Redirigiendo...',
                     variant: 'success'
                 });
 
                 setTimeout(() => {
-                    navigate('/dashboard');
-                }, 500);
+                    navigate('/home');
+                }, 1000);
             } else {
                 triggerAlert({
                     title: 'Error al registrar',

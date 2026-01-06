@@ -48,25 +48,25 @@ export function LoginForm({
       if (success) {
         triggerAlert({
           title: '¡Bienvenido!',
-          description: 'Has iniciado sesión correctamente',
+          description: 'Inicio de sesión exitoso. Redirigiendo...',
           variant: 'success'
         });
 
         setTimeout(() => {
-          const from = location.state?.from?.pathname || '/degrees';
+          const from = location.state?.from?.pathname || '/home';
           navigate(from, { replace: true });
-        }, 500);
+        }, 800);
       } else {
         triggerAlert({
-          title: 'Error de autenticación',
-          description: 'Email o contraseña incorrectos',
+          title: 'Credenciales incorrectas',
+          description: 'El email o la contraseña que ingresaste no son correctos. Por favor, verifica e intenta de nuevo.',
           variant: 'destructive'
         });
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Ocurrió un error inesperado';
+      const errorMessage = error instanceof Error ? error.message : 'No se pudo conectar con el servidor';
       triggerAlert({
-        title: 'Error al iniciar sesión',
+        title: 'Error de conexión',
         description: errorMessage,
         variant: 'destructive'
       });

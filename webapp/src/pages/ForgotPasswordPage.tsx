@@ -60,7 +60,7 @@ export default function ForgotPasswordPage() {
             if (response.data.success) {
                 triggerAlert({
                     title: 'Éxito',
-                    description: response.data.message,
+                    description: 'Código enviado a tu email. Revisa tu bandeja de entrada.',
                     variant: 'success'
                 });
                 setCurrentStep('otp');
@@ -69,7 +69,7 @@ export default function ForgotPasswordPage() {
         } catch {
             triggerAlert({
                 title: 'Error',
-                description: 'Error al solicitar código',
+                description: 'No se pudo enviar el código. Verifica tu email e intenta de nuevo.',
                 variant: 'destructive'
             });
         } finally {
@@ -98,14 +98,14 @@ export default function ForgotPasswordPage() {
                 setCurrentStep('password');
                 triggerAlert({
                     title: 'Éxito',
-                    description: 'Código verificado correctamente',
+                    description: 'Código verificado. Ahora puedes crear tu nueva contraseña.',
                     variant: 'success'
                 });
             }
         } catch {
             triggerAlert({
                 title: 'Error',
-                description: 'Código incorrecto',
+                description: 'Código incorrecto o expirado. Verifica e intenta de nuevo.',
                 variant: 'destructive'
             });
         } finally {
@@ -130,7 +130,7 @@ export default function ForgotPasswordPage() {
         if (!passwordValidation.isValid) {
             triggerAlert({
                 title: 'Error de validación',
-                description: passwordValidation.errors.join(', '),
+                description: 'La contraseña no cumple con los requisitos mínimos',
                 variant: 'destructive'
             });
             return;
@@ -154,18 +154,18 @@ export default function ForgotPasswordPage() {
 
             if (response.data.success) {
                 triggerAlert({
-                    title: 'Éxito',
-                    description: 'Contraseña actualizada correctamente',
+                    title: '¡Contraseña actualizada!',
+                    description: 'Tu contraseña ha sido actualizada exitosamente. Redirigiendo al login...',
                     variant: 'success'
                 });
                 setTimeout(() => {
                     navigate('/login');
-                }, 1500);
+                }, 2000);
             }
         } catch {
             triggerAlert({
                 title: 'Error',
-                description: 'Error al actualizar contraseña',
+                description: 'No se pudo actualizar la contraseña. El enlace puede haber expirado.',
                 variant: 'destructive'
             });
         } finally {

@@ -1,19 +1,26 @@
 import { useQuery } from "@tanstack/react-query";
-import { Calendar } from "@/types/Calendar";
 import VITE_GATEWAY_API_URL from "@/config/api";
 import { getAuthHeaders } from "@/utils/authHeaders";
 
+export interface Day {
+    id: string;
+    date: string;
+    lective: boolean;
+    dayCharacter: string;
+    comment: string;
+}
+
 /**
- * Hook to fetch all calendars for a specific degree
+ * Hook to fetch days for a specific calendar
  */
-export function useCalendarsByDegree(degreeId: string | null) {
-    return useQuery<Calendar[], Error>({
-        queryKey: ["calendars", "degree", degreeId],
+export function useCalendarDays(calendarId: string | null) {
+    return useQuery<Day[], Error>({
+        queryKey: ["calendar-days", calendarId],
         queryFn: async () => {
-            if (!degreeId) return [];
+            if (!calendarId) return [];
 
             const res = await fetch(
-                `${VITE_GATEWAY_API_URL}/degrees/${degreeId}/calendars`,
+                `${VITE_GATEWAY_API_URL}/calendar/${calendarId}/days`,
                 {
                     headers: getAuthHeaders(),
                 }
@@ -23,6 +30,6 @@ export function useCalendarsByDegree(degreeId: string | null) {
             const body = await res.json();
             return body.data || [];
         },
-        enabled: !!degreeId,
+        enabled: !!calendarId,
     });
 }

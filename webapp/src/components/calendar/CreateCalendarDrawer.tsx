@@ -31,9 +31,15 @@ import {
     CheckCircle,
     ChevronDownIcon,
     ChevronLeft,
-    ChevronRight
+    ChevronRight,
+    Copy
 } from "lucide-react";
 import { CalendarFormData, CalendarDrawerData } from "@/types/Calendar";
+import { useCoursesByDegreeId } from "@/hooks/course/useCoursesByDegreeId";
+import { useCalendarDays } from "@/hooks/calendar/useCalendarDays";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useMemo } from "react";
+import { addYears, isSaturday, isSunday } from "date-fns";
 
 interface CreateCalendarDrawerProps {
     open: boolean;
@@ -74,10 +80,29 @@ export const CreateCalendarDrawer = ({
     const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
     const [isDragOver, setIsDragOver] = useState(false);
 
+    // Duplicate tab states
+    const [duplicateStep, setDuplicateStep] = useState(1);
+    const [selectedSourceCalendarId, setSelectedSourceCalendarId] = useState<string>("");
+    const [duplicateStartDate, setDuplicateStartDate] = useState<Date | undefined>();
+    const [duplicateEndDate, setDuplicateEndDate] = useState<Date | undefined>();
+    const [duplicateHolidayDates, setDuplicateHolidayDates] = useState<Date[]>([]);
+    const [duplicateHolidays, setDuplicateHolidays] = useState<Array<{ date: Date; comment: string }>>([]);
+    const [duplicateDateError, setDuplicateDateError] = useState("");
+    const [duplicateStartDateOpen, setDuplicateStartDateOpen] = useState(false);
+    const [duplicateEndDateOpen, setDuplicateEndDateOpen] = useState(false);
+
     // Extraer valores de calendarData
     const courseId = calendarData?.courseId;
     const semester = calendarData?.semester;
     const courseYear = calendarData?.courseYear;
+    const degreeId = calendarData?.degreeId;
+
+    // Fetch all courses from the degree to get their calendars
+    const { data: allCourses = [] } = useCoursesByDegreeId(degreeId || null);
+
+    // Fetch days from selected source calendar
+    const { data: sourceDays = [] } = useCalendarDays(selectedSourceCalendarId || null);
+
     const courseStartYear = courseYear ? Number(courseYear.split('-')[0]) : undefined;
     const courseEndYear = courseYear ? Number(courseYear.split('-')[1]) : undefined;
 
@@ -146,6 +171,14 @@ export const CreateCalendarDrawer = ({
             setDateError("");
             setUploadedFiles([]);
             setActiveTab("manual");
+            // Reset duplicate tab
+            setDuplicateStep(1);
+            setSelectedSourceCalendarId("");
+            setDuplicateStartDate(undefined);
+            setDuplicateEndDate(undefined);
+            setDuplicateHolidayDates([]);
+            setDuplicateHolidays([]);
+            setDuplicateDateError("");
         }
     }, [open]);
 
@@ -161,6 +194,109 @@ export const CreateCalendarDrawer = ({
             setDateError("");
         }
     }, [startDate, endDate]);
+
+    // Validate duplicate dates
+    useEffect(() => {
+        if (duplicateStartDate && duplicateEndDate) {
+            if (duplicateStartDate >= duplicateEndDate) {
+                setDuplicateDateError("La fecha de inicio debe ser anterior a la fecha de fin");
+            } else {
+                setDuplicateDateError("");
+            }
+        } else {
+            setDuplicateDateError("");
+        }
+    }, [duplicateStartDate, duplicateEndDate]);
+
+    // Extract calendars from courses and filter: same semester, different course year (memoized for performance)
+    const availableSourceCalendars = useMemo(() => {
+        if (!semester) return [];
+
+        const calendarsWithCourseInfo: Array<{
+            id: string;
+            semester: number;
+            startDate: string;
+            endDate: string;
+            courseId: string;
+            courseStartYear: number;
+            courseEndYear: number;
+        }> = [];
+
+        allCourses.forEach(course => {
+            if (course.calendars && course.calendars.length > 0) {
+                course.calendars.forEach(cal => {
+                    // Same semester, different course
+                    if (cal.semester === semester && course.id !== courseId) {
+                        calendarsWithCourseInfo.push({
+                            id: cal.id,
+                            semester: cal.semester,
+                            startDate: cal.startDate,
+                            endDate: cal.endDate,
+                            courseId: course.id,
+                            courseStartYear: course.startYear,
+                            courseEndYear: course.endYear
+                        });
+                    }
+                });
+            }
+        });
+
+        return calendarsWithCourseInfo;
+    }, [allCourses, semester, courseId]);
+
+    // Load source calendar data when selected
+    useEffect(() => {
+        if (selectedSourceCalendarId && availableSourceCalendars.length > 0) {
+            const sourceCalendar = availableSourceCalendars.find(cal => cal.id === selectedSourceCalendarId);
+            if (sourceCalendar) {
+                // Pre-fill dates from source calendar
+                setDuplicateStartDate(new Date(sourceCalendar.startDate));
+                setDuplicateEndDate(new Date(sourceCalendar.endDate));
+            }
+        }
+    }, [selectedSourceCalendarId, availableSourceCalendars]);
+
+    // Load and adjust festivos from source calendar when days are fetched
+    useEffect(() => {
+        if (sourceDays.length > 0 && courseStartYear && courseEndYear) {
+            const sourceCalendar = availableSourceCalendars.find(cal => cal.id === selectedSourceCalendarId);
+            if (!sourceCalendar) return;
+
+            // Calculate year difference for adjustment
+            const sourceYear = sourceCalendar.courseStartYear;
+            const targetYear = courseStartYear;
+            const yearDiff = targetYear - sourceYear;
+
+            // Filter festivos (non-lective days that aren't weekends in the source)
+            const sourceFestivos = sourceDays.filter(day =>
+                !day.lective &&
+                day.dayCharacter === 'F' &&
+                day.comment // Only days with comments
+            );
+
+            // Adjust festivos to the new year
+            const adjustedHolidays: Array<{ date: Date; comment: string }> = [];
+            const adjustedHolidayDates: Date[] = [];
+
+            sourceFestivos.forEach(festivo => {
+                const originalDate = new Date(festivo.date);
+                // Adjust year
+                const adjustedDate = addYears(originalDate, yearDiff);
+
+                // Skip if the adjusted date falls on weekend
+                if (!isSaturday(adjustedDate) && !isSunday(adjustedDate)) {
+                    adjustedHolidayDates.push(adjustedDate);
+                    adjustedHolidays.push({
+                        date: adjustedDate,
+                        comment: festivo.comment
+                    });
+                }
+            });
+
+            setDuplicateHolidayDates(adjustedHolidayDates);
+            setDuplicateHolidays(adjustedHolidays);
+        }
+    }, [sourceDays, selectedSourceCalendarId, availableSourceCalendars, courseStartYear, courseEndYear]);
 
     // Step navigation helpers
     const canGoNext = () => {
@@ -205,6 +341,74 @@ export const CreateCalendarDrawer = ({
             updated[index] = { ...updated[index], comment };
             return updated;
         });
+    };
+
+    // Duplicate tab - step navigation
+    const canDuplicateGoNext = () => {
+        if (duplicateStep === 1) {
+            return !!selectedSourceCalendarId;
+        }
+        if (duplicateStep === 2) {
+            return duplicateStartDate && duplicateEndDate && !duplicateDateError;
+        }
+        return false;
+    };
+
+    const handleDuplicateNext = () => {
+        if (duplicateStep === 1 && canDuplicateGoNext()) {
+            setDuplicateStep(2);
+        } else if (duplicateStep === 2 && canDuplicateGoNext()) {
+            // Initialize holidays array from selected dates
+            const newHolidays = duplicateHolidayDates.map(date => ({
+                date,
+                comment: ''
+            }));
+            setDuplicateHolidays(newHolidays);
+
+            if (duplicateHolidayDates.length > 0) {
+                setDuplicateStep(3);
+            } else {
+                // Skip step 3 if no holidays selected
+                handleDuplicateSave();
+            }
+        }
+    };
+
+    const handleDuplicatePrevious = () => {
+        if (duplicateStep > 1) {
+            setDuplicateStep(duplicateStep - 1);
+        }
+    };
+
+    const handleUpdateDuplicateHolidayComment = (index: number, comment: string) => {
+        setDuplicateHolidays(prev => {
+            const updated = [...prev];
+            updated[index] = { ...updated[index], comment };
+            return updated;
+        });
+    };
+
+    const handleDuplicateSave = async () => {
+        if (!courseId || !semester || !selectedSourceCalendarId || !duplicateStartDate || !duplicateEndDate) return;
+
+        setIsLoading(true);
+
+        try {
+            const duplicateData: CalendarFormData = {
+                courseId,
+                semester,
+                sourceCalendarId: selectedSourceCalendarId,
+                startDate: duplicateStartDate,
+                endDate: duplicateEndDate,
+                holidays: duplicateHolidays.length > 0 ? duplicateHolidays : undefined
+            };
+
+            await onSave(duplicateData);
+        } catch (error) {
+            console.error('Error duplicating calendar:', error);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const handleFinalSave = async () => {
@@ -351,6 +555,10 @@ export const CreateCalendarDrawer = ({
                                 <TabsTrigger value="import" className="flex items-center gap-2">
                                     <Upload className="h-4 w-4" />
                                     {t("drawer.calendar.create.tabs.import.title")}
+                                </TabsTrigger>
+                                <TabsTrigger value="duplicate" className="flex items-center gap-2">
+                                    <Copy className="h-4 w-4" />
+                                    Duplicar
                                 </TabsTrigger>
                             </TabsList>
                         </div>
@@ -648,6 +856,218 @@ export const CreateCalendarDrawer = ({
                                 </div>
                             </div>
                         </TabsContent>
+
+                        {/* Tab Duplicate */}
+                        <TabsContent value="duplicate" className="space-y-4 mt-6 flex flex-col h-full">
+                            <div className="w-full space-y-4 flex flex-col h-full">
+                                {/* Step Indicator */}
+                                <div className="flex items-center justify-center gap-2">
+                                    <div className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-semibold ${duplicateStep === 1 ? 'bg-primary text-primary-foreground' : duplicateStep > 1 ? 'bg-green-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                                        1
+                                    </div>
+                                    <div className={`h-0.5 w-12 ${duplicateStep > 1 ? 'bg-green-500' : 'bg-muted'}`} />
+                                    <div className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-semibold ${duplicateStep === 2 ? 'bg-primary text-primary-foreground' : duplicateStep > 2 ? 'bg-green-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                                        2
+                                    </div>
+                                    <div className={`h-0.5 w-12 ${duplicateStep > 2 ? 'bg-green-500' : 'bg-muted'}`} />
+                                    <div className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-semibold ${duplicateStep === 3 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                                        3
+                                    </div>
+                                </div>
+
+                                {/* Step 1: Select Source Calendar */}
+                                {duplicateStep === 1 && (
+                                    <div className="space-y-4 flex flex-col flex-1">
+                                        <div className="space-y-2">
+                                            <h3 className="text-sm font-semibold">Paso 1: Selecciona el calendario origen</h3>
+                                            <p className="text-xs text-muted-foreground">
+                                                Selecciona un calendario existente del mismo semestre para duplicar
+                                            </p>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label className="text-xs font-semibold">Calendario origen</Label>
+                                            <Select value={selectedSourceCalendarId} onValueChange={setSelectedSourceCalendarId}>
+                                                <SelectTrigger className="w-full">
+                                                    <SelectValue placeholder="Selecciona un calendario..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {availableSourceCalendars.map((cal) => (
+                                                        <SelectItem key={cal.id} value={cal.id}>
+                                                            {cal.courseStartYear}/{cal.courseEndYear} - Semestre {cal.semester}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            {availableSourceCalendars.length === 0 && (
+                                                <p className="text-xs text-muted-foreground">
+                                                    No hay calendarios disponibles para duplicar en este semestre
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Step 2: Adjust Dates */}
+                                {duplicateStep === 2 && (
+                                    <div className="space-y-4 flex flex-col flex-1 min-h-0">
+                                        <div className="space-y-2">
+                                            <h3 className="text-sm font-semibold">Paso 2: Ajusta las fechas del calendario</h3>
+                                            <p className="text-xs text-muted-foreground">
+                                                Revisa y ajusta las fechas del nuevo calendario. Se han pre-rellenado con las fechas del calendario origen.
+                                            </p>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {/* Start Date Picker */}
+                                            <div className="space-y-1.5">
+                                                <Label className="text-xs font-semibold">Fecha de inicio</Label>
+                                                <Popover modal={true} open={duplicateStartDateOpen} onOpenChange={setDuplicateStartDateOpen}>
+                                                    <PopoverTrigger asChild>
+                                                        <Button
+                                                            variant="outline"
+                                                            className="w-full justify-start text-left font-normal text-xs h-9"
+                                                            disabled={isLoading}
+                                                        >
+                                                            {duplicateStartDate ? format(duplicateStartDate, "dd/MM/yyyy") : "Selecciona fecha"}
+                                                            <ChevronDownIcon className="ml-auto h-4 w-4" />
+                                                        </Button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-auto p-0" align="start">
+                                                        <CalendarComponent
+                                                            mode="single"
+                                                            selected={duplicateStartDate}
+                                                            onSelect={(date) => {
+                                                                if (date && !isDateDisabled(date)) {
+                                                                    setDuplicateStartDate(date);
+                                                                    setDuplicateStartDateOpen(false);
+                                                                }
+                                                            }}
+                                                            disabled={isDateDisabled}
+                                                            weekStartsOn={1}
+                                                            locale={es}
+                                                            defaultMonth={getDefaultMonth()}
+                                                        />
+                                                    </PopoverContent>
+                                                </Popover>
+                                            </div>
+
+                                            {/* End Date Picker */}
+                                            <div className="space-y-1.5">
+                                                <Label className="text-xs font-semibold">Fecha de fin</Label>
+                                                <Popover modal={true} open={duplicateEndDateOpen} onOpenChange={setDuplicateEndDateOpen}>
+                                                    <PopoverTrigger asChild>
+                                                        <Button
+                                                            variant="outline"
+                                                            className="w-full justify-start text-left font-normal text-xs h-9"
+                                                            disabled={!duplicateStartDate || isLoading}
+                                                        >
+                                                            {duplicateEndDate ? format(duplicateEndDate, "dd/MM/yyyy") : "Selecciona fecha"}
+                                                            <ChevronDownIcon className="ml-auto h-4 w-4" />
+                                                        </Button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-auto p-0" align="start">
+                                                        <CalendarComponent
+                                                            mode="single"
+                                                            selected={duplicateEndDate}
+                                                            onSelect={(date) => {
+                                                                if (date && !isDateDisabled(date) && (!duplicateStartDate || date > duplicateStartDate)) {
+                                                                    setDuplicateEndDate(date);
+                                                                    setDuplicateEndDateOpen(false);
+                                                                }
+                                                            }}
+                                                            disabled={(date) => isDateDisabled(date) || (duplicateStartDate ? date <= duplicateStartDate : false)}
+                                                            weekStartsOn={1}
+                                                            locale={es}
+                                                            defaultMonth={getDefaultMonth()}
+                                                        />
+                                                    </PopoverContent>
+                                                </Popover>
+                                            </div>
+                                        </div>
+
+                                        {duplicateDateError && (
+                                            <div className="rounded-md bg-destructive/10 p-2.5 border border-destructive/30">
+                                                <p className="text-xs text-destructive">{duplicateDateError}</p>
+                                            </div>
+                                        )}
+
+                                        {/* Holiday Selection */}
+                                        <div className="space-y-2 flex flex-col min-h-0 flex-1">
+                                            <div className="flex items-center justify-between">
+                                                <h4 className="text-xs font-semibold">Días festivos (opcional)</h4>
+                                                {duplicateHolidayDates.length > 0 && (
+                                                    <Badge variant="outline" className="text-xs">
+                                                        {duplicateHolidayDates.length}
+                                                    </Badge>
+                                                )}
+                                            </div>
+
+                                            <div className="border rounded-lg bg-muted/30 flex justify-center overflow-y-auto flex-1 min-h-0">
+                                                <CalendarComponent
+                                                    mode="multiple"
+                                                    selected={duplicateHolidayDates}
+                                                    onSelect={(dates) => {
+                                                        setDuplicateHolidayDates(Array.isArray(dates) ? dates : []);
+                                                    }}
+                                                    disabled={(date) => {
+                                                        if (!duplicateStartDate || !duplicateEndDate) return true;
+                                                        return date < duplicateStartDate || date > duplicateEndDate || isWeekend(date);
+                                                    }}
+                                                    weekStartsOn={1}
+                                                    locale={es}
+                                                    defaultMonth={duplicateStartDate || getDefaultMonth()}
+                                                />
+                                            </div>
+
+                                            {duplicateHolidayDates.length > 0 && (
+                                                <div className="space-y-1.5 overflow-y-auto">
+                                                    <p className="text-xs font-medium text-muted-foreground">
+                                                        Festivos seleccionados
+                                                    </p>
+                                                    <div className="flex flex-wrap gap-1.5">
+                                                        {duplicateHolidayDates.map((date) => (
+                                                            <Badge key={date.toString()} variant="secondary" className="text-xs">
+                                                                {format(date, "dd/MM/yyyy")}
+                                                            </Badge>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Step 3: Add Comments to Holidays */}
+                                {duplicateStep === 3 && (
+                                    <div className="space-y-4 flex flex-col flex-1 min-h-0">
+                                        <div className="space-y-2">
+                                            <h3 className="text-sm font-semibold">Paso 3: Añade comentarios a los festivos</h3>
+                                            <p className="text-xs text-muted-foreground">
+                                                Añade un comentario descriptivo a cada día festivo (ej: "Navidad", "Día del trabajador")
+                                            </p>
+                                        </div>
+
+                                        <div className="space-y-2 flex-1 overflow-y-auto pr-1">
+                                            {duplicateHolidays.map((holiday, index) => (
+                                                <div key={index} className="space-y-1.5 p-3 border rounded-lg bg-muted/20">
+                                                    <Label className="text-xs font-semibold">
+                                                        {format(holiday.date, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: es })}
+                                                    </Label>
+                                                    <Input
+                                                        type="text"
+                                                        placeholder="Ej: Navidad, Día festivo..."
+                                                        value={holiday.comment}
+                                                        onChange={(e) => handleUpdateDuplicateHolidayComment(index, e.target.value)}
+                                                        className="text-xs h-8"
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </TabsContent>
                     </Tabs>
                 </div>
 
@@ -658,6 +1078,16 @@ export const CreateCalendarDrawer = ({
                             <Button
                                 variant="outline"
                                 onClick={handlePrevious}
+                                disabled={isLoading}
+                            >
+                                <ChevronLeft className="h-4 w-4 mr-1" />
+                                Anterior
+                            </Button>
+                        )}
+                        {activeTab === "duplicate" && duplicateStep > 1 && (
+                            <Button
+                                variant="outline"
+                                onClick={handleDuplicatePrevious}
                                 disabled={isLoading}
                             >
                                 <ChevronLeft className="h-4 w-4 mr-1" />
@@ -693,6 +1123,24 @@ export const CreateCalendarDrawer = ({
                                 >
                                     {isLoading && <Spinner className="mr-2 h-4 w-4" />}
                                     {t("drawer.calendar.create.save")}
+                                </Button>
+                            )
+                        ) : activeTab === "duplicate" ? (
+                            duplicateStep < 3 ? (
+                                <Button
+                                    disabled={!canDuplicateGoNext() || isLoading}
+                                    onClick={handleDuplicateNext}
+                                >
+                                    Siguiente
+                                    <ChevronRight className="h-4 w-4 ml-1" />
+                                </Button>
+                            ) : (
+                                <Button
+                                    disabled={isLoading}
+                                    onClick={handleDuplicateSave}
+                                >
+                                    {isLoading && <Spinner className="mr-2 h-4 w-4" />}
+                                    Duplicar Calendario
                                 </Button>
                             )
                         ) : (

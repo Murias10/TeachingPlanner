@@ -22,6 +22,7 @@ export interface CalendarFormData {
     holidays?: HolidayWithComment[];
     files?: File[];
     formData?: FormData;
+    sourceCalendarId?: string; // For calendar duplication
 }
 
 export interface ImportCalendarData {

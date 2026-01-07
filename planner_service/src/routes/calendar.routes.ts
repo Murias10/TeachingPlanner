@@ -1,11 +1,13 @@
-import { createCalendar, createCalendarWithImport, deleteCalendar, exportCalendar, getCalendarById, getCalendarEvents, getPendingRequestsAsEvents, uploadFiles, createPuntualEvent, updatePuntualEvent, deletePuntualEvent, createPeriodicEvent, createCustomPeriodicEvent, updatePeriodicEvent, updateCustomPeriodicEvent, deletePeriodicEvent, replacePeriodicEvent } from '@/controllers/calendar.controller';
+import { createCalendar, createCalendarWithImport, deleteCalendar, exportCalendar, getCalendarById, getCalendarDays, getCalendarEvents, getPendingRequestsAsEvents, uploadFiles, createPuntualEvent, updatePuntualEvent, deletePuntualEvent, createPeriodicEvent, createCustomPeriodicEvent, updatePeriodicEvent, updateCustomPeriodicEvent, deletePeriodicEvent, replacePeriodicEvent, duplicateCalendar } from '@/controllers/calendar.controller';
 import { Router } from 'express';
 
 const router = Router();
 
 router.get('/calendar/:id', getCalendarById);
+router.get('/calendar/:id/days', getCalendarDays);
 router.post('/calendar', createCalendar);
 router.post('/calendar/import', uploadFiles, createCalendarWithImport);
+router.post('/calendar/duplicate', duplicateCalendar);
 router.post('/calendar/puntual-event', createPuntualEvent);
 router.put('/calendar/puntual-event/:eventId', updatePuntualEvent);
 router.post('/calendar/periodic-event', createPeriodicEvent);

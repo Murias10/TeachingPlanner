@@ -15,6 +15,7 @@ import { useEditCourse } from "@/hooks/course/useEditCourse"
 import { useDeleteCalendar } from "@/hooks/calendar/useDeleteCalendar"
 import { useDegreeByAcronym } from "@/hooks/degree/useDegreeByAcronym"
 import { useImportCalendar } from "@/hooks/calendar/useImportCalendar"
+import { useDuplicateCalendar } from "@/hooks/calendar/useDuplicateCalendar"
 import { useQueryClient } from "@tanstack/react-query"
 import { CreateCourseDrawer } from "@/components/course/CreateCourseDrawer"
 import { EditCourseDrawer, EditCourseFormData } from "@/components/course/EditCourseDrawer"
@@ -50,6 +51,7 @@ export default function CoursePage() {
     const { editCourse } = useEditCourse()
     const { deleteCalendar } = useDeleteCalendar()
     const { importCalendar } = useImportCalendar()
+    const { duplicateCalendar } = useDuplicateCalendar()
     const { setItems } = useBreadcrumbContext()
     const queryClient = useQueryClient()
 
@@ -424,6 +426,61 @@ export default function CoursePage() {
                     }
                 );
             });
+        } else if (formData.sourceCalendarId) {
+            // Modo duplicar
+            const sourceCalendarId = formData.sourceCalendarId; // TypeScript type narrowing
+            return new Promise((resolve, reject) => {
+                duplicateCalendar(
+                    {
+                        sourceCalendarId,
+                        targetCourseId: formData.courseId,
+                        semester: formData.semester,
+                        start: formData.startDate!,
+                        end: formData.endDate!,
+                        holidays: formData.holidays
+                    },
+                    {
+                        onSuccess: () => {
+                            handleCloseCalendarDrawer();
+
+                            triggerAlert({
+                                title: "Calendario duplicado",
+                                description: `El calendario del semestre ${formData.semester} ha sido duplicado exitosamente para el curso ${calendarDrawerData.courseYear}`,
+                                variant: "success"
+                            });
+
+                            // Invalidar cache de calendarios y eventos
+                            queryClient.invalidateQueries({ queryKey: ["calendar"] });
+                            queryClient.invalidateQueries({ queryKey: ["calendar-events"] });
+
+                            refetch();
+                            resolve();
+                        },
+                        onError: (error) => {
+                            console.error('Error duplicating calendar:', error);
+
+                            let errorMessage = "No se pudo duplicar el calendario";
+
+                            if (error instanceof Error) {
+                                if (error.message.includes('already exists')) {
+                                    errorMessage = "Ya existe un calendario para este curso y semestre";
+                                } else if (error.message.includes('not found')) {
+                                    errorMessage = "No se encontró el calendario origen";
+                                } else {
+                                    errorMessage = error.message;
+                                }
+                            }
+
+                            triggerAlert({
+                                title: "Error al duplicar calendario",
+                                description: errorMessage,
+                                variant: "destructive"
+                            });
+                            reject(error);
+                        }
+                    }
+                );
+            });
         } else {
             // Modo manual
             try {
@@ -468,7 +525,7 @@ export default function CoursePage() {
                 throw error;
             }
         }
-    }, [importCalendar, createManualCalendar, triggerAlert, t, refetch, calendarDrawerData, handleCloseCalendarDrawer]);
+    }, [importCalendar, duplicateCalendar, createManualCalendar, triggerAlert, t, refetch, calendarDrawerData, handleCloseCalendarDrawer, queryClient]);
 
     // Generar props para el diálogo de eliminación
     const getDeleteDialogProps = useCallback(() => {

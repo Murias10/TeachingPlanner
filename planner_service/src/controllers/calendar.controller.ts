@@ -79,6 +79,39 @@ export const getCalendarById = async (req: AuditedRequest, res: Response) => {
     }
 };
 
+export const getCalendarDays = async (req: AuditedRequest, res: Response) => {
+    try {
+        const { id } = req.params;
+
+        if (!ValidationService.validateUUID(id)) {
+            res.status(400).json({
+                status: 'error',
+                message: 'Invalid UUID format for calendar ID',
+                data: null
+            });
+            return;
+        }
+
+        const dayRepo = AppDataSource.getRepository(Day);
+        const days = await dayRepo.find({
+            where: { calendar: { id } },
+            order: { date: 'ASC' }
+        });
+
+        res.status(200).json({
+            status: 'success',
+            message: 'Calendar days fetched successfully',
+            data: days
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: 'error',
+            message: 'Error fetching calendar days',
+            data: error
+        });
+    }
+};
+
 export const createCalendar = async (req: AuditedRequest, res: Response) => {
     const { idCourse, semester, start, end, holidays = [] } = req.body;
 
@@ -2492,6 +2525,266 @@ export const importExceptions = async (req: AuditedRequest, res: Response) => {
             status: 'error',
             message: error instanceof Error ? error.message : 'Error importing exceptions',
             data: null
+        });
+    }
+};
+
+/**
+ * Duplicates a calendar from a source course to a target course
+ * Only copies N, I, P periodic events and adjusts festivos
+ */
+export const duplicateCalendar = async (req: AuditedRequest, res: Response) => {
+    const { sourceCalendarId, targetCourseId, semester, start, end, holidays = [] } = req.body;
+
+    // Validaciones
+    if (!sourceCalendarId) {
+        res.status(400).json({
+            status: "error",
+            message: "Source calendar ID is required",
+            data: null,
+        });
+        return;
+    }
+
+    if (!ValidationService.validateUUID(sourceCalendarId)) {
+        res.status(400).json({
+            status: "error",
+            message: "Invalid UUID format for source calendar ID",
+            data: null,
+        });
+        return;
+    }
+
+    if (!targetCourseId) {
+        res.status(400).json({
+            status: "error",
+            message: "Target course ID is required",
+            data: null,
+        });
+        return;
+    }
+
+    if (!ValidationService.validateUUID(targetCourseId)) {
+        res.status(400).json({
+            status: "error",
+            message: "Invalid UUID format for target course ID",
+            data: null,
+        });
+        return;
+    }
+
+    if (!semester) {
+        res.status(400).json({
+            status: "error",
+            message: "Semester is required",
+            data: null,
+        });
+        return;
+    }
+
+    if (!start) {
+        res.status(400).json({
+            status: "error",
+            message: "Start date is required",
+            data: null,
+        });
+        return;
+    }
+
+    if (!end) {
+        res.status(400).json({
+            status: "error",
+            message: "End date is required",
+            data: null,
+        });
+        return;
+    }
+
+    // Parsear fechas en zona horaria de Madrid (Europe/Madrid)
+    const parseSpainDate = (dateString: string): Date => {
+        const parts = dateString.split(/[-T]/);
+        if (parts.length >= 3) {
+            const year = Number.parseInt(parts[0]);
+            const month = Number.parseInt(parts[1]) - 1;
+            const day = Number.parseInt(parts[2]);
+            const date = new Date(year, month, day, 12, 0, 0, 0);
+            return date;
+        }
+        return new Date(dateString + 'T12:00:00');
+    };
+
+    const startDate = parseSpainDate(start);
+    const endDate = parseSpainDate(end);
+
+    if (startDate >= endDate) {
+        res.status(400).json({
+            status: "error",
+            message: "Start date must be before end date",
+            data: null,
+        });
+        return;
+    }
+
+    try {
+        const calendarRepo = AppDataSource.getRepository(Calendar);
+        const periodicEventRepo = AppDataSource.getRepository(PeriodicEvent);
+        const dayRepo = AppDataSource.getRepository(Day);
+
+        // Verificar que el calendario fuente existe
+        const sourceCalendar = await calendarRepo.findOne({
+            where: { id: sourceCalendarId },
+            relations: ['course', 'periodicEvents', 'periodicEvents.groups', 'periodicEvents.classrooms']
+        });
+
+        if (!sourceCalendar) {
+            res.status(404).json({
+                status: "error",
+                message: "Source calendar not found",
+                data: null,
+            });
+            return;
+        }
+
+        // Verificar si ya existe un calendario para el curso objetivo y semestre
+        const existingCalendar = await calendarRepo.findOne({
+            where: {
+                course: { id: targetCourseId },
+                semester
+            }
+        });
+
+        if (existingCalendar) {
+            res.status(409).json({
+                status: "error",
+                message: "Calendar already exists for this course and semester",
+                data: {
+                    existing: existingCalendar
+                },
+            });
+            return;
+        }
+
+        const userEmail = getUserEmailFromRequest(req);
+
+        // Crear el nuevo calendario
+        const newCalendar = calendarRepo.create({
+            course: { id: targetCourseId },
+            semester,
+            start: startDate,
+            end: endDate,
+            charactersInUse: `${EVENT_CHARACTERS.NORMAL}${EVENT_CHARACTERS.PAR}${EVENT_CHARACTERS.IMPAR}`, // Reset to NPI
+            createdBy: userEmail
+        });
+
+        const savedCalendar = await calendarRepo.save(newCalendar);
+
+        // Crear mapa de fechas festivas con comentarios
+        const holidayMap = new Map<string, string>();
+        (holidays as Array<{ date: string; comment: string }>).forEach((holiday) => {
+            const date = parseSpainDate(holiday.date);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const dateKey = `${year}-${month}-${day}`;
+            holidayMap.set(dateKey, holiday.comment || '');
+        });
+
+        // Crear Day records para cada día del calendario
+        const days: Day[] = [];
+        const startDateNormalized = new Date(startDate);
+        startDateNormalized.setHours(0, 0, 0, 0);
+        const currentDate = new Date(startDateNormalized);
+        const endDateAdjusted = new Date(endDate);
+        endDateAdjusted.setHours(0, 0, 0, 0);
+
+        while (currentDate <= endDateAdjusted) {
+            const dayOfWeek = currentDate.getDay();
+            const dateKey = currentDate.toISOString().split('T')[0];
+
+            const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+            const isHoliday = holidayMap.has(dateKey);
+            const isLective = !isWeekend && !isHoliday;
+
+            let dayCharacter = '';
+            if (isLective) {
+                const esPar = esSemanaPar(currentDate, startDateNormalized);
+                dayCharacter = esPar ? EVENT_CHARACTERS.PAR : EVENT_CHARACTERS.IMPAR;
+            } else {
+                dayCharacter = DAY_CHARACTERS.NON_LECTIVE;
+            }
+
+            const holidayComment = holidayMap.get(dateKey) || '';
+
+            const day = dayRepo.create({
+                calendar: savedCalendar,
+                date: new Date(currentDate),
+                lective: isLective,
+                dayCharacter,
+                comment: holidayComment,
+                createdBy: userEmail
+            });
+
+            days.push(day);
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        await dayRepo.save(days);
+
+        // Copiar solo eventos periódicos N, I, P del calendario fuente
+        const eventsToClone = sourceCalendar.periodicEvents.filter(event =>
+            event.eventCharacter === EVENT_CHARACTERS.NORMAL ||
+            event.eventCharacter === EVENT_CHARACTERS.PAR ||
+            event.eventCharacter === EVENT_CHARACTERS.IMPAR
+        );
+
+        const clonedEvents: PeriodicEvent[] = [];
+        for (const sourceEvent of eventsToClone) {
+            // Get the target course year for the cloned event
+            const targetCourse = await AppDataSource.getRepository(Course).findOne({
+                where: { id: targetCourseId }
+            });
+
+            if (!targetCourse) continue;
+
+            const clonedEvent = periodicEventRepo.create({
+                calendar: savedCalendar,
+                year: targetCourse.startYear, // Use target course's start year
+                weekDay: sourceEvent.weekDay,
+                startTime: sourceEvent.startTime,
+                endTime: sourceEvent.endTime,
+                eventCharacter: sourceEvent.eventCharacter,
+                planifiedHours: sourceEvent.planifiedHours,
+                groups: sourceEvent.groups, // Copy groups relationship
+                classrooms: sourceEvent.classrooms, // Copy classrooms relationship
+                createdBy: userEmail
+            });
+
+            clonedEvents.push(clonedEvent);
+        }
+
+        await periodicEventRepo.save(clonedEvents);
+
+        console.log(`[Calendar Duplication] Duplicated calendar ${sourceCalendarId} to ${savedCalendar.id}`);
+        console.log(`[Calendar Duplication] Created ${days.length} days`);
+        console.log(`[Calendar Duplication] Cloned ${clonedEvents.length} periodic events (N, I, P only)`);
+        console.log(`[Calendar Duplication] Lective days: ${days.filter(d => d.lective).length}`);
+
+        res.status(201).json({
+            status: "success",
+            message: "Calendar duplicated successfully",
+            data: {
+                calendar: savedCalendar,
+                daysCreated: days.length,
+                lectiveDays: days.filter(d => d.lective).length,
+                eventsCloned: clonedEvents.length
+            },
+        });
+    } catch (error) {
+        console.error("Error duplicating calendar:", error);
+        res.status(500).json({
+            status: "error",
+            message: "Unexpected error while duplicating calendar",
+            data: error instanceof Error ? error.message : error,
         });
     }
 };

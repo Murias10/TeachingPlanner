@@ -49,7 +49,7 @@ export function CreateSubjectDrawer({ open, onOpenChange, onSave }: CreateSubjec
     };
 
     const handleSave = async () => {
-        if (!acronym || !year || !name || !siesCode || !semester) {
+        if (!acronym || year === null || !name || !siesCode || !semester) {
             return; // Validación básica
         }
 
@@ -106,11 +106,11 @@ export function CreateSubjectDrawer({ open, onOpenChange, onSave }: CreateSubjec
                             value={acronym}
                             onChange={(e) => {
                                 const value = e.target.value;
-                                if (/^[A-Z]*$/.test(value)) {
+                                if (/^[A-Za-z]{0,20}$/.test(value)) {
                                     setAcronym(value);
                                 }
                             }}
-                            placeholder="Ej: IP (solo letras mayúsculas)"
+                            placeholder="Ej: Est, IP, Calc"
                         />
                     </div>
 
@@ -124,6 +124,7 @@ export function CreateSubjectDrawer({ open, onOpenChange, onSave }: CreateSubjec
                                 <SelectValue placeholder="Selecciona el año" />
                             </SelectTrigger>
                             <SelectContent>
+                                <SelectItem value="0">{t("table.subjects.year.0")}</SelectItem>
                                 <SelectItem value="1">{t("table.subjects.year.1")}</SelectItem>
                                 <SelectItem value="2">{t("table.subjects.year.2")}</SelectItem>
                                 <SelectItem value="3">{t("table.subjects.year.3")}</SelectItem>
@@ -154,13 +155,9 @@ export function CreateSubjectDrawer({ open, onOpenChange, onSave }: CreateSubjec
                             id="subject-sies-code"
                             name="subject-sies-code"
                             value={siesCode}
-                            onChange={(e) => {
-                                const value = e.target.value;
-                                if (/^\d{0,4}$/.test(value)) {
-                                    setSiesCode(value);
-                                }
-                            }}
-                            placeholder="Ej: 2234 (número de 4 dígitos)"
+                            onChange={(e) => setSiesCode(e.target.value)}
+                            placeholder="Ej: GIISOF01-1-002"
+                            maxLength={20}
                         />
                     </div>
                 </div>
@@ -173,7 +170,7 @@ export function CreateSubjectDrawer({ open, onOpenChange, onSave }: CreateSubjec
                     </DrawerClose>
                     <Button
                         onClick={handleSave}
-                        disabled={!acronym || !year || !name || !siesCode || !semester}
+                        disabled={!acronym || year === null || !name || !siesCode || !semester}
                     >
                         {t("drawer.subjects.create.save")}
                     </Button>

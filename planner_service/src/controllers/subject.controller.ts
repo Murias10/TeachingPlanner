@@ -41,10 +41,10 @@ export const createSubject = async (req: AuditedRequest, res: Response) => {
         const yearNum = Number(year);
         const semesterNum = Number(semester);
 
-        if (yearNum < 1 || yearNum > 4) {
+        if (yearNum < 0 || yearNum > 4) {
             res.status(400).json({
                 status: "error",
-                message: "El año debe estar entre 1 y 4",
+                message: "El año debe estar entre 0 (Optativa) y 4",
                 data: null
             });
             return
@@ -159,10 +159,10 @@ export const updateSubject = async (req: AuditedRequest, res: Response) => {
         }
 
         // Validar rangos
-        if (year < 1 || year > 4) {
+        if (year < 0 || year > 4) {
             res.status(400).json({
                 status: "error",
-                message: "El año debe estar entre 1 y 4",
+                message: "El año debe estar entre 0 (Optativa) y 4",
                 data: null,
             });
             return;

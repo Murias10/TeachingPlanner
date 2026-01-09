@@ -72,7 +72,7 @@ export function EditSubjectDrawer({ open, onOpenChange, onSave, subjectData }: E
     }, [open, subjectData]);
 
     const handleSave = async () => {
-        if (!acronym || !year || !name || !siesCode || !semester || !subjectData) {
+        if (!acronym || year === null || !name || !siesCode || !semester || !subjectData) {
             return;
         }
 
@@ -152,11 +152,11 @@ export function EditSubjectDrawer({ open, onOpenChange, onSave, subjectData }: E
                             value={acronym}
                             onChange={(e) => {
                                 const value = e.target.value;
-                                if (/^[A-Z]*$/.test(value)) {
+                                if (/^[A-Za-z]{0,20}$/.test(value)) {
                                     setAcronym(value);
                                 }
                             }}
-                            placeholder="Ej: IP (solo letras mayúsculas)"
+                            placeholder="Ej: Est, IP, Calc"
                             disabled={isLoading}
                         />
                     </div>
@@ -172,6 +172,7 @@ export function EditSubjectDrawer({ open, onOpenChange, onSave, subjectData }: E
                                 <SelectValue placeholder="Selecciona el año" />
                             </SelectTrigger>
                             <SelectContent>
+                                <SelectItem value="0">{t("table.subjects.year.0")}</SelectItem>
                                 <SelectItem value="1">{t("table.subjects.year.1")}</SelectItem>
                                 <SelectItem value="2">{t("table.subjects.year.2")}</SelectItem>
                                 <SelectItem value="3">{t("table.subjects.year.3")}</SelectItem>
@@ -203,13 +204,9 @@ export function EditSubjectDrawer({ open, onOpenChange, onSave, subjectData }: E
                             id="edit-subject-sies-code"
                             name="edit-subject-sies-code"
                             value={siesCode}
-                            onChange={(e) => {
-                                const value = e.target.value;
-                                if (/^\d{0,4}$/.test(value)) {
-                                    setSiesCode(value);
-                                }
-                            }}
-                            placeholder="Ej: 2234 (número de 4 dígitos)"
+                            onChange={(e) => setSiesCode(e.target.value)}
+                            placeholder="Ej: GIISOF01-1-002"
+                            maxLength={20}
                             disabled={isLoading}
                         />
                     </div>

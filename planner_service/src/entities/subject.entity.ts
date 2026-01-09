@@ -19,7 +19,7 @@ import { Group } from '@/entities/group.entity';
 @Unique('UQ_SUBJECT_NAME_DEGREE', ['name', 'degree'])
 @Unique('UQ_SUBJECT_ACRONYM_DEGREE', ['acronym', 'degree'])
 @Check('CHK_SEMESTER', '"SEMESTER" IN (1, 2)')
-@Check('CHK_YEAR', '"YEAR" IN (1, 2, 3, 4)')
+@Check('CHK_YEAR', '"YEAR" IN (0, 1, 2, 3, 4)')
 export class Subject extends AuditedEntity {
     /** Acronym for the subject */
     @Column('varchar', { length: 20, name: 'ACRONYM' })

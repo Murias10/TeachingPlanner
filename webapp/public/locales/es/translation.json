@@ -64,6 +64,20 @@
         "reports": "Informes de uso",
         "faq": "Preguntas frecuentes"
     },
+    "filters": {
+        "title": "Filtros",
+        "appliedCount": "{{count}} aplicado",
+        "appliedCount_plural": "{{count}} aplicados",
+        "noFiltersApplied": "Ningún filtro aplicado",
+        "clearFilters": "Limpiar filtros",
+        "search": "Buscar...",
+        "selectAll": "Todas",
+        "selectNone": "Ninguna",
+        "noResults": "No se encontraron resultados",
+        "notAvailable": "No disponible",
+        "activeFilters": "Filtros activos",
+        "showCancelledEvents": "Mostrar eventos cancelados"
+    },
     "alerts": {
         "degree": {
             "error": {
@@ -720,12 +734,13 @@
         "today": "Hoy",
         "month": "Mes",
         "week": "Semana",
+        "workWeek": "Semana laboral",
         "day": "Día",
         "agenda": "Agenda",
         "date": "Fecha",
         "time": "Hora",
         "noEvents": "No hay eventos en este rango",
-        "showMore": "+{{count}} más",
+        "showMore": "+Ver más ({{total}})",
         "event": {
             "label": "Evento"
         },
@@ -736,7 +751,242 @@
             "groups": "Grupos",
             "classroom": "Aula",
             "language": "Idioma",
-            "showCancelled": "Mostrar cancelados"
+            "showCancelled": "Eventos Cancelados"
+        },
+        "title": "Calendario - Semestre {{semester}}",
+        "showingEvents": "Mostrando {{count}} de {{total}} eventos",
+        "loadError": "No se pudo cargar el calendario",
+        "academicYear": {
+            "elective": "Optativas",
+            "first": "1º",
+            "second": "2º",
+            "third": "3º",
+            "fourth": "4º"
+        },
+        "toolbar": {
+            "requests": "Solicitudes",
+            "requestsTooltip": "Ver solicitudes de eventos pendientes",
+            "requestEvent": "Solicitar Evento",
+            "requestEventTooltip": "Solicitar un nuevo evento"
+        },
+        "alerts": {
+            "nonLectiveDay": {
+                "title": "Día no lectivo",
+                "description": "No puedes crear eventos en días no lectivos"
+            },
+            "validation": {
+                "noGroups": {
+                    "title": "Error",
+                    "description": "Por favor selecciona al menos un grupo"
+                },
+                "noClassrooms": {
+                    "title": "Error",
+                    "description": "Por favor selecciona al menos un aula"
+                },
+                "noCalendarId": {
+                    "title": "Error",
+                    "description": "No se pudo obtener el ID del calendario"
+                },
+                "noDateOrSubject": {
+                    "title": "Error",
+                    "description": "Por favor selecciona una fecha y una asignatura"
+                },
+                "noWeekDay": {
+                    "title": "Error",
+                    "description": "Por favor selecciona un día de la semana"
+                },
+                "noPlanifiedHours": {
+                    "title": "Error",
+                    "description": "Por favor especifica las horas planificadas"
+                },
+                "customFrequencyIncomplete": {
+                    "title": "Error",
+                    "description": "Por favor completa todos los campos de la frecuencia personalizada"
+                },
+                "noCalendarInfo": {
+                    "title": "Error",
+                    "description": "No se pudo obtener la información del calendario"
+                },
+                "noDates": {
+                    "title": "Sin fechas",
+                    "description": "No se encontraron fechas que cumplan con el patrón especificado"
+                },
+                "notImplemented": {
+                    "title": "No implementado",
+                    "description": "Por el momento solo se pueden crear eventos puntuales y periódicos semanales"
+                }
+            },
+            "periodicEvent": {
+                "success": {
+                    "title": "Éxito",
+                    "description": "{{count}} evento(s) periódico(s) creado(s) correctamente"
+                },
+                "partial": {
+                    "title": "Parcialmente completado",
+                    "description": "{{created}} evento(s) creado(s), {{errors}} error(es)"
+                },
+                "error": {
+                    "title": "Error",
+                    "description": "Error al crear el evento periódico"
+                },
+                "updated": {
+                    "title": "Evento periódico actualizado",
+                    "description": "El evento periódico ha sido actualizado correctamente"
+                },
+                "updateError": {
+                    "title": "Error al actualizar",
+                    "description": "No se pudo actualizar el evento periódico"
+                }
+            },
+            "customPeriodicEvent": {
+                "created": {
+                    "title": "Evento personalizado creado",
+                    "description": "Se crearon {{count}} evento(s) periódico(s) con patrón personalizado ({{dates}} fechas afectadas)"
+                },
+                "error": {
+                    "title": "Error",
+                    "description": "Error al crear el evento periódico personalizado"
+                }
+            },
+            "eventUpdate": {
+                "success": {
+                    "title": "Evento actualizado",
+                    "description": "El evento ha sido actualizado correctamente"
+                },
+                "error": {
+                    "title": "Error al actualizar",
+                    "description": "No se pudo actualizar el evento"
+                }
+            },
+            "eventDelete": {
+                "seriesDeleted": {
+                    "title": "Serie eliminada",
+                    "description": "La serie de eventos ha sido eliminada correctamente"
+                },
+                "seriesError": {
+                    "title": "Error",
+                    "description": "No se pudo eliminar la serie de eventos"
+                },
+                "seriesErrorGeneric": {
+                    "title": "Error",
+                    "description": "Error al eliminar la serie de eventos"
+                },
+                "cancelled": {
+                    "title": "Evento cancelado",
+                    "description": "El evento ha sido cancelado correctamente"
+                },
+                "cancelError": {
+                    "title": "Error al cancelar",
+                    "description": "No se pudo cancelar el evento"
+                },
+                "cancelErrorGeneric": {
+                    "title": "Error",
+                    "description": "Error al cancelar el evento"
+                },
+                "deleted": {
+                    "title": "Evento eliminado",
+                    "description": "El evento ha sido eliminado correctamente"
+                },
+                "deleteError": {
+                    "title": "Error al eliminar",
+                    "description": "No se pudo eliminar el evento"
+                },
+                "noPeriodicId": {
+                    "title": "Error",
+                    "description": "No se pudo identificar el evento periódico"
+                }
+            },
+            "request": {
+                "noRequestId": {
+                    "title": "Error",
+                    "description": "No se pudo identificar la solicitud"
+                },
+                "approved": {
+                    "title": "Solicitud aprobada",
+                    "description": "La solicitud ha sido aprobada y el evento ha sido creado exitosamente"
+                },
+                "approvedShort": {
+                    "title": "Solicitud aprobada",
+                    "description": "El evento ha sido creado exitosamente"
+                },
+                "approveError": {
+                    "title": "Error",
+                    "description": "No se pudo aprobar la solicitud"
+                },
+                "approveErrorGeneric": {
+                    "title": "Error",
+                    "description": "Ocurrió un error al aprobar la solicitud"
+                },
+                "approveErrorWithMessage": {
+                    "title": "Error",
+                    "description": "Error al aprobar la solicitud"
+                },
+                "deleted": {
+                    "title": "Solicitud eliminada",
+                    "description": "Tu solicitud ha sido eliminada exitosamente"
+                },
+                "deleteError": {
+                    "title": "Error",
+                    "description": "Error al eliminar la solicitud"
+                },
+                "rejected": {
+                    "title": "Solicitud rechazada",
+                    "description": "La solicitud ha sido rechazada exitosamente"
+                },
+                "rejectError": {
+                    "title": "Error",
+                    "description": "No se pudo rechazar la solicitud"
+                },
+                "rejectErrorGeneric": {
+                    "title": "Error",
+                    "description": "Ocurrió un error al rechazar la solicitud"
+                },
+                "sent": {
+                    "title": "Solicitud enviada",
+                    "description": "Tu solicitud de evento ha sido enviada para aprobación"
+                },
+                "sendError": {
+                    "title": "Error",
+                    "description": "Error al enviar la solicitud"
+                }
+            },
+            "revert": {
+                "error": {
+                    "title": "Error",
+                    "description": "Error al revertir la cancelación"
+                }
+            },
+            "replace": {
+                "error": {
+                    "title": "Error",
+                    "description": "Error al reemplazar el evento"
+                }
+            },
+            "export": {
+                "noEvents": {
+                    "title": "Sin eventos",
+                    "description": "No hay eventos para exportar con los filtros actuales"
+                },
+                "success": {
+                    "title": "Exportación exitosa",
+                    "description": "Se han exportado {{count}} eventos a CSV para Google Calendar"
+                },
+                "error": {
+                    "title": "Error al exportar",
+                    "description": "Error desconocido al exportar el calendario"
+                }
+            }
+        },
+        "dialogs": {
+            "deleteSeries": {
+                "title": "Eliminar serie de eventos",
+                "description": "¿Estás seguro de que deseas eliminar toda la serie de eventos? Esta acción no se puede deshacer y eliminará todos los eventos de esta serie."
+            },
+            "revertCancellation": {
+                "title": "Revertir cancelación",
+                "description": "¿Estás seguro de que deseas revertir la cancelación de este evento? El evento volverá a aparecer en el calendario."
+            },
+            "defaultSubject": "esta asignatura"
         }
     },
     "validation": {

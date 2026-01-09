@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { formatGroupForDisplay, getGroupAcronym } from '@/utils/groupFormatUtils';
 import { GROUP_TYPE_LABELS, LANGUAGE_LABELS } from '@/constants/groupTypes';
+import { useTranslation } from 'react-i18next';
 
 type FilterCategory = 'tipoGrupo' | 'asignatura' | 'grupos' | 'aula' | 'idioma' | 'curso' | 'mostrarCancelados';
 
@@ -42,6 +43,7 @@ export default function ClassFilter({
   isCollapsed,
   onToggleCollapse
 }: ClassFilterProps) {
+  const { t } = useTranslation();
   const [expandedCategory, setExpandedCategory] = useState<FilterCategory | null>(null);
   const [searchTerms, setSearchTerms] = useState<Record<FilterCategory, string>>({
     tipoGrupo: '',
@@ -122,7 +124,7 @@ export default function ClassFilter({
       return formatGroupForDisplay(value);
     }
     if (category === 'mostrarCancelados') {
-      return 'Mostrar eventos cancelados';
+      return t('filters.showCancelledEvents');
     }
     return value;
   };
@@ -173,7 +175,7 @@ export default function ClassFilter({
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-3">
             <Filter className="w-5 h-5 text-foreground" />
-            <h2 className="text-lg font-semibold text-foreground">Filtros</h2>
+            <h2 className="text-lg font-semibold text-foreground">{t('filters.title')}</h2>
           </div>
           <Button
             onClick={onToggleCollapse}
@@ -186,8 +188,8 @@ export default function ClassFilter({
         </div>
         <p className="text-sm text-muted-foreground mt-1">
           {totalActiveFilters > 0
-            ? `${totalActiveFilters} aplicado${totalActiveFilters > 1 ? 's' : ''}`
-            : 'Ningún filtro aplicado'}
+            ? t('filters.appliedCount', { count: totalActiveFilters })
+            : t('filters.noFiltersApplied')}
         </p>
         {totalActiveFilters > 0 && (
           <Button
@@ -197,7 +199,7 @@ export default function ClassFilter({
             className="w-full mt-4"
           >
             <X className="w-4 h-4 mr-2" />
-            Limpiar filtros
+            {t('filters.clearFilters')}
           </Button>
         )}
       </div>
@@ -248,7 +250,7 @@ export default function ClassFilter({
                         <div className="relative">
                           <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <Input
-                            placeholder="Buscar..."
+                            placeholder={t('filters.search')}
                             value={searchTerms[category]}
                             onChange={(e) => setSearchTerms(prev => ({
                               ...prev,
@@ -267,7 +269,7 @@ export default function ClassFilter({
                         onClick={() => selectAll(category, options)}
                       >
                         <Check className="w-3 h-3 mr-1" />
-                        Todas
+                        {t('filters.selectAll')}
                       </Button>
                       <Button
                         variant="ghost"
@@ -276,14 +278,14 @@ export default function ClassFilter({
                         onClick={() => clearCategory(category)}
                       >
                         <X className="w-3 h-3 mr-1" />
-                        Ninguna
+                        {t('filters.selectNone')}
                       </Button>
                     </div>
                     <div className="flex-1 min-h-0 overflow-y-auto">
                       <div className="p-2 space-y-1">
                         {filteredOptions.length === 0 && searchTerms[category] && (
                           <div className="text-sm text-muted-foreground text-center py-4">
-                            No se encontraron resultados
+                            {t('filters.noResults')}
                           </div>
                         )}
                         {filteredOptions.map(option => {
@@ -318,7 +320,7 @@ export default function ClassFilter({
                               )}
                               {isDisabled && category === 'grupos' && (
                                 <Badge variant="outline" className="text-xs">
-                                  No disponible
+                                  {t('filters.notAvailable')}
                                 </Badge>
                               )}
                             </div>
@@ -334,7 +336,7 @@ export default function ClassFilter({
 
           {totalActiveFilters > 0 && (
             <div className="mt-4 p-4 bg-card border rounded-lg">
-              <p className="text-xs font-medium text-foreground mb-3">Filtros activos</p>
+              <p className="text-xs font-medium text-foreground mb-3">{t('filters.activeFilters')}</p>
               <div className="flex flex-wrap gap-2">
                 {Object.entries(filters).map(([category, values]) =>
                   values.map((value: string) => (

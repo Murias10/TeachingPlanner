@@ -1,8 +1,9 @@
 import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext";
 import { useEffect, useMemo, useState } from "react";
 import { Calendar, momentLocalizer, Components } from "react-big-calendar";
-import moment from "moment";
+import moment from "@/utils/momentLocales"; // Usar moment con locales pre-cargados
 import { format } from "date-fns";
+import { useTranslation } from "react-i18next";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { useCalendarByCourseAndSemester } from "@/hooks/calendar/useCalendarByCourseAndSemester";
 import { usePendingRequestsAsEvents } from "@/hooks/calendar/usePendingRequestsAsEvents";
@@ -12,7 +13,6 @@ import ClassFilter, { FilterValues } from "@/components/ClassFilter";
 import { FileText, BookOpen, DoorOpen, Languages, Users, GraduationCap, XCircle } from "lucide-react";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { useParams, useNavigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
 import CalendarToolbar from "@/components/calendar/CalendarToolbar";
 import CreateEventDialog from "@/components/calendar/CreateEventDialog";
 import EditEventDialog from "@/components/calendar/EditEventDialog";
@@ -52,14 +52,7 @@ import { sortAlphabetically, sortGruposByAcronymTypeNumber } from "@/utils/filte
 import { getAuthHeaders } from "@/utils/authHeaders";
 import { EVENT_CHARACTERS, isCustomEventCharacter } from "@/constants/eventCharacters";
 
-// Configurar moment para usar español y que la semana empiece en lunes
-moment.locale('es', {
-    week: {
-        dow: 1, // Lunes es el primer día de la semana (0 = domingo, 1 = lunes)
-        doy: 4  // Usada para calcular la primera semana del año
-    }
-});
-
+// El localizer se crea de forma global
 const localizer = momentLocalizer(moment);
 
 interface MyEvent {
@@ -69,18 +62,16 @@ interface MyEvent {
     resource?: CalendarEvent;
 }
 
-// Constantes
-const ACADEMIC_YEAR_LABELS = {
-    0: 'Optativas',
-    1: '1º',
-    2: '2º',
-    3: '3º',
-    4: '4º'
-} as const;
-
-// Helper: Mapear año numérico a etiqueta
-const getYearLabel = (year: number): string => {
-    return ACADEMIC_YEAR_LABELS[year as keyof typeof ACADEMIC_YEAR_LABELS] || `${year}º`;
+// Helper: Mapear año numérico a etiqueta con traducción
+const getYearLabel = (year: number, t: (key: string) => string): string => {
+    const yearKeys: { [key: number]: string } = {
+        0: 'calendar.academicYear.elective',
+        1: 'calendar.academicYear.first',
+        2: 'calendar.academicYear.second',
+        3: 'calendar.academicYear.third',
+        4: 'calendar.academicYear.fourth'
+    };
+    return t(yearKeys[year]) || `${year}º`;
 };
 
 // Colores pastel suaves y únicos para asignaturas (con buen contraste para texto blanco)
@@ -145,10 +136,39 @@ const getSubjectColor = (subjectAcronym: string | undefined): string => {
 
 export default function CalendarPage() {
 
-    const { t } = useTranslation()
+    const { t, i18n } = useTranslation()
     const navigate = useNavigate();
     const { triggerAlert } = useFloatingAlertContext();
     const { user } = useAuth();
+    const [localeLoaded, setLocaleLoaded] = useState(false);
+
+    // Configurar el locale de moment basándose en el idioma actual de i18next
+    useEffect(() => {
+        setLocaleLoaded(false);
+        const currentLanguage = i18n.language;
+        console.log('🌍 Current i18n language:', currentLanguage);
+
+        // Extraer el código de idioma base (ej: 'es-ES' -> 'es')
+        const languageCode = currentLanguage.split('-')[0];
+        console.log('🌍 Language code extracted:', languageCode);
+
+        // Establecer el locale actual
+        moment.locale(languageCode);
+
+        // Configurar que la semana siempre empiece en lunes, independientemente del idioma
+        moment.updateLocale(languageCode, {
+            week: {
+                dow: 1, // Monday/Lunes es el primer día de la semana
+                doy: 4
+            }
+        });
+
+        // Verificar el locale actual
+        const currentLocale = moment.locale();
+        console.log('🌍 Final moment locale:', currentLocale);
+        console.log('🗓️ Test format:', moment().format('dddd, MMMM DD, YYYY'));
+        setLocaleLoaded(true);
+    }, [i18n.language]);
 
     // Extraer el acrónimo de la URL
     const { acronym, startYear, endYear, semester } = useParams<{ acronym: string, startYear: string, endYear: string, semester: string }>()
@@ -412,48 +432,48 @@ export default function CalendarPage() {
         });
 
         // Mapear años a etiquetas usando la función helper
-        const yearLabels = Array.from(uniqueYears).sort().map(getYearLabel);
+        const yearLabels = Array.from(uniqueYears).sort().map(year => getYearLabel(year, t));
 
         return [
             {
                 category: 'curso' as const,
-                label: 'Curso',
+                label: t('calendar.filters.year'),
                 options: yearLabels,
                 icon: GraduationCap
             },
             {
                 category: 'tipoGrupo' as const,
-                label: 'Tipo de Grupo',
+                label: t('calendar.filters.groupType'),
                 options: sortAlphabetically(Array.from(uniqueTypes)),
                 icon: Users
             },
             {
                 category: 'asignatura' as const,
-                label: 'Asignatura',
+                label: t('calendar.filters.subject'),
                 options: sortAlphabetically(Array.from(uniqueSubjects)),
                 icon: BookOpen
             },
             {
                 category: 'grupos' as const,
-                label: 'Grupos',
+                label: t('calendar.filters.groups'),
                 options: sortGruposByAcronymTypeNumber(Array.from(availableGrupos)),
                 icon: Users
             },
             {
                 category: 'aula' as const,
-                label: 'Aula',
+                label: t('calendar.filters.classroom'),
                 options: sortAlphabetically(Array.from(uniqueClassrooms)),
                 icon: DoorOpen
             },
             {
                 category: 'idioma' as const,
-                label: 'Idioma',
+                label: t('calendar.filters.language'),
                 options: sortAlphabetically(Array.from(uniqueLanguages)),
                 icon: Languages
             },
             ...(isAdmin ? [{
                 category: 'mostrarCancelados' as const,
-                label: 'Eventos Cancelados',
+                label: t('calendar.filters.showCancelled'),
                 options: ['si'],
                 icon: XCircle
             }] : [])
@@ -530,7 +550,7 @@ export default function CalendarPage() {
                 if (subjectYear === undefined) return false;
 
                 // Convertir el año a etiqueta usando helper
-                const yearLabel = getYearLabel(subjectYear);
+                const yearLabel = getYearLabel(subjectYear, t);
                 if (!filters.curso.includes(yearLabel)) return false;
             }
 
@@ -661,8 +681,8 @@ export default function CalendarPage() {
             if (eventsToExport.length === 0) {
                 console.warn('No hay eventos para exportar');
                 triggerAlert({
-                    title: 'Sin eventos',
-                    description: 'No hay eventos para exportar con los filtros actuales',
+                    title: t('calendar.alerts.export.noEvents.title'),
+                    description: t('calendar.alerts.export.noEvents.description'),
                     variant: 'warning'
                 });
                 return;
@@ -678,16 +698,16 @@ export default function CalendarPage() {
             downloadCSV(csvContent, filename);
 
             triggerAlert({
-                title: 'Exportación exitosa',
-                description: `Se han exportado ${eventsToExport.length} eventos a CSV para Google Calendar`,
+                title: t('calendar.alerts.export.success.title'),
+                description: t('calendar.alerts.export.success.description', { count: eventsToExport.length }),
                 variant: 'success'
             });
 
         } catch (error) {
             console.error('Error exporting calendar to CSV:', error);
             triggerAlert({
-                title: 'Error al exportar',
-                description: error instanceof Error ? error.message : 'Error desconocido al exportar el calendario',
+                title: t('calendar.alerts.export.error.title'),
+                description: error instanceof Error ? error.message : t('calendar.alerts.export.error.description'),
                 variant: 'destructive'
             });
         }
@@ -712,8 +732,8 @@ export default function CalendarPage() {
         // Validar que el día sea lectivo
         if (!lectiveDates.has(selectedDate)) {
             triggerAlert({
-                title: 'Día no lectivo',
-                description: 'No puedes crear eventos en días no lectivos',
+                title: t('calendar.alerts.nonLectiveDay.title'),
+                description: t('calendar.alerts.nonLectiveDay.description'),
                 variant: 'destructive'
             });
             return;
@@ -739,8 +759,8 @@ export default function CalendarPage() {
         // Validaciones comunes
         if (!config.groupIds || config.groupIds.length === 0) {
             triggerAlert({
-                title: 'Error',
-                description: 'Por favor selecciona al menos un grupo',
+                title: t('calendar.alerts.validation.noGroups.title'),
+                description: t('calendar.alerts.validation.noGroups.description'),
                 variant: 'destructive'
             });
             return;
@@ -749,8 +769,8 @@ export default function CalendarPage() {
         // Validar que al menos un aula esté seleccionada
         if (!config.classroomIds || config.classroomIds.length === 0) {
             triggerAlert({
-                title: 'Error',
-                description: 'Por favor selecciona al menos un aula',
+                title: t('calendar.alerts.validation.noClassrooms.title'),
+                description: t('calendar.alerts.validation.noClassrooms.description'),
                 variant: 'destructive'
             });
             return;
@@ -758,8 +778,8 @@ export default function CalendarPage() {
 
         if (!calendarId) {
             triggerAlert({
-                title: 'Error',
-                description: 'No se pudo obtener el ID del calendario',
+                title: t('calendar.alerts.validation.noCalendarId.title'),
+                description: t('calendar.alerts.validation.noCalendarId.description'),
                 variant: 'destructive'
             });
             return;
@@ -769,8 +789,8 @@ export default function CalendarPage() {
         if (config.frequency === 'no-repeat') {
             if (!config.eventDate || !config.subjectId) {
                 triggerAlert({
-                    title: 'Error',
-                    description: 'Por favor selecciona una fecha y una asignatura',
+                    title: t('calendar.alerts.validation.noDateOrSubject.title'),
+                    description: t('calendar.alerts.validation.noDateOrSubject.description'),
                     variant: 'destructive'
                 });
                 return;
@@ -779,8 +799,8 @@ export default function CalendarPage() {
             // Validar que el día sea lectivo
             if (!lectiveDates.has(config.eventDate)) {
                 triggerAlert({
-                    title: 'Error',
-                    description: 'No puedes crear eventos en días no lectivos',
+                    title: t('calendar.alerts.nonLectiveDay.title'),
+                    description: t('calendar.alerts.nonLectiveDay.description'),
                     variant: 'destructive'
                 });
                 return;
@@ -823,8 +843,8 @@ export default function CalendarPage() {
         if (config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd') {
             if (!config.weekDays || config.weekDays.length === 0) {
                 triggerAlert({
-                    title: 'Error',
-                    description: 'Por favor selecciona un día de la semana',
+                    title: t('calendar.alerts.validation.noWeekDay.title'),
+                    description: t('calendar.alerts.validation.noWeekDay.description'),
                     variant: 'destructive'
                 });
                 return;
@@ -832,8 +852,8 @@ export default function CalendarPage() {
 
             if (config.planifiedHours <= 0) {
                 triggerAlert({
-                    title: 'Error',
-                    description: 'Por favor especifica las horas planificadas',
+                    title: t('calendar.alerts.validation.noPlanifiedHours.title'),
+                    description: t('calendar.alerts.validation.noPlanifiedHours.description'),
                     variant: 'destructive'
                 });
                 return;
@@ -849,16 +869,16 @@ export default function CalendarPage() {
                     // Todos los eventos han sido procesados
                     if (errorCount === 0) {
                         triggerAlert({
-                            title: 'Éxito',
-                            description: `${createdCount} evento(s) periódico(s) creado(s) correctamente`,
+                            title: t('calendar.alerts.periodicEvent.success.title'),
+                            description: t('calendar.alerts.periodicEvent.success.description', { count: createdCount }),
                             variant: 'success'
                         });
                         setIsCreateEventDialogOpen(false);
                         refetch();
                     } else if (createdCount > 0) {
                         triggerAlert({
-                            title: 'Parcialmente completado',
-                            description: `${createdCount} evento(s) creado(s), ${errorCount} error(es)`,
+                            title: t('calendar.alerts.periodicEvent.partial.title'),
+                            description: t('calendar.alerts.periodicEvent.partial.description', { created: createdCount, errors: errorCount }),
                             variant: 'default'
                         });
                         setIsCreateEventDialogOpen(false);
@@ -889,9 +909,9 @@ export default function CalendarPage() {
 
                             if (index === 0) {
                                 // Si falla el primero, mostrar error y no continuar
-                                const errorMessage = error.message || 'Error al crear el evento periódico';
+                                const errorMessage = error.message || t('calendar.alerts.periodicEvent.error.description');
                                 triggerAlert({
-                                    title: 'Error',
+                                    title: t('calendar.alerts.periodicEvent.error.title'),
                                     description: errorMessage,
                                     variant: 'destructive'
                                 });
@@ -922,8 +942,8 @@ export default function CalendarPage() {
             if (!config.customStartDate || !config.customFrequencyUnit || config.interval <= 0) {
                 console.log('[Custom Frequency] Error: Campos incompletos');
                 triggerAlert({
-                    title: 'Error',
-                    description: 'Por favor completa todos los campos de la frecuencia personalizada',
+                    title: t('calendar.alerts.validation.customFrequencyIncomplete.title'),
+                    description: t('calendar.alerts.validation.customFrequencyIncomplete.description'),
                     variant: 'destructive'
                 });
                 return;
@@ -933,8 +953,8 @@ export default function CalendarPage() {
             if (config.customFrequencyUnit === 'week' && (!config.weekDays || config.weekDays.length === 0)) {
                 console.log('[Custom Frequency] Error: No hay días de la semana seleccionados para frecuencia semanal');
                 triggerAlert({
-                    title: 'Error',
-                    description: 'Por favor selecciona al menos un día de la semana',
+                    title: t('calendar.alerts.validation.noWeekDay.title'),
+                    description: t('calendar.alerts.validation.noWeekDay.description'),
                     variant: 'destructive'
                 });
                 return;
@@ -943,8 +963,8 @@ export default function CalendarPage() {
             if (config.planifiedHours <= 0) {
                 console.log('[Custom Frequency] Error: Horas planificadas inválidas:', config.planifiedHours);
                 triggerAlert({
-                    title: 'Error',
-                    description: 'Por favor especifica las horas planificadas',
+                    title: t('calendar.alerts.validation.noPlanifiedHours.title'),
+                    description: t('calendar.alerts.validation.noPlanifiedHours.description'),
                     variant: 'destructive'
                 });
                 return;
@@ -968,8 +988,8 @@ export default function CalendarPage() {
                     currentCalendar
                 });
                 triggerAlert({
-                    title: 'Error',
-                    description: 'No se pudo obtener la información del calendario',
+                    title: t('calendar.alerts.validation.noCalendarInfo.title'),
+                    description: t('calendar.alerts.validation.noCalendarInfo.description'),
                     variant: 'destructive'
                 });
                 return;
@@ -1008,8 +1028,8 @@ export default function CalendarPage() {
 
                 if (affectedDates.length === 0) {
                     triggerAlert({
-                        title: 'Sin fechas',
-                        description: 'No se encontraron fechas que cumplan con el patrón especificado',
+                        title: t('calendar.alerts.validation.noDates.title'),
+                        description: t('calendar.alerts.validation.noDates.description'),
                         variant: 'destructive'
                     });
                     return;
@@ -1060,15 +1080,15 @@ export default function CalendarPage() {
                         setIsCreateEventDialogOpen(false);
                         refetch();
                         triggerAlert({
-                            title: 'Evento personalizado creado',
-                            description: `Se crearon ${data.data.events.length} evento(s) periódico(s) con patrón personalizado (${summary.totalDates} fechas afectadas)`,
+                            title: t('calendar.alerts.customPeriodicEvent.created.title'),
+                            description: t('calendar.alerts.customPeriodicEvent.created.description', { count: data.data.events.length, dates: summary.totalDates }),
                             variant: 'success'
                         });
                     },
                     onError: (error) => {
-                        const errorMessage = error.message || 'Error al crear el evento periódico personalizado';
+                        const errorMessage = error.message || t('calendar.alerts.customPeriodicEvent.error.description');
                         triggerAlert({
-                            title: 'Error',
+                            title: t('calendar.alerts.customPeriodicEvent.error.title'),
                             description: errorMessage,
                             variant: 'destructive'
                         });
@@ -1080,8 +1100,8 @@ export default function CalendarPage() {
 
         // Otras opciones no implementadas
         triggerAlert({
-            title: 'No implementado',
-            description: 'Por el momento solo se pueden crear eventos puntuales y periódicos semanales',
+            title: t('calendar.alerts.validation.notImplemented.title'),
+            description: t('calendar.alerts.validation.notImplemented.description'),
             variant: 'default'
         });
     };
@@ -1131,15 +1151,15 @@ export default function CalendarPage() {
                         setEventToEdit(null);
                         refetch();
                         triggerAlert({
-                            title: 'Evento periódico actualizado',
-                            description: 'El evento periódico ha sido actualizado correctamente',
+                            title: t('calendar.alerts.periodicEvent.updated.title'),
+                            description: t('calendar.alerts.periodicEvent.updated.description'),
                             variant: 'success'
                         });
                     },
                     onError: (error: Error & { statusCode?: number }) => {
                         triggerAlert({
-                            title: 'Error al actualizar',
-                            description: t(error.message) || 'No se pudo actualizar el evento periódico',
+                            title: t('calendar.alerts.periodicEvent.updateError.title'),
+                            description: t(error.message) || t('calendar.alerts.periodicEvent.updateError.description'),
                             variant: 'destructive'
                         });
                     }
@@ -1170,15 +1190,15 @@ export default function CalendarPage() {
                         setEventToEdit(null);
                         refetch();
                         triggerAlert({
-                            title: 'Evento actualizado',
-                            description: 'El evento ha sido actualizado correctamente',
+                            title: t('calendar.alerts.eventUpdate.success.title'),
+                            description: t('calendar.alerts.eventUpdate.success.description'),
                             variant: 'success'
                         });
                     },
                     onError: (error: Error & { statusCode?: number }) => {
                         triggerAlert({
-                            title: 'Error al actualizar',
-                            description: t(error.message) || 'No se pudo actualizar el evento',
+                            title: t('calendar.alerts.eventUpdate.error.title'),
+                            description: t(error.message) || t('calendar.alerts.eventUpdate.error.description'),
                             variant: 'destructive'
                         });
                     }
@@ -1212,8 +1232,8 @@ export default function CalendarPage() {
         if (deleteType === 'series') {
             if (!eventToDelete.periodicEventId) {
                 triggerAlert({
-                    title: 'Error',
-                    description: 'No se pudo identificar el evento periódico',
+                    title: t('calendar.alerts.eventDelete.noPeriodicId.title'),
+                    description: t('calendar.alerts.eventDelete.noPeriodicId.description'),
                     variant: 'destructive'
                 });
                 return;
@@ -1232,8 +1252,8 @@ export default function CalendarPage() {
 
                 if (result.status === 'success') {
                     triggerAlert({
-                        title: 'Serie eliminada',
-                        description: 'La serie de eventos ha sido eliminada correctamente',
+                        title: t('calendar.alerts.eventDelete.seriesDeleted.title'),
+                        description: t('calendar.alerts.eventDelete.seriesDeleted.description'),
                         variant: 'success'
                     });
                     setIsDeleteConfirmationOpen(false);
@@ -1241,15 +1261,15 @@ export default function CalendarPage() {
                     refetch();
                 } else {
                     triggerAlert({
-                        title: 'Error',
-                        description: result.message || 'No se pudo eliminar la serie de eventos',
+                        title: t('calendar.alerts.eventDelete.seriesError.title'),
+                        description: result.message || t('calendar.alerts.eventDelete.seriesError.description'),
                         variant: 'destructive'
                     });
                 }
             } catch (error) {
                 triggerAlert({
-                    title: 'Error',
-                    description: error instanceof Error ? error.message : 'Error al eliminar la serie de eventos',
+                    title: t('calendar.alerts.eventDelete.seriesErrorGeneric.title'),
+                    description: error instanceof Error ? error.message : t('calendar.alerts.eventDelete.seriesErrorGeneric.description'),
                     variant: 'destructive'
                 });
             }
@@ -1282,8 +1302,8 @@ export default function CalendarPage() {
 
                 if (result.status === 'success') {
                     triggerAlert({
-                        title: 'Evento cancelado',
-                        description: 'El evento ha sido cancelado correctamente',
+                        title: t('calendar.alerts.eventDelete.cancelled.title'),
+                        description: t('calendar.alerts.eventDelete.cancelled.description'),
                         variant: 'success'
                     });
                     setIsDeleteConfirmationOpen(false);
@@ -1291,15 +1311,15 @@ export default function CalendarPage() {
                     refetch();
                 } else {
                     triggerAlert({
-                        title: 'Error al cancelar',
-                        description: result.message || 'No se pudo cancelar el evento',
+                        title: t('calendar.alerts.eventDelete.cancelError.title'),
+                        description: result.message || t('calendar.alerts.eventDelete.cancelError.description'),
                         variant: 'destructive'
                     });
                 }
             } catch (error) {
                 triggerAlert({
-                    title: 'Error',
-                    description: error instanceof Error ? error.message : 'Error al cancelar el evento',
+                    title: t('calendar.alerts.eventDelete.cancelErrorGeneric.title'),
+                    description: error instanceof Error ? error.message : t('calendar.alerts.eventDelete.cancelErrorGeneric.description'),
                     variant: 'destructive'
                 });
             }
@@ -1311,16 +1331,16 @@ export default function CalendarPage() {
 
             if (result.success) {
                 triggerAlert({
-                    title: 'Evento eliminado',
-                    description: 'El evento ha sido eliminado correctamente',
+                    title: t('calendar.alerts.eventDelete.deleted.title'),
+                    description: t('calendar.alerts.eventDelete.deleted.description'),
                     variant: 'success'
                 });
                 setIsDeleteConfirmationOpen(false);
                 setEventToDelete(undefined);
             } else {
                 triggerAlert({
-                    title: 'Error al eliminar',
-                    description: result.message || 'No se pudo eliminar el evento',
+                    title: t('calendar.alerts.eventDelete.deleteError.title'),
+                    description: result.message || t('calendar.alerts.eventDelete.deleteError.description'),
                     variant: 'destructive'
                 });
             }
@@ -1335,8 +1355,8 @@ export default function CalendarPage() {
     const handleApproveRequest = async (event: CalendarEvent) => {
         if (!event.requestId) {
             triggerAlert({
-                title: 'Error',
-                description: 'No se pudo identificar la solicitud',
+                title: t('calendar.alerts.request.noRequestId.title'),
+                description: t('calendar.alerts.request.noRequestId.description'),
                 variant: 'destructive'
             });
             return;
@@ -1357,22 +1377,22 @@ export default function CalendarPage() {
 
             if (result.success) {
                 triggerAlert({
-                    title: 'Solicitud aprobada',
-                    description: 'La solicitud ha sido aprobada y el evento ha sido creado exitosamente',
+                    title: t('calendar.alerts.request.approved.title'),
+                    description: t('calendar.alerts.request.approved.description'),
                     variant: 'default'
                 });
                 refetch();
             } else {
                 triggerAlert({
-                    title: 'Error',
-                    description: result.message || 'No se pudo aprobar la solicitud',
+                    title: t('calendar.alerts.request.approveError.title'),
+                    description: result.message || t('calendar.alerts.request.approveError.description'),
                     variant: 'destructive'
                 });
             }
         } catch (error) {
             triggerAlert({
-                title: 'Error',
-                description: 'Ocurrió un error al aprobar la solicitud',
+                title: t('calendar.alerts.request.approveErrorGeneric.title'),
+                description: t('calendar.alerts.request.approveErrorGeneric.description'),
                 variant: 'destructive'
             });
         }
@@ -1381,8 +1401,8 @@ export default function CalendarPage() {
     const handleRejectRequest = (event: CalendarEvent) => {
         if (!event.requestId) {
             triggerAlert({
-                title: 'Error',
-                description: 'No se pudo identificar la solicitud',
+                title: t('calendar.alerts.request.noRequestId.title'),
+                description: t('calendar.alerts.request.noRequestId.description'),
                 variant: 'destructive'
             });
             return;
@@ -1411,23 +1431,23 @@ export default function CalendarPage() {
 
             if (result.success) {
                 triggerAlert({
-                    title: 'Solicitud rechazada',
-                    description: 'La solicitud ha sido rechazada exitosamente',
+                    title: t('calendar.alerts.request.rejected.title'),
+                    description: t('calendar.alerts.request.rejected.description'),
                     variant: 'default'
                 });
                 setRejectDialogOpen(false);
                 setRejectRequestId(null);
             } else {
                 triggerAlert({
-                    title: 'Error',
-                    description: result.message || 'No se pudo rechazar la solicitud',
+                    title: t('calendar.alerts.request.rejectError.title'),
+                    description: result.message || t('calendar.alerts.request.rejectError.description'),
                     variant: 'destructive'
                 });
             }
         } catch (error) {
             triggerAlert({
-                title: 'Error',
-                description: 'Ocurrió un error al rechazar la solicitud',
+                title: t('calendar.alerts.request.rejectErrorGeneric.title'),
+                description: t('calendar.alerts.request.rejectErrorGeneric.description'),
                 variant: 'destructive'
             });
         } finally {
@@ -1438,8 +1458,8 @@ export default function CalendarPage() {
     const handleReviewRequest = (event: CalendarEvent) => {
         if (!event.requestId) {
             triggerAlert({
-                title: 'Error',
-                description: 'No se pudo identificar la solicitud',
+                title: t('calendar.alerts.request.noRequestId.title'),
+                description: t('calendar.alerts.request.noRequestId.description'),
                 variant: 'destructive'
             });
             return;
@@ -1483,8 +1503,8 @@ export default function CalendarPage() {
 
             if (result.success) {
                 triggerAlert({
-                    title: 'Solicitud aprobada',
-                    description: 'El evento ha sido creado exitosamente',
+                    title: t('calendar.alerts.request.approvedShort.title'),
+                    description: t('calendar.alerts.request.approvedShort.description'),
                     variant: 'success'
                 });
                 setApproveDialogOpen(false);
@@ -1493,15 +1513,15 @@ export default function CalendarPage() {
                 refetch();
             } else {
                 triggerAlert({
-                    title: 'Error',
-                    description: result.message || 'Error al aprobar la solicitud',
+                    title: t('calendar.alerts.request.approveErrorWithMessage.title'),
+                    description: result.message || t('calendar.alerts.request.approveErrorWithMessage.description'),
                     variant: 'destructive'
                 });
             }
         } catch {
             triggerAlert({
-                title: 'Error',
-                description: 'Ocurrió un error al aprobar la solicitud',
+                title: t('calendar.alerts.request.approveErrorGeneric.title'),
+                description: t('calendar.alerts.request.approveErrorGeneric.description'),
                 variant: 'destructive'
             });
         } finally {
@@ -1512,8 +1532,8 @@ export default function CalendarPage() {
     const handleDeleteRequest = async (event: CalendarEvent) => {
         if (!event.requestId) {
             triggerAlert({
-                title: 'Error',
-                description: 'No se pudo identificar la solicitud',
+                title: t('calendar.alerts.request.noRequestId.title'),
+                description: t('calendar.alerts.request.noRequestId.description'),
                 variant: 'destructive'
             });
             return;
@@ -1523,14 +1543,14 @@ export default function CalendarPage() {
 
         if (result.success) {
             triggerAlert({
-                title: 'Solicitud eliminada',
-                description: 'Tu solicitud ha sido eliminada exitosamente',
+                title: t('calendar.alerts.request.deleted.title'),
+                description: t('calendar.alerts.request.deleted.description'),
                 variant: 'success'
             });
         } else {
             triggerAlert({
-                title: 'Error',
-                description: result.message || 'Error al eliminar la solicitud',
+                title: t('calendar.alerts.request.deleteError.title'),
+                description: result.message || t('calendar.alerts.request.deleteError.description'),
                 variant: 'destructive'
             });
         }
@@ -1581,7 +1601,11 @@ export default function CalendarPage() {
             setEventToRevert(undefined);
         } catch (error) {
             console.error('Error al revertir la cancelación:', error);
-            alert('Error al revertir la cancelación del evento');
+            triggerAlert({
+                title: t('calendar.alerts.revert.error.title'),
+                description: t('calendar.alerts.revert.error.description'),
+                variant: 'destructive'
+            });
         } finally {
             setIsRevertingEvent(false);
         }
@@ -1641,7 +1665,11 @@ export default function CalendarPage() {
             setEventToReplace(null);
         } catch (error) {
             console.error('Error al reemplazar el evento:', error);
-            alert(error instanceof Error ? t(error.message) : 'Error al reemplazar el evento');
+            triggerAlert({
+                title: t('calendar.alerts.replace.error.title'),
+                description: error instanceof Error ? t(error.message) : t('calendar.alerts.replace.error.description'),
+                variant: 'destructive'
+            });
         }
     };
 
@@ -1731,8 +1759,8 @@ export default function CalendarPage() {
 
         if (result.success) {
             triggerAlert({
-                title: 'Solicitud enviada',
-                description: 'Tu solicitud de evento ha sido enviada para aprobación',
+                title: t('calendar.alerts.request.sent.title'),
+                description: t('calendar.alerts.request.sent.description'),
                 variant: 'success'
             });
             setIsSolicitudDrawerOpen(false);
@@ -1741,8 +1769,8 @@ export default function CalendarPage() {
             setDragEndTime(null);
         } else {
             triggerAlert({
-                title: 'Error',
-                description: result.message || 'Error al enviar la solicitud',
+                title: t('calendar.alerts.request.sendError.title'),
+                description: result.message || t('calendar.alerts.request.sendError.description'),
                 variant: 'destructive'
             });
         }
@@ -1788,7 +1816,7 @@ export default function CalendarPage() {
         return {};
     };
 
-    if (isLoading || isLoadingPending) {
+    if (isLoading || isLoadingPending || !localeLoaded) {
         return (
             <section className="h-full rounded-xl bg-muted/50 flex items-center justify-center m-2 p-10">
                 <div className="flex items-center justify-center h-full">
@@ -1802,7 +1830,7 @@ export default function CalendarPage() {
         return (
             <section className="h-full rounded-xl bg-muted/50 flex items-center justify-center m-2 p-10">
                 <div className="flex items-center justify-center h-full">
-                    <p className="text-muted-foreground">No se pudo cargar el calendario</p>
+                    <p className="text-muted-foreground">{t('calendar.loadError')}</p>
                 </div>
             </section>
         );
@@ -1834,10 +1862,10 @@ export default function CalendarPage() {
                                             className="h-9 gap-2"
                                         >
                                             <Bell className="w-4 h-4" />
-                                            <span className="hidden sm:inline text-xs">Solicitudes</span>
+                                            <span className="hidden sm:inline text-xs">{t('calendar.toolbar.requests')}</span>
                                         </Button>
                                     </TooltipTrigger>
-                                    <TooltipContent>Ver solicitudes de eventos pendientes</TooltipContent>
+                                    <TooltipContent>{t('calendar.toolbar.requestsTooltip')}</TooltipContent>
                                 </Tooltip>
                             </TooltipProvider>
                         )}
@@ -1855,10 +1883,10 @@ export default function CalendarPage() {
                                         className="h-9 gap-2"
                                     >
                                         <FileText className="w-4 h-4" />
-                                        <span className="hidden sm:inline text-xs">Solicitar Evento</span>
+                                        <span className="hidden sm:inline text-xs">{t('calendar.toolbar.requestEvent')}</span>
                                     </Button>
                                 </TooltipTrigger>
-                                <TooltipContent>Solicitar un nuevo evento</TooltipContent>
+                                <TooltipContent>{t('calendar.toolbar.requestEventTooltip')}</TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
                     )}
@@ -1881,10 +1909,10 @@ export default function CalendarPage() {
                         <div className="flex items-center justify-between px-8 py-4 border-b">
                             <div>
                                 <h1 className="text-xl font-semibold text-foreground">
-                                    Calendario - Semestre {data.semester}
+                                    {t('calendar.title', { semester: data.semester })}
                                 </h1>
                                 <p className="text-sm text-muted-foreground mt-1">
-                                    Mostrando {events.length} de {data.totalEvents} eventos
+                                    {t('calendar.showingEvents', { count: events.length, total: data.totalEvents })}
                                 </p>
                             </div>
                             <div className="text-sm text-muted-foreground">
@@ -1895,6 +1923,7 @@ export default function CalendarPage() {
                         {/* Calendario */}
                         <div className="flex-1 p-4 overflow-hidden bg-white rounded-b-2xl">
                             <Calendar
+                                key={i18n.language}
                                 defaultView="work_week"
                                 views={['week', 'work_week', 'day', 'month']}
                                 localizer={localizer}
@@ -1905,7 +1934,7 @@ export default function CalendarPage() {
                                 onNavigate={handleNavigate}
                                 startAccessor="start"
                                 endAccessor="end"
-                                culture="es"
+                                culture={i18n.language}
                                 style={{ height: '100%', width: '100%' }}
                                 components={calendarComponents}
                                 onSelectSlot={handleSelectSlot}
@@ -1921,6 +1950,10 @@ export default function CalendarPage() {
                                     eventTimeRangeFormat: () => '',
                                     agendaTimeRangeFormat: () => '',
                                     selectRangeFormat: () => '',
+                                    dayHeaderFormat: (date: Date) => moment(date).format('ddd DD'),
+                                    dayRangeHeaderFormat: ({ start, end }: { start: Date; end: Date }) =>
+                                        `${moment(start).format('MMMM DD')} – ${moment(end).format('DD')}`,
+                                    monthHeaderFormat: (date: Date) => moment(date).format('MMMM YYYY')
                                 }}
                                 eventPropGetter={(event) => {
                                     const calendarEvent = event.resource as CalendarEvent;
@@ -1965,19 +1998,19 @@ export default function CalendarPage() {
                                 }}
                                 dayPropGetter={dayPropGetter}
                                 messages={{
-                                    week: 'Semana',
-                                    work_week: 'Semana laboral',
-                                    day: 'Día',
-                                    month: 'Mes',
-                                    previous: 'Anterior',
-                                    next: 'Siguiente',
-                                    today: 'Hoy',
-                                    agenda: 'Agenda',
-                                    date: 'Fecha',
-                                    time: 'Hora',
-                                    event: 'Evento',
-                                    noEventsInRange: 'No hay eventos en este rango',
-                                    showMore: (total) => `+ Ver más (${total})`
+                                    week: t('calendar.week'),
+                                    work_week: t('calendar.workWeek'),
+                                    day: t('calendar.day'),
+                                    month: t('calendar.month'),
+                                    previous: t('calendar.previous'),
+                                    next: t('calendar.next'),
+                                    today: t('calendar.today'),
+                                    agenda: t('calendar.agenda'),
+                                    date: t('calendar.date'),
+                                    time: t('calendar.time'),
+                                    event: t('calendar.event.label'),
+                                    noEventsInRange: t('calendar.noEvents'),
+                                    showMore: (total) => t('calendar.showMore', { total })
                                 }}
                             />
                         </div>
@@ -2037,11 +2070,11 @@ export default function CalendarPage() {
                 onOpenChange={setIsDeleteConfirmationOpen}
                 onConfirm={handleConfirmDelete}
                 isLoading={isDeletingEvent}
-                subjectName={eventToDelete?.subject?.name || 'esta asignatura'}
-                title={deleteType === 'series' ? 'Eliminar serie de eventos' : undefined}
+                subjectName={eventToDelete?.subject?.name || t('calendar.dialogs.defaultSubject')}
+                title={deleteType === 'series' ? t('calendar.dialogs.deleteSeries.title') : undefined}
                 description={
                     deleteType === 'series'
-                        ? '¿Estás seguro de que deseas eliminar toda la serie de eventos? Esta acción no se puede deshacer y eliminará todos los eventos de esta serie.'
+                        ? t('calendar.dialogs.deleteSeries.description')
                         : undefined
                 }
             />
@@ -2052,9 +2085,9 @@ export default function CalendarPage() {
                 onOpenChange={setIsRevertConfirmationOpen}
                 onConfirm={handleConfirmRevert}
                 isLoading={isRevertingEvent}
-                subjectName={eventToRevert?.subject?.name || 'esta asignatura'}
-                title='Revertir cancelación'
-                description='¿Estás seguro de que deseas revertir la cancelación de este evento? El evento volverá a aparecer en el calendario.'
+                subjectName={eventToRevert?.subject?.name || t('calendar.dialogs.defaultSubject')}
+                title={t('calendar.dialogs.revertCancellation.title')}
+                description={t('calendar.dialogs.revertCancellation.description')}
             />
 
             {/* Replace Event Confirmation Dialog */}

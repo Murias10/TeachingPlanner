@@ -36,15 +36,24 @@ export const useDuplicateCalendar = () => {
 
     const mutation = useMutation<DuplicateCalendarResponse, Error, DuplicateCalendarData>({
         mutationFn: async (data: DuplicateCalendarData): Promise<DuplicateCalendarResponse> => {
-            // Format dates to ISO string
+            // Función auxiliar para formatear fecha como YYYY-MM-DD sin zona horaria
+            // Esto evita problemas cuando la fecha se convierte a UTC y cambia de día
+            const formatDateAsLocal = (date: Date) => {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            };
+
+            // Format dates using local time to avoid timezone issues
             const formattedData = {
                 sourceCalendarId: data.sourceCalendarId,
                 targetCourseId: data.targetCourseId,
                 semester: data.semester,
-                start: data.start.toISOString(),
-                end: data.end.toISOString(),
+                start: formatDateAsLocal(data.start),
+                end: formatDateAsLocal(data.end),
                 holidays: data.holidays?.map(h => ({
-                    date: h.date.toISOString(),
+                    date: formatDateAsLocal(h.date),
                     comment: h.comment
                 })) || []
             };

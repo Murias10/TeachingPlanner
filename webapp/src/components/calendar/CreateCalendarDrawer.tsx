@@ -1,7 +1,7 @@
 // components/calendar/CreateCalendarDrawer.tsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { format } from "date-fns";
+import { format, addYears, isSaturday, isSunday, isValid } from "date-fns";
 import { es } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -38,8 +38,6 @@ import { CalendarFormData, CalendarDrawerData } from "@/types/Calendar";
 import { useCoursesByDegreeId } from "@/hooks/course/useCoursesByDegreeId";
 import { useCalendarDays } from "@/hooks/calendar/useCalendarDays";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useMemo } from "react";
-import { addYears, isSaturday, isSunday } from "date-fns";
 
 interface CreateCalendarDrawerProps {
     open: boolean;
@@ -215,8 +213,8 @@ export const CreateCalendarDrawer = ({
         const calendarsWithCourseInfo: Array<{
             id: string;
             semester: number;
-            startDate: string;
-            endDate: string;
+            start: string;
+            end: string;
             courseId: string;
             courseStartYear: number;
             courseEndYear: number;
@@ -227,11 +225,13 @@ export const CreateCalendarDrawer = ({
                 course.calendars.forEach(cal => {
                     // Same semester, different course
                     if (cal.semester === semester && course.id !== courseId) {
+                        // Use 'start' and 'end' as they come from backend
+                        const calWithDates = cal as any;
                         calendarsWithCourseInfo.push({
                             id: cal.id,
                             semester: cal.semester,
-                            startDate: cal.startDate,
-                            endDate: cal.endDate,
+                            start: calWithDates.start || cal.startDate,
+                            end: calWithDates.end || cal.endDate,
                             courseId: course.id,
                             courseStartYear: course.startYear,
                             courseEndYear: course.endYear
@@ -244,17 +244,33 @@ export const CreateCalendarDrawer = ({
         return calendarsWithCourseInfo;
     }, [allCourses, semester, courseId]);
 
-    // Load source calendar data when selected
+    // Load source calendar data when selected and adjust dates to target course year
     useEffect(() => {
-        if (selectedSourceCalendarId && availableSourceCalendars.length > 0) {
+        if (selectedSourceCalendarId && availableSourceCalendars.length > 0 && courseStartYear) {
             const sourceCalendar = availableSourceCalendars.find(cal => cal.id === selectedSourceCalendarId);
+
             if (sourceCalendar) {
-                // Pre-fill dates from source calendar
-                setDuplicateStartDate(new Date(sourceCalendar.startDate));
-                setDuplicateEndDate(new Date(sourceCalendar.endDate));
+                // Calculate year difference between source and target
+                const sourceYear = sourceCalendar.courseStartYear;
+                const targetYear = courseStartYear;
+                const yearDiff = targetYear - sourceYear;
+
+                // Adjust dates by the year difference
+                // El backend devuelve timestamps, los parseamos y ajustamos el año
+                const sourceStartDate = new Date(sourceCalendar.start);
+                const sourceEndDate = new Date(sourceCalendar.end);
+
+                if (isValid(sourceStartDate)) {
+                    const adjustedStartDate = addYears(sourceStartDate, yearDiff);
+                    setDuplicateStartDate(adjustedStartDate);
+                }
+                if (isValid(sourceEndDate)) {
+                    const adjustedEndDate = addYears(sourceEndDate, yearDiff);
+                    setDuplicateEndDate(adjustedEndDate);
+                }
             }
         }
-    }, [selectedSourceCalendarId, availableSourceCalendars]);
+    }, [selectedSourceCalendarId, availableSourceCalendars, courseStartYear]);
 
     // Load and adjust festivos from source calendar when days are fetched
     useEffect(() => {
@@ -267,14 +283,18 @@ export const CreateCalendarDrawer = ({
             const targetYear = courseStartYear;
             const yearDiff = targetYear - sourceYear;
 
-            // Filter festivos (non-lective days that aren't weekends in the source)
-            const sourceFestivos = sourceDays.filter(day =>
-                !day.lective &&
-                day.dayCharacter === 'F' &&
-                day.comment // Only days with comments
-            );
+            // Filter festivos (non-lective days with 'F' character)
+            // IMPORTANT: We filter out weekends in the SOURCE year first
+            const sourceFestivos = sourceDays.filter(day => {
+                if (!day.lective && day.dayCharacter === 'F') {
+                    const originalDate = new Date(day.date);
+                    // Only include if it's NOT a weekend in the original calendar
+                    return !isSaturday(originalDate) && !isSunday(originalDate);
+                }
+                return false;
+            });
 
-            // Adjust festivos to the new year
+            // Adjust festivos to the new year, preserving comments
             const adjustedHolidays: Array<{ date: Date; comment: string }> = [];
             const adjustedHolidayDates: Date[] = [];
 
@@ -283,12 +303,13 @@ export const CreateCalendarDrawer = ({
                 // Adjust year
                 const adjustedDate = addYears(originalDate, yearDiff);
 
-                // Skip if the adjusted date falls on weekend
+                // Now check if the adjusted date falls on weekend in the NEW year
+                // If it does, skip it as it's already a non-working day
                 if (!isSaturday(adjustedDate) && !isSunday(adjustedDate)) {
                     adjustedHolidayDates.push(adjustedDate);
                     adjustedHolidays.push({
                         date: adjustedDate,
-                        comment: festivo.comment
+                        comment: festivo.comment || '' // Preserve original comment
                     });
                 }
             });

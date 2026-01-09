@@ -266,6 +266,19 @@ export const getCalendarById = (req: Request, res: Response, next: NextFunction)
         method: 'GET'
     });
 
+export const getCalendarDays = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/calendar/${req.params.id}/days`,
+        method: 'GET'
+    });
+
+export const duplicateCalendar = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/calendar/duplicate`,
+        method: 'POST',
+        body: req.body
+    });
+
 export const deleteCalendar = (req: Request, res: Response, next: NextFunction) =>
     proxyRequest(req, res, next, {
         url: `${SERVICES.PLANNER}/calendar/${req.params.id}`,

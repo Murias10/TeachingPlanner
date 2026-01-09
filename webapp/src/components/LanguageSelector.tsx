@@ -18,7 +18,7 @@ export function LanguageSelector() {
     // 2) Sólo al primer montaje: detectamos y establecemos el idioma
     useEffect(() => {
 
-        const supportedLanguages = ["en", "fr", "es", "de"]
+        const supportedLanguages = ["en", "es"]
 
         // Si hay un idioma en localStorage, lo usamos
         const storedLang = localStorage.getItem("i18nextLng")
@@ -50,9 +50,7 @@ export function LanguageSelector() {
             </SelectTrigger>
             <SelectContent>
                 <SelectItem value="en">English</SelectItem>
-                <SelectItem value="fr">Français</SelectItem>
                 <SelectItem value="es">Español</SelectItem>
-                <SelectItem value="de">Deutsch</SelectItem>
             </SelectContent>
         </Select>
     )

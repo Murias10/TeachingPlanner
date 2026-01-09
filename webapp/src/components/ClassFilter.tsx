@@ -266,7 +266,7 @@ export default function ClassFilter({
                         variant="ghost"
                         size="sm"
                         className="h-7 text-xs flex-1"
-                        onClick={() => selectAll(category, options)}
+                        onClick={() => selectAll(category, filteredOptions)}
                       >
                         <Check className="w-3 h-3 mr-1" />
                         {t('filters.selectAll')}

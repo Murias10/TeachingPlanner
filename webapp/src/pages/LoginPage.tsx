@@ -9,7 +9,7 @@ export default function LoginPage() {
     const location = useLocation();
     // Si ya está autenticado, redirigir
     if (isAuthenticated) {
-        const from = location.state?.from?.pathname || '/degrees';
+        const from = location.state?.from?.pathname || '/home';
         return <Navigate to={from} replace />;
     }
 

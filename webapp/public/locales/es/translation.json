@@ -991,6 +991,46 @@
                 "description": "¿Estás seguro de que deseas revertir la cancelación de este evento? El evento volverá a aparecer en el calendario."
             },
             "defaultSubject": "esta asignatura"
+        },
+        "eventDetails": {
+            "title": "Detalles del Evento",
+            "description": "Información del evento seleccionado",
+            "fields": {
+                "subject": "Asignatura",
+                "date": "Fecha",
+                "time": "Horario",
+                "type": "Tipo",
+                "frequency": "Frecuencia",
+                "status": "Estado",
+                "group": "Grupo",
+                "language": "Idioma",
+                "classroom": "Aula",
+                "noClassroom": "Sin aula asignada",
+                "dayCharacter": "Carácter del Día",
+                "eventCharacter": "Carácter del Evento",
+                "dayComment": "Comentario del Día",
+                "eventComment": "Comentario del Evento"
+            },
+            "types": {
+                "periodic": "Evento Periódico",
+                "puntual": "Evento Puntual"
+            },
+            "frequencies": {
+                "noRepeat": "No se repite",
+                "weekly": "Semanalmente",
+                "biweeklyEven": "Quincenal (Semanas Pares)",
+                "biweeklyOdd": "Quincenal (Semanas Impares)",
+                "custom": "Personalizado"
+            },
+            "status": {
+                "active": "Activo",
+                "cancelled": "Cancelado"
+            },
+            "languages": {
+                "spanish": "Español",
+                "english": "Inglés"
+            },
+            "close": "Cerrar"
         }
     },
     "validation": {

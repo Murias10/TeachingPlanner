@@ -8,6 +8,7 @@ import { useAprobarSolicitud } from "@/hooks/event-request/useAprobarSolicitud";
 import { useRechazarSolicitud } from "@/hooks/event-request/useRechazarSolicitud";
 import { useFloatingAlert } from "@/hooks/useFloatingAlert";
 import { useDegreeByAcronym } from "@/hooks/degree/useDegreeByAcronym";
+import { useCoursesByDegreeAcronym } from "@/hooks/course/useCoursesByDegreeAcronym";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -48,6 +49,15 @@ const SolicitudPage = () => {
     const { acronym, startYear, endYear, semester } = useParams<{ acronym: string, startYear: string, endYear: string, semester: string }>();
     const { data: degree } = useDegreeByAcronym(acronym || null);
 
+    // Obtener los cursos por acrónimo
+    const { data: courses } = useCoursesByDegreeAcronym(acronym || null);
+
+    // Buscar el curso específico basado en startYear y endYear
+    const course = courses?.find(c =>
+        c.startYear.toString() === startYear &&
+        c.endYear.toString() === endYear
+    );
+
     const [solicitudes, setSolicitudes] = useState<EventRequest[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [approveDialogOpen, setApproveDialogOpen] = useState(false);
@@ -80,12 +90,16 @@ const SolicitudPage = () => {
     useEffect(() => {
         setItems([
             { label: t("breadcrumb.degrees"), href: "/degrees" },
+            // Miga intermedia con el nombre del grado (sin enlace, solo informativo)
+            ...(course?.degree ? [{ label: course.degree.name, href: "" }] : []),
             { label: t("breadcrumb.courses"), href: `/degrees/${acronym}/courses` },
+            // Miga intermedia con el año académico (sin enlace, solo informativo)
+            ...(course ? [{ label: `${course.startYear}/${course.endYear}`, href: "" }] : []),
             { label: t("breadcrumb.calendar"), href: `/degrees/${acronym}/courses/${startYear}/${endYear}/semester/${semester}/calendar` },
             { label: "Solicitudes", href: "" },
         ]);
         cargarSolicitudes();
-    }, [setItems, t, acronym, startYear, endYear, semester, cargarSolicitudes]);
+    }, [setItems, t, acronym, startYear, endYear, semester, cargarSolicitudes, course]);
 
     // Protección: Solo ADMIN puede acceder
     if (user?.role !== 'ADMIN') {

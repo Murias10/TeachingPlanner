@@ -3,7 +3,9 @@
         "and": "y",
         "success": "Éxito",
         "error": "Error",
-        "warning": "Advertencia"
+        "warning": "Advertencia",
+        "close": "Cerrar",
+        "delete": "Eliminar"
     },
     "sidebar": {
         "main": {
@@ -596,6 +598,7 @@
             },
             "no.results": "No se encontraron grupos.",
             "actions": {
+                "manage.groups": "Gestionar grupos",
                 "select.groups": "Seleccionar grupos",
                 "select.groups.tooltip": "Selecciona grupos para visaulizar en el calendario",
                 "edit.planifiedHours": "Editar horas planificadas"

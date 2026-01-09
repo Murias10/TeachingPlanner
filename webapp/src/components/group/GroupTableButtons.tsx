@@ -152,7 +152,7 @@ export function GroupTableButtons({ subject, onDeleteGroup }: Readonly<Props>) {
                 onClick={() => setOpen(true)}
                 disabled={!hasGroups}
             >
-                {t("table.groups.actions.select.groups")}<ChevronsRight />
+                {t("table.groups.actions.manage.groups")} {hasGroups && `(${totalGroups})`}<ChevronsRight />
             </Button>
 
             <Sheet open={open} onOpenChange={setOpen} modal={true}>

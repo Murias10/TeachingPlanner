@@ -60,6 +60,7 @@ interface MyEvent {
     start: Date;
     end: Date;
     resource?: CalendarEvent;
+    tooltip?: string;
 }
 
 // Helper: Mapear año numérico a etiqueta con traducción
@@ -580,14 +581,66 @@ export default function CalendarPage() {
             // Formatear la hora en formato 24h (HH:MM)
             const timeStr = startMoment.format('HH:mm');
 
+            // Crear tooltip personalizado
+            const classroomStr = event.classrooms.length > 0
+                ? event.classrooms.map(c => c.code).join(', ')
+                : 'Sin aula asignada';
+
+            const tooltip = `${event.subject?.name || 'Sin asignatura'}\n${groupName}\n${event.startTime} - ${event.endTime}\n${classroomStr}`;
+
             return {
                 title: `${groupName} - ${timeStr}`,
                 start: startMoment.toDate(),
                 end: endMoment.toDate(),
-                resource: event
+                resource: event,
+                tooltip: tooltip
             };
         });
     }, [filteredEvents]);
+
+    // Limpiar los dos puntos que react-big-calendar agrega automáticamente al tooltip
+    useEffect(() => {
+        const cleanTooltips = () => {
+            const eventElements = document.querySelectorAll<HTMLElement>('.rbc-event[title]');
+            eventElements.forEach((element) => {
+                const titleAttr = element.getAttribute('title');
+                if (titleAttr?.startsWith(': ')) {
+                    element.setAttribute('title', titleAttr.slice(2));
+                }
+            });
+        };
+
+        // Usar MutationObserver para detectar cuando se agregan nuevos eventos al DOM
+        const observer = new MutationObserver((mutations) => {
+            const hasNewEvents = mutations.some(mutation =>
+                Array.from(mutation.addedNodes).some(node =>
+                    node instanceof Element && (
+                        node.classList.contains('rbc-event') ||
+                        node.querySelector('.rbc-event')
+                    )
+                )
+            );
+
+            if (hasNewEvents) {
+                cleanTooltips();
+            }
+        });
+
+        const calendarElement = document.querySelector('.rbc-calendar');
+        if (calendarElement) {
+            observer.observe(calendarElement, {
+                childList: true,
+                subtree: true
+            });
+        }
+
+        // Limpieza inicial
+        cleanTooltips();
+
+        return () => {
+            observer.disconnect();
+        };
+    }, [events, currentDate]);
 
     // Rango de horas fijo: 9 AM a 9 PM
     const minHour = 9;
@@ -1938,6 +1991,7 @@ export default function CalendarPage() {
                                 onNavigate={handleNavigate}
                                 startAccessor="start"
                                 endAccessor="end"
+                                tooltipAccessor={(event: MyEvent) => event.tooltip || event.title}
                                 culture={i18n.language}
                                 style={{ height: '100%', width: '100%' }}
                                 components={calendarComponents}

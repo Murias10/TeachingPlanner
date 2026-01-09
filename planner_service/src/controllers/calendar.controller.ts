@@ -691,6 +691,16 @@ export const getPendingRequestsAsEvents = async (req: AuditedRequest, res: Respo
 };
 
 /**
+ * Convierte formato de hora HH:MM a H.MM (sin ceros a la izquierda en las horas)
+ * Ejemplo: "09:30" -> "9.30", "10:00" -> "10.00"
+ */
+const formatTimeForExport = (timeStr: string): string => {
+    const [hours, minutes] = timeStr.split(':');
+    const hoursInt = parseInt(hours, 10);
+    return `${hoursInt}.${minutes}`;
+};
+
+/**
  * Exporta un calendario a formato ZIP con archivos TXT
  * GET /calendar/:id/export
  */
@@ -902,9 +912,9 @@ export const exportCalendar = async (req: AuditedRequest, res: Response) => {
                 // Obtener información de aulas
                 const classroomsInfo = event.classrooms.map(classroom => classroom.code).join(',');
 
-                // Convertir startTime y endTime a formato HH:MM
-                const startTimeStr = event.startTime.substring(0, 5); // HH:MM
-                const endTimeStr = event.endTime.substring(0, 5);     // HH:MM
+                // Convertir startTime y endTime a formato H.MM (sin ceros a la izquierda)
+                const startTimeStr = formatTimeForExport(event.startTime.substring(0, 5));
+                const endTimeStr = formatTimeForExport(event.endTime.substring(0, 5));
 
                 // Usar el código del día directamente (L, M, X, J, V)
                 const dayCode = event.weekDay;
@@ -945,9 +955,9 @@ export const exportCalendar = async (req: AuditedRequest, res: Response) => {
             // Obtener información de aulas
             const classroomsInfo = event.classrooms.map(classroom => classroom.code).join(',');
 
-            // Convertir startTime y endTime a formato HH:MM
-            const startTimeStr = event.startTime.substring(0, 5); // HH:MM
-            const endTimeStr = event.endTime.substring(0, 5);     // HH:MM
+            // Convertir startTime y endTime a formato H.MM (sin ceros a la izquierda)
+            const startTimeStr = formatTimeForExport(event.startTime.substring(0, 5));
+            const endTimeStr = formatTimeForExport(event.endTime.substring(0, 5));
 
             // Determinar formato basado en si está cancelado o no
             let horaInicio: string;

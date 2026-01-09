@@ -32,7 +32,7 @@ const getColorFromText = (text: string) => {
     return colors[Math.abs(hash) % colors.length];
 };
 
-export const columns = (t: TFunction, onDeleteGroup?: (groupId: string) => void): ColumnDef<Subject>[] => [
+export const columns = (t: TFunction, onDeleteGroup?: (groupId: string) => void, onCreateGroup?: (subjectId: string) => void): ColumnDef<Subject>[] => [
     {
         accessorKey: "name",
         header: ({ column }) => (
@@ -131,7 +131,7 @@ export const columns = (t: TFunction, onDeleteGroup?: (groupId: string) => void)
         cell: ({ row }) => {
             const subject = row.original
             return (
-                <GroupTableButtons subject={subject} onDeleteGroup={onDeleteGroup} />
+                <GroupTableButtons subject={subject} onDeleteGroup={onDeleteGroup} onCreateGroup={onCreateGroup} />
             )
         },
     }

@@ -599,6 +599,7 @@
             "no.results": "No se encontraron grupos.",
             "actions": {
                 "manage.groups": "Gestionar grupos",
+                "create.group": "Crear grupo",
                 "select.groups": "Seleccionar grupos",
                 "select.groups.tooltip": "Selecciona grupos para visaulizar en el calendario",
                 "edit.planifiedHours": "Editar horas planificadas"

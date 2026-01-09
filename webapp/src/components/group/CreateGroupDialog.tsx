@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Subject } from '@/types/Subject';
 import { Badge } from '@/components/ui/badge';
 import { Info } from 'lucide-react';
@@ -12,13 +13,21 @@ interface CreateGroupDialogProps {
     onOpenChange: (open: boolean) => void;
     onSave: (groupData: { subjectId: string; number: number; type: string; language: string }) => void;
     subjects: Subject[];
+    preSelectedSubjectId?: string;
 }
 
-const CreateGroupDialog: React.FC<CreateGroupDialogProps> = ({ open, onOpenChange, onSave, subjects }) => {
+const CreateGroupDialog: React.FC<CreateGroupDialogProps> = ({ open, onOpenChange, onSave, subjects, preSelectedSubjectId }) => {
     const [subjectId, setSubjectId] = useState<string>('');
     const [type, setType] = useState<string>('');
     const [language, setLanguage] = useState<string>('ES');
     const [nextNumber, setNextNumber] = useState<number>(1);
+
+    // Establecer el subjectId cuando se proporciona preSelectedSubjectId
+    useEffect(() => {
+        if (preSelectedSubjectId) {
+            setSubjectId(preSelectedSubjectId);
+        }
+    }, [preSelectedSubjectId]);
 
     // Calcular el siguiente número disponible cuando cambian subject, type o language
     useEffect(() => {
@@ -90,24 +99,40 @@ const CreateGroupDialog: React.FC<CreateGroupDialogProps> = ({ open, onOpenChang
                 </DialogHeader>
 
                 <div className="grid gap-6 py-6">
-                    {/* Subject Selection */}
-                    <div className="space-y-2">
-                        <Label htmlFor="subject" className="text-sm font-medium">
-                            Asignatura
-                        </Label>
-                        <Select value={subjectId} onValueChange={setSubjectId}>
-                            <SelectTrigger id="subject" className="w-full">
-                                <SelectValue placeholder="Selecciona una asignatura" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {subjects.map((subject) => (
-                                    <SelectItem key={subject.id} value={subject.id}>
-                                        {subject.acronym} - {subject.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
+                    {/* Subject Selection - solo mostrar si no hay preselección */}
+                    {!preSelectedSubjectId && (
+                        <div className="space-y-2">
+                            <Label htmlFor="subject" className="text-sm font-medium">
+                                Asignatura
+                            </Label>
+                            <SearchableSelect
+                                value={subjectId}
+                                onValueChange={setSubjectId}
+                                options={subjects.map((subject) => ({
+                                    value: subject.id,
+                                    label: `${subject.acronym} - ${subject.name}`
+                                }))}
+                                placeholder="Selecciona una asignatura"
+                                searchPlaceholder="Buscar asignatura..."
+                                emptyMessage="No se encontraron asignaturas"
+                                className="w-full h-10 text-sm"
+                            />
+                        </div>
+                    )}
+
+                    {/* Mostrar nombre de la asignatura si está preseleccionada */}
+                    {preSelectedSubjectId && (
+                        <div className="space-y-2">
+                            <Label className="text-sm font-medium">
+                                Asignatura
+                            </Label>
+                            <div className="p-3 bg-muted rounded-lg">
+                                <p className="text-sm font-medium">
+                                    {subjects.find(s => s.id === preSelectedSubjectId)?.acronym} - {subjects.find(s => s.id === preSelectedSubjectId)?.name}
+                                </p>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Two columns for Type and Language */}
                     <div className="grid grid-cols-2 gap-4">

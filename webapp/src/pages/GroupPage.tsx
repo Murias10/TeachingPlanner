@@ -22,6 +22,7 @@ export default function GroupPage() {
     const { setItems } = useBreadcrumbContext()
 
     const [createDialogOpen, setCreateDialogOpen] = useState(false)
+    const [preSelectedSubjectId, setPreSelectedSubjectId] = useState<string | undefined>(undefined)
 
     // Obtener parámetros de la URL
     const { acronym, startYear, endYear, semester } = useParams();
@@ -124,12 +125,29 @@ export default function GroupPage() {
         }
     }, [deleteGroup, refetch, triggerAlert, subjects])
 
+    const handleCreateGroupForSubject = useCallback((subjectId: string) => {
+        setPreSelectedSubjectId(subjectId)
+        setCreateDialogOpen(true)
+    }, [])
+
+    const handleCreateGroupGlobal = useCallback(() => {
+        setPreSelectedSubjectId(undefined)
+        setCreateDialogOpen(true)
+    }, [])
+
+    const handleDialogClose = useCallback((open: boolean) => {
+        if (!open) {
+            setPreSelectedSubjectId(undefined)
+        }
+        setCreateDialogOpen(open)
+    }, [])
+
     return (
         <>
             <section className="h-full bg-background overflow-hidden flex flex-col">
                 {/* Toolbar */}
                 <div className="px-4 py-3 border-b bg-background flex justify-end items-center">
-                    <GroupToolbar onCreateGroup={() => setCreateDialogOpen(true)} />
+                    <GroupToolbar onCreateGroup={handleCreateGroupGlobal} />
                 </div>
 
                 {/* Table */}
@@ -139,16 +157,17 @@ export default function GroupPage() {
                             <LoadingSpinner />
                         </div>
                     ) : (
-                        <GroupTable subjects={subjects} onDeleteGroup={handleDeleteGroup} />
+                        <GroupTable subjects={subjects} onDeleteGroup={handleDeleteGroup} onCreateGroup={handleCreateGroupForSubject} />
                     )}
                 </div>
             </section>
 
             <CreateGroupDialog
                 open={createDialogOpen}
-                onOpenChange={setCreateDialogOpen}
+                onOpenChange={handleDialogClose}
                 onSave={handleCreateGroup}
                 subjects={subjects}
+                preSelectedSubjectId={preSelectedSubjectId}
             />
         </>
     )

@@ -35,9 +35,10 @@ import { useTranslation } from "react-i18next"
 interface GroupTableProps {
     subjects: Subject[];
     onDeleteGroup?: (groupId: string) => void;
+    onCreateGroup?: (subjectId: string) => void;
 }
 
-export function GroupTable({ subjects, onDeleteGroup }: GroupTableProps) {
+export function GroupTable({ subjects, onDeleteGroup, onCreateGroup }: GroupTableProps) {
 
     const { t } = useTranslation();
 
@@ -49,7 +50,7 @@ export function GroupTable({ subjects, onDeleteGroup }: GroupTableProps) {
 
     const table = useReactTable({
         data: subjects,
-        columns: defaultColumns(t, onDeleteGroup),
+        columns: defaultColumns(t, onDeleteGroup, onCreateGroup),
         state: {
             sorting,
             columnFilters,

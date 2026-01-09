@@ -1,7 +1,13 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Subject } from "@/types/Subject"
-import { ChevronsRight, Trash2, Users, Check, X } from "lucide-react"
+import { ChevronsRight, Trash2, Users, Check, X, Plus } from "lucide-react"
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { ProtectedComponent } from "@/components/ProtectedComponent"
 import {
     Sheet,
     SheetContent,
@@ -25,9 +31,10 @@ import { useFloatingAlert } from "@/hooks/useFloatingAlert"
 type Props = {
     readonly subject: Subject
     readonly onDeleteGroup?: (groupId: string) => void
+    readonly onCreateGroup?: (subjectId: string) => void
 }
 
-export function GroupTableButtons({ subject, onDeleteGroup }: Readonly<Props>) {
+export function GroupTableButtons({ subject, onDeleteGroup, onCreateGroup }: Readonly<Props>) {
 
     const { t } = useTranslation()
     const { triggerAlert } = useFloatingAlert()
@@ -154,6 +161,24 @@ export function GroupTableButtons({ subject, onDeleteGroup }: Readonly<Props>) {
             >
                 {t("table.groups.actions.manage.groups")} {hasGroups && `(${totalGroups})`}<ChevronsRight />
             </Button>
+
+            <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            className="size-10"
+                            onClick={() => onCreateGroup?.(subject.id)}
+                        >
+                            <Plus />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>{t("table.groups.actions.create.group")}</p>
+                    </TooltipContent>
+                </Tooltip>
+            </ProtectedComponent>
 
             <Sheet open={open} onOpenChange={setOpen} modal={true}>
                 <SheetContent className="flex flex-col w-full sm:max-w-2xl p-0">

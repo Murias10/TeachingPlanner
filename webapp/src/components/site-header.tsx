@@ -38,11 +38,15 @@ export function SiteHeader() {
             <BreadcrumbList>
               {items.map((item, index) => {
                 const isLast = index === items.length - 1
+                const isClickable = item.href && item.href !== ""
 
                 return (
                   <BreadcrumbItem key={index}>
-                    {isLast ? (
-                      <BreadcrumbPage>{item.label}</BreadcrumbPage>
+                    {isLast || !isClickable ? (
+                      <>
+                        <BreadcrumbPage>{item.label}</BreadcrumbPage>
+                        {!isLast && <BreadcrumbSeparator />}
+                      </>
                     ) : (
                       <>
                         <BreadcrumbLink asChild>

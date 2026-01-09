@@ -96,6 +96,8 @@ export default function CoursePage() {
     useEffect(() => {
         const items = [
             { label: t("breadcrumb.degrees"), href: "/degrees" },
+            // Miga intermedia con el nombre del grado (sin enlace, solo informativo)
+            ...(degree ? [{ label: degree.name, href: "" }] : []),
             { label: t("breadcrumb.courses"), href: "" },
         ];
 

@@ -329,10 +329,14 @@ export default function CalendarPage() {
     useEffect(() => {
         setItems([
             { label: t("breadcrumb.degrees"), href: "/degrees" },
+            // Miga intermedia con el nombre del grado (sin enlace, solo informativo)
+            ...(course?.degree ? [{ label: course.degree.name, href: "" }] : []),
             { label: t("breadcrumb.courses"), href: `/degrees/${acronym}/courses` },
+            // Miga intermedia con el año académico (sin enlace, solo informativo)
+            ...(course ? [{ label: `${course.startYear}/${course.endYear}`, href: "" }] : []),
             { label: t("breadcrumb.calendar"), href: "" },
         ]);
-    }, [setItems, acronym, t]);
+    }, [setItems, acronym, t, course]);
 
     // Calcular grupos disponibles basado en asignaturas y tipos seleccionados
     const availableGrupos = useMemo(() => {

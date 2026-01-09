@@ -26,15 +26,6 @@ export default function GroupPage() {
     // Obtener parámetros de la URL
     const { acronym, startYear, endYear, semester } = useParams();
 
-    useEffect(() => {
-        setItems([
-            { label: t("breadcrumb.degrees"), href: "/degrees" },
-            { label: t("breadcrumb.courses"), href: `/degrees/${acronym}/courses` },
-            { label: t("breadcrumb.calendar"), href: `/degrees/${acronym}/courses/${startYear}/${endYear}/semester/${semester}/calendar` },
-            { label: t("breadcrumb.groups"), href: `/degrees/${acronym}/courses/${startYear}/${endYear}/semester/${semester}/calendar/groups` }
-        ])
-    }, [setItems, t, acronym, startYear, endYear, semester])
-
     // Obtener los cursos por acrónimo
     const {
         data: courses
@@ -45,6 +36,18 @@ export default function GroupPage() {
         c.startYear.toString() === startYear &&
         c.endYear.toString() === endYear
     );
+
+    useEffect(() => {
+        setItems([
+            { label: t("breadcrumb.degrees"), href: "/degrees" },
+            // Miga intermedia con el nombre del grado (sin enlace, solo informativo)
+            ...(course?.degree ? [{ label: course.degree.name, href: "" }] : []),
+            { label: t("breadcrumb.courses"), href: `/degrees/${acronym}/courses` },
+            // Miga intermedia con el año académico (sin enlace, solo informativo)
+            ...(course ? [{ label: `${course.startYear}/${course.endYear}`, href: "" }] : []),
+            { label: t("breadcrumb.groups"), href: "" }
+        ])
+    }, [setItems, t, acronym, startYear, endYear, semester, course])
 
     // Convertir semester a número
     const semesterNumber = semester ? parseInt(semester, 10) : null;

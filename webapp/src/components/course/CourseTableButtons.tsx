@@ -37,7 +37,7 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
     }
 
     const goToManageGroups = (semester: number) => {
-        navigate(`${course.startYear}/${course.endYear}/semester/${semester}/calendar/groups`)
+        navigate(`${course.startYear}/${course.endYear}/semester/${semester}/groups`)
     }
 
     // Funciones auxiliares para encontrar calendarios por semestre

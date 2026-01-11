@@ -36,6 +36,31 @@ interface EditEventDialogProps {
   lectiveDates?: Set<string>;
 }
 
+// Helper functions for time calculations
+const calculateDurationInMinutes = (startTime: string, endTime: string): number => {
+  const [startH, startM] = startTime.split(':').map(Number);
+  const [endH, endM] = endTime.split(':').map(Number);
+  return (endH * 60 + endM) - (startH * 60 + startM);
+};
+
+const addMinutesToTime = (time: string, minutes: number): string => {
+  const [hours, mins] = time.split(':').map(Number);
+  let totalMinutes = hours * 60 + mins + minutes;
+
+  // Clamp to valid range: 09:00 (540 min) to 21:00 (1260 min)
+  totalMinutes = Math.max(540, Math.min(1260, totalMinutes));
+
+  const newHours = Math.floor(totalMinutes / 60);
+  const newMinutes = totalMinutes % 60;
+
+  // Round to nearest 15-minute interval
+  const roundedMinutes = Math.round(newMinutes / 15) * 15;
+  const finalMinutes = roundedMinutes === 60 ? 0 : roundedMinutes;
+  const finalHours = roundedMinutes === 60 ? newHours + 1 : newHours;
+
+  return `${finalHours.toString().padStart(2, '0')}:${finalMinutes.toString().padStart(2, '0')}`;
+};
+
 const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, onSave, event, degreeId, courseId, semester, lectiveDates = new Set() }) => {
   const [config, setConfig] = useState<RecurrenceConfig>({
     frequency: 'no-repeat',
@@ -504,7 +529,11 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                     <TimePicker
                       value={config.startTime}
                       onChange={(value) => {
-                        setConfig({ ...config, startTime: value });
+                        // Calculate current duration
+                        const duration = calculateDurationInMinutes(config.startTime, config.endTime);
+                        // Calculate new end time maintaining the duration
+                        const newEndTime = addMinutesToTime(value, duration);
+                        setConfig({ ...config, startTime: value, endTime: newEndTime });
                         setOpenStartTime(false);
                       }}
                     />

@@ -46,6 +46,8 @@ export default function GroupPage() {
             { label: t("breadcrumb.courses"), href: `/degrees/${acronym}/courses` },
             // Miga intermedia con el año académico (sin enlace, solo informativo)
             ...(course ? [{ label: `${course.startYear}/${course.endYear}`, href: "" }] : []),
+            // Miga intermedia con el semestre (sin enlace, solo informativo)
+            ...(semester ? [{ label: `${t("breadcrumb.semester")} ${semester}`, href: "" }] : []),
             { label: t("breadcrumb.groups"), href: "" }
         ])
     }, [setItems, t, acronym, startYear, endYear, semester, course])
@@ -101,19 +103,12 @@ export default function GroupPage() {
     }, [createGroup, refetch, triggerAlert])
 
     const handleDeleteGroup = useCallback(async (groupId: string) => {
-        // Find the group to get its details for the alert message
-        const group = subjects.flatMap(s => s.groups || []).find(g => g.id === groupId);
-
         const result = await deleteGroup(groupId, refetch)
 
-        if (result.success && group) {
-            const subject = subjects.find(s => s.groups?.some(g => g.id === groupId));
-            const langPrefix = group.language === 'EN' ? 'I-' : '';
-            const groupLabel = subject ? `${subject.acronym}.${group.type}.${langPrefix}${group.number}` : '';
-
+        if (result.success) {
             triggerAlert({
                 title: "Grupo eliminado",
-                description: `El grupo '${groupLabel}' se ha eliminado correctamente`,
+                description: "El grupo se ha eliminado correctamente",
                 variant: "default"
             })
         } else {
@@ -123,7 +118,7 @@ export default function GroupPage() {
                 variant: "destructive"
             })
         }
-    }, [deleteGroup, refetch, triggerAlert, subjects])
+    }, [deleteGroup, refetch, triggerAlert])
 
     const handleCreateGroupForSubject = useCallback((subjectId: string) => {
         setPreSelectedSubjectId(subjectId)

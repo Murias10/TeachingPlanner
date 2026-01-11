@@ -48,9 +48,15 @@ export function GroupTable({ subjects, onDeleteGroup, onCreateGroup }: GroupTabl
     const [rowSelection, setRowSelection] = React.useState({})
     const [filterValue, setFilterValue] = React.useState("")
 
+    // Memoize columns to prevent unnecessary re-creation and component re-mounting
+    const columns = React.useMemo(
+        () => defaultColumns(t, onDeleteGroup, onCreateGroup),
+        [t, onDeleteGroup, onCreateGroup]
+    )
+
     const table = useReactTable({
         data: subjects,
-        columns: defaultColumns(t, onDeleteGroup, onCreateGroup),
+        columns,
         state: {
             sorting,
             columnFilters,

@@ -335,9 +335,11 @@ export default function CalendarPage() {
             { label: t("breadcrumb.courses"), href: `/degrees/${acronym}/courses` },
             // Miga intermedia con el año académico (sin enlace, solo informativo)
             ...(course ? [{ label: `${course.startYear}/${course.endYear}`, href: "" }] : []),
+            // Miga intermedia con el semestre (sin enlace, solo informativo)
+            ...(semester ? [{ label: `${t("breadcrumb.semester")} ${semester}`, href: "" }] : []),
             { label: t("breadcrumb.calendar"), href: "" },
         ]);
-    }, [setItems, acronym, t, course]);
+    }, [setItems, acronym, t, course, semester]);
 
     // Calcular grupos disponibles basado en curso, asignaturas y tipos seleccionados
     const availableGrupos = useMemo(() => {

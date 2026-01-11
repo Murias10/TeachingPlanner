@@ -26,29 +26,29 @@ const TimePicker = React.forwardRef<HTMLDivElement, TimePickerProps>(
       onChange?.(newValue)
     }
 
-    const hourArray = Array.from({ length: 24 }, (_, i) =>
-      i.toString().padStart(2, "0")
+    // Horas de 09:00 a 21:00
+    const hourArray = Array.from({ length: 13 }, (_, i) =>
+      (i + 9).toString().padStart(2, "0")
     )
-    const minuteArray = Array.from({ length: 60 }, (_, i) =>
-      i.toString().padStart(2, "0")
-    )
+    // Minutos de 15 en 15 (00, 15, 30, 45)
+    const minuteArray = ["00", "15", "30", "45"]
 
     return (
       <div
         ref={ref}
-        className={cn("flex gap-2 p-3 bg-background rounded-md", className)}
+        className={cn("flex gap-3 p-3 bg-background rounded-md", className)}
       >
         {/* Hours */}
         <div className="flex flex-col gap-2 flex-1">
-          <label className="text-xs font-semibold text-center">Hora</label>
-          <ScrollArea className="h-48 border rounded-md">
-            <div className="flex flex-col">
+          <label className="text-xs font-semibold text-center text-muted-foreground">Hora</label>
+          <ScrollArea className="h-[154px] border rounded-md">
+            <div className="flex flex-col p-1">
               {hourArray.map((hour) => (
                 <Button
                   key={hour}
                   variant={hours === hour ? "default" : "ghost"}
                   size="sm"
-                  className="rounded-none justify-center text-xs h-8"
+                  className="rounded-sm justify-center text-sm h-9 mb-0.5 font-medium"
                   onClick={() => handleHourChange(hour)}
                 >
                   {hour}
@@ -59,28 +59,28 @@ const TimePicker = React.forwardRef<HTMLDivElement, TimePickerProps>(
         </div>
 
         {/* Separator */}
-        <div className="flex items-center">
-          <span className="text-lg font-semibold">:</span>
+        <div className="flex items-center pt-7">
+          <span className="text-xl font-bold text-muted-foreground">:</span>
         </div>
 
         {/* Minutes */}
         <div className="flex flex-col gap-2 flex-1">
-          <label className="text-xs font-semibold text-center">Minuto</label>
-          <ScrollArea className="h-48 border rounded-md">
-            <div className="flex flex-col">
+          <label className="text-xs font-semibold text-center text-muted-foreground">Minuto</label>
+          <div className="border rounded-md p-1">
+            <div className="flex flex-col gap-0.5">
               {minuteArray.map((minute) => (
                 <Button
                   key={minute}
                   variant={minutes === minute ? "default" : "ghost"}
                   size="sm"
-                  className="rounded-none justify-center text-xs h-8"
+                  className="rounded-sm justify-center text-sm h-9 font-medium"
                   onClick={() => handleMinuteChange(minute)}
                 >
                   {minute}
                 </Button>
               ))}
             </div>
-          </ScrollArea>
+          </div>
         </div>
       </div>
     )

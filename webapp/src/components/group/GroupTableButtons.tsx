@@ -196,17 +196,19 @@ export function GroupTableButtons({ subject, onDeleteGroup, onCreateGroup }: Rea
                     <Separator />
 
                     <Tabs defaultValue={groupsByType[0]?.code} className="flex-1 flex flex-col">
-                        <TabsList className="w-full justify-start h-auto p-0 bg-transparent">
-                            {groupsByType.map(({ code, label }) => (
-                                <TabsTrigger
-                                    key={code}
-                                    value={code}
-                                    className="data-[state=active]:bg-background data-[state=active]:shadow-sm"
-                                >
-                                    {label}
-                                </TabsTrigger>
-                            ))}
-                        </TabsList>
+                        <div className="flex justify-center px-4 pt-2 pb-3">
+                            <TabsList>
+                                {groupsByType.map(({ code, label }) => (
+                                    <TabsTrigger
+                                        key={code}
+                                        value={code}
+                                        className="min-w-24"
+                                    >
+                                        {label}
+                                    </TabsTrigger>
+                                ))}
+                            </TabsList>
+                        </div>
 
                         {groupsByType.map(({ code, groupsES, groupsEN }) => (
                             <TabsContent key={code} value={code} className="flex-1 m-0">
@@ -238,18 +240,31 @@ export function GroupTableButtons({ subject, onDeleteGroup, onCreateGroup }: Rea
                                                             </label>
 
                                                             <div className="flex items-center gap-1">
-                                                                {getGroupHours(group) === 0 ? (
-                                                                    <span className="text-[10px] text-muted-foreground px-1.5 py-0.5">
-                                                                        {getGroupHours(group)}h
-                                                                    </span>
-                                                                ) : editingGroupId === group.id ? (
+                                                                {editingGroupId === group.id ? (
                                                                     <>
                                                                         <Input
                                                                             type="number"
                                                                             min="0"
                                                                             step="0.5"
                                                                             value={editingHours}
-                                                                            onChange={(e) => setEditingHours(e.target.value)}
+                                                                            onChange={(e) => {
+                                                                                const value = e.target.value;
+                                                                                // Allow empty string for clearing
+                                                                                if (value === '') {
+                                                                                    setEditingHours(value);
+                                                                                    return;
+                                                                                }
+
+                                                                                // Validate: only numbers, no negative, must be multiple of 0.5
+                                                                                const numValue = Number.parseFloat(value);
+                                                                                if (!Number.isNaN(numValue) && numValue >= 0) {
+                                                                                    // Check if it's a valid decimal (0.5 increments)
+                                                                                    const remainder = (numValue * 10) % 5;
+                                                                                    if (remainder === 0) {
+                                                                                        setEditingHours(value);
+                                                                                    }
+                                                                                }
+                                                                            }}
                                                                             className="h-6 w-16 text-xs px-1.5"
                                                                             autoFocus
                                                                             onKeyDown={(e) => {
@@ -331,18 +346,31 @@ export function GroupTableButtons({ subject, onDeleteGroup, onCreateGroup }: Rea
                                                             </label>
 
                                                             <div className="flex items-center gap-1">
-                                                                {getGroupHours(group) === 0 ? (
-                                                                    <span className="text-[10px] text-muted-foreground px-1.5 py-0.5">
-                                                                        {getGroupHours(group)}h
-                                                                    </span>
-                                                                ) : editingGroupId === group.id ? (
+                                                                {editingGroupId === group.id ? (
                                                                     <>
                                                                         <Input
                                                                             type="number"
                                                                             min="0"
                                                                             step="0.5"
                                                                             value={editingHours}
-                                                                            onChange={(e) => setEditingHours(e.target.value)}
+                                                                            onChange={(e) => {
+                                                                                const value = e.target.value;
+                                                                                // Allow empty string for clearing
+                                                                                if (value === '') {
+                                                                                    setEditingHours(value);
+                                                                                    return;
+                                                                                }
+
+                                                                                // Validate: only numbers, no negative, must be multiple of 0.5
+                                                                                const numValue = Number.parseFloat(value);
+                                                                                if (!Number.isNaN(numValue) && numValue >= 0) {
+                                                                                    // Check if it's a valid decimal (0.5 increments)
+                                                                                    const remainder = (numValue * 10) % 5;
+                                                                                    if (remainder === 0) {
+                                                                                        setEditingHours(value);
+                                                                                    }
+                                                                                }
+                                                                            }}
                                                                             className="h-6 w-16 text-xs px-1.5"
                                                                             autoFocus
                                                                             onKeyDown={(e) => {

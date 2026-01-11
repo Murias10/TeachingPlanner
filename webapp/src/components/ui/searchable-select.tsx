@@ -43,8 +43,20 @@ export function SearchableSelect({
   emptyMessage = "No se encontraron resultados.",
 }: Readonly<SearchableSelectProps>) {
   const [open, setOpen] = React.useState(false)
+  const [searchValue, setSearchValue] = React.useState("")
 
   const selectedOption = options.find((option) => option.value === value)
+
+  // Filter options based on search value
+  const filteredOptions = React.useMemo(() => {
+    if (!searchValue) return options
+
+    const lowerSearch = searchValue.toLowerCase()
+    return options.filter((option) =>
+      option.label.toLowerCase().includes(lowerSearch) ||
+      option.value.toLowerCase().includes(lowerSearch)
+    )
+  }, [options, searchValue])
 
   return (
     <Popover open={open} onOpenChange={setOpen} modal={true}>
@@ -61,18 +73,24 @@ export function SearchableSelect({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-full p-0" align="start">
-        <Command>
-          <CommandInput placeholder={searchPlaceholder} className="h-8 text-xs" />
+        <Command shouldFilter={false}>
+          <CommandInput
+            placeholder={searchPlaceholder}
+            className="h-8 text-xs"
+            value={searchValue}
+            onValueChange={setSearchValue}
+          />
           <CommandList className="max-h-[300px] overflow-y-auto">
             <CommandEmpty>{emptyMessage}</CommandEmpty>
             <CommandGroup>
-              {options.map((option) => (
+              {filteredOptions.map((option) => (
                 <CommandItem
                   key={option.value}
                   value={option.value}
-                  onSelect={(currentValue) => {
-                    onValueChange(currentValue === value ? "" : currentValue)
+                  onSelect={() => {
+                    onValueChange(option.value === value ? "" : option.value)
                     setOpen(false)
+                    setSearchValue("")
                   }}
                   className="text-xs"
                 >

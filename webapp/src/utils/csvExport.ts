@@ -16,38 +16,59 @@ const escapeCSVField = (field: string | number | boolean): string => {
 };
 
 /**
- * Formatea un evento como descripción para el CSV
+ * Formatea el grupo en formato Acrónimo.Tipo.Número (ej: AC.T.1 o AC.T.I-1 para inglés)
  */
-const formatEventDescription = (event: CalendarEvent): string => {
-    const parts: string[] = [];
-
-    if (event.groups.length > 0) {
-        const groupsInfo = event.groups
-            .map(g => `${g.type} (${g.language})`)
-            .join(', ');
-        parts.push(`Grupos: ${groupsInfo}`);
+const formatGroupLabel = (event: CalendarEvent): string => {
+    if (!event.groups || event.groups.length === 0) {
+        return 'Sin grupo';
     }
 
-    if (event.comment) {
-        parts.push(`Comentario: ${event.comment}`);
+    const group = event.groups[0]; // Tomar el primer grupo
+    const subject = event.subject;
+
+    if (!subject) {
+        return 'Sin asignatura';
     }
 
-    if (event.dayComment) {
-        parts.push(`Día: ${event.dayComment}`);
-    }
+    const acronym = subject.acronym;
+    const groupType = group.type;
+    const groupNumber = group.language === 'EN' ? `I-${group.number}` : `${group.number}`;
 
-    if (event.dayCharacter) {
-        parts.push(`Carácter: ${event.dayCharacter}`);
-    }
-
-    return parts.join(' | ');
+    return `${acronym}.${groupType}.${groupNumber}`;
 };
 
 /**
- * Convierte un array de CalendarEvent al formato CSV de Google Calendar
+ * Formatea el tiempo en formato 24h con punto decimal (ej: 18.00)
+ */
+const formatTime24h = (time: string): string => {
+    const [hours, minutes] = time.split(':');
+    return `${hours}.${minutes}`;
+};
+
+/**
+ * Genera una descripción simple para el evento
+ */
+const formatEventDescription = (event: CalendarEvent, eventNumber: number): string => {
+    if (event.comment && event.comment.trim()) {
+        return event.comment;
+    }
+
+    const groupLabel = formatGroupLabel(event);
+    return `Hora de clase número ${eventNumber} de ${groupLabel}`;
+};
+
+/**
+ * Convierte un array de CalendarEvent al formato CSV requerido
  *
- * Formato de Google Calendar CSV:
- * Subject, Start Date, Start Time, End Date, End Time, All Day Event, Description, Location, Private
+ * Formato CSV:
+ * Subject, Start Date, Start Time, End Date, End Time, Description, Location
+ *
+ * Donde:
+ * - Subject: Grupo en formato Acrónimo.Tipo.Número (ej: AC.T.1)
+ * - Start Date / End Date: DD/MM/YYYY
+ * - Start Time / End Time: HH.MM (24h con punto decimal)
+ * - Description: Comentario o descripción generada
+ * - Location: Código del aula
  */
 export const generateGoogleCalendarCSV = (events: CalendarEvent[]): string => {
     if (!events || events.length === 0) {
@@ -60,13 +81,11 @@ export const generateGoogleCalendarCSV = (events: CalendarEvent[]): string => {
         'Start Time',
         'End Date',
         'End Time',
-        'All Day Event',
         'Description',
-        'Location',
-        'Private'
+        'Location'
     ];
 
-    const rows = events.map(event => {
+    const rows = events.map((event, index) => {
         const eventDate = moment(event.date);
 
         // Validar fecha válida
@@ -75,20 +94,22 @@ export const generateGoogleCalendarCSV = (events: CalendarEvent[]): string => {
             return null;
         }
 
-        const subject = event.subject?.name || 'Sin asignatura';
-        const startDate = eventDate.format('MM/DD/YYYY');
+        // Subject: Grupo en formato Acrónimo.Tipo.Número
+        const subject = formatGroupLabel(event);
+
+        // Fecha en formato DD/MM/YYYY
+        const startDate = eventDate.format('DD/MM/YYYY');
         const endDate = startDate;
 
-        // Calcular end time basado en startTime + duration
-        const startMoment = moment(event.startTime, 'HH:mm');
-        const endMoment = moment(event.endTime, 'HH:mm');
+        // Tiempo en formato 24h con punto decimal (HH.MM)
+        const startTime = formatTime24h(event.startTime);
+        const endTime = formatTime24h(event.endTime);
 
-        // Formato de 12 horas con AM/PM
-        const startTime = startMoment.format('h:mm A');
-        const endTime = endMoment.format('h:mm A');
+        // Descripción simple
+        const description = formatEventDescription(event, index + 1);
 
-        const description = formatEventDescription(event);
-        const location = event.classrooms.map(c => c.code).join(', ') || '';
+        // Location: Primer aula o vacío
+        const location = event.classrooms.length > 0 ? event.classrooms[0].code : '';
 
         return [
             escapeCSVField(subject),
@@ -96,10 +117,8 @@ export const generateGoogleCalendarCSV = (events: CalendarEvent[]): string => {
             escapeCSVField(startTime),
             escapeCSVField(endDate),
             escapeCSVField(endTime),
-            'False',
             escapeCSVField(description),
-            escapeCSVField(location),
-            'False'
+            escapeCSVField(location)
         ].join(',');
     }).filter(Boolean); // Filtrar eventos con errores
 

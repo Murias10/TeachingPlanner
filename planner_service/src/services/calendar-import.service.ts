@@ -92,6 +92,8 @@ export class CalendarImportService {
 
     // Store group limits from asignaturas.txt to validate in horarios.txt and excepciones.txt
     let groupLimits: Map<string, number> | undefined;
+    // Store calendarId from calendario.txt to use when creating groups
+    let calendarId: string | undefined;
 
     for (const fileName of processingOrder) {
       const file = files.find(f => f.originalname === fileName);
@@ -109,13 +111,15 @@ export class CalendarImportService {
           importResult.classrooms = await this.processUbicacionesFile(content, userEmail);
           break;
         case 'asignaturas.txt':
-          const subjectsResult = await this.processAsignaturasFile(content, courseId, semester, userEmail);
+          const subjectsResult = await this.processAsignaturasFile(content, courseId, semester, userEmail, calendarId);
           importResult.subjects = subjectsResult;
           // Extract group limits for validation
           groupLimits = subjectsResult.groupLimits;
           break;
         case 'calendario.txt':
           importResult.calendario = await this.processCalendarioFile(content, courseId, semester, userEmail);
+          // Extract calendarId for use in asignaturas.txt, horarios.txt, and excepciones.txt
+          calendarId = importResult.calendario.calendarId;
           break;
         case 'horarios.txt':
           importResult.events = await this.processHorariosFile(content, courseId, semester, userEmail, groupLimits);
@@ -194,10 +198,11 @@ export class CalendarImportService {
   /**
    * Process asignaturas.txt file
    */
-  private static async processAsignaturasFile(content: string, courseId: string, semester: number, userEmail: string | null) {
+  private static async processAsignaturasFile(content: string, courseId: string, semester: number, userEmail: string | null, calendarId?: string) {
     const subjectRepo = AppDataSource.getRepository(Subject);
     const courseRepo = AppDataSource.getRepository(Course);
     const groupRepo = AppDataSource.getRepository(Group);
+    const calendarRepo = AppDataSource.getRepository(Calendar);
     const lines = content.split('\n');
     const processedSubjects: any[] = [];
     const errors: string[] = [];
@@ -219,6 +224,15 @@ export class CalendarImportService {
     }
 
     const degreeId = course.degree.id;
+
+    // Load calendar if calendarId is provided (calendar might not exist yet if asignaturas.txt is processed before calendario.txt)
+    let calendar = null;
+    if (calendarId) {
+      calendar = await calendarRepo.findOne({ where: { id: calendarId } });
+      if (!calendar) {
+        console.warn(`[ASIGNATURAS] Calendar with ID ${calendarId} not found. Groups will be created without calendar relation.`);
+      }
+    }
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
@@ -300,22 +314,37 @@ export class CalendarImportService {
 
           for (let groupNumber = 1; groupNumber <= groupConfig.number; groupNumber++) {
             try {
-              const existingGroup = await groupRepo.findOne({
-                where: { subject: { id: subject.id }, number: groupNumber, type: groupConfig.type, language: groupConfig.language }
-              });
+              // Build where clause - include calendar if available
+              const whereClause: any = {
+                subject: { id: subject.id },
+                number: groupNumber,
+                type: groupConfig.type,
+                language: groupConfig.language
+              };
+              if (calendar) {
+                whereClause.calendar = { id: calendar.id };
+              }
+
+              const existingGroup = await groupRepo.findOne({ where: whereClause });
 
               if (existingGroup) {
                 totalGroupsSkipped++;
               } else {
-                const group = groupRepo.create({
-                  number: groupNumber,
-                  type: groupConfig.type,
-                  language: groupConfig.language,
-                  subject: subject,
-                  createdBy: userEmail
-                });
-                await groupRepo.save(group);
-                totalGroupsCreated++;
+                // Only create group if calendar is available
+                if (calendar) {
+                  const group = groupRepo.create({
+                    number: groupNumber,
+                    type: groupConfig.type,
+                    language: groupConfig.language,
+                    subject: subject,
+                    calendar: calendar,
+                    createdBy: userEmail
+                  });
+                  await groupRepo.save(group);
+                  totalGroupsCreated++;
+                } else {
+                  console.warn(`[ASIGNATURAS] Skipping group creation for ${acronym}.${groupConfig.type}.${groupNumber} - calendar not available yet`);
+                }
               }
             } catch (groupError) {
               if (groupError instanceof Error && groupError.message.includes('ER_DUP_ENTRY')) {
@@ -1034,13 +1063,17 @@ export class CalendarImportService {
 
         let group = await groupRepo.findOne({
           where: {
+            calendar: { id: calendar.id },
             number: event.groupNumber,
             type: event.groupType,
             language: event.language,
             subject: { id: subject.id }
           },
-          relations: ['subject']
+          relations: ['subject', 'calendar']
         });
+
+        // Build group key for tracking and logging
+        const groupKey = `${event.subjectAcronym}.${event.groupType}.${event.groupNumber}.${event.language}`;
 
         // ALWAYS validate group number against maximum defined in asignaturas.txt
         // Get limit from groupLimits map (passed from asignaturas.txt processing)
@@ -1077,6 +1110,7 @@ export class CalendarImportService {
         if (!group) {
           // Create new group
           group = groupRepo.create({
+            calendar,
             number: event.groupNumber,
             type: event.groupType,
             language: event.language,
@@ -1313,7 +1347,16 @@ export class CalendarImportService {
         const subject = await subjectRepo.findOne({ where: { acronym: subjectAcronym } });
         if (!subject) continue;
 
-        let group = await groupRepo.findOne({ where: { number: groupNumber, type: groupType, language, subject: { id: subject.id } }, relations: ['subject'] });
+        let group = await groupRepo.findOne({
+          where: {
+            calendar: { id: calendar.id },
+            number: groupNumber,
+            type: groupType,
+            language,
+            subject: { id: subject.id }
+          },
+          relations: ['subject', 'calendar']
+        });
 
         const groupKey = `${subjectAcronym}.${groupType}.${groupNumber}.${language}`;
 
@@ -1352,7 +1395,14 @@ export class CalendarImportService {
         // If group doesn't exist, create it (only after validation passes)
         if (!group) {
           // Create new group
-          group = groupRepo.create({ number: groupNumber, type: groupType, language, subject, createdBy: userEmail });
+          group = groupRepo.create({
+            calendar,
+            number: groupNumber,
+            type: groupType,
+            language,
+            subject,
+            createdBy: userEmail
+          });
           await groupRepo.save(group);
 
           // Track auto-created group as warning (only if maxGroups > 0, meaning this wasn't expected)

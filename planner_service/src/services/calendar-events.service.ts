@@ -240,6 +240,7 @@ export class CalendarEventsService {
    *
    * Los eventos puntuales SIEMPRE se incluyen (tienen prioridad)
    * Los eventos periódicos se filtran hasta completar las horas restantes
+   * Si el último evento excede las horas restantes, se ajusta su duración
    */
   private static filtrarPorHorasProgramadas(
     eventosPorGrupo: Map<string, any[]>,
@@ -280,6 +281,25 @@ export class CalendarEventsService {
       for (const evento of eventosPeriodicosDelGrupo) {
         if (horasAcumuladas >= horasRestantes) break;
 
+        // Verificar si este evento excedería el límite de horas
+        const horasDespuesDeEsteEvento = horasAcumuladas + evento.duration;
+
+        if (horasDespuesDeEsteEvento > horasRestantes) {
+          // Este es el último evento y excede las horas restantes
+          // Ajustar su duración para que complete exactamente las horas planificadas
+          const horasQueRestan = horasRestantes - horasAcumuladas;
+
+          if (horasQueRestan > 0) {
+            // Crear una copia del evento con duración ajustada
+            const eventoAjustado = this.ajustarDuracionEvento(evento, horasQueRestan);
+            eventosPeriodicosFiltrados.push(eventoAjustado);
+          }
+
+          // No procesar más eventos después de este
+          break;
+        }
+
+        // El evento cabe completo dentro de las horas restantes
         eventosPeriodicosFiltrados.push(evento);
         horasAcumuladas += evento.duration;
       }
@@ -630,6 +650,35 @@ export class CalendarEventsService {
     const [horaIni, minIni] = horaInicio.split(':').map(Number);
     const [horaFn, minFn] = horaFin.split(':').map(Number);
     return ((horaFn * 60 + minFn) - (horaIni * 60 + minIni)) / 60;
+  }
+
+  /**
+   * Ajusta la duración de un evento para que tenga exactamente las horas especificadas
+   * Modifica el endTime y recalcula la duration
+   *
+   * @param evento El evento original a ajustar
+   * @param nuevaDuracionEnHoras La nueva duración deseada en horas
+   * @returns Una copia del evento con duración ajustada
+   */
+  private static ajustarDuracionEvento(evento: any, nuevaDuracionEnHoras: number): any {
+    // Convertir startTime a minutos desde medianoche
+    const [horaInicio, minInicio] = evento.startTime.split(':').map(Number);
+    const minutosDesdeMedianoche = horaInicio * 60 + minInicio;
+
+    // Calcular nuevo endTime basado en la nueva duración
+    const nuevosMinutosTotales = minutosDesdeMedianoche + (nuevaDuracionEnHoras * 60);
+    const nuevaHoraFin = Math.floor(nuevosMinutosTotales / 60);
+    const nuevosMinutosFin = Math.round(nuevosMinutosTotales % 60);
+
+    // Formatear nuevo endTime como HH:MM
+    const nuevoEndTime = `${String(nuevaHoraFin).padStart(2, '0')}:${String(nuevosMinutosFin).padStart(2, '0')}`;
+
+    // Crear copia del evento con valores ajustados
+    return {
+      ...evento,
+      endTime: nuevoEndTime,
+      duration: nuevaDuracionEnHoras
+    };
   }
 
   /**

@@ -1032,6 +1032,36 @@
                 "english": "Inglés"
             },
             "close": "Cerrar"
+        },
+        "groupValidation": {
+            "title": "Validación de Grupos",
+            "subtitle": "Resultado de la validación de grupos durante la importación",
+            "stats": {
+                "total": "Total",
+                "created": "Creados",
+                "skipped": "Omitidos",
+                "errors": "Errores"
+            },
+            "errors": {
+                "title": "Errores encontrados ({{count}})",
+                "description": "Los siguientes grupos exceden el máximo definido en asignaturas.txt y sus eventos fueron omitidos",
+                "row": "Fila",
+                "group": "Grupo",
+                "maxAllowed": "Máximo permitido",
+                "source": "Archivo",
+                "error": "Error"
+            },
+            "warnings": {
+                "title": "Grupos creados automáticamente ({{count}})",
+                "description": "Los siguientes grupos fueron creados automáticamente durante la importación",
+                "row": "Fila",
+                "group": "Grupo",
+                "message": "Mensaje"
+            },
+            "success": {
+                "title": "Validación Completada",
+                "description": "Todos los grupos son válidos. Se crearon {{count}} eventos correctamente"
+            }
         }
     },
     "validation": {

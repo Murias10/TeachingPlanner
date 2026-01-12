@@ -21,8 +21,9 @@ import { CreateCourseDrawer } from "@/components/course/CreateCourseDrawer"
 import { EditCourseDrawer, EditCourseFormData } from "@/components/course/EditCourseDrawer"
 import { CreateCalendarDrawer } from "@/components/calendar/CreateCalendarDrawer"
 import SubstitutionReportDialog from "@/components/calendar/SubstitutionReportDialog"
+import { GroupValidationDialog } from "@/components/calendar/GroupValidationDialog"
 import { CourseFormData, Course } from "@/types/Course"
-import { CalendarFormData, CalendarDrawerData, PIConflictDetection, PISubstitution } from "@/types/Calendar"
+import { CalendarFormData, CalendarDrawerData, PIConflictDetection, PISubstitution, GroupValidationResult } from "@/types/Calendar"
 import { useCoursesByDegreeId } from "@/hooks/course/useCoursesByDegreeId"
 import VITE_GATEWAY_API_URL from "@/config/api"
 import { getAuthHeaders } from "@/utils/authHeaders"
@@ -91,6 +92,8 @@ export default function CoursePage() {
         conflictDetection?: PIConflictDetection;
         substitution?: PISubstitution;
     }>({});
+    const [openGroupValidationDialog, setOpenGroupValidationDialog] = useState(false)
+    const [groupValidationData, setGroupValidationData] = useState<GroupValidationResult | null>(null);
 
     // Configurar breadcrumb
     useEffect(() => {
@@ -387,6 +390,22 @@ export default function CoursePage() {
                                 setOpenSubstitutionDialog(true);
                             }
 
+                            // Verificar si hay datos de validación de grupos para mostrar
+                            const groupValidationResult = data?.importResult?.events?.groupValidation;
+                            console.log('[GROUP VALIDATION - FRONTEND] Received data:', groupValidationResult);
+
+                            if (groupValidationResult?.hasIssues) {
+                                console.log('[GROUP VALIDATION - FRONTEND] Opening dialog with issues:', {
+                                    errors: groupValidationResult.groupsNotFound?.length,
+                                    warnings: groupValidationResult.groupsAutoCreated?.length
+                                });
+                                // Guardar los datos de validación y mostrar el diálogo
+                                setGroupValidationData(groupValidationResult);
+                                setOpenGroupValidationDialog(true);
+                            } else {
+                                console.log('[GROUP VALIDATION - FRONTEND] No issues found or no validation data');
+                            }
+
                             triggerAlert({
                                 title: t("alerts.calendar.success.create.title"),
                                 description: t("alerts.calendar.success.create.description", {
@@ -672,6 +691,12 @@ export default function CoursePage() {
                 onOpenChange={setOpenSubstitutionDialog}
                 conflictDetection={substitutionData.conflictDetection}
                 substitution={substitutionData.substitution}
+            />
+
+            <GroupValidationDialog
+                open={openGroupValidationDialog}
+                onOpenChange={setOpenGroupValidationDialog}
+                validationResult={groupValidationData}
             />
         </>
     )

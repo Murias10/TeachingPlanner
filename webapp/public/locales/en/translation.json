@@ -164,5 +164,40 @@
                 "siesUrl": "Go to {{url}}"
             }
         }
+    },
+    "calendar": {
+        "groupValidation": {
+            "title": "Group Validation",
+            "subtitle": "Results of group validation during import",
+            "stats": {
+                "total": "Total",
+                "created": "Created",
+                "skipped": "Skipped",
+                "errors": "Errors"
+            },
+            "errors": {
+                "title": "Errors found ({{count}})",
+                "description": "The following groups exceed the maximum defined in asignaturas.txt and their events were skipped",
+                "row": "Row",
+                "group": "Group",
+                "maxAllowed": "Max Allowed",
+                "source": "File",
+                "error": "Error"
+            },
+            "warnings": {
+                "title": "Auto-created groups ({{count}})",
+                "description": "The following groups were automatically created during import",
+                "row": "Row",
+                "group": "Group",
+                "message": "Message"
+            },
+            "success": {
+                "title": "Validation Completed",
+                "description": "All groups are valid. Successfully created {{count}} events"
+            }
+        }
+    },
+    "common": {
+        "close": "Close"
     }
 }

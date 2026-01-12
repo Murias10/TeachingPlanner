@@ -77,6 +77,40 @@ export interface PISubstitution {
     summary: string;
 }
 
+export interface GroupValidationResult {
+    hasIssues: boolean;
+    groupsNotFound: Array<{
+        row: number;
+        groupKey: string;
+        subjectAcronym: string;
+        groupType: string;
+        groupNumber: number;
+        language: string;
+        maxAllowed: number;
+        source: 'horarios' | 'excepciones';
+        error: {
+            field: string;
+            message: string;
+        };
+    }>;
+    groupsAutoCreated: Array<{
+        row: number;
+        groupKey: string;
+        warning: {
+            field: string;
+            message: string;
+        };
+    }>;
+    statistics: {
+        totalRows: number;
+        validRows: number;
+        groupsNotFoundCount: number;
+        groupsAutoCreatedCount: number;
+        eventsCreated: number;
+        eventsSkipped: number;
+    };
+}
+
 export interface ImportResult {
     calendar: Calendar;
     importResult?: {
@@ -96,6 +130,7 @@ export interface ImportResult {
             errors: string[];
             piConflictDetection?: PIConflictDetection;
             piSubstitution?: PISubstitution;
+            groupValidation?: GroupValidationResult;
         };
     };
 }

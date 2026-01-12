@@ -90,6 +90,9 @@ export class CalendarImportService {
     const importResult: any = {};
     const processingOrder = ['ubicaciones.txt', 'asignaturas.txt', 'calendario.txt', 'horarios.txt', 'excepciones.txt'];
 
+    // Store group limits from asignaturas.txt to validate in horarios.txt and excepciones.txt
+    let groupLimits: Map<string, number> | undefined;
+
     for (const fileName of processingOrder) {
       const file = files.find(f => f.originalname === fileName);
       // excepciones.txt is optional, skip if not provided
@@ -106,16 +109,19 @@ export class CalendarImportService {
           importResult.classrooms = await this.processUbicacionesFile(content, userEmail);
           break;
         case 'asignaturas.txt':
-          importResult.subjects = await this.processAsignaturasFile(content, courseId, semester, userEmail);
+          const subjectsResult = await this.processAsignaturasFile(content, courseId, semester, userEmail);
+          importResult.subjects = subjectsResult;
+          // Extract group limits for validation
+          groupLimits = subjectsResult.groupLimits;
           break;
         case 'calendario.txt':
           importResult.calendario = await this.processCalendarioFile(content, courseId, semester, userEmail);
           break;
         case 'horarios.txt':
-          importResult.events = await this.processHorariosFile(content, courseId, semester, userEmail);
+          importResult.events = await this.processHorariosFile(content, courseId, semester, userEmail, groupLimits);
           break;
         case 'excepciones.txt':
-          importResult.puntualEvents = await this.processExcepcionesFile(content, courseId, semester, userEmail);
+          importResult.puntualEvents = await this.processExcepcionesFile(content, courseId, semester, userEmail, groupLimits);
           break;
       }
     }
@@ -196,6 +202,9 @@ export class CalendarImportService {
     const processedSubjects: any[] = [];
     const errors: string[] = [];
 
+    // Map to store group limits: key = "subjectAcronym.groupType.language", value = max number
+    const groupLimits = new Map<string, number>();
+
     const course = await courseRepo.findOne({ where: { id: courseId }, relations: ['degree'] });
     if (!course) {
       return {
@@ -258,6 +267,13 @@ export class CalendarImportService {
           { number: Number.parseInt(groupsTutoriaGrupalES, 10), type: 'TG', language: 'ES' },
           { number: Number.parseInt(groupsTutoriaGrupalEN, 10), type: 'TG', language: 'EN' }
         ];
+
+        // Store group limits for validation in horarios.txt and excepciones.txt
+        for (const groupConfig of groups) {
+          const limitKey = `${acronym}.${groupConfig.type}.${groupConfig.language}`;
+          groupLimits.set(limitKey, groupConfig.number);
+          console.log(`[GROUP LIMITS] Set limit for ${limitKey}: ${groupConfig.number}`);
+        }
 
         let subject = await subjectRepo.findOne({ where: { acronym, degree: { id: degreeId } } });
 
@@ -327,13 +343,16 @@ export class CalendarImportService {
       }
     }
 
+    console.log(`[GROUP LIMITS] Total limits stored: ${groupLimits.size}`);
+
     return {
       processed: true,
       totalLines: lines.filter(line => line.trim()).length,
       processedCount: processedSubjects.length,
       errorCount: errors.length,
       subjects: processedSubjects,
-      errors
+      errors,
+      groupLimits  // Include group limits for validation
     };
   }
 
@@ -789,9 +808,38 @@ export class CalendarImportService {
   }
 
   /**
+   * Get the maximum number of groups allowed for a specific subject/type/language
+   * This is determined by counting existing groups from asignaturas.txt processing
+   */
+  private static async getMaxGroupsForSubjectType(
+    subjectId: string,
+    groupType: string,
+    language: string
+  ): Promise<number> {
+    const groupRepo = AppDataSource.getRepository(Group);
+
+    // Count existing groups for this subject/type/language combination
+    const count = await groupRepo.count({
+      where: {
+        subject: { id: subjectId },
+        type: groupType,
+        language: language
+      }
+    });
+
+    return count;
+  }
+
+  /**
    * Process horarios.txt file
    */
-  private static async processHorariosFile(content: string, courseId: string, semester: number, userEmail: string | null) {
+  private static async processHorariosFile(
+    content: string,
+    courseId: string,
+    semester: number,
+    userEmail: string | null,
+    groupLimits?: Map<string, number>
+  ) {
     const periodicEventRepo = AppDataSource.getRepository(PeriodicEvent);
     const groupRepo = AppDataSource.getRepository(Group);
     const subjectRepo = AppDataSource.getRepository(Subject);
@@ -800,6 +848,13 @@ export class CalendarImportService {
     const lines = content.split('\n');
     const processedEvents: any[] = [];
     const errors: string[] = [];
+
+    // Group validation tracking
+    const groupsNotFound: any[] = [];
+    const groupsAutoCreated: any[] = [];
+    let totalValidRows = 0;
+    let eventsCreated = 0;
+    let eventsSkipped = 0;
 
     const calendar = await calendarRepo.findOne({ where: { course: { id: courseId }, semester } });
     if (!calendar) {
@@ -939,7 +994,9 @@ export class CalendarImportService {
         groupData.hours.push(planifiedHours);
         groupData.lines.push(i + 1);
       } catch (error) {
-        // Continue on error
+        // Log parsing error
+        console.error(`[HORARIOS PARSING ERROR] Line ${i + 1}:`, error instanceof Error ? error.message : error);
+        console.error(`[HORARIOS PARSING ERROR] Line content: "${lines[i]}"`);
       }
     }
 
@@ -985,9 +1042,40 @@ export class CalendarImportService {
           relations: ['subject']
         });
 
-        const groupKey = `${event.subjectAcronym}.${event.groupType}.${event.groupNumber}.${event.language}`;
+        // ALWAYS validate group number against maximum defined in asignaturas.txt
+        // Get limit from groupLimits map (passed from asignaturas.txt processing)
+        const limitKey = `${event.subjectAcronym}.${event.groupType}.${event.language}`;
+        const maxGroups = groupLimits?.get(limitKey) ?? 0;
 
+        // Log para depuración
+        console.log(`[GROUP VALIDATION] ${groupKey} - maxGroups from asignaturas.txt: ${maxGroups}, requested: ${event.groupNumber}, groupExists: ${!!group}`);
+
+        // Validate: group number must not exceed maximum defined in asignaturas.txt
+        // NOTE: maxGroups = 0 means no groups should exist for this subject/type/language
+        if (event.groupNumber > maxGroups) {
+          // Group exceeds maximum - record error and skip event creation
+          console.warn(`[GROUP VALIDATION ERROR] ${groupKey} excede el máximo permitido (${maxGroups}) definido en asignaturas.txt`);
+          groupsNotFound.push({
+            row: event.lineNumber,
+            groupKey,
+            subjectAcronym: event.subjectAcronym,
+            groupType: event.groupType,
+            groupNumber: event.groupNumber,
+            language: event.language,
+            maxAllowed: maxGroups,
+            source: 'horarios',
+            error: {
+              field: 'group',
+              message: `El grupo ${event.groupNumber} excede el máximo de ${maxGroups} grupos definidos en asignaturas.txt`
+            }
+          });
+          eventsSkipped++;
+          continue; // Skip event creation - don't create group or event
+        }
+
+        // If group doesn't exist, create it (only after validation passes)
         if (!group) {
+          // Create new group
           group = groupRepo.create({
             number: event.groupNumber,
             type: event.groupType,
@@ -997,7 +1085,21 @@ export class CalendarImportService {
             createdBy: userEmail
           });
           await groupRepo.save(group);
+
+          // Track auto-created group as warning
+          console.log(`[GROUP VALIDATION WARNING] ${groupKey} fue creado automáticamente (dentro del límite permitido)`);
+          groupsAutoCreated.push({
+            row: event.lineNumber,
+            groupKey,
+            warning: {
+              field: 'group',
+              message: `Grupo creado automáticamente`
+            }
+          });
         }
+
+        // Increment valid rows counter for ALL events that pass validation
+        totalValidRows++;
 
         // Track this group for planifiedHours update (always add to ensure existing groups are updated)
         if (!groupsToUpdate.has(groupKey)) {
@@ -1043,6 +1145,7 @@ export class CalendarImportService {
               action: 'updated',
               line: event.lineNumber
             });
+            eventsCreated++;
           } else {
             processedEvents.push({
               subject: event.subjectAcronym,
@@ -1052,6 +1155,7 @@ export class CalendarImportService {
               action: 'skipped',
               line: event.lineNumber
             });
+            eventsSkipped++;
           }
         } else {
           const periodicEvent = periodicEventRepo.create({
@@ -1075,9 +1179,13 @@ export class CalendarImportService {
             action: 'created',
             line: event.lineNumber
           });
+          eventsCreated++;
         }
       } catch (error) {
-        // Continue on error
+        // Log event processing error
+        console.error(`[HORARIOS EVENT ERROR] Line ${event.lineNumber}:`, error instanceof Error ? error.message : error);
+        errors.push(`Línea ${event.lineNumber}: ${error instanceof Error ? error.message : String(error)}`);
+        eventsSkipped++;
       }
     }
 
@@ -1090,6 +1198,34 @@ export class CalendarImportService {
       await groupRepo.save(group);
     }
 
+    // Prepare group validation result
+    const groupValidation = {
+      hasIssues: groupsNotFound.length > 0 || groupsAutoCreated.length > 0,
+      groupsNotFound,
+      groupsAutoCreated,
+      statistics: {
+        totalRows: lines.filter(line => line.trim()).length,
+        validRows: totalValidRows,
+        groupsNotFoundCount: groupsNotFound.length,
+        groupsAutoCreatedCount: groupsAutoCreated.length,
+        eventsCreated,
+        eventsSkipped
+      }
+    };
+
+    // Log final validation summary
+    console.log(`[GROUP VALIDATION SUMMARY - HORARIOS]`, {
+      hasIssues: groupValidation.hasIssues,
+      errorsCount: groupsNotFound.length,
+      warningsCount: groupsAutoCreated.length,
+      eventsCreated,
+      eventsSkipped
+    });
+
+    if (groupsNotFound.length > 0) {
+      console.warn(`[GROUP VALIDATION] Grupos con errores:`, groupsNotFound.map(g => g.groupKey));
+    }
+
     return {
       processed: true,
       totalLines: lines.filter(line => line.trim()).length,
@@ -1098,14 +1234,15 @@ export class CalendarImportService {
       events: processedEvents,
       errors,
       piConflictDetection: conflictReport,
-      piSubstitution: substitutionResult
+      piSubstitution: substitutionResult,
+      groupValidation
     };
   }
 
   /**
    * Process excepciones.txt file
    */
-  private static async processExcepcionesFile(content: string, courseId: string, semester: number, userEmail: string | null) {
+  private static async processExcepcionesFile(content: string, courseId: string, semester: number, userEmail: string | null, groupLimits?: Map<string, number>) {
     const puntualEventRepo = AppDataSource.getRepository(PuntualEvent);
     const groupRepo = AppDataSource.getRepository(Group);
     const subjectRepo = AppDataSource.getRepository(Subject);
@@ -1115,6 +1252,13 @@ export class CalendarImportService {
     const lines = content.split('\n');
     const processedEvents: any[] = [];
     const errors: string[] = [];
+
+    // Group validation tracking
+    const groupsNotFound: any[] = [];
+    const groupsAutoCreated: any[] = [];
+    let totalValidRows = 0;
+    let eventsCreated = 0;
+    let eventsSkipped = 0;
 
     const calendar = await calendarRepo.findOne({ where: { course: { id: courseId }, semester } });
     if (!calendar) {
@@ -1170,10 +1314,63 @@ export class CalendarImportService {
         if (!subject) continue;
 
         let group = await groupRepo.findOne({ where: { number: groupNumber, type: groupType, language, subject: { id: subject.id } }, relations: ['subject'] });
-        if (!group) {
-          group = groupRepo.create({ number: groupNumber, type: groupType, language, subject });
-          await groupRepo.save(group);
+
+        const groupKey = `${subjectAcronym}.${groupType}.${groupNumber}.${language}`;
+
+        // ALWAYS validate group number against maximum defined in asignaturas.txt
+        // This validation runs whether the group exists or not
+        // Use groupLimits from asignaturas.txt instead of counting database groups
+        const limitKey = `${subjectAcronym}.${groupType}.${language}`;
+        const maxGroups = groupLimits?.get(limitKey) ?? 0;
+
+        // Log para depuración
+        console.log(`[GROUP VALIDATION - EXCEPCIONES] ${groupKey} - limitKey: ${limitKey}, maxGroups from asignaturas.txt: ${maxGroups}, requested: ${groupNumber}, groupExists: ${!!group}`);
+
+        // Validate: group number must not exceed maximum (no condition on maxGroups > 0)
+        // This ensures validation works even on first import with empty database
+        if (groupNumber > maxGroups) {
+          // Group exceeds maximum - record error and skip event creation
+          console.warn(`[GROUP VALIDATION ERROR - EXCEPCIONES] ${groupKey} excede el máximo permitido (${maxGroups}) definido en asignaturas.txt`);
+          groupsNotFound.push({
+            row: i + 1,
+            groupKey,
+            subjectAcronym,
+            groupType,
+            groupNumber,
+            language,
+            maxAllowed: maxGroups,
+            source: 'excepciones',
+            error: {
+              field: 'group',
+              message: `El grupo ${groupNumber} excede el máximo de ${maxGroups} grupos definidos en asignaturas.txt`
+            }
+          });
+          eventsSkipped++;
+          continue; // Skip event creation - don't create group or event
         }
+
+        // If group doesn't exist, create it (only after validation passes)
+        if (!group) {
+          // Create new group
+          group = groupRepo.create({ number: groupNumber, type: groupType, language, subject, createdBy: userEmail });
+          await groupRepo.save(group);
+
+          // Track auto-created group as warning (only if maxGroups > 0, meaning this wasn't expected)
+          if (maxGroups > 0) {
+            console.log(`[GROUP VALIDATION WARNING - EXCEPCIONES] ${groupKey} fue creado automáticamente`);
+            groupsAutoCreated.push({
+              row: i + 1,
+              groupKey,
+              warning: {
+                field: 'group',
+                message: `Grupo creado automáticamente`
+              }
+            });
+          }
+        }
+
+        // Increment valid rows counter for ALL events that pass validation
+        totalValidRows++;
 
         // Procesar hora de inicio y fin
         const cancelled = startTimeStr === '-1';
@@ -1293,18 +1490,49 @@ export class CalendarImportService {
           if (hasChanges) {
             await puntualEventRepo.save(existingEvent);
             processedEvents.push({ date: dateStr, subject: subjectAcronym, action: 'updated', line: i + 1 });
+            eventsCreated++;
           } else {
             processedEvents.push({ date: dateStr, subject: subjectAcronym, action: 'skipped', line: i + 1 });
+            eventsSkipped++;
           }
         } else {
           console.log(`[EXCEPCIONES DEBUG] Creando nuevo evento - cancelled=${cancelled}, startTime=${startTime}, endTime=${endTime}`);
           const puntualEvent = puntualEventRepo.create({ day: dayEntity, startTime, endTime, cancelled, comment, groups: [group], classrooms: [classroom], createdBy: userEmail });
           await puntualEventRepo.save(puntualEvent);
           processedEvents.push({ date: dateStr, subject: subjectAcronym, action: 'created', line: i + 1 });
+          eventsCreated++;
         }
       } catch (error) {
         // Continue on error
       }
+    }
+
+    // Prepare group validation result
+    const groupValidation = {
+      hasIssues: groupsNotFound.length > 0 || groupsAutoCreated.length > 0,
+      groupsNotFound,
+      groupsAutoCreated,
+      statistics: {
+        totalRows: lines.filter(line => line.trim()).length,
+        validRows: totalValidRows,
+        groupsNotFoundCount: groupsNotFound.length,
+        groupsAutoCreatedCount: groupsAutoCreated.length,
+        eventsCreated,
+        eventsSkipped
+      }
+    };
+
+    // Log final validation summary
+    console.log(`[GROUP VALIDATION SUMMARY - EXCEPCIONES]`, {
+      hasIssues: groupValidation.hasIssues,
+      errorsCount: groupsNotFound.length,
+      warningsCount: groupsAutoCreated.length,
+      eventsCreated,
+      eventsSkipped
+    });
+
+    if (groupsNotFound.length > 0) {
+      console.warn(`[GROUP VALIDATION - EXCEPCIONES] Grupos con errores:`, groupsNotFound.map(g => g.groupKey));
     }
 
     return {
@@ -1313,7 +1541,8 @@ export class CalendarImportService {
       processedCount: processedEvents.length,
       errorCount: errors.length,
       events: processedEvents,
-      errors
+      errors,
+      groupValidation
     };
   }
 

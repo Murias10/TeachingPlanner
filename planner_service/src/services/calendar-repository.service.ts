@@ -64,7 +64,7 @@ export class CalendarRepositoryService {
     const groups = groupIds
       ? await groupRepo.find({
           where: { id: In(groupIds) },
-          relations: ['subject']
+          relations: ['subject', 'calendar']
         })
       : [];
 

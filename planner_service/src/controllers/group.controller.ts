@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AppDataSource } from '@/config/data-source';
 import { Group } from '@/entities/group.entity';
 import { Subject } from '@/entities/subject.entity';
+import { Calendar } from '@/entities/calendar.entity';
 import { PeriodicEvent } from '@/entities/periodic_event.entity';
 import { AuditedRequest } from '@/middleware/auth.middleware';
 
@@ -9,10 +10,18 @@ import { AuditedRequest } from '@/middleware/auth.middleware';
  * Create a new group
  */
 export const createGroup = async (req: AuditedRequest, res: Response) => {
-    const { subjectId, number, type, language } = req.body;
+    const { calendarId, subjectId, number, type, language } = req.body;
     const userEmail = req.user?.email;
 
     // Validations
+    if (!calendarId) {
+        res.status(400).json({
+            status: 'error',
+            message: 'Calendar ID is required',
+        });
+        return;
+    }
+
     if (!subjectId) {
         res.status(400).json({
             status: 'error',
@@ -32,6 +41,20 @@ export const createGroup = async (req: AuditedRequest, res: Response) => {
     try {
         const groupRepo = AppDataSource.getRepository(Group);
         const subjectRepo = AppDataSource.getRepository(Subject);
+        const calendarRepo = AppDataSource.getRepository(Calendar);
+
+        // Check if calendar exists
+        const calendar = await calendarRepo.findOne({
+            where: { id: calendarId },
+        });
+
+        if (!calendar) {
+            res.status(404).json({
+                status: 'error',
+                message: 'Calendar not found',
+            });
+            return;
+        }
 
         // Check if subject exists
         const subject = await subjectRepo.findOne({
@@ -46,9 +69,10 @@ export const createGroup = async (req: AuditedRequest, res: Response) => {
             return;
         }
 
-        // Check if group with same number, type, and language already exists for this subject
+        // Check if group with same number, type, and language already exists for this calendar and subject
         const existingGroup = await groupRepo.findOne({
             where: {
+                calendar: { id: calendarId },
                 subject: { id: subjectId },
                 number,
                 type,
@@ -66,6 +90,7 @@ export const createGroup = async (req: AuditedRequest, res: Response) => {
 
         // Create group
         const group = groupRepo.create({
+            calendar,
             subject,
             number,
             type,

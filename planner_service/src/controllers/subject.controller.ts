@@ -415,7 +415,7 @@ export const getSubjectsWithGroupsByCourseAndSemester = async (req: AuditedReque
             FROM CALENDARS ca
             JOIN COURSES co ON co.ID = ca.ID_COURSE
             JOIN SUBJECTS sb ON sb.ID_DEGREE = co.ID_DEGREE
-            LEFT JOIN GROUPS gr ON gr.ID_SUBJECT = sb.ID
+            LEFT JOIN GROUPS gr ON gr.ID_SUBJECT = sb.ID AND gr.ID_CALENDAR = ca.ID
             WHERE ca.ID_COURSE = ?
               AND ca.SEMESTER = ?
               AND sb.SEMESTER = ?

@@ -1206,10 +1206,25 @@ export const createPuntualEvent = async (req: AuditedRequest, res: Response) => 
             return;
         }
 
-        // Obtener los grupos
+        // Obtener los grupos y validar que pertenezcan al calendario
         const groups = groupIds.length > 0
-            ? await groupRepo.find({ where: { id: In(groupIds) } })
+            ? await groupRepo.find({
+                where: {
+                    id: In(groupIds),
+                    calendar: { id: calendarId }
+                }
+            })
             : [];
+
+        // Validar que se encontraron todos los grupos solicitados
+        if (groupIds.length > 0 && groups.length !== groupIds.length) {
+            res.status(400).json({
+                status: 'error',
+                message: 'Some groups do not belong to this calendar or do not exist',
+                data: null
+            });
+            return;
+        }
 
         // Obtener las aulas
         const classrooms = classroomIds.length > 0
@@ -1579,10 +1594,25 @@ export const updatePuntualEvent = async (req: AuditedRequest, res: Response) => 
             return;
         }
 
-        // Obtener los nuevos grupos
+        // Obtener los nuevos grupos y validar que pertenezcan al calendario
         const groups = groupIds.length > 0
-            ? await groupRepo.find({ where: { id: In(groupIds) } })
+            ? await groupRepo.find({
+                where: {
+                    id: In(groupIds),
+                    calendar: { id: calendar.id }
+                }
+            })
             : [];
+
+        // Validar que se encontraron todos los grupos solicitados
+        if (groupIds.length > 0 && groups.length !== groupIds.length) {
+            res.status(400).json({
+                status: 'error',
+                message: 'Some groups do not belong to this calendar or do not exist',
+                data: null
+            });
+            return;
+        }
 
         // Obtener las nuevas aulas
         const classrooms = classroomIds.length > 0
@@ -1688,13 +1718,26 @@ export const createPeriodicEvent = async (req: AuditedRequest, res: Response) =>
             console.log(`[Periodic Event Create] Added character '${finalEventCharacter}' to calendar charactersInUse: ${calendar.charactersInUse}`);
         }
 
-        // Obtener los grupos con su relación de subject
+        // Obtener los grupos con su relación de subject y validar que pertenezcan al calendario
         const groups = groupIds.length > 0
             ? await groupRepo.find({
-                where: { id: In(groupIds) },
+                where: {
+                    id: In(groupIds),
+                    calendar: { id: calendarId }
+                },
                 relations: ['subject']
             })
             : [];
+
+        // Validar que se encontraron todos los grupos solicitados
+        if (groupIds.length > 0 && groups.length !== groupIds.length) {
+            res.status(400).json({
+                status: 'error',
+                message: 'Some groups do not belong to this calendar or do not exist',
+                data: null
+            });
+            return;
+        }
 
         // Obtener las aulas
         const classrooms = classroomIds.length > 0
@@ -1892,13 +1935,26 @@ export const createCustomPeriodicEvent = async (req: AuditedRequest, res: Respon
 
         console.log(`[Custom Periodic Event Create] Updated ${daysUpdated} days with character '${finalEventCharacter}'`);
 
-        // Obtener los grupos con su relación de subject
+        // Obtener los grupos con su relación de subject y validar que pertenezcan al calendario
         const groups = groupIds.length > 0
             ? await groupRepo.find({
-                where: { id: In(groupIds) },
+                where: {
+                    id: In(groupIds),
+                    calendar: { id: calendarId }
+                },
                 relations: ['subject']
             })
             : [];
+
+        // Validar que se encontraron todos los grupos solicitados
+        if (groupIds.length > 0 && groups.length !== groupIds.length) {
+            res.status(400).json({
+                status: 'error',
+                message: 'Some groups do not belong to this calendar or do not exist',
+                data: null
+            });
+            return;
+        }
 
         // Obtener las aulas
         const classrooms = classroomIds.length > 0
@@ -2295,10 +2351,25 @@ export const replacePeriodicEvent = async (req: AuditedRequest, res: Response) =
             return;
         }
 
-        // Obtener los grupos
+        // Obtener los grupos y validar que pertenezcan al calendario
         const groups = groupIds.length > 0
-            ? await groupRepo.find({ where: { id: In(groupIds) } })
+            ? await groupRepo.find({
+                where: {
+                    id: In(groupIds),
+                    calendar: { id: calendarId }
+                }
+            })
             : [];
+
+        // Validar que se encontraron todos los grupos solicitados
+        if (groupIds.length > 0 && groups.length !== groupIds.length) {
+            res.status(400).json({
+                status: 'error',
+                message: 'Some groups do not belong to this calendar or do not exist',
+                data: null
+            });
+            return;
+        }
 
         // Obtener las aulas
         const classrooms = classroomIds.length > 0

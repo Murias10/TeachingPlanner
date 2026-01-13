@@ -385,8 +385,21 @@ async function createPuntualEventFromRequest(eventRequest: EventRequest): Promis
         throw new Error(`Time conflict: Same group/classroom already has an event at this time. Conflicts: ${JSON.stringify(conflictDetails)}`);
     }
 
-    // Get groups and classrooms
-    const groups = groupIds.length > 0 ? await groupRepo.find({ where: { id: In(groupIds) } }) : [];
+    // Get groups and validate they belong to the calendar
+    const groups = groupIds.length > 0
+        ? await groupRepo.find({
+            where: {
+                id: In(groupIds),
+                calendar: { id: calendarId }
+            }
+        })
+        : [];
+
+    // Validate all requested groups were found
+    if (groupIds.length > 0 && groups.length !== groupIds.length) {
+        throw new Error('Some groups do not belong to this calendar or do not exist');
+    }
+
     const classrooms = classroomIds.length > 0 ? await classroomRepo.find({ where: { id: In(classroomIds) } }) : [];
 
     // Create the event
@@ -534,13 +547,21 @@ async function createPeriodicEventFromRequest(eventRequest: EventRequest): Promi
         console.log(`[Request Approve - Periodic Event] Added character '${eventCharacter}' to calendar charactersInUse: ${calendar.charactersInUse}`);
     }
 
-    // Get groups with subject relation
+    // Get groups with subject relation and validate they belong to the calendar
     const groups = groupIds.length > 0
         ? await groupRepo.find({
-            where: { id: In(groupIds) },
+            where: {
+                id: In(groupIds),
+                calendar: { id: calendarId }
+            },
             relations: ['subject']
         })
         : [];
+
+    // Validate all requested groups were found
+    if (groupIds.length > 0 && groups.length !== groupIds.length) {
+        throw new Error('Some groups do not belong to this calendar or do not exist');
+    }
 
     // Get classrooms
     const classrooms = classroomIds.length > 0
@@ -658,13 +679,21 @@ async function createCustomPeriodicEventFromRequest(eventRequest: EventRequest):
     await calendarRepo.save(calendar);
     console.log(`[Request Approve - Custom Periodic Event] Added character '${eventCharacter}' to calendar charactersInUse: ${calendar.charactersInUse}`);
 
-    // Get groups and classrooms
+    // Get groups and validate they belong to the calendar
     const groups = groupIds.length > 0
         ? await groupRepo.find({
-            where: { id: In(groupIds) },
+            where: {
+                id: In(groupIds),
+                calendar: { id: calendarId }
+            },
             relations: ['subject']
         })
         : [];
+
+    // Validate all requested groups were found
+    if (groupIds.length > 0 && groups.length !== groupIds.length) {
+        throw new Error('Some groups do not belong to this calendar or do not exist');
+    }
 
     const classrooms = classroomIds.length > 0
         ? await classroomRepo.find({ where: { id: In(classroomIds) } })

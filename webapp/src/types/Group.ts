@@ -3,6 +3,7 @@ import { Subject } from '@/types/Subject';
 
 export interface Group {
     id: string;
+    calendarId: string;
     subject: Subject;
     number: number;
     type: string;

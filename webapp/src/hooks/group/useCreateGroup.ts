@@ -3,6 +3,7 @@ import VITE_GATEWAY_API_URL from '@/config/api';
 import { getAuthHeaders } from '@/utils/authHeaders';
 
 interface CreateGroupFormData {
+    calendarId: string;
     subjectId: string;
     number: number;
     type: string;
@@ -23,6 +24,7 @@ export const useCreateGroup = () => {
     ): Promise<CreateResult> => {
         try {
             const payload = {
+                calendarId: formData.calendarId,
                 subjectId: formData.subjectId,
                 number: formData.number,
                 type: formData.type,

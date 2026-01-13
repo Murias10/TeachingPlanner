@@ -12,6 +12,7 @@ import { useParams } from "react-router-dom"
 import CreateGroupDialog from "@/components/group/CreateGroupDialog"
 import { useCreateGroup } from "@/hooks/group/useCreateGroup"
 import { useDeleteGroup } from "@/hooks/group/useDeleteGroup"
+import { useCalendarByCourseAndSemester } from "@/hooks/calendar/useCalendarByCourseAndSemester"
 
 export default function GroupPage() {
 
@@ -55,6 +56,14 @@ export default function GroupPage() {
     // Convertir semester a número
     const semesterNumber = semester ? parseInt(semester, 10) : null;
 
+    // Obtener el calendarId
+    const { calendarId } = useCalendarByCourseAndSemester(
+        acronym || null,
+        startYear || null,
+        endYear || null,
+        semester || null
+    );
+
     // Obtener las asignaturas con el courseId encontrado
     const {
         data: subjects = [],
@@ -85,7 +94,16 @@ export default function GroupPage() {
     const { deleteGroup } = useDeleteGroup()
 
     const handleCreateGroup = useCallback(async (groupData: { subjectId: string; number: number; type: string; language: string }) => {
-        const result = await createGroup(groupData, refetch)
+        if (!calendarId) {
+            triggerAlert({
+                title: "Error",
+                description: "No se pudo obtener el ID del calendario",
+                variant: "destructive"
+            })
+            return
+        }
+
+        const result = await createGroup({ calendarId, ...groupData }, refetch)
 
         if (result.success) {
             triggerAlert({
@@ -100,7 +118,7 @@ export default function GroupPage() {
                 variant: "destructive"
             })
         }
-    }, [createGroup, refetch, triggerAlert])
+    }, [createGroup, refetch, triggerAlert, calendarId])
 
     const handleDeleteGroup = useCallback(async (groupId: string) => {
         const result = await deleteGroup(groupId, refetch)

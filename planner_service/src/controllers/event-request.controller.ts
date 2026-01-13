@@ -5,6 +5,7 @@ import { EventRequest } from '@/entities/event-request.entity';
 import { Calendar } from '@/entities/calendar.entity';
 import { Day } from '@/entities/day.entity';
 import { PuntualEvent } from '@/entities/puntual_event.entity';
+import { PeriodicEvent } from '@/entities/periodic_event.entity';
 import { Group } from '@/entities/group.entity';
 import { Classroom } from '@/entities/classroom.entity';
 import { AuditedRequest } from '@/types/audit.types';

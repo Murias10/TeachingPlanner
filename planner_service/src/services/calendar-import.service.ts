@@ -1706,6 +1706,7 @@ export class CalendarImportService {
 
         const group = await groupRepo.findOne({
           where: {
+            calendar: { id: calendarId },
             number: groupNumber,
             type: groupType,
             language,

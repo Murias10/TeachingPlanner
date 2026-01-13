@@ -38,7 +38,7 @@ export class Group extends AuditedEntity {
     planifiedHours?: number;
 
     /** Calendar this group belongs to */
-    @ManyToOne(() => Calendar, {
+    @ManyToOne(() => Calendar, (calendar) => calendar.groups, {
         onDelete: 'CASCADE',
     })
     @JoinColumn({ name: 'ID_CALENDAR' })

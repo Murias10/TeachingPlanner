@@ -24,6 +24,10 @@ const upload = multer({
     }
 });
 
+// Import endpoints (must be before /user to avoid route conflicts)
+router.post('/user/import/preview', upload.single('file'), userController.previewImport);
+router.post('/user/import', upload.single('file'), userController.importUsers);
+
 // CRUD Operations
 router.post('/user', validate(createUserSchema), userController.createUser);
 router.get('/users', userController.getAllUsers);
@@ -36,9 +40,5 @@ router.get('/user/role/:role', userController.getUsersByRole);
 router.get('/users/search', userController.searchUsers);
 router.patch('/user/:id/password', validate(updatePasswordSchema), userController.updatePassword);
 router.post('/user/:id/send-activation', userController.sendActivationEmail);
-
-// Import endpoints
-router.post('/user/import/preview', upload.single('file'), userController.previewImport);
-router.post('/user/import', upload.single('file'), userController.importUsers);
 
 export default router;

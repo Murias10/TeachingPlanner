@@ -6,6 +6,7 @@ import {
     TooltipProvider,
 } from "@/components/ui/tooltip"
 import { CirclePlus, Trash2, FileUp } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface UserToolbarProps {
     deleteSelectedUsers?: () => void;
@@ -15,6 +16,7 @@ interface UserToolbarProps {
 }
 
 export function UserToolbar({ deleteSelectedUsers, selectedIds, onCreateClick, onImportClick }: UserToolbarProps) {
+    const { t } = useTranslation();
 
     return (
         <TooltipProvider>
@@ -28,11 +30,11 @@ export function UserToolbar({ deleteSelectedUsers, selectedIds, onCreateClick, o
                             onClick={onCreateClick}
                         >
                             <CirclePlus className="w-4 h-4" />
-                            <span className="hidden sm:inline text-xs">Crear usuario</span>
+                            <span className="hidden sm:inline text-xs">{t("users.toolbar.create")}</span>
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                        Crear nuevo usuario
+                        {t("users.toolbar.createTooltip")}
                     </TooltipContent>
                 </Tooltip>
                 <Tooltip>
@@ -44,11 +46,11 @@ export function UserToolbar({ deleteSelectedUsers, selectedIds, onCreateClick, o
                             onClick={onImportClick}
                         >
                             <FileUp className="w-4 h-4" />
-                            <span className="hidden sm:inline text-xs">Importar usuarios</span>
+                            <span className="hidden sm:inline text-xs">{t("users.toolbar.import")}</span>
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                        Importar usuarios desde Excel
+                        {t("users.toolbar.importTooltip")}
                     </TooltipContent>
                 </Tooltip>
                 <Tooltip>
@@ -61,11 +63,11 @@ export function UserToolbar({ deleteSelectedUsers, selectedIds, onCreateClick, o
                             disabled={!selectedIds?.length}
                         >
                             <Trash2 className="w-4 h-4" />
-                            <span className="hidden sm:inline text-xs">Eliminar seleccionados</span>
+                            <span className="hidden sm:inline text-xs">{t("users.toolbar.deleteSelected")}</span>
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                        Eliminar seleccionados
+                        {t("users.toolbar.deleteSelected")}
                     </TooltipContent>
                 </Tooltip>
             </div>

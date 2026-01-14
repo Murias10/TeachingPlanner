@@ -60,6 +60,19 @@ interface SubstitutionResult {
  */
 export class CalendarImportService {
   /**
+   * Format group key for display
+   * Spanish: "AMD.S.1" (without language suffix)
+   * English: "AMD.S.I-1" (with "I-" prefix before number)
+   */
+  private static formatGroupKey(subjectAcronym: string, groupType: string, groupNumber: number, language: string): string {
+    if (language === 'EN') {
+      return `${subjectAcronym}.${groupType}.I-${groupNumber}`;
+    } else {
+      return `${subjectAcronym}.${groupType}.${groupNumber}`;
+    }
+  }
+
+  /**
    * Decode file content based on expected encoding
    */
   static decodeFileContent(file: Express.Multer.File): string {
@@ -1015,7 +1028,7 @@ export class CalendarImportService {
         });
 
         // Track planified hours per group
-        const groupKey = `${subjectAcronym}.${groupType}.${groupNumber}.${language}`;
+        const groupKey = this.formatGroupKey(subjectAcronym, groupType, groupNumber, language);
         if (!groupPlanifiedHours.has(groupKey)) {
           groupPlanifiedHours.set(groupKey, { hours: [], lines: [] });
         }
@@ -1073,7 +1086,7 @@ export class CalendarImportService {
         });
 
         // Build group key for tracking and logging
-        const groupKey = `${event.subjectAcronym}.${event.groupType}.${event.groupNumber}.${event.language}`;
+        const groupKey = this.formatGroupKey(event.subjectAcronym, event.groupType, event.groupNumber, event.language);
 
         // ALWAYS validate group number against maximum defined in asignaturas.txt
         // Get limit from groupLimits map (passed from asignaturas.txt processing)
@@ -1358,7 +1371,7 @@ export class CalendarImportService {
           relations: ['subject', 'calendar']
         });
 
-        const groupKey = `${subjectAcronym}.${groupType}.${groupNumber}.${language}`;
+        const groupKey = this.formatGroupKey(subjectAcronym, groupType, groupNumber, language);
 
         // ALWAYS validate group number against maximum defined in asignaturas.txt
         // This validation runs whether the group exists or not
@@ -1697,7 +1710,7 @@ export class CalendarImportService {
 
         const subject = await subjectRepo.findOne({ where: { acronym: subjectAcronym } });
         if (!subject) {
-          const groupKey = `${subjectAcronym}.${groupType}.${groupNumber}.${language}`;
+          const groupKey = this.formatGroupKey(subjectAcronym, groupType, groupNumber, language);
           if (!groupsNotFound.includes(groupKey)) {
             groupsNotFound.push(groupKey);
           }
@@ -1715,7 +1728,7 @@ export class CalendarImportService {
         });
 
         if (!group) {
-          const groupKey = `${subjectAcronym}.${groupType}.${groupNumber}.${language}`;
+          const groupKey = this.formatGroupKey(subjectAcronym, groupType, groupNumber, language);
           if (!groupsNotFound.includes(groupKey)) {
             groupsNotFound.push(groupKey);
           }

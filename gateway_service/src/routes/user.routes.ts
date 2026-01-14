@@ -18,6 +18,10 @@ const upload = multer({
     }
 });
 
+// Import endpoint (must be before /user to avoid route conflicts)
+router.post('/user/import', upload.single('file'), importUsers);
+
+// CRUD and other endpoints
 router.post('/user', createUser);
 router.get('/users', getAllUsers);
 router.get('/user/:id', getUserById);
@@ -25,6 +29,5 @@ router.put('/user/:id', updateUser);
 router.delete('/user/:id', deleteUser);
 router.patch('/user/:id/password', updatePassword);
 router.post('/user/:id/send-activation', sendActivationEmail);
-router.post('/user/import', upload.single('file'), importUsers);
 
 export default router;

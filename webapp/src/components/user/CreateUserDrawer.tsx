@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
     Drawer,
     DrawerClose,
@@ -29,6 +30,7 @@ interface CreateUserDrawerProps {
 }
 
 export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDrawerProps) {
+    const { t, i18n } = useTranslation();
     const { createUser } = useCreateUser();
     const { triggerAlert } = useFloatingAlert();
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -53,32 +55,32 @@ export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDr
     const validateForm = () => {
         if (!formData.name.trim()) {
             triggerAlert({
-                title: "Error",
-                description: "El nombre es requerido",
+                title: t("common.error"),
+                description: t("users.validation.name.required"),
                 variant: "destructive"
             });
             return false;
         }
         if (!formData.firstSurname.trim()) {
             triggerAlert({
-                title: "Error",
-                description: "El primer apellido es requerido",
+                title: t("common.error"),
+                description: t("users.validation.surnames.required"),
                 variant: "destructive"
             });
             return false;
         }
         if (!formData.secondSurname.trim()) {
             triggerAlert({
-                title: "Error",
-                description: "El segundo apellido es requerido",
+                title: t("common.error"),
+                description: t("users.validation.surnames.required"),
                 variant: "destructive"
             });
             return false;
         }
         if (!formData.email.trim()) {
             triggerAlert({
-                title: "Error",
-                description: "El email es requerido",
+                title: t("common.error"),
+                description: t("users.validation.email.required"),
                 variant: "destructive"
             });
             return false;
@@ -90,12 +92,15 @@ export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDr
         if (!validateForm()) return;
 
         setIsSubmitting(true);
-        const result = await createUser(formData);
+        const result = await createUser({
+            ...formData,
+            language: i18n.language
+        });
 
         if (result.success) {
             triggerAlert({
-                title: "Éxito",
-                description: "Usuario creado exitosamente",
+                title: t("common.success"),
+                description: t("users.alerts.success.created"),
                 variant: "success"
             });
             setFormData({
@@ -111,7 +116,7 @@ export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDr
             onSuccess?.();
         } else {
             triggerAlert({
-                title: "Error",
+                title: t("common.error"),
                 description: result.message,
                 variant: "destructive"
             });
@@ -123,19 +128,19 @@ export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDr
         <Drawer open={open} onOpenChange={onOpenChange}>
             <DrawerContent className="flex flex-col max-h-screen">
                 <DrawerHeader>
-                    <DrawerTitle>Crear Nuevo Usuario</DrawerTitle>
+                    <DrawerTitle>{t("users.create.title")}</DrawerTitle>
                     <DrawerDescription>
-                        Completa los datos para crear un nuevo usuario en la aplicación
+                        {t("users.create.description")}
                     </DrawerDescription>
                 </DrawerHeader>
 
                 {/* Contenido desplazable */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
                     <div className="space-y-2 max-w-sm mx-auto w-full">
-                        <Label htmlFor="unioviUser">Usuario Uniovi</Label>
+                        <Label htmlFor="unioviUser">{t("users.create.unioviUser")}</Label>
                         <Input
                             id="unioviUser"
-                            placeholder="uo123456"
+                            placeholder={t("users.create.unioviUserPlaceholder")}
                             value={formData.unioviUser}
                             onChange={(e) => handleInputChange("unioviUser", e.target.value)}
                             disabled={isSubmitting}
@@ -143,10 +148,10 @@ export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDr
                     </div>
 
                     <div className="space-y-2 max-w-sm mx-auto w-full">
-                        <Label htmlFor="name">Nombre *</Label>
+                        <Label htmlFor="name">{t("users.create.name")}</Label>
                         <Input
                             id="name"
-                            placeholder="Juan"
+                            placeholder={t("users.create.namePlaceholder")}
                             value={formData.name}
                             onChange={(e) => handleInputChange("name", e.target.value)}
                             disabled={isSubmitting}
@@ -154,10 +159,10 @@ export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDr
                     </div>
 
                     <div className="space-y-2 max-w-sm mx-auto w-full">
-                        <Label htmlFor="firstSurname">Primer Apellido *</Label>
+                        <Label htmlFor="firstSurname">{t("users.create.firstSurname")}</Label>
                         <Input
                             id="firstSurname"
-                            placeholder="García"
+                            placeholder={t("users.create.firstSurnamePlaceholder")}
                             value={formData.firstSurname}
                             onChange={(e) => handleInputChange("firstSurname", e.target.value)}
                             disabled={isSubmitting}
@@ -165,10 +170,10 @@ export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDr
                     </div>
 
                     <div className="space-y-2 max-w-sm mx-auto w-full">
-                        <Label htmlFor="secondSurname">Segundo Apellido *</Label>
+                        <Label htmlFor="secondSurname">{t("users.create.secondSurname")}</Label>
                         <Input
                             id="secondSurname"
-                            placeholder="López"
+                            placeholder={t("users.create.secondSurnamePlaceholder")}
                             value={formData.secondSurname}
                             onChange={(e) => handleInputChange("secondSurname", e.target.value)}
                             disabled={isSubmitting}
@@ -176,11 +181,11 @@ export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDr
                     </div>
 
                     <div className="space-y-2 max-w-sm mx-auto w-full">
-                        <Label htmlFor="email">Email *</Label>
+                        <Label htmlFor="email">{t("users.create.email")}</Label>
                         <Input
                             id="email"
                             type="email"
-                            placeholder="juan@example.com"
+                            placeholder={t("users.create.emailPlaceholder")}
                             value={formData.email}
                             onChange={(e) => handleInputChange("email", e.target.value)}
                             disabled={isSubmitting}
@@ -188,18 +193,18 @@ export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDr
                     </div>
 
                     <div className="space-y-2 max-w-sm mx-auto w-full">
-                        <Label htmlFor="role">Rol *</Label>
+                        <Label htmlFor="role">{t("users.create.role")}</Label>
                         <Select value={formData.role} onValueChange={(value) => handleInputChange("role", value)}>
                             <SelectTrigger id="role" disabled={isSubmitting} className="w-full">
-                                <SelectValue placeholder="Selecciona un rol">
+                                <SelectValue placeholder={t("users.create.rolePlaceholder")}>
                                     <div className="flex items-center gap-2">
                                         <Badge className={formData.role === "ADMIN" ? "bg-red-100 text-red-800" : "bg-blue-100 text-blue-800"}>
                                             {formData.role}
                                         </Badge>
                                         <span className="text-sm text-muted-foreground">
                                             {formData.role === "ADMIN"
-                                                ? "Acceso completo al sistema"
-                                                : "Solicitar creación y cancelación de eventos"}
+                                                ? t("users.create.roleAdmin")
+                                                : t("users.create.roleProfessor")}
                                         </span>
                                     </div>
                                 </SelectValue>
@@ -211,7 +216,7 @@ export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDr
                                         <div className="flex flex-col">
                                             <span className="font-medium">ADMIN</span>
                                             <span className="text-xs text-muted-foreground">
-                                                Acceso completo al sistema
+                                                {t("users.create.roleAdmin")}
                                             </span>
                                         </div>
                                     </div>
@@ -222,7 +227,7 @@ export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDr
                                         <div className="flex flex-col">
                                             <span className="font-medium">PROFESSOR</span>
                                             <span className="text-xs text-muted-foreground">
-                                                Solicitar creación y cancelación de eventos
+                                                {t("users.create.roleProfessor")}
                                             </span>
                                         </div>
                                     </div>
@@ -245,11 +250,11 @@ export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDr
                                 htmlFor="sendEmail"
                                 className="text-sm font-normal cursor-pointer"
                             >
-                                Enviar email de activación ahora
+                                {t("users.create.sendEmail")}
                             </Label>
                         </div>
                         <p className="text-xs text-muted-foreground ml-6">
-                            El usuario recibirá un correo para activar su cuenta y establecer su contraseña
+                            {t("users.create.sendEmailDescription")}
                         </p>
                     </div>
                 </div>
@@ -258,14 +263,14 @@ export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDr
                 <div className="p-4 flex justify-end space-x-2 border-t">
                     <DrawerClose asChild>
                         <Button variant="outline" disabled={isSubmitting}>
-                            Cancelar
+                            {t("users.create.cancel")}
                         </Button>
                     </DrawerClose>
                     <Button
                         onClick={handleSubmit}
                         disabled={isSubmitting}
                     >
-                        {isSubmitting ? "Creando..." : "Crear Usuario"}
+                        {isSubmitting ? `${t("users.create.save")}...` : t("users.create.save")}
                     </Button>
                 </div>
             </DrawerContent>

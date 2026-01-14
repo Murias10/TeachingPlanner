@@ -45,8 +45,14 @@ export class PuntualEvent extends AuditedEntity {
     @ManyToMany(() => Group, (group) => group.puntualEvents)
     @JoinTable({
         name: 'PUNTUAL_EVENTS_GROUPS',
-        joinColumn: { name: 'ID_PUNTUAL_EVENT', referencedColumnName: 'id' },
-        inverseJoinColumn: { name: 'ID_GROUP', referencedColumnName: 'id' },
+        joinColumn: {
+            name: 'ID_PUNTUAL_EVENT',
+            referencedColumnName: 'id',
+        },
+        inverseJoinColumn: {
+            name: 'ID_GROUP',
+            referencedColumnName: 'id',
+        },
     })
     groups!: Group[];
 

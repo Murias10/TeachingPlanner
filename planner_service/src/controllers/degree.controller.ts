@@ -3,6 +3,7 @@ import { AppDataSource } from '@/config/data-source';
 import { Degree } from '@/entities/degree.entity';
 import { Calendar } from '@/entities/calendar.entity';
 import { Course } from '@/entities/course.entity';
+import { Group } from '@/entities/group.entity';
 import { AuditedRequest } from '@/types/audit.types';
 import { getUserEmailFromRequest } from '@/utils/audit.utils';
 import { LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
@@ -240,8 +241,12 @@ export const deleteDegree = async (req: AuditedRequest, res: Response) => {
 
         const degreeRepo = AppDataSource.getRepository(Degree);
 
-        // Verificar que la titulación existe
-        const degree = await degreeRepo.findOneBy({ id });
+        // Verificar que la titulación existe y cargar relaciones necesarias
+        const degree = await degreeRepo.findOne({
+            where: { id },
+            relations: ['courses', 'courses.calendars', 'courses.calendars.groups']
+        });
+
         if (!degree) {
             res.status(404).json({
                 status: "error",
@@ -251,17 +256,37 @@ export const deleteDegree = async (req: AuditedRequest, res: Response) => {
             return;
         }
 
-        // Proceder directamente con la eliminación
-        const result = await degreeRepo.delete(id);
+        // IMPORTANTE: Eliminar primero todos los grupos de todos los calendarios
+        // ¿Por qué? Las tablas junction PERIODIC_EVENTS_GROUPS y PUNTUAL_EVENTS_GROUPS tienen
+        // ON DELETE NO ACTION en las FK hacia Groups (TypeORM ignora onDelete en @ManyToMany).
+        // Al eliminar los Groups con remove(), TypeORM limpia automáticamente las tablas junction.
+        // Sin esto, la cascada Degree→Course→Calendar→Groups fallaría.
+        const groupRepo = AppDataSource.getRepository(Group);
+        const allGroups: Group[] = [];
 
-        if (result.affected === 0) {
-            res.status(404).json({
-                status: "error",
-                message: "Degree not found or already deleted",
-                data: null
-            });
-            return;
+        if (degree.courses) {
+            for (const course of degree.courses) {
+                if (course.calendars) {
+                    for (const calendar of course.calendars) {
+                        if (calendar.groups && calendar.groups.length > 0) {
+                            allGroups.push(...calendar.groups);
+                        }
+                    }
+                }
+            }
         }
+
+        if (allGroups.length > 0) {
+            console.log(`[DELETE DEGREE] Deleting ${allGroups.length} groups from ${degree.acronym}...`);
+            await groupRepo.remove(allGroups);
+        }
+
+        // Ahora eliminar el degree
+        // Por CASCADE a nivel de DB se eliminan automáticamente:
+        // - Course (degree.onDelete: CASCADE)
+        //   - Calendar (course.onDelete: CASCADE)
+        //     - CalendarSync, Day→PuntualEvents, PeriodicEvent (todos onDelete: CASCADE)
+        await degreeRepo.remove(degree);
 
         // Respuesta exitosa
         res.status(200).json({

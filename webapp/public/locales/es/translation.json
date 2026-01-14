@@ -1064,6 +1064,95 @@
             }
         }
     },
+    "users": {
+        "toolbar": {
+            "create": "Crear usuario",
+            "createTooltip": "Crear nuevo usuario",
+            "import": "Importar usuarios",
+            "importTooltip": "Importar usuarios desde Excel",
+            "deleteSelected": "Eliminar seleccionados"
+        },
+        "create": {
+            "title": "Crear Usuario",
+            "description": "Completa los campos para crear un nuevo usuario",
+            "unioviUser": "Usuario Uniovi",
+            "unioviUserPlaceholder": "ej: uo123456",
+            "name": "Nombre",
+            "namePlaceholder": "Nombre del usuario",
+            "firstSurname": "Primer Apellido",
+            "firstSurnamePlaceholder": "Primer apellido",
+            "secondSurname": "Segundo Apellido",
+            "secondSurnamePlaceholder": "Segundo apellido",
+            "email": "Email",
+            "emailPlaceholder": "email@ejemplo.com",
+            "role": "Rol",
+            "rolePlaceholder": "Selecciona un rol",
+            "roleAdmin": "Acceso completo al sistema",
+            "roleProfessor": "Solicitar creación y cancelación de eventos",
+            "sendEmail": "Enviar email de activación",
+            "sendEmailDescription": "El usuario recibirá un email con un enlace para activar su cuenta",
+            "save": "Guardar usuario",
+            "cancel": "Cancelar"
+        },
+        "import": {
+            "title": "Importar Usuarios",
+            "description": "Sube un archivo Excel con los usuarios a importar",
+            "downloadTemplate": "Descargar plantilla",
+            "downloadTemplateDescription": "Descarga la plantilla para asegurarte de que tu archivo tiene el formato correcto",
+            "dropzone": {
+                "title": "Arrastra tu archivo Excel aquí o haz clic para seleccionar",
+                "formats": "Formatos aceptados: .xlsx, .xls (máximo 5MB)"
+            },
+            "sendEmail": "Enviar emails de activación",
+            "sendEmailDescription": "Los usuarios recibirán un email con un enlace para activar sus cuentas",
+            "import": "Importar",
+            "cancel": "Cancelar",
+            "validationErrors": "Errores de validación",
+            "validationErrorsDescription": "Corrige los siguientes errores antes de importar:",
+            "row": "Fila",
+            "field": "Campo",
+            "error": "Error",
+            "close": "Cerrar",
+            "completed": {
+                "title": "Importación Completada",
+                "created": "Se crearon {{count}} usuarios correctamente",
+                "warnings": "{{count}} usuarios fueron omitidos:",
+                "warning": "Advertencia"
+            }
+        },
+        "alerts": {
+            "error": {
+                "load": "No se pudieron cargar los usuarios",
+                "create": "Error al crear el usuario",
+                "import": "Error al importar usuarios",
+                "delete": "Error al eliminar el usuario",
+                "deleteMultiple": "Error al eliminar usuarios",
+                "sendActivation": "Error al enviar el email de activación"
+            },
+            "success": {
+                "created": "Usuario creado exitosamente",
+                "deleted": "Usuario eliminado correctamente",
+                "deleteMultiple": "Usuarios eliminados correctamente",
+                "activationSent": "Email de activación enviado correctamente"
+            }
+        },
+        "validation": {
+            "unioviUser": {
+                "required": "El usuario uniovi es obligatorio"
+            },
+            "name": {
+                "required": "El nombre es obligatorio"
+            },
+            "surnames": {
+                "required": "Los apellidos son obligatorios"
+            },
+            "email": {
+                "required": "El email es obligatorio",
+                "invalid": "Formato de email inválido"
+            },
+            "userExists": "El usuario ya existe, se omitirá"
+        }
+    },
     "validation": {
         "failed": "Error de validación"
     },

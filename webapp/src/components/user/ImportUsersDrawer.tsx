@@ -15,6 +15,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import { useTranslation } from "react-i18next";
 
 interface ImportUsersDrawerProps {
     open: boolean;
@@ -23,6 +24,7 @@ interface ImportUsersDrawerProps {
 }
 
 export const ImportUsersDrawer = ({ open, onOpenChange, onImportComplete }: ImportUsersDrawerProps) => {
+    const { t } = useTranslation();
     const [file, setFile] = useState<File | null>(null);
     const [isDragOver, setIsDragOver] = useState(false);
     const [isImporting, setIsImporting] = useState(false);
@@ -61,7 +63,8 @@ export const ImportUsersDrawer = ({ open, onOpenChange, onImportComplete }: Impo
         formData.append('sendEmail', sendEmail.toString());
 
         try {
-            const response = await fetch('http://localhost:8080/user/import', {
+            const apiUrl = import.meta.env.VITE_GATEWAY_API_URL || 'http://localhost:8080/api';
+            const response = await fetch(`${apiUrl}/user/import`, {
                 method: 'POST',
                 body: formData,
             });
@@ -76,12 +79,12 @@ export const ImportUsersDrawer = ({ open, onOpenChange, onImportComplete }: Impo
                 if (data.data && data.data.invalidRows) {
                     setValidationErrors(data.data);
                 } else {
-                    alert(data.message || 'Error importing users');
+                    alert(data.message || t("users.alerts.error.import"));
                 }
             }
         } catch (error) {
             console.error('Error importing users:', error);
-            alert('Error importing users');
+            alert(t("users.alerts.error.import"));
         } finally {
             setIsImporting(false);
         }
@@ -115,9 +118,9 @@ export const ImportUsersDrawer = ({ open, onOpenChange, onImportComplete }: Impo
                 <DrawerHeader className="border-b px-6 py-4">
                     <div className="flex items-center justify-between">
                         <div>
-                            <DrawerTitle className="text-xl font-semibold">Importar Usuarios</DrawerTitle>
+                            <DrawerTitle className="text-xl font-semibold">{t("users.import.title")}</DrawerTitle>
                             <p className="text-sm text-muted-foreground mt-1">
-                                Sube un archivo Excel con los usuarios a importar
+                                {t("users.import.description")}
                             </p>
                         </div>
                         <DrawerClose asChild>
@@ -135,10 +138,10 @@ export const ImportUsersDrawer = ({ open, onOpenChange, onImportComplete }: Impo
                             <FileSpreadsheet className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
                             <div className="flex-1">
                                 <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100">
-                                    Plantilla de Excel
+                                    {t("users.import.downloadTemplate")}
                                 </h4>
                                 <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                                    Descarga la plantilla para asegurarte de que tu archivo tiene el formato correcto
+                                    {t("users.import.downloadTemplateDescription")}
                                 </p>
                                 <Button
                                     variant="outline"
@@ -146,7 +149,7 @@ export const ImportUsersDrawer = ({ open, onOpenChange, onImportComplete }: Impo
                                     onClick={downloadTemplate}
                                     className="mt-2 text-xs h-8"
                                 >
-                                    Descargar Plantilla
+                                    {t("users.import.downloadTemplate")}
                                 </Button>
                             </div>
                         </div>
@@ -168,14 +171,14 @@ export const ImportUsersDrawer = ({ open, onOpenChange, onImportComplete }: Impo
                         >
                             <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                             <p className="text-sm font-medium mb-2">
-                                Arrastra tu archivo Excel aquí o haz clic para seleccionar
+                                {t("users.import.dropzone.title")}
                             </p>
                             <p className="text-xs text-muted-foreground mb-4">
-                                Formatos aceptados: .xlsx, .xls (máximo 5MB)
+                                {t("users.import.dropzone.formats")}
                             </p>
                             <Button variant="outline" size="sm" asChild>
                                 <label className="cursor-pointer">
-                                    Seleccionar archivo
+                                    {t("users.import.dropzone.title")}
                                     <input
                                         type="file"
                                         accept=".xlsx,.xls"
@@ -221,11 +224,11 @@ export const ImportUsersDrawer = ({ open, onOpenChange, onImportComplete }: Impo
                                             htmlFor="sendEmail"
                                             className="text-sm font-normal cursor-pointer"
                                         >
-                                            Enviar emails de activación
+                                            {t("users.import.sendEmail")}
                                         </Label>
                                     </div>
                                     <p className="text-xs text-muted-foreground ml-6">
-                                        Todos los usuarios importados recibirán un correo para activar su cuenta
+                                        {t("users.import.sendEmailDescription")}
                                     </p>
                                 </div>
                                 <Button
@@ -234,7 +237,7 @@ export const ImportUsersDrawer = ({ open, onOpenChange, onImportComplete }: Impo
                                     className="w-full"
                                 >
                                     {isImporting && <Spinner className="mr-2" />}
-                                    Importar Usuarios
+                                    {t("users.import.import")}
                                 </Button>
                             </div>
                         </div>
@@ -267,19 +270,19 @@ export const ImportUsersDrawer = ({ open, onOpenChange, onImportComplete }: Impo
                                     <div className="bg-red-50 dark:bg-red-950/20 border-b border-red-200 p-3">
                                         <h4 className="text-sm font-semibold text-red-900 dark:text-red-100 flex items-center gap-2">
                                             <AlertCircle className="h-4 w-4" />
-                                            Errores encontrados ({validationErrors.invalidRows.length})
+                                            {t("users.import.validationErrors")} ({validationErrors.invalidRows.length})
                                         </h4>
                                         <p className="text-xs text-red-700 dark:text-red-300 mt-1">
-                                            Corrige los errores en el archivo Excel y vuelve a intentarlo
+                                            {t("users.import.validationErrorsDescription")}
                                         </p>
                                     </div>
                                     <div className="max-h-64 overflow-y-auto">
                                         <Table>
                                             <TableHeader>
                                                 <TableRow>
-                                                    <TableHead>Fila</TableHead>
+                                                    <TableHead>{t("users.import.row")}</TableHead>
                                                     <TableHead>Email</TableHead>
-                                                    <TableHead>Errores</TableHead>
+                                                    <TableHead>{t("users.import.error")}</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
@@ -307,19 +310,19 @@ export const ImportUsersDrawer = ({ open, onOpenChange, onImportComplete }: Impo
                                     <div className="bg-yellow-50 dark:bg-yellow-950/20 border-b border-yellow-200 p-3">
                                         <h4 className="text-sm font-semibold text-yellow-900 dark:text-yellow-100 flex items-center gap-2">
                                             <AlertCircle className="h-4 w-4" />
-                                            Avisos ({validationErrors.warningRows.length})
+                                            {t("users.import.completed.warning")} ({validationErrors.warningRows.length})
                                         </h4>
                                         <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
-                                            Estos usuarios serán omitidos durante la importación
+                                            {t("users.import.completed.warnings")}
                                         </p>
                                     </div>
                                     <div className="max-h-64 overflow-y-auto">
                                         <Table>
                                             <TableHeader>
                                                 <TableRow>
-                                                    <TableHead>Fila</TableHead>
+                                                    <TableHead>{t("users.import.row")}</TableHead>
                                                     <TableHead>Email</TableHead>
-                                                    <TableHead>Avisos</TableHead>
+                                                    <TableHead>{t("users.import.completed.warning")}</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
@@ -351,7 +354,7 @@ export const ImportUsersDrawer = ({ open, onOpenChange, onImportComplete }: Impo
                                     variant="outline"
                                     className="flex-1"
                                 >
-                                    Seleccionar otro archivo
+                                    {t("users.import.cancel")}
                                 </Button>
                             </div>
                         </div>
@@ -362,23 +365,23 @@ export const ImportUsersDrawer = ({ open, onOpenChange, onImportComplete }: Impo
                         <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 rounded-lg p-6 text-center">
                             <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-4" />
                             <h4 className="text-lg font-semibold text-green-900 dark:text-green-100 mb-2">
-                                Importación Completada
+                                {t("users.import.completed.title")}
                             </h4>
                             <p className="text-sm text-green-700 dark:text-green-300">
-                                Se crearon {importResult.createdCount} usuarios correctamente
+                                {t("users.import.completed.created", { count: importResult.createdCount })}
                             </p>
                             {importResult.skippedCount > 0 && (
                                 <p className="text-sm text-yellow-600 mt-2">
-                                    {importResult.skippedCount} usuarios omitidos (ya existían)
+                                    {t("users.import.completed.warnings", { count: importResult.skippedCount })}
                                 </p>
                             )}
                             {importResult.errorCount > 0 && (
                                 <p className="text-sm text-red-600 mt-2">
-                                    {importResult.errorCount} errores durante la importación
+                                    {importResult.errorCount} {t("users.import.error")}
                                 </p>
                             )}
                             <Button onClick={handleClose} className="mt-4">
-                                Cerrar
+                                {t("users.import.close")}
                             </Button>
                         </div>
                     )}

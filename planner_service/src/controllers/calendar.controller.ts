@@ -305,6 +305,7 @@ export const createCalendar = async (req: AuditedRequest, res: Response) => {
 export const deleteCalendar = async (req: AuditedRequest, res: Response) => {
     try {
         const calendarId = req.params.id?.trim();
+        console.log('[DELETE CALENDAR] Received calendar ID:', calendarId);
 
         // Validar que el ID esté presente
         if (!calendarId) {
@@ -318,6 +319,7 @@ export const deleteCalendar = async (req: AuditedRequest, res: Response) => {
 
         // Validar que el ID sea un UUID válido
         if (!isValidUUID(calendarId)) {
+            console.log('[DELETE CALENDAR] Invalid UUID format:', calendarId);
             res.status(400).json({
                 status: "error",
                 message: "Invalid UUID format for calendar ID",
@@ -328,10 +330,12 @@ export const deleteCalendar = async (req: AuditedRequest, res: Response) => {
 
         const calendarRepo = AppDataSource.getRepository(Calendar);
 
-        // Verificar si el calendario existe
+        // Verificar si el calendario existe y cargar los grupos
         const calendar = await calendarRepo.findOne({
-            where: { id: calendarId }
+            where: { id: calendarId },
+            relations: ['groups']
         });
+        console.log('[DELETE CALENDAR] Calendar found:', !!calendar);
 
         if (!calendar) {
             res.status(404).json({
@@ -342,9 +346,26 @@ export const deleteCalendar = async (req: AuditedRequest, res: Response) => {
             return;
         }
 
-        // Eliminar el calendario
-        // Las entidades relacionadas se eliminarán automáticamente por CASCADE
-        await calendarRepo.delete(calendarId);
+        // IMPORTANTE: Eliminar primero los grupos manualmente
+        // ¿Por qué? Las tablas junction PERIODIC_EVENTS_GROUPS y PUNTUAL_EVENTS_GROUPS tienen
+        // ON DELETE NO ACTION en las FK hacia Groups (TypeORM ignora onDelete en @ManyToMany).
+        // Al eliminar los Groups con remove(), TypeORM limpia automáticamente las tablas junction
+        // gracias a los @JoinTable en PuntualEvent y PeriodicEvent.
+        // Sin esto, la cascada del Calendar fallaría al intentar eliminar los Groups.
+        const groupRepo = AppDataSource.getRepository(Group);
+        if (calendar.groups && calendar.groups.length > 0) {
+            console.log(`[DELETE CALENDAR] Deleting ${calendar.groups.length} groups...`);
+            await groupRepo.remove(calendar.groups);
+        }
+
+        // Ahora eliminar el calendario
+        // Por CASCADE a nivel de DB se eliminan automáticamente:
+        // - CalendarSync (calendar.onDelete: CASCADE)
+        // - Day (calendar.onDelete: CASCADE) → y sus PuntualEvents (day.onDelete: CASCADE)
+        // - PeriodicEvent (calendar.onDelete: CASCADE)
+        await calendarRepo.remove(calendar);
+
+        console.log('[DELETE CALENDAR] Calendar deleted successfully');
 
         res.status(200).json({
             status: "success",
@@ -381,6 +402,9 @@ const upload = multer({
 
 // Middleware para múltiples archivos
 export const uploadFiles = upload.array('files', 10);
+
+// Middleware para un solo archivo
+export const uploadSingleFile = upload.single('file');
 
 export const createCalendarWithImport = async (req: AuditedRequest, res: Response) => {
     try {
@@ -2710,6 +2734,7 @@ export const duplicateCalendar = async (req: AuditedRequest, res: Response) => {
         const calendarRepo = AppDataSource.getRepository(Calendar);
         const periodicEventRepo = AppDataSource.getRepository(PeriodicEvent);
         const dayRepo = AppDataSource.getRepository(Day);
+        const groupRepo = AppDataSource.getRepository(Group);
 
         // Verificar que el calendario fuente existe
         const sourceCalendar = await calendarRepo.findOne({
@@ -2811,7 +2836,31 @@ export const duplicateCalendar = async (req: AuditedRequest, res: Response) => {
 
         await dayRepo.save(days);
 
-        // Copiar solo eventos periódicos N, I, P del calendario fuente
+        // PASO 1: Duplicar grupos del calendario origen al calendario destino
+        // Los grupos ahora están relacionados con cada calendario específico
+        const sourceGroups = await groupRepo.find({
+            where: { calendar: { id: sourceCalendarId } },
+            relations: ['subject']
+        });
+
+        const groupMap = new Map<string, Group>(); // oldGroupId -> newGroup
+        for (const sourceGroup of sourceGroups) {
+            const newGroup = groupRepo.create({
+                calendar: savedCalendar, // Vinculado al nuevo calendario
+                subject: sourceGroup.subject,
+                number: sourceGroup.number,
+                type: sourceGroup.type,
+                language: sourceGroup.language,
+                planifiedHours: sourceGroup.planifiedHours,
+                createdBy: userEmail
+            });
+            const savedGroup = await groupRepo.save(newGroup);
+            groupMap.set(sourceGroup.id, savedGroup);
+        }
+
+        console.log(`[Calendar Duplication] Duplicated ${sourceGroups.length} groups from source to target calendar`);
+
+        // PASO 2: Copiar solo eventos periódicos N, I, P del calendario fuente
         const eventsToClone = sourceCalendar.periodicEvents.filter(event =>
             event.eventCharacter === EVENT_CHARACTERS.NORMAL ||
             event.eventCharacter === EVENT_CHARACTERS.PAR ||
@@ -2827,6 +2876,15 @@ export const duplicateCalendar = async (req: AuditedRequest, res: Response) => {
 
             if (!targetCourse) continue;
 
+            // Mapear grupos del calendario origen a grupos del calendario destino
+            const mappedGroups = sourceEvent.groups
+                .map(oldGroup => groupMap.get(oldGroup.id))
+                .filter((g): g is Group => g !== undefined);
+
+            if (mappedGroups.length !== sourceEvent.groups.length) {
+                console.warn(`[Calendar Duplication] Some groups were not found in map for event ${sourceEvent.id}`);
+            }
+
             const clonedEvent = periodicEventRepo.create({
                 calendar: savedCalendar,
                 year: targetCourse.startYear, // Use target course's start year
@@ -2835,7 +2893,7 @@ export const duplicateCalendar = async (req: AuditedRequest, res: Response) => {
                 endTime: sourceEvent.endTime,
                 eventCharacter: sourceEvent.eventCharacter,
                 planifiedHours: sourceEvent.planifiedHours,
-                groups: sourceEvent.groups, // Copy groups relationship
+                groups: mappedGroups, // Usar grupos del calendario destino
                 classrooms: sourceEvent.classrooms, // Copy classrooms relationship
                 createdBy: userEmail
             });
@@ -2847,6 +2905,7 @@ export const duplicateCalendar = async (req: AuditedRequest, res: Response) => {
 
         console.log(`[Calendar Duplication] Duplicated calendar ${sourceCalendarId} to ${savedCalendar.id}`);
         console.log(`[Calendar Duplication] Created ${days.length} days`);
+        console.log(`[Calendar Duplication] Duplicated ${sourceGroups.length} groups`);
         console.log(`[Calendar Duplication] Cloned ${clonedEvents.length} periodic events (N, I, P only)`);
         console.log(`[Calendar Duplication] Lective days: ${days.filter(d => d.lective).length}`);
 
@@ -2857,6 +2916,7 @@ export const duplicateCalendar = async (req: AuditedRequest, res: Response) => {
                 calendar: savedCalendar,
                 daysCreated: days.length,
                 lectiveDays: days.filter(d => d.lective).length,
+                groupsDuplicated: sourceGroups.length,
                 eventsCloned: clonedEvents.length
             },
         });

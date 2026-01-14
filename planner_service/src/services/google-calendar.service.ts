@@ -19,6 +19,11 @@ interface GoogleCalendarEvent {
         timeZone: string;
     };
     colorId?: string;
+    extendedProperties?: {
+        private?: {
+            academicCalendarId?: string;
+        };
+    };
 }
 
 interface GoogleCalendarCreateResponse {
@@ -193,12 +198,14 @@ export class GoogleCalendarService {
 
             if (!existing) {
                 // Create new CalendarSync entry for this calendar
-                await syncRepo.save({
+                const newSync = syncRepo.create({
                     userId,
                     calendarId: calendar.id,
+                    calendar,
                     syncEnabled: false,
-                    syncStatus: 'IDLE'
+                    syncStatus: SyncStatus.IDLE
                 });
+                await syncRepo.save(newSync);
             }
         }
 
@@ -236,11 +243,11 @@ export class GoogleCalendarService {
         if (wasEnabled && !sync.syncEnabled) {
             // Reset status to IDLE when disabling
             sync.syncStatus = SyncStatus.IDLE;
-            sync.errorMessage = null;
-            sync.lastSyncAt = null;
-            sync.totalCalendars = null;
-            sync.processedCalendars = null;
-            sync.currentOperation = null;
+            sync.errorMessage = undefined;
+            sync.lastSyncAt = undefined;
+            sync.totalCalendars = undefined;
+            sync.processedCalendars = undefined;
+            sync.currentOperation = undefined;
 
             if (accessToken) {
                 console.log(`[SYNC] Disabling sync ${syncId}, cleaning up Google Calendar events...`);

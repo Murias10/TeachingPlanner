@@ -4,7 +4,7 @@ import { Group } from '@/entities/group.entity';
 import { Subject } from '@/entities/subject.entity';
 import { Calendar } from '@/entities/calendar.entity';
 import { PeriodicEvent } from '@/entities/periodic_event.entity';
-import { AuditedRequest } from '@/middleware/auth.middleware';
+import { AuditedRequest } from '@/types/audit.types';
 
 /**
  * Create a new group
@@ -217,7 +217,7 @@ export const updatePlanifiedHours = async (req: AuditedRequest, res: Response) =
 
         // Update group's planified hours
         group.planifiedHours = planifiedHours;
-        group.updatedBy = userEmail;
+        group.updatedBy = userEmail ?? null;
         group.updatedAt = new Date();
         await groupRepo.save(group);
 
@@ -230,7 +230,7 @@ export const updatePlanifiedHours = async (req: AuditedRequest, res: Response) =
 
         for (const event of periodicEvents) {
             event.planifiedHours = planifiedHours;
-            event.updatedBy = userEmail;
+            event.updatedBy = userEmail ?? null;
             event.updatedAt = new Date();
             await periodicEventRepo.save(event);
         }

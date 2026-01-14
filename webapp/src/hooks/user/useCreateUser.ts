@@ -17,6 +17,7 @@ interface CreateUserData {
     role: string;
     email: string;
     sendEmail?: boolean;
+    language?: string;
 }
 
 export const useCreateUser = () => {

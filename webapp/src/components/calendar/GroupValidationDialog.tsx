@@ -37,8 +37,8 @@ export const GroupValidationDialog = ({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
+            <DialogContent className="max-w-[95vw] w-[1400px] max-h-[90vh] overflow-hidden flex flex-col">
+                <DialogHeader className="shrink-0">
                     <DialogTitle className="text-xl font-semibold">
                         {t("calendar.groupValidation.title")}
                     </DialogTitle>
@@ -47,7 +47,7 @@ export const GroupValidationDialog = ({
                     </p>
                 </DialogHeader>
 
-                <div className="space-y-6">
+                <div className="space-y-4 overflow-y-auto flex-1 pr-2">
                     {/* Statistics Cards */}
                     <div className="grid grid-cols-4 gap-4">
                         <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 rounded-lg p-4">
@@ -98,7 +98,7 @@ export const GroupValidationDialog = ({
                                     {t("calendar.groupValidation.errors.description")}
                                 </p>
                             </div>
-                            <div className="max-h-64 overflow-y-auto">
+                            <div>
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
@@ -159,7 +159,7 @@ export const GroupValidationDialog = ({
                                     {t("calendar.groupValidation.warnings.description")}
                                 </p>
                             </div>
-                            <div className="max-h-64 overflow-y-auto">
+                            <div>
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
@@ -212,12 +212,13 @@ export const GroupValidationDialog = ({
                         </div>
                     )}
 
-                    {/* Close Button */}
-                    <div className="flex justify-end">
-                        <Button onClick={() => onOpenChange(false)}>
-                            {t("common.close")}
-                        </Button>
-                    </div>
+                </div>
+
+                {/* Close Button - Fixed at bottom */}
+                <div className="shrink-0 border-t pt-3 flex justify-end">
+                    <Button onClick={() => onOpenChange(false)}>
+                        {t("common.close")}
+                    </Button>
                 </div>
             </DialogContent>
         </Dialog>

@@ -3,7 +3,9 @@
         "and": "and",
         "success": "Success",
         "error": "Error",
-        "warning": "Warning"
+        "warning": "Warning",
+        "close": "Close",
+        "delete": "Delete"
     },
     "sidebar": {
         "main": {
@@ -33,7 +35,10 @@
                 "title": "System logs"
             },
             "users": {
-                "title": "Users management"
+                "title": "User management"
+            },
+            "requests": {
+                "title": "Requests"
             },
             "reports": {
                 "title": "Usage reports"
@@ -57,11 +62,261 @@
         "settings": "Settings",
         "system": "System",
         "logs": "System logs",
-        "users": "Users management",
+        "users": "User management",
+        "requests": "Requests",
         "reports": "Usage reports",
         "faq": "Frequently asked questions"
     },
+    "filters": {
+        "title": "Filters",
+        "appliedCount": "{{count}} applied",
+        "appliedCount_plural": "{{count}} applied",
+        "noFiltersApplied": "No filters applied",
+        "clearFilters": "Clear filters",
+        "search": "Search...",
+        "selectAll": "All",
+        "selectNone": "None",
+        "noResults": "No results found",
+        "notAvailable": "Not available",
+        "activeFilters": "Active filters",
+        "showCancelledEvents": "Show cancelled events"
+    },
+    "alerts": {
+        "degree": {
+            "error": {
+                "create": {
+                    "title": "Error creating degree",
+                    "description": "Could not create the degree. Please try again later.",
+                    "name": "Name",
+                    "acronym": "Acronym",
+                    "conflict.description": "A degree with the same '{{fields}}' already exists."
+                },
+                "update": {
+                    "title": "Error updating degree",
+                    "description": "Could not update the degree. Please try again later.",
+                    "conflict.description": "A degree with the same '{{fields}}' already exists."
+                },
+                "delete": {
+                    "individual": {
+                        "title": "Error deleting degree",
+                        "description": "Could not delete the degree '{{name}}'. Please try again later."
+                    },
+                    "multiple": {
+                        "title": "Error deleting degrees",
+                        "description": "Could not delete the degrees. Please try again later."
+                    }
+                },
+                "read": {
+                    "title": "Error loading degrees",
+                    "description": "Could not load the degrees. Please try again later."
+                }
+            },
+            "success": {
+                "create": {
+                    "title": "Degree created",
+                    "description": "The degree '{{name}}' was successfully created."
+                },
+                "update": {
+                    "title": "Degree updated",
+                    "description": "The degree '{{name}}' was successfully updated."
+                },
+                "delete": {
+                    "individual": {
+                        "title": "Degree deleted",
+                        "description": "The degree '{{name}}' was successfully deleted."
+                    },
+                    "multiple": {
+                        "title": "Degrees deleted",
+                        "description": "The degrees were successfully deleted."
+                    }
+                }
+            }
+        },
+        "classroom": {
+            "error": {
+                "title": "Error",
+                "create": {
+                    "title": "Error creating classroom",
+                    "description": "Could not create the classroom. Please try again later.",
+                    "code": "Code",
+                    "gisUrl": "GIS URL",
+                    "conflict.description": "A classroom with the same '{{fields}}' already exists."
+                },
+                "edit": {
+                    "title": "Error editing classroom",
+                    "description": "Could not edit the classroom. Please try again later."
+                },
+                "delete": {
+                    "title": "Error deleting classroom",
+                    "description": "Could not delete the classroom '{{code}}'. Please try again later."
+                },
+                "notFound": "Classroom not found",
+                "hasEvents": "Cannot delete the classroom because it has associated events",
+                "default": "Error processing the request",
+                "read": "Could not load the classrooms. Please try again later."
+            },
+            "success": {
+                "create": {
+                    "title": "Classroom created",
+                    "description": "The classroom '{{code}}' was successfully created."
+                },
+                "edit": {
+                    "title": "Classroom edited",
+                    "description": "The classroom '{{code}}' was successfully edited."
+                },
+                "delete": {
+                    "title": "Classroom deleted",
+                    "description": "The classroom '{{code}}' was successfully deleted.",
+                    "multiple": {
+                        "title": "Classrooms deleted",
+                        "description": "{{count}} classrooms were successfully deleted."
+                    }
+                }
+            }
+        },
+        "subject": {
+            "error": {
+                "read": {
+                    "title": "Error loading subjects",
+                    "description": "Could not load the subjects. Please try again later."
+                },
+                "create": {
+                    "title": "Error creating subject",
+                    "description": "Could not create the subject. Please try again later.",
+                    "name": "Name",
+                    "acronym": "Acronym",
+                    "conflict.description": "A subject with the same '{{fields}}' already exists."
+                },
+                "edit": {
+                    "title": "Error editing subject",
+                    "description": "Could not edit the subject. Please try again later.",
+                    "conflict.description": "A subject with the same '{{fields}}' already exists."
+                }
+            },
+            "success": {
+                "create": {
+                    "title": "Subject created",
+                    "description": "The subject '{{name}}' was successfully created."
+                },
+                "edit": {
+                    "title": "Subject edited",
+                    "description": "The subject '{{name}}' was successfully edited."
+                },
+                "delete": {
+                    "individual": {
+                        "title": "Subject deleted",
+                        "description": "The subject '{{name}}' was successfully deleted."
+                    },
+                    "multiple": {
+                        "title": "Subjects deleted",
+                        "description": "The subjects were successfully deleted."
+                    }
+                }
+            }
+        },
+        "course": {
+            "error": {
+                "create": {
+                    "title": "Error creating course",
+                    "description": "Could not create the course. Please try again later.",
+                    "start.end.year": "Academic year",
+                    "conflict.description": "A classroom with the same '{{fields}}' already exists."
+                },
+                "edit": {
+                    "title": "Error editing course",
+                    "description": "Could not edit the course. Please try again later."
+                }
+            },
+            "success": {
+                "create": {
+                    "title": "Course created",
+                    "description": "The course '{{startYear}}-{{endYear}}' was successfully created."
+                },
+                "edit": {
+                    "title": "Course updated",
+                    "description": "The course '{{startYear}}-{{endYear}}' was successfully updated."
+                },
+                "delete": {
+                    "individual": {
+                        "title": "Course deleted",
+                        "description": "The course '{{startYear}}-{{endYear}}' was successfully deleted."
+                    },
+                    "multiple": {
+                        "title": "Courses deleted",
+                        "description": "The courses were successfully deleted."
+                    }
+                }
+            }
+        },
+        "puntualEvent": {
+            "error": {
+                "title": "Schedule conflict",
+                "shared_group": "The same group already has an event at this time",
+                "shared_classroom": "The same classroom already has an event at this time",
+                "shared_both": "The same group and classroom already have an event at this time"
+            },
+            "success": {
+                "title": "Event created",
+                "description": "The punctual event was successfully created."
+            }
+        }
+    },
+    "toolbar": {
+        "classrooms": {
+            "create": "Create classroom",
+            "delete.selected": "Delete selected rows"
+        },
+        "degrees": {
+            "create": "Create degree",
+            "delete.selected": "Delete selected rows"
+        },
+        "subjects": {
+            "create": "Create subject",
+            "delete.selected": "Delete selected rows"
+        },
+        "courses": {
+            "create": "Create course",
+            "delete.selected": "Delete selected rows"
+        }
+    },
     "drawer": {
+        "classrooms": {
+            "create": {
+                "title": "Create classroom",
+                "description": "Complete the fields to create a new classroom.",
+                "code": "Classroom code",
+                "gisUrl": "Classroom GIS URL",
+                "save": "Save classroom",
+                "cancel": "Cancel"
+            },
+            "edit": {
+                "title": "Edit classroom",
+                "description": "Modify the classroom GIS URL field.",
+                "code": "Classroom code",
+                "gisUrl": "Classroom GIS URL",
+                "gisUrl.placeholder": "Example: example.com/classroom/101",
+                "save": "Save changes",
+                "cancel": "Cancel"
+            }
+        },
+        "degrees": {
+            "create": {
+                "title": "Create degree",
+                "description": "Complete the fields to create a new degree.",
+                "name": "Degree name",
+                "acronym": "Degree acronym",
+                "save": "Save degree",
+                "cancel": "Cancel"
+            },
+            "edit": {
+                "title": "Edit degree",
+                "description": "Modify the degree fields.",
+                "name": "Degree name",
+                "acronym": "Degree acronym",
+                "save": "Save changes",
+                "cancel": "Cancel"
+            }
+        },
         "courses": {
             "create": {
                 "title": "Create course",
@@ -75,11 +330,11 @@
                     "placeholder": "Select a state",
                     "info": {
                         "title": "State flow",
-                        "description": "New courses start as 'Planified' by default."
+                        "description": "New courses start as 'Planned' by default."
                     }
                 },
                 "states": {
-                    "planificado": "Planified",
+                    "planificado": "Planned",
                     "activo": "Active",
                     "finalizado": "Finished"
                 },
@@ -96,29 +351,141 @@
                 "save": "Save changes",
                 "cancel": "Cancel"
             }
-        }
-    },
-    "alerts": {
-        "course": {
-            "error": {
-                "edit": {
-                    "title": "Error updating course",
-                    "description": "Could not update the course. Please try again later."
-                }
+        },
+        "subjects": {
+            "create": {
+                "title": "Create subject",
+                "description": "Complete the fields to create a new subject.",
+                "name": "Subject name",
+                "acronym": "Subject acronym",
+                "year": "Subject year",
+                "semester": "Subject semester",
+                "siesCode": "Subject SIES code",
+                "save": "Save subject",
+                "cancel": "Cancel"
             },
-            "success": {
-                "edit": {
-                    "title": "Course updated",
-                    "description": "The course '{{startYear}}-{{endYear}}' was successfully updated."
-                }
+            "view": {
+                "title": "View subject",
+                "description": "Detailed subject information.",
+                "name": "Name",
+                "acronym": "Acronym",
+                "year": "Year",
+                "semester": "Semester",
+                "siesCode": "SIES code",
+                "groups": "Groups",
+                "groupsCount": "groups",
+                "close": "Close"
+            },
+            "edit": {
+                "title": "Edit subject",
+                "description": "Modify the subject fields.",
+                "name": "Subject name",
+                "acronym": "Subject acronym",
+                "year": "Subject year",
+                "semester": "Subject semester",
+                "siesCode": "Subject SIES code",
+                "save": "Save changes",
+                "cancel": "Cancel"
+            }
+        },
+        "calendar": {
+            "create": {
+                "title": "Create calendar",
+                "description": "Complete the fields to create a new calendar.",
+                "tabs": {
+                    "manual": {
+                        "title": "Manual",
+                        "start.date": "Start date",
+                        "end.date": "End date",
+                        "select.date": "Select date",
+                        "holidays": "Holidays",
+                        "selected.holidays": "Selected holidays:",
+                        "select.dates.first": "Select start and end dates to view the calendar"
+                    },
+                    "import": {
+                        "title": "Import",
+                        "required.files": "Required files",
+                        "uploaded.files": "Uploaded files",
+                        "no.files": "No uploaded files",
+                        "drop": {
+                            "description": "Only .txt files",
+                            "title": "Drag files here or click to select"
+                        },
+                        "error": {
+                            "planifiedHours": {
+                                "mismatch": "Inconsistent planned hours for group {{group}}",
+                                "title": "Validation error in planned hours",
+                                "noImport": "No data was imported due to errors in planned hours. All events of the same group must have the same number of planned hours."
+                            }
+                        }
+                    }
+                },
+                "save": "Save calendar",
+                "cancel": "Cancel"
             }
         }
     },
-    "toolbar": {
+    "dialog": {
+        "button": {
+            "confirm": "Confirm",
+            "cancel": "Cancel"
+        },
+        "delete": {
+            "title": "Delete event"
+        },
+        "degrees": {
+            "delete": {
+                "single": {
+                    "title": "Confirm deletion",
+                    "description": "This action will delete the degree '{{name}}' and all related information (courses, subjects, etc.). This action cannot be undone."
+                },
+                "multiple": {
+                    "title": "Confirm multiple deletion",
+                    "description": "This action will delete {{count}} degree(s) and all their related information (courses, subjects, etc.). This action cannot be undone."
+                }
+            }
+        },
+        "classrooms": {
+            "delete": {
+                "single": {
+                    "title": "Confirm deletion",
+                    "description": "This action will delete the classroom '{{code}}' and all events held in that classroom. This action cannot be undone."
+                },
+                "multiple": {
+                    "title": "Confirm multiple deletion",
+                    "description": "This action will delete {{count}} classroom(s) and all events held in those classrooms. This action cannot be undone."
+                }
+            }
+        },
+        "subjects": {
+            "delete": {
+                "single": {
+                    "title": "Confirm deletion",
+                    "description": "This action will delete the subject '{{name}}' and all related information (groups, events, etc.). This action cannot be undone."
+                },
+                "multiple": {
+                    "title": "Confirm multiple deletion",
+                    "description": "This action will delete {{count}} subject(s) and all their related information (groups, events, etc.). This action cannot be undone."
+                }
+            }
+        },
+        "courses": {
+            "delete": {
+                "single": {
+                    "title": "Confirm deletion",
+                    "description": "This action will delete the course {{startYear}}-{{endYear}} and all related information (groups, subjects, events, etc.). This action cannot be undone."
+                },
+                "multiple": {
+                    "title": "Confirm multiple deletion",
+                    "description": "This action will delete {{count}} course(s) and all their related information (groups, subjects, events, etc.). This action cannot be undone."
+                }
+            }
+        },
         "calendar": {
-            "export": "Export",
-            "create.event": "Create event",
-            "delete.selected": "Delete selected"
+            "delete": {
+                "title": "Confirm deletion",
+                "description": "This action will delete the calendar for semester {{semester}} of year {{startYear}}-{{endYear}} and all related information (groups, days, events, etc.)"
+            }
         }
     },
     "table": {
@@ -151,24 +518,524 @@
             "no.results": "No results.",
             "total": "Total: {{count}} requests"
         },
+        "classrooms": {
+            "filter.placeholder": "Filter by code...",
+            "columns": {
+                "title": "Columns",
+                "code": "Code",
+                "gisUrl": "GIS URL",
+                "actions": "Actions"
+            },
+            "no.results": "No classrooms found.",
+            "actions": {
+                "edit": "Edit classroom",
+                "delete": "Delete classroom",
+                "view": "View classroom",
+                "gisUrl": "Go to {{url}}"
+            }
+        },
+        "subjects": {
+            "filter.placeholder": "Filter by name...",
+            "columns": {
+                "title": "Columns",
+                "name": "Name",
+                "acronym": "Acronym",
+                "siesCode": "SIES code",
+                "semester": "Semester",
+                "year": "Year",
+                "actions": "Actions"
+            },
+            "year": {
+                "0": "Elective",
+                "1": "1st",
+                "2": "2nd",
+                "3": "3rd",
+                "4": "4th",
+                "5": "5th",
+                "6": "6th"
+            },
+            "semester": {
+                "1": "Semester 1",
+                "2": "Semester 2"
+            },
+            "no.results": "No subjects found.",
+            "actions": {
+                "edit": "Edit subject",
+                "delete": "Delete subject",
+                "view": "View subject",
+                "siesUrl": "Go to {{url}}"
+            }
+        },
         "courses": {
             "filter.placeholder": "Filter by course...",
             "columns": {
                 "title": "Columns",
                 "course": "Course",
                 "state": "State"
+            },
+            "no.results": "No courses found.",
+            "actions": {
+                "title": "Actions",
+                "delete.semester.1": "Delete semester 1",
+                "delete.semester.2": "Delete semester 2",
+                "show.semester.1": "View semester 1",
+                "show.semester.2": "View semester 2",
+                "create.semester.1": "Create semester 1",
+                "create.semester.2": "Create semester 2",
+                "edit": "Edit course",
+                "delete": "Delete course",
+                "view": "View course"
             }
         },
-        "subjects": {
+        "groups": {
+            "filter.placeholder": "Filter by name...",
+            "columns": {
+                "title": "Columns",
+                "name": "Name",
+                "acronym": "Acronym",
+                "semester": "Semester",
+                "year": "Year",
+                "planifiedHours": "Planned hours"
+            },
+            "no.results": "No groups found.",
             "actions": {
-                "siesUrl": "Go to {{url}}"
+                "manage.groups": "Manage groups",
+                "create.group": "Create group",
+                "select.groups": "Select groups",
+                "select.groups.tooltip": "Select groups to display in calendar",
+                "edit.planifiedHours": "Edit planned hours"
+            },
+            "planifiedHours": "Planned hours",
+            "editPlanifiedHours": "Edit planned hours"
+        },
+        "degrees": {
+            "filter.placeholder": "Filter by name...",
+            "columns": {
+                "title": "Columns",
+                "acronym": "Acronym",
+                "name": "Name"
+            },
+            "no.results": "No degrees found.",
+            "actions": {
+                "edit": "Edit degree",
+                "delete": "Delete degree",
+                "view": "View degree",
+                "show.courses": "View courses",
+                "show.subjects": "View subjects"
+            }
+        },
+        "pagination": {
+            "next": "Next",
+            "previous": "Previous"
+        }
+    },
+    "validation": {
+        "failed": "Validation error"
+    },
+    "error": {
+        "email": {
+            "required": "Email is required",
+            "invalid": "Email format is not valid",
+            "too": {
+                "long": "Email is too long (maximum 254 characters)"
+            }
+        },
+        "password": {
+            "required": "Password is required",
+            "too": {
+                "long": "Password is too long (maximum 128 characters)"
+            },
+            "min": {
+                "length": "Password must be at least 8 characters"
+            },
+            "uppercase": "Password must contain at least one uppercase letter",
+            "lowercase": "Password must contain at least one lowercase letter",
+            "number": "Password must contain at least one number",
+            "special": "Password must contain at least one special character (!@#$%^&*(),.?\":{}|<>)",
+            "same": {
+                "as": {
+                    "current": "New password cannot be the same as current password"
+                }
+            }
+        },
+        "current": {
+            "password": {
+                "required": "Current password is required"
+            }
+        },
+        "token": {
+            "required": "Token is required",
+            "invalid": "Activation token is not valid",
+            "expired": "Activation token has expired",
+            "missing": "No activation token was provided"
+        },
+        "account": {
+            "already": {
+                "activated": "This account has already been activated"
+            }
+        },
+        "passwords": {
+            "do": {
+                "not": {
+                    "match": "Passwords do not match"
+                }
+            }
+        },
+        "activation": {
+            "failed": "Error activating account"
+        },
+        "otp": {
+            "required": "OTP code is required"
+        },
+        "name": {
+            "required": "Name is required",
+            "too": {
+                "long": "Name is too long (maximum 100 characters)"
+            }
+        },
+        "first": {
+            "surname": {
+                "required": "First surname is required",
+                "too": {
+                    "long": "First surname is too long (maximum 100 characters)"
+                }
+            }
+        },
+        "second": {
+            "surname": {
+                "required": "Second surname is required",
+                "too": {
+                    "long": "Second surname is too long (maximum 100 characters)"
+                }
+            }
+        },
+        "role": {
+            "invalid": "Selected role is not valid"
+        },
+        "uniovi": {
+            "user": {
+                "too": {
+                    "long": "Uniovi user is too long (maximum 255 characters)"
+                }
+            }
+        },
+        "no": {
+            "fields": {
+                "to": {
+                    "update": "Must provide at least one field to update"
+                }
             }
         }
     },
+    "home": {
+        "selectDegree": "Select a degree",
+        "selectDegreeMessage": "Select a degree to view its calendar",
+        "noActiveCalendars": "No active calendars",
+        "noActiveCalendarsMessage": "There are no degrees with active calendars for the current date. Calendars will appear here when they are within the academic period."
+    },
     "calendar": {
+        "next": "Next",
+        "previous": "Previous",
+        "today": "Today",
+        "month": "Month",
+        "week": "Week",
+        "workWeek": "Work week",
+        "day": "Day",
+        "agenda": "Agenda",
+        "date": "Date",
+        "time": "Time",
+        "noEvents": "No events in this range",
+        "showMore": "+Show more ({{total}})",
+        "event": {
+            "label": "Event"
+        },
+        "filters": {
+            "year": "Year",
+            "subject": "Subject",
+            "groupType": "Group type",
+            "groups": "Groups",
+            "classroom": "Classroom",
+            "language": "Language",
+            "showCancelled": "Cancelled events"
+        },
+        "title": "Calendar - Semester {{semester}}",
+        "showingEvents": "Showing {{count}} of {{total}} events",
+        "loadError": "Could not load calendar",
+        "academicYear": {
+            "elective": "Electives",
+            "first": "1st",
+            "second": "2nd",
+            "third": "3rd",
+            "fourth": "4th"
+        },
+        "toolbar": {
+            "requests": "Requests",
+            "requestsTooltip": "View pending event requests",
+            "requestEvent": "Request event",
+            "requestEventTooltip": "Request a new event"
+        },
+        "alerts": {
+            "nonLectiveDay": {
+                "title": "Non-teaching day",
+                "description": "You cannot create events on non-teaching days"
+            },
+            "validation": {
+                "noGroups": {
+                    "title": "Error",
+                    "description": "Please select at least one group"
+                },
+                "noClassrooms": {
+                    "title": "Error",
+                    "description": "Please select at least one classroom"
+                },
+                "noCalendarId": {
+                    "title": "Error",
+                    "description": "Could not get calendar ID"
+                },
+                "noDateOrSubject": {
+                    "title": "Error",
+                    "description": "Please select a date and a subject"
+                },
+                "noWeekDay": {
+                    "title": "Error",
+                    "description": "Please select a day of the week"
+                },
+                "noPlanifiedHours": {
+                    "title": "Error",
+                    "description": "Please specify planned hours"
+                },
+                "customFrequencyIncomplete": {
+                    "title": "Error",
+                    "description": "Please complete all custom frequency fields"
+                },
+                "noCalendarInfo": {
+                    "title": "Error",
+                    "description": "Could not get calendar information"
+                },
+                "noDates": {
+                    "title": "No dates",
+                    "description": "No dates found that match the specified pattern"
+                },
+                "notImplemented": {
+                    "title": "Not implemented",
+                    "description": "Currently only punctual and weekly periodic events can be created"
+                }
+            },
+            "periodicEvent": {
+                "success": {
+                    "title": "Success",
+                    "description": "{{count}} periodic event(s) successfully created"
+                },
+                "partial": {
+                    "title": "Partially completed",
+                    "description": "{{created}} event(s) created, {{errors}} error(s)"
+                },
+                "error": {
+                    "title": "Error",
+                    "description": "Error creating periodic event"
+                },
+                "updated": {
+                    "title": "Periodic event updated",
+                    "description": "Periodic event has been successfully updated"
+                },
+                "updateError": {
+                    "title": "Error updating",
+                    "description": "Could not update periodic event"
+                }
+            },
+            "customPeriodicEvent": {
+                "created": {
+                    "title": "Custom event created",
+                    "description": "{{count}} periodic event(s) created with custom pattern ({{dates}} affected dates)"
+                },
+                "error": {
+                    "title": "Error",
+                    "description": "Error creating custom periodic event"
+                }
+            },
+            "eventUpdate": {
+                "success": {
+                    "title": "Event updated",
+                    "description": "Event has been successfully updated"
+                },
+                "error": {
+                    "title": "Error updating",
+                    "description": "Could not update event"
+                }
+            },
+            "eventDelete": {
+                "seriesDeleted": {
+                    "title": "Series deleted",
+                    "description": "Event series has been successfully deleted"
+                },
+                "seriesError": {
+                    "title": "Error",
+                    "description": "Could not delete event series"
+                },
+                "seriesErrorGeneric": {
+                    "title": "Error",
+                    "description": "Error deleting event series"
+                },
+                "cancelled": {
+                    "title": "Event cancelled",
+                    "description": "Event has been successfully cancelled"
+                },
+                "cancelError": {
+                    "title": "Error cancelling",
+                    "description": "Could not cancel event"
+                },
+                "cancelErrorGeneric": {
+                    "title": "Error",
+                    "description": "Error cancelling event"
+                },
+                "deleted": {
+                    "title": "Event deleted",
+                    "description": "Event has been successfully deleted"
+                },
+                "deleteError": {
+                    "title": "Error deleting",
+                    "description": "Could not delete event"
+                },
+                "noPeriodicId": {
+                    "title": "Error",
+                    "description": "Could not identify periodic event"
+                }
+            },
+            "request": {
+                "noRequestId": {
+                    "title": "Error",
+                    "description": "Could not identify request"
+                },
+                "approved": {
+                    "title": "Request approved",
+                    "description": "Request has been approved and event has been successfully created"
+                },
+                "approvedShort": {
+                    "title": "Request approved",
+                    "description": "Event has been successfully created"
+                },
+                "approveError": {
+                    "title": "Error",
+                    "description": "Could not approve request"
+                },
+                "approveErrorGeneric": {
+                    "title": "Error",
+                    "description": "Error occurred while approving request"
+                },
+                "approveErrorWithMessage": {
+                    "title": "Error",
+                    "description": "Error approving request"
+                },
+                "deleted": {
+                    "title": "Request deleted",
+                    "description": "Your request has been successfully deleted"
+                },
+                "deleteError": {
+                    "title": "Error",
+                    "description": "Error deleting request"
+                },
+                "rejected": {
+                    "title": "Request rejected",
+                    "description": "Request has been successfully rejected"
+                },
+                "rejectError": {
+                    "title": "Error",
+                    "description": "Could not reject request"
+                },
+                "rejectErrorGeneric": {
+                    "title": "Error",
+                    "description": "Error occurred while rejecting request"
+                },
+                "sent": {
+                    "title": "Request sent",
+                    "description": "Your event request has been sent for approval"
+                },
+                "sendError": {
+                    "title": "Error",
+                    "description": "Error sending request"
+                }
+            },
+            "revert": {
+                "error": {
+                    "title": "Error",
+                    "description": "Error reverting cancellation"
+                }
+            },
+            "replace": {
+                "error": {
+                    "title": "Error",
+                    "description": "Error replacing event"
+                }
+            },
+            "export": {
+                "noEvents": {
+                    "title": "No events",
+                    "description": "No events to export with current filters"
+                },
+                "success": {
+                    "title": "Export successful",
+                    "description": "{{count}} events exported to CSV for Google Calendar"
+                },
+                "error": {
+                    "title": "Export error",
+                    "description": "Unknown error exporting calendar"
+                }
+            }
+        },
+        "dialogs": {
+            "deleteSeries": {
+                "title": "Delete event series",
+                "description": "Are you sure you want to delete the entire event series? This action cannot be undone and will delete all events in this series."
+            },
+            "revertCancellation": {
+                "title": "Revert cancellation",
+                "description": "Are you sure you want to revert the cancellation of this event? The event will reappear on the calendar."
+            },
+            "defaultSubject": "this subject"
+        },
+        "eventDetails": {
+            "title": "Event details",
+            "description": "Selected event information",
+            "fields": {
+                "subject": "Subject",
+                "date": "Date",
+                "time": "Time",
+                "type": "Type",
+                "frequency": "Frequency",
+                "status": "Status",
+                "group": "Group",
+                "language": "Language",
+                "classroom": "Classroom",
+                "noClassroom": "No classroom assigned",
+                "dayCharacter": "Day character",
+                "eventCharacter": "Event character",
+                "dayComment": "Day comment",
+                "eventComment": "Event comment"
+            },
+            "types": {
+                "periodic": "Periodic event",
+                "puntual": "Punctual event"
+            },
+            "frequencies": {
+                "noRepeat": "Does not repeat",
+                "weekly": "Weekly",
+                "biweeklyEven": "Biweekly (even weeks)",
+                "biweeklyOdd": "Biweekly (odd weeks)",
+                "custom": "Custom"
+            },
+            "status": {
+                "active": "Active",
+                "cancelled": "Cancelled"
+            },
+            "languages": {
+                "spanish": "Spanish",
+                "english": "English"
+            },
+            "close": "Close"
+        },
         "groupValidation": {
             "title": "Group validation",
-            "subtitle": "Results of group validation during import",
+            "subtitle": "Group validation result during import",
             "stats": {
                 "total": "Total",
                 "created": "Created",
@@ -180,12 +1047,12 @@
                 "description": "The following groups exceed the maximum defined in asignaturas.txt and their events were skipped",
                 "row": "Row",
                 "group": "Group",
-                "maxAllowed": "Max allowed",
+                "maxAllowed": "Maximum allowed",
                 "source": "File",
                 "error": "Error"
             },
             "warnings": {
-                "title": "Auto-created groups ({{count}})",
+                "title": "Automatically created groups ({{count}})",
                 "description": "The following groups were automatically created during import",
                 "row": "Row",
                 "group": "Group",
@@ -223,7 +1090,7 @@
             "roleAdmin": "Full system access",
             "roleProfessor": "Request event creation and cancellation",
             "sendEmail": "Send activation email",
-            "sendEmailDescription": "The user will receive an email with a link to activate their account",
+            "sendEmailDescription": "User will receive an email with a link to activate their account",
             "save": "Save user",
             "cancel": "Cancel"
         },
@@ -263,10 +1130,10 @@
                 "sendActivation": "Error sending activation email"
             },
             "success": {
-                "created": "User created successfully",
-                "deleted": "User deleted successfully",
-                "deleteMultiple": "Users deleted successfully",
-                "activationSent": "Activation email sent successfully"
+                "created": "User successfully created",
+                "deleted": "User successfully deleted",
+                "deleteMultiple": "Users successfully deleted",
+                "activationSent": "Activation email successfully sent"
             }
         },
         "validation": {
@@ -286,7 +1153,28 @@
             "userExists": "User already exists, will be skipped"
         }
     },
-    "common": {
-        "close": "Close"
-    }
+    "activation": {
+        "title": "Activate your account",
+        "description": "Set your password to activate your account",
+        "invalid": {
+            "token": {
+                "title": "Invalid token",
+                "description": "The activation link is not valid or has expired. Please contact the administrator to get a new link."
+            }
+        },
+        "success": {
+            "title": "Account activated!",
+            "description": "Your account has been successfully activated. You can now log in with your new password."
+        },
+        "redirecting": "Redirecting to login page..."
+    },
+    "password": "Password",
+    "confirm": {
+        "password": "Confirm password"
+    },
+    "password.requirements": "Password requirements",
+    "activate.account": "Activate account",
+    "activating": "Activating...",
+    "go.to.login": "Go to login",
+    "account.activated.successfully": "Account successfully activated"
 }

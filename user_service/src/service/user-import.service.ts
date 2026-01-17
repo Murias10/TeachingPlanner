@@ -217,8 +217,7 @@ export class UserImportService {
                         await this.emailService.sendActivationEmail(
                             user.email,
                             user.name,
-                            activationToken,
-                            'es' // Import defaults to Spanish
+                            activationToken
                         );
                     } catch (emailError) {
                         console.error(`Failed to send activation email to ${user.email}:`, emailError);

@@ -57,8 +57,7 @@ export class UserService {
                     await this.emailService.sendActivationEmail(
                         savedUser.email,
                         savedUser.name,
-                        activationToken,
-                        (userData.language as 'es' | 'en') || 'es'
+                        activationToken
                     );
                 } catch (emailError) {
                     console.error('Failed to send activation email:', emailError);
@@ -215,12 +214,10 @@ export class UserService {
 
             // Send email
             try {
-                // TODO: Get user's preferred language from database or browser settings
                 await this.emailService.sendActivationEmail(
                     user.email,
                     user.name,
-                    activationToken,
-                    'es' // Default to Spanish for now
+                    activationToken
                 );
                 return { success: true, message: 'Activation email sent successfully' };
             } catch (emailError) {

@@ -30,7 +30,7 @@ interface CreateUserDrawerProps {
 }
 
 export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDrawerProps) {
-    const { t, i18n } = useTranslation();
+    const { t } = useTranslation();
     const { createUser } = useCreateUser();
     const { triggerAlert } = useFloatingAlert();
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -92,10 +92,7 @@ export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDr
         if (!validateForm()) return;
 
         setIsSubmitting(true);
-        const result = await createUser({
-            ...formData,
-            language: i18n.language
-        });
+        const result = await createUser(formData);
 
         if (result.success) {
             triggerAlert({

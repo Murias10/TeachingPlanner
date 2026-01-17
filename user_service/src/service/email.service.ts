@@ -1,22 +1,6 @@
 import nodemailer from 'nodemailer';
 import { emailConfig, appConfig } from '@/config/email.config';
 
-type Language = 'es' | 'en';
-
-interface EmailTranslations {
-    subject: string;
-    greeting: string;
-    intro: string;
-    buttonText: string;
-    copyLink: string;
-    requirementsTitle: string;
-    requirements: string[];
-    noteTitle: string;
-    noteExpiry: string;
-    noteIgnore: string;
-    copyright: string;
-}
-
 export class EmailService {
     private transporter: nodemailer.Transporter;
 
@@ -32,59 +16,13 @@ export class EmailService {
         });
     }
 
-    private getActivationTranslations(lang: Language): EmailTranslations {
-        const translations = {
-            es: {
-                subject: `Bienvenido a ${appConfig.appName} - Activa tu cuenta`,
-                greeting: '¡Hola',
-                intro: `Se ha creado una cuenta para ti en ${appConfig.appName}. Para comenzar a utilizar la plataforma, necesitas activar tu cuenta y establecer tu contraseña.`,
-                buttonText: 'Activar mi cuenta',
-                copyLink: 'O copia y pega este enlace en tu navegador:',
-                requirementsTitle: 'Tu contraseña debe cumplir los siguientes requisitos:',
-                requirements: [
-                    'Mínimo 8 caracteres',
-                    'Al menos una letra mayúscula',
-                    'Al menos una letra minúscula',
-                    'Al menos un número',
-                    'Al menos un carácter especial (!@#$%^&*(),.?":{}|<>)'
-                ],
-                noteTitle: 'Nota importante:',
-                noteExpiry: 'Este enlace expirará en 48 horas por seguridad.',
-                noteIgnore: 'Si no solicitaste esta cuenta, puedes ignorar este correo.',
-                copyright: `© ${new Date().getFullYear()} ${appConfig.appName}. Todos los derechos reservados.`
-            },
-            en: {
-                subject: `Welcome to ${appConfig.appName} - Activate your account`,
-                greeting: 'Hello',
-                intro: `An account has been created for you on ${appConfig.appName}. To start using the platform, you need to activate your account and set your password.`,
-                buttonText: 'Activate my account',
-                copyLink: 'Or copy and paste this link into your browser:',
-                requirementsTitle: 'Your password must meet the following requirements:',
-                requirements: [
-                    'Minimum 8 characters',
-                    'At least one uppercase letter',
-                    'At least one lowercase letter',
-                    'At least one number',
-                    'At least one special character (!@#$%^&*(),.?":{}|<>)'
-                ],
-                noteTitle: 'Important note:',
-                noteExpiry: 'This link will expire in 48 hours for security.',
-                noteIgnore: 'If you did not request this account, you can ignore this email.',
-                copyright: `© ${new Date().getFullYear()} ${appConfig.appName}. All rights reserved.`
-            }
-        };
-
-        return translations[lang];
-    }
-
-    async sendActivationEmail(email: string, name: string, activationToken: string, language: Language = 'es'): Promise<void> {
+    async sendActivationEmail(email: string, name: string, activationToken: string): Promise<void> {
         const activationUrl = `${appConfig.frontendUrl}/activate?token=${activationToken}`;
-        const t = this.getActivationTranslations(language);
 
         const mailOptions = {
             from: emailConfig.from,
             to: email,
-            subject: t.subject,
+            subject: `Bienvenido a ${appConfig.appName} - Activa tu cuenta`,
             html: `
                 <!DOCTYPE html>
                 <html>
@@ -261,33 +199,37 @@ export class EmailService {
                             <h1>${appConfig.appName}</h1>
                         </div>
                         <div class="content">
-                            <div class="greeting">${t.greeting} ${name}!</div>
-                            <p class="intro">${t.intro}</p>
+                            <div class="greeting">¡Hola ${name}!</div>
+                            <p class="intro">Se ha creado una cuenta para ti en ${appConfig.appName}. Para comenzar a utilizar la plataforma, necesitas activar tu cuenta y establecer tu contraseña.</p>
 
                             <div class="button-container">
-                                <a href="${activationUrl}" class="button">${t.buttonText}</a>
+                                <a href="${activationUrl}" class="button">Activar mi cuenta</a>
                             </div>
 
                             <div class="link-section">
-                                <div class="link-label">${t.copyLink}</div>
+                                <div class="link-label">O copia y pega este enlace en tu navegador:</div>
                                 <a href="${activationUrl}" class="link-url">${activationUrl}</a>
                             </div>
 
                             <div class="requirements">
-                                <div class="requirements-title">${t.requirementsTitle}</div>
+                                <div class="requirements-title">Tu contraseña debe cumplir los siguientes requisitos:</div>
                                 <ul>
-                                    ${t.requirements.map(req => `<li>${req}</li>`).join('')}
+                                    <li>Mínimo 8 caracteres</li>
+                                    <li>Al menos una letra mayúscula</li>
+                                    <li>Al menos una letra minúscula</li>
+                                    <li>Al menos un número</li>
+                                    <li>Al menos un carácter especial (!@#$%^&*(),.?":{}|<>)</li>
                                 </ul>
                             </div>
                         </div>
                         <div class="footer">
                             <div class="note">
-                                <div class="note-title">${t.noteTitle}</div>
-                                <div class="note-text">${t.noteExpiry}</div>
+                                <div class="note-title">Nota importante:</div>
+                                <div class="note-text">Este enlace expirará en 48 horas por seguridad.</div>
                             </div>
                             <div class="footer-text">
-                                ${t.noteIgnore}
-                                <div class="copyright">${t.copyright}</div>
+                                Si no solicitaste esta cuenta, puedes ignorar este correo.
+                                <div class="copyright">© ${new Date().getFullYear()} ${appConfig.appName}. Todos los derechos reservados.</div>
                             </div>
                         </div>
                     </div>
@@ -295,30 +237,34 @@ export class EmailService {
                 </html>
             `,
             text: `
-                ${t.greeting} ${name},
+                ¡Hola ${name},
 
-                ${t.intro}
+                Se ha creado una cuenta para ti en ${appConfig.appName}. Para comenzar a utilizar la plataforma, necesitas activar tu cuenta y establecer tu contraseña.
 
-                ${t.buttonText}:
+                Activar mi cuenta:
                 ${activationUrl}
 
-                ${t.copyLink}
+                O copia y pega este enlace en tu navegador:
                 ${activationUrl}
 
-                ${t.requirementsTitle}
-                ${t.requirements.map((req, i) => `${i + 1}. ${req}`).join('\n')}
+                Tu contraseña debe cumplir los siguientes requisitos:
+                1. Mínimo 8 caracteres
+                2. Al menos una letra mayúscula
+                3. Al menos una letra minúscula
+                4. Al menos un número
+                5. Al menos un carácter especial (!@#$%^&*(),.?":{}|<>)
 
-                ${t.noteTitle} ${t.noteExpiry}
+                Nota importante: Este enlace expirará en 48 horas por seguridad
 
-                ${t.noteIgnore}
+                Si no solicitaste esta cuenta, puedes ignorar este correo.
 
-                ${t.copyright}
+                © ${new Date().getFullYear()} ${appConfig.appName}. Todos los derechos reservados.
             `,
         };
 
         try {
             await this.transporter.sendMail(mailOptions);
-            console.log(`Activation email sent to ${email} in ${language}`);
+            console.log(`Activation email sent to ${email}`);
         } catch (error) {
             console.error('Error sending activation email:', error);
             throw new Error('Failed to send activation email');

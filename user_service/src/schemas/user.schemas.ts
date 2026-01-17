@@ -27,8 +27,7 @@ export const createUserSchema = z.object({
         .max(255, { message: 'error.uniovi.user.too.long' })
         .trim()
         .optional(),
-    sendEmail: z.boolean().optional().default(false),
-    language: z.enum(['es', 'en']).optional().default('es')
+    sendEmail: z.boolean().optional().default(false)
 });
 
 // Update user schema (campos opcionales)

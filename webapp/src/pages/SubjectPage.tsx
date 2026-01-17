@@ -20,6 +20,8 @@ import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext"
 import { Subject } from "@/types/Subject"
 import { EditSubjectFormData } from "@/components/subject/EditSubjectDrawer"
 
+const EMPTY_SUBJECTS: Subject[] = [];
+
 interface DeleteState {
     type: 'single' | 'bulk' | null;
     subjectId?: string;
@@ -70,11 +72,13 @@ export default function SubjectPage() {
 
     // Obtener subjects usando el calendarId
     const {
-        data: subjects = [],
+        data: subjectsData,
         isLoading: isSubjectsLoading,
         error: subjectsError,
         refetch
     } = useSubjectsByCalendarId(calendarId)
+
+    const subjects = subjectsData || EMPTY_SUBJECTS;
 
     const [selectedIds, setSelectedIds] = useState<string[]>([])
     const [drawerOpen, setDrawerOpen] = useState(false)
@@ -97,7 +101,7 @@ export default function SubjectPage() {
         ];
 
         setItems(items);
-    }, [setItems, t, acronym, startYear, endYear, semester, course?.id, course?.degree?.name])
+    }, [setItems, t, acronym, startYear, endYear, semester, course])
 
     // Manejo de errores de carga
     useEffect(() => {

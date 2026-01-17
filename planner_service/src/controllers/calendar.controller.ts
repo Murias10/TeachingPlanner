@@ -828,13 +828,13 @@ export const exportCalendar = async (req: AuditedRequest, res: Response) => {
         // Obtener las classrooms completas con sus datos
         const classrooms = await classroomRepo.findByIds(Array.from(classroomIds));
 
-        // Obtener TODAS las asignaturas del degree (no solo las del calendario)
-        const allSubjectsOfDegree = await subjectRepo.find({
-            where: { degree: { id: calendar.course.degree.id } }
+        // Obtener TODAS las asignaturas del calendario
+        const allSubjectsOfCalendar = await subjectRepo.find({
+            where: { calendar: { id: calendar.id } }
         });
 
         console.log(`Found ${classrooms.length} classrooms used in this calendar`);
-        console.log(`Found ${allSubjectsOfDegree.length} subjects in degree`);
+        console.log(`Found ${allSubjectsOfCalendar.length} subjects in calendar`);
         console.log(`Found ${groups.length} groups used in this calendar`);
         console.log(`Groups with subject:`, groups.filter(g => g.subject).length);
 
@@ -853,7 +853,7 @@ export const exportCalendar = async (req: AuditedRequest, res: Response) => {
         // Formato: "Acrónimo:Nombre:Año:GruposTeoriaES:GruposSeminarioES:GruposLaboratorioES:GruposTeoriaEN:GruposSeminarioEN:GruposLaboratorioEN:GruposTutoriaGrupalES:GruposTutoriaGrupalEN:CódigoSIES"
         // (12 campos, ordenado por acrónimo ascendente)
         // Contar solo los grupos que participan en eventos del calendario actual
-        const asignaturasContent = allSubjectsOfDegree
+        const asignaturasContent = allSubjectsOfCalendar
             .sort((a: Subject, b: Subject) => a.acronym.localeCompare(b.acronym)) // Ordenar ascendente por acrónimo
             .map((subject: Subject) => {
                 // Obtener los grupos de esta asignatura que participan en eventos del calendario

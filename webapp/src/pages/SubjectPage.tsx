@@ -9,12 +9,13 @@ import { useAuth } from "@/contexts/AuthContext"
 import { useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useParams } from "react-router-dom"
-import { useSubjectsByDegreeId } from "@/hooks/subject/useSubjectsByDegreeId"
+import { useSubjectsByCalendarId } from "@/hooks/subject/useSubjectsByCalendarId"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
 import { useDeleteSubject } from "@/hooks/subject/useDeleteSubject"
 import { useCreateSubject } from "@/hooks/subject/useCreateSubject"
 import { useUpdateSubject } from "@/hooks/subject/useUpdateSubject"
-import { useDegreeByAcronym } from "@/hooks/degree/useDegreeByAcronym"
+import { useCoursesByDegreeAcronym } from "@/hooks/course/useCoursesByDegreeAcronym"
+import { useCalendarByCourseAndSemester } from "@/hooks/calendar/useCalendarByCourseAndSemester"
 import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext"
 import { Subject } from "@/types/Subject"
 import { EditSubjectFormData } from "@/components/subject/EditSubjectDrawer"
@@ -37,7 +38,8 @@ export default function SubjectPage() {
     const { t } = useTranslation()
     const { user } = useAuth()
 
-    const { acronym } = useParams<{ acronym: string }>()
+    // Obtener parámetros de la URL
+    const { acronym, startYear, endYear, semester } = useParams()
 
     const { triggerAlert } = useFloatingAlertContext()
 
@@ -47,21 +49,32 @@ export default function SubjectPage() {
     const { updateSubject } = useUpdateSubject()
     const { setItems } = useBreadcrumbContext()
 
-    // Obtener degree desde el acrónimo de la URL usando React Query
+    // Obtener los cursos por acrónimo
     const {
-        data: degree,
-        isLoading: isDegreeLoading,
-        error: degreeError
-    } = useDegreeByAcronym(acronym || null)
+        data: courses
+    } = useCoursesByDegreeAcronym(acronym || null);
 
+    // Buscar el curso específico basado en startYear y endYear
+    const course = courses?.find(c =>
+        c.startYear.toString() === startYear &&
+        c.endYear.toString() === endYear
+    );
 
-    // Obtener subjects usando el degreeId
+    // Obtener el calendarId
+    const { calendarId } = useCalendarByCourseAndSemester(
+        acronym || null,
+        startYear || null,
+        endYear || null,
+        semester || null
+    );
+
+    // Obtener subjects usando el calendarId
     const {
         data: subjects = [],
         isLoading: isSubjectsLoading,
         error: subjectsError,
         refetch
-    } = useSubjectsByDegreeId(degree?.id || null)
+    } = useSubjectsByCalendarId(calendarId)
 
     const [selectedIds, setSelectedIds] = useState<string[]>([])
     const [drawerOpen, setDrawerOpen] = useState(false)
@@ -69,21 +82,25 @@ export default function SubjectPage() {
     const [subjectToEdit, setSubjectToEdit] = useState<Subject | undefined>(undefined)
     const [deleteState, setDeleteState] = useState<DeleteState>({ type: null })
 
-    // Configurar breadcrumb - incluye el nombre del degree si está disponible
+    // Configurar breadcrumb
     useEffect(() => {
         const items = [
             { label: t("breadcrumb.degrees"), href: "/degrees" },
             // Miga intermedia con el nombre del grado (sin enlace, solo informativo)
-            ...(degree ? [{ label: degree.name, href: "" }] : []),
-            { label: t("breadcrumb.subjects"), href: "" },
+            ...(course?.degree ? [{ label: course.degree.name, href: "" }] : []),
+            { label: t("breadcrumb.courses"), href: `/degrees/${acronym}/courses` },
+            // Miga intermedia con el año académico (sin enlace, solo informativo)
+            ...(course ? [{ label: `${course.startYear}/${course.endYear}`, href: "" }] : []),
+            // Miga intermedia con el semestre (sin enlace, solo informativo)
+            ...(semester ? [{ label: `${t("breadcrumb.semester")} ${semester}`, href: "" }] : []),
+            { label: t("breadcrumb.subjects"), href: "" }
         ];
 
         setItems(items);
-    }, [setItems, t, degree, acronym])
+    }, [setItems, t, acronym, startYear, endYear, semester, course?.id, course?.degree?.name])
 
     // Manejo de errores de carga
     useEffect(() => {
-
         if (subjectsError) {
             triggerAlert({
                 title: t("alerts.subject.error.read.title"),
@@ -180,9 +197,16 @@ export default function SubjectPage() {
     // Guardar nueva asignatura
     const handleSave = useCallback(async (formData: SubjectFormData) => {
 
-        if (!degree?.id) return;
+        if (!calendarId) {
+            triggerAlert({
+                title: "Error",
+                description: "No se pudo obtener el ID del calendario",
+                variant: "destructive"
+            })
+            return;
+        }
 
-        const result = await createSubject(formData, degree?.id, refetch);
+        const result = await createSubject(formData, calendarId, refetch);
 
         if (result.success) {
             setDrawerOpen(false);
@@ -211,7 +235,7 @@ export default function SubjectPage() {
             description: errorMessage,
             variant: "destructive",
         });
-    }, [createSubject, degree, refetch, triggerAlert, t, formatConflictFields]);
+    }, [createSubject, calendarId, refetch, triggerAlert, t, formatConflictFields]);
 
     // Abrir drawer de edición
     const handleEditClick = useCallback((subject: Subject) => {
@@ -284,25 +308,6 @@ export default function SubjectPage() {
         };
     }, [deleteState, handleCloseDeleteDialog, handleConfirmDelete, t, subjects]);
 
-    // Mostrar loading mientras se obtiene el degree
-    if (isDegreeLoading) {
-        return <LoadingSpinner />
-    }
-
-    // Mostrar error si no se encuentra el degree
-    if (degreeError) {
-        return (
-            <div className="h-full flex items-center justify-center">
-                <div className="text-center">
-                    <h2 className="text-2xl font-bold text-destructive mb-2">
-                        {t("alerts.degree.error.title")}
-                    </h2>
-                    <p className="text-muted-foreground">{degreeError.message}</p>
-                </div>
-            </div>
-        )
-    }
-
     return (
         <>
             <section className="h-full bg-background overflow-hidden flex flex-col">
@@ -336,7 +341,7 @@ export default function SubjectPage() {
             </section>
 
             <CreateSubjectDrawer
-                open={drawerOpen && !!degree}
+                open={drawerOpen && !!calendarId}
                 onOpenChange={setDrawerOpen}
                 onSave={handleSave}
             />

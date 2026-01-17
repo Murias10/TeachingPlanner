@@ -20,12 +20,12 @@ interface SubjectFormData {
 export function useCreateSubject() {
 
     const createSubject = useCallback(
-        async (formData: SubjectFormData, degreeId: string, refetch: () => void): Promise<CreateResult> => {
+        async (formData: SubjectFormData, calendarId: string, refetch: () => void): Promise<CreateResult> => {
 
             const payload = {
                 ...formData,
-                degree: {
-                    id: degreeId
+                calendar: {
+                    id: calendarId
                 }
             };
 

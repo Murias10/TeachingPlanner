@@ -17,17 +17,14 @@ import { es } from 'date-fns/locale';
 import { format } from 'date-fns';
 import type { RecurrenceConfig, FrequencyType, WeekDay, EndsType, CustomFrequencyUnit, MonthlyPatternType } from '@/types/RecurrenceConfig';
 import { useClassrooms } from '@/hooks/classroom/useClassrooms';
-import { useSubjectsByDegreeId } from '@/hooks/subject/useSubjectsByDegreeId';
-import { useSubjectsWithEventsAndGroupsByCourseAndSemester } from '@/hooks/subject/useSubjectsWithEventsAndGroupsByCourseIdAndSemester';
+import { useSubjectsByCalendarId } from '@/hooks/subject/useSubjectsByCalendarId';
+import { useSubjectsWithGroupsByCalendarId } from '@/hooks/subject/useSubjectsWithGroupsByCalendarId';
 import { getMonthlyPatternLabels } from '@/utils/customPatternCalculator';
 
 interface CreateSolicitudDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (calendarId: string, eventType: string, config: RecurrenceConfig) => void;
-  degreeId?: string;
-  courseId?: string;
-  semester?: number;
   calendarId?: string;
   initialDate?: string | null;
   initialStartTime?: string | null;
@@ -64,9 +61,6 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
   open,
   onOpenChange,
   onSave,
-  degreeId,
-  courseId,
-  semester,
   calendarId,
   initialDate,
   initialStartTime,
@@ -131,16 +125,13 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
   }, [eventType]);
 
   const { data: classrooms = [] } = useClassrooms();
-  const { data: subjects = [], isLoading: isLoadingSubjects } = useSubjectsByDegreeId(degreeId || null);
+  const { data: subjects = [], isLoading: isLoadingSubjects } = useSubjectsByCalendarId(calendarId || null);
 
   // Get all subjects with their groups using the same hook as GroupPage
-  const { data: subjectsWithGroups = [] } = useSubjectsWithEventsAndGroupsByCourseAndSemester(courseId || null, semester || null);
+  const { data: subjectsWithGroups = [] } = useSubjectsWithGroupsByCalendarId(calendarId || null);
 
-  // Filter subjects by semester
-  const filteredSubjects = useMemo(() => {
-    if (!semester) return subjects;
-    return subjects.filter(subject => subject.semester === semester);
-  }, [subjects, semester]);
+  // No need to filter subjects by semester anymore since they come from calendar
+  const filteredSubjects = subjects;
 
   // Calculate monthly pattern labels based on customStartDate
   const monthlyPatternLabels = useMemo(() => {

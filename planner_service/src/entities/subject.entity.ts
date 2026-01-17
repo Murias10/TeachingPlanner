@@ -8,7 +8,7 @@ import {
     OneToMany
 } from 'typeorm';
 import { AuditedEntity } from '@/entities/audited.entity';
-import { Degree } from '@/entities/degree.entity'
+import { Calendar } from '@/entities/calendar.entity'
 import { Group } from '@/entities/group.entity';
 
 /**
@@ -16,8 +16,8 @@ import { Group } from '@/entities/group.entity';
  * Inherits audit tracking from AuditedEntity (created_at, created_by, updated_at, updated_by)
  */
 @Entity('SUBJECTS')
-@Unique('UQ_SUBJECT_NAME_DEGREE', ['name', 'degree'])
-@Unique('UQ_SUBJECT_ACRONYM_DEGREE', ['acronym', 'degree'])
+@Unique('UQ_SUBJECT_NAME_CALENDAR', ['name', 'calendar'])
+@Unique('UQ_SUBJECT_ACRONYM_CALENDAR', ['acronym', 'calendar'])
 @Check('CHK_SEMESTER', '"SEMESTER" IN (1, 2)')
 @Check('CHK_YEAR', '"YEAR" IN (0, 1, 2, 3, 4)')
 export class Subject extends AuditedEntity {
@@ -45,10 +45,10 @@ export class Subject extends AuditedEntity {
     @OneToMany(() => Group, (group) => group.subject)
     groups!: Group[];
 
-    /** Degree this subject belongs to */
-    @ManyToOne(() => Degree, degree => degree.subjects, {
+    /** Calendar this subject belongs to */
+    @ManyToOne(() => Calendar, calendar => calendar.subjects, {
         onDelete: 'CASCADE',
     })
-    @JoinColumn({ name: 'ID_DEGREE' })
-    degree!: Degree
+    @JoinColumn({ name: 'ID_CALENDAR' })
+    calendar!: Calendar
 }

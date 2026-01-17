@@ -12,6 +12,7 @@ import { Course } from '@/entities/course.entity';
 import { Day } from '@/entities/day.entity';
 import { PeriodicEvent } from '@/entities/periodic_event.entity';
 import { Group } from '@/entities/group.entity';
+import { Subject } from '@/entities/subject.entity';
 
 /**
  * Calendar entity representing an academic calendar for a specific course and semester
@@ -53,6 +54,10 @@ export class Calendar extends AuditedEntity {
     /** Groups that belong to this calendar */
     @OneToMany(() => Group, (group) => group.calendar)
     groups!: Group[];
+
+    /** Subjects that belong to this calendar */
+    @OneToMany(() => Subject, (subject) => subject.calendar)
+    subjects!: Subject[];
 
     /** Course this calendar belongs to */
     @ManyToOne(() => Course, (course) => course.calendars, {

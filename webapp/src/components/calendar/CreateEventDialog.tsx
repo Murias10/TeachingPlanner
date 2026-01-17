@@ -18,8 +18,8 @@ import { es } from 'date-fns/locale';
 import { format, getDay, parseISO } from 'date-fns';
 import type { RecurrenceConfig, FrequencyType, WeekDay, EndsType, CustomFrequencyUnit, MonthlyPatternType } from '@/types/RecurrenceConfig';
 import { useClassrooms } from '@/hooks/classroom/useClassrooms';
-import { useSubjectsByDegreeId } from '@/hooks/subject/useSubjectsByDegreeId';
-import { useSubjectsWithEventsAndGroupsByCourseAndSemester } from '@/hooks/subject/useSubjectsWithEventsAndGroupsByCourseIdAndSemester';
+import { useSubjectsByCalendarId } from '@/hooks/subject/useSubjectsByCalendarId';
+import { useSubjectsWithGroupsByCalendarId } from '@/hooks/subject/useSubjectsWithGroupsByCalendarId';
 import { EVENT_CHARACTERS } from '@/constants/eventCharacters';
 import { getMonthlyPatternLabels } from '@/utils/customPatternCalculator';
 
@@ -27,9 +27,7 @@ interface CreateEventDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (config: RecurrenceConfig) => void;
-  degreeId?: string;
-  courseId?: string;
-  semester?: number;
+  calendarId?: string;
   initialDate?: string | null;
   initialStartTime?: string | null;
   initialEndTime?: string | null;
@@ -62,7 +60,7 @@ const addMinutesToTime = (time: string, minutes: number): string => {
   return `${finalHours.toString().padStart(2, '0')}:${finalMinutes.toString().padStart(2, '0')}`;
 };
 
-const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChange, onSave, degreeId, courseId, semester, initialDate, initialStartTime, initialEndTime, lectiveDates = new Set(), calendarEndDate }) => {
+const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChange, onSave, calendarId, initialDate, initialStartTime, initialEndTime, lectiveDates = new Set(), calendarEndDate }) => {
   const [config, setConfig] = useState<RecurrenceConfig>({
     frequency: 'no-repeat',
     interval: 1,
@@ -91,8 +89,8 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
 
   // Hooks must be declared before effects
   const { data: classrooms = [] } = useClassrooms();
-  const { data: subjects = [], isLoading: isLoadingSubjects } = useSubjectsByDegreeId(degreeId || null);
-  const { data: subjectsWithGroups = [] } = useSubjectsWithEventsAndGroupsByCourseAndSemester(courseId || null, semester || null);
+  const { data: subjects = [], isLoading: isLoadingSubjects } = useSubjectsByCalendarId(calendarId || null);
+  const { data: subjectsWithGroups = [] } = useSubjectsWithGroupsByCalendarId(calendarId || null);
 
   // Actualizar config cuando cambien los props iniciales
   React.useEffect(() => {
@@ -202,11 +200,8 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
     }
   }, [config.frequency, initialDate, config.weekDays]);
 
-  // Filter subjects by semester
-  const filteredSubjects = useMemo(() => {
-    if (!semester) return subjects;
-    return subjects.filter(subject => subject.semester === semester);
-  }, [subjects, semester]);
+  // No need to filter subjects by semester anymore since they come from calendar
+  const filteredSubjects = subjects;
 
   // Calculate monthly pattern labels based on customStartDate
   const monthlyPatternLabels = useMemo(() => {

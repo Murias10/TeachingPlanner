@@ -1,14 +1,14 @@
 import { Response } from 'express';
 import { AppDataSource } from '@/config/data-source';
 import { Subject } from '@/entities/subject.entity';
-import { Degree } from '@/entities/degree.entity';
+import { Calendar } from '@/entities/calendar.entity';
 import { validate as isValidUUID } from 'uuid';
 import { AuditedRequest } from '@/types/audit.types';
 import { getUserEmailFromRequest } from '@/utils/audit.utils';
 
 export const createSubject = async (req: AuditedRequest, res: Response) => {
     try {
-        const { acronym, year, name, siesCode, semester, degree } = req.body;
+        const { acronym, year, name, siesCode, semester, calendar } = req.body;
 
         // Validación de campos obligatorios
         const missingFields = [];
@@ -23,9 +23,9 @@ export const createSubject = async (req: AuditedRequest, res: Response) => {
         if (semester === undefined || semester === null || !Number.isInteger(Number(semester))) {
             missingFields.push("semester");
         }
-        if (!degree || typeof degree !== "object") missingFields.push("degree");
+        if (!calendar || typeof calendar !== "object") missingFields.push("calendar");
         else {
-            if (!degree.id) missingFields.push("degree.id");
+            if (!calendar.id) missingFields.push("calendar.id");
         }
 
         if (missingFields.length > 0) {
@@ -59,14 +59,14 @@ export const createSubject = async (req: AuditedRequest, res: Response) => {
             return
         }
 
-        // Verificar que el degree exista en la base de datos
-        const degreeRepo = AppDataSource.getRepository(Degree);
-        const existingDegree = await degreeRepo.findOne({ where: { id: degree.id } });
+        // Verificar que el calendar exista en la base de datos
+        const calendarRepo = AppDataSource.getRepository(Calendar);
+        const existingCalendar = await calendarRepo.findOne({ where: { id: calendar.id } });
 
-        if (!existingDegree) {
+        if (!existingCalendar) {
             res.status(404).json({
                 status: "error",
-                message: `No se encontró ningún degree con el id '${degree.id}'`,
+                message: `No se encontró ningún calendario con el id '${calendar.id}'`,
                 data: null
             });
             return
@@ -79,7 +79,7 @@ export const createSubject = async (req: AuditedRequest, res: Response) => {
             where: {
                 name,
                 acronym,
-                degree: { id: degree.id }
+                calendar: { id: calendar.id }
             }
         });
 
@@ -87,7 +87,7 @@ export const createSubject = async (req: AuditedRequest, res: Response) => {
             res.status(409).json({
                 status: "error",
                 fields: ["name", "acronym"],
-                message: "Ya existe una asignatura con esos valores para esa titulación",
+                message: "Ya existe una asignatura con esos valores para ese calendario",
                 data: null
             });
             return
@@ -101,7 +101,7 @@ export const createSubject = async (req: AuditedRequest, res: Response) => {
             name,
             siesCode,
             semester: semesterNum, // Asegurar que se guarde como número
-            degree: existingDegree, // Usar la entidad completa encontrada
+            calendar: existingCalendar, // Usar la entidad completa encontrada
             createdBy: userEmail
         });
 
@@ -180,7 +180,7 @@ export const updateSubject = async (req: AuditedRequest, res: Response) => {
         const subjectRepo = AppDataSource.getRepository(Subject);
 
         // Verificar que la asignatura existe
-        const subject = await subjectRepo.findOne({ where: { id }, relations: ['degree'] });
+        const subject = await subjectRepo.findOne({ where: { id }, relations: ['calendar'] });
 
         if (!subject) {
             res.status(404).json({
@@ -191,13 +191,13 @@ export const updateSubject = async (req: AuditedRequest, res: Response) => {
             return;
         }
 
-        // Verificar conflictos de unicidad (nombre y acrónimo por degree)
+        // Verificar conflictos de unicidad (nombre y acrónimo por calendar)
         const conflicts: string[] = [];
 
         const nameExists = await subjectRepo.findOne({
             where: {
                 name,
-                degree: { id: subject.degree.id }
+                calendar: { id: subject.calendar.id }
             }
         });
         if (nameExists && nameExists.id !== id) conflicts.push("name");
@@ -205,7 +205,7 @@ export const updateSubject = async (req: AuditedRequest, res: Response) => {
         const acronymExists = await subjectRepo.findOne({
             where: {
                 acronym,
-                degree: { id: subject.degree.id }
+                calendar: { id: subject.calendar.id }
             }
         });
         if (acronymExists && acronymExists.id !== id) conflicts.push("acronym");
@@ -307,54 +307,54 @@ export const getSubjects = async (_req: AuditedRequest, res: Response) => {
 };
 
 
-export const getSubjectsByDegreeId = async (req: AuditedRequest, res: Response) => {
-    const degreeId = req.params.id;
+export const getSubjectsByCalendarId = async (req: AuditedRequest, res: Response) => {
+    const calendarId = req.params.id;
 
     // Validación de tipo y formato
-    if (!degreeId || typeof degreeId !== 'string') {
+    if (!calendarId || typeof calendarId !== 'string') {
         res.status(400).json({
             status: 'error',
-            message: 'Invalid degree ID format',
+            message: 'Invalid calendar ID format',
             data: null,
         });
         return
     }
 
     // Validación de UUID
-    if (!isValidUUID(degreeId)) {
+    if (!isValidUUID(calendarId)) {
         res.status(400).json({
             status: 'error',
-            message: 'Degree ID must be a valid UUID',
+            message: 'Calendar ID must be a valid UUID',
             data: null,
         });
         return
     }
 
     try {
-        const degreeRepository = AppDataSource.getRepository(Degree);
+        const calendarRepository = AppDataSource.getRepository(Calendar);
         const subjectRepository = AppDataSource.getRepository(Subject);
 
-        // Verificar que el degree existe
-        const degreeExists = await degreeRepository.findOne({
-            where: { id: degreeId }
+        // Verificar que el calendar existe
+        const calendarExists = await calendarRepository.findOne({
+            where: { id: calendarId }
         });
 
-        if (!degreeExists) {
+        if (!calendarExists) {
             res.status(404).json({
                 status: 'error',
-                message: 'Degree not found',
+                message: 'Calendar not found',
                 data: null,
             });
 
             return
         }
 
-        // Buscar asignaturas por ID de grado
+        // Buscar asignaturas por ID de calendario
         const subjects = await subjectRepository.find({
             where: {
-                degree: { id: degreeId }
+                calendar: { id: calendarId }
             },
-            relations: ['degree'],
+            relations: ['calendar'],
             order: {
                 year: 'ASC',
                 semester: 'ASC',
@@ -367,16 +367,17 @@ export const getSubjectsByDegreeId = async (req: AuditedRequest, res: Response) 
             message: 'Subjects fetched successfully',
             data: {
                 subjects,
-                degreeInfo: {
-                    id: degreeExists.id,
-                    name: degreeExists.name,
-                    acronym: degreeExists.acronym
+                calendarInfo: {
+                    id: calendarExists.id,
+                    semester: calendarExists.semester,
+                    start: calendarExists.start,
+                    end: calendarExists.end
                 }
             },
         });
 
     } catch (error) {
-        console.error('Error fetching subjects by degree ID:', error);
+        console.error('Error fetching subjects by calendar ID:', error);
         res.status(500).json({
             status: 'error',
             message: 'Internal server error while fetching subjects',
@@ -386,13 +387,23 @@ export const getSubjectsByDegreeId = async (req: AuditedRequest, res: Response) 
 }
 
 
-export const getSubjectsWithGroupsByCourseAndSemester = async (req: AuditedRequest, res: Response) => {
-    const { courseId, semester } = req.params;
+export const getSubjectsWithGroupsByCalendarId = async (req: AuditedRequest, res: Response) => {
+    const { calendarId } = req.params;
 
-    if (!courseId || !semester) {
+    if (!calendarId) {
         res.status(400).json({
             status: 'error',
-            message: 'Missing courseId or semester in parameters',
+            message: 'Missing calendarId in parameters',
+            data: null,
+        });
+        return
+    }
+
+    // Validación de UUID
+    if (!isValidUUID(calendarId)) {
+        res.status(400).json({
+            status: 'error',
+            message: 'Calendar ID must be a valid UUID',
             data: null,
         });
         return
@@ -412,16 +423,12 @@ export const getSubjectsWithGroupsByCourseAndSemester = async (req: AuditedReque
                 gr.TYPE as group_type,
                 gr.LANGUAGE as group_language,
                 gr.PLANIFIED_HOURS as group_planified_hours
-            FROM CALENDARS ca
-            JOIN COURSES co ON co.ID = ca.ID_COURSE
-            JOIN SUBJECTS sb ON sb.ID_DEGREE = co.ID_DEGREE
-            LEFT JOIN GROUPS gr ON gr.ID_SUBJECT = sb.ID AND gr.ID_CALENDAR = ca.ID
-            WHERE ca.ID_COURSE = ?
-              AND ca.SEMESTER = ?
-              AND sb.SEMESTER = ?
+            FROM SUBJECTS sb
+            LEFT JOIN GROUPS gr ON gr.ID_SUBJECT = sb.ID AND gr.ID_CALENDAR = sb.ID_CALENDAR
+            WHERE sb.ID_CALENDAR = ?
             ORDER BY sb.NAME, gr.TYPE, gr.NUMBER
             `,
-            [courseId, semester, semester]
+            [calendarId]
         );
 
         // Reorganizar por asignaturas y anidar los grupos

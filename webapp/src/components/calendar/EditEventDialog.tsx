@@ -19,8 +19,8 @@ import { format } from 'date-fns';
 import type { RecurrenceConfig, FrequencyType, WeekDay, EndsType, CustomFrequencyUnit, MonthlyPatternType } from '@/types/RecurrenceConfig';
 import type { CalendarEvent } from '@/types/CalendarEvent';
 import { useClassrooms } from '@/hooks/classroom/useClassrooms';
-import { useSubjectsByDegreeId } from '@/hooks/subject/useSubjectsByDegreeId';
-import { useSubjectsWithEventsAndGroupsByCourseAndSemester } from '@/hooks/subject/useSubjectsWithEventsAndGroupsByCourseIdAndSemester';
+import { useSubjectsByCalendarId } from '@/hooks/subject/useSubjectsByCalendarId';
+import { useSubjectsWithGroupsByCalendarId } from '@/hooks/subject/useSubjectsWithGroupsByCalendarId';
 import { EVENT_CHARACTERS, isCustomEventCharacter } from '@/constants/eventCharacters';
 import { getCharacterDescription } from '@/utils/eventCharacterUtils';
 import { getMonthlyPatternLabels } from '@/utils/customPatternCalculator';
@@ -30,9 +30,7 @@ interface EditEventDialogProps {
   onOpenChange: (open: boolean) => void;
   onSave: (eventId: string, config: RecurrenceConfig) => void;
   event: CalendarEvent | null;
-  degreeId?: string;
-  courseId?: string;
-  semester?: number;
+  calendarId?: string;
   lectiveDates?: Set<string>;
 }
 
@@ -61,7 +59,7 @@ const addMinutesToTime = (time: string, minutes: number): string => {
   return `${finalHours.toString().padStart(2, '0')}:${finalMinutes.toString().padStart(2, '0')}`;
 };
 
-const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, onSave, event, degreeId, courseId, semester, lectiveDates = new Set() }) => {
+const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, onSave, event, calendarId, lectiveDates = new Set() }) => {
   const [config, setConfig] = useState<RecurrenceConfig>({
     frequency: 'no-repeat',
     interval: 1,
@@ -202,10 +200,10 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
   }, [config.subjectId]);
 
   const { data: classrooms = [] } = useClassrooms();
-  const { data: subjects = [], isLoading: isLoadingSubjects } = useSubjectsByDegreeId(degreeId || null);
+  const { data: subjects = [], isLoading: isLoadingSubjects } = useSubjectsByCalendarId(calendarId || null);
 
   // Get all subjects with their groups using the same hook as GroupPage
-  const { data: subjectsWithGroups = [] } = useSubjectsWithEventsAndGroupsByCourseAndSemester(courseId || null, semester || null);
+  const { data: subjectsWithGroups = [] } = useSubjectsWithGroupsByCalendarId(calendarId || null);
 
   // Ensure event classrooms are available in the list
   const availableClassrooms = useMemo(() => {
@@ -225,11 +223,8 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
     return mergedClassrooms;
   }, [classrooms, event]);
 
-  // Filter subjects by semester
-  const filteredSubjects = useMemo(() => {
-    if (!semester) return subjects;
-    return subjects.filter(subject => subject.semester === semester);
-  }, [subjects, semester]);
+  // No need to filter subjects by semester anymore since they come from calendar
+  const filteredSubjects = subjects;
 
   // Calculate monthly pattern labels based on customStartDate
   const monthlyPatternLabels = useMemo(() => {

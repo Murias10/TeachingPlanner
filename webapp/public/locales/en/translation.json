@@ -567,6 +567,7 @@
             }
         },
         "courses": {
+            "title": "Courses",
             "filter.placeholder": "Filter by course...",
             "columns": {
                 "title": "Columns",

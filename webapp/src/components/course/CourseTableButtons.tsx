@@ -15,7 +15,7 @@ import {
     DropdownMenuLabel,
     DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal, Trash2, ChevronsRight, Plus, Users } from "lucide-react"
+import { MoreHorizontal, Trash2, ChevronsRight, Plus, Users, BookOpen } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
 type Props = {
@@ -38,6 +38,10 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
 
     const goToManageGroups = (semester: number) => {
         navigate(`${course.startYear}/${course.endYear}/semester/${semester}/groups`)
+    }
+
+    const goToManageSubjects = (semester: number) => {
+        navigate(`${course.startYear}/${course.endYear}/semester/${semester}/subjects`)
     }
 
     // Funciones auxiliares para encontrar calendarios por semestre
@@ -68,6 +72,21 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
                         </TooltipContent>
                     </Tooltip>
                     <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="size-10"
+                                    onClick={() => goToManageSubjects(1)}
+                                >
+                                    <BookOpen />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Gestionar asignaturas</p>
+                            </TooltipContent>
+                        </Tooltip>
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button
@@ -115,6 +134,36 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
                     <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
                         <Tooltip>
                             <TooltipTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="size-10"
+                                    disabled
+                                >
+                                    <BookOpen />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Gestionar asignaturas (requiere calendario)</p>
+                            </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="size-10"
+                                    disabled
+                                >
+                                    <Users />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Gestionar grupos (requiere calendario)</p>
+                            </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
                                 <Button variant="outline" size="icon" className="size-10" onClick={() => createCalendar(course.id, 1)}>
                                     <Plus />
                                 </Button>
@@ -140,6 +189,21 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
                         </TooltipContent>
                     </Tooltip>
                     <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="size-10"
+                                    onClick={() => goToManageSubjects(2)}
+                                >
+                                    <BookOpen />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Gestionar asignaturas</p>
+                            </TooltipContent>
+                        </Tooltip>
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button
@@ -185,6 +249,36 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
                         </TooltipContent>
                     </Tooltip>
                     <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="size-10"
+                                    disabled
+                                >
+                                    <BookOpen />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Gestionar asignaturas (requiere calendario)</p>
+                            </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="size-10"
+                                    disabled
+                                >
+                                    <Users />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Gestionar grupos (requiere calendario)</p>
+                            </TooltipContent>
+                        </Tooltip>
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button variant="outline" size="icon" className="size-10" onClick={() => createCalendar(course.id, 2)}>

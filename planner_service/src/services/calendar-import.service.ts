@@ -101,11 +101,13 @@ export class CalendarImportService {
     userEmail: string | null
   ) {
     const importResult: any = {};
-    const processingOrder = ['ubicaciones.txt', 'asignaturas.txt', 'calendario.txt', 'horarios.txt', 'excepciones.txt'];
+    // IMPORTANT: calendario.txt must be processed BEFORE asignaturas.txt
+    // because subjects now belong to calendars, not degrees
+    const processingOrder = ['ubicaciones.txt', 'calendario.txt', 'asignaturas.txt', 'horarios.txt', 'excepciones.txt'];
 
     // Store group limits from asignaturas.txt to validate in horarios.txt and excepciones.txt
     let groupLimits: Map<string, number> | undefined;
-    // Store calendarId from calendario.txt to use when creating groups
+    // Store calendarId from calendario.txt to use when creating subjects and groups
     let calendarId: string | undefined;
 
     for (const fileName of processingOrder) {
@@ -123,16 +125,16 @@ export class CalendarImportService {
         case 'ubicaciones.txt':
           importResult.classrooms = await this.processUbicacionesFile(content, userEmail);
           break;
+        case 'calendario.txt':
+          importResult.calendario = await this.processCalendarioFile(content, courseId, semester, userEmail);
+          // Extract calendarId for use in asignaturas.txt, horarios.txt, and excepciones.txt
+          calendarId = importResult.calendario.calendarId;
+          break;
         case 'asignaturas.txt':
           const subjectsResult = await this.processAsignaturasFile(content, courseId, semester, userEmail, calendarId);
           importResult.subjects = subjectsResult;
           // Extract group limits for validation
           groupLimits = subjectsResult.groupLimits;
-          break;
-        case 'calendario.txt':
-          importResult.calendario = await this.processCalendarioFile(content, courseId, semester, userEmail);
-          // Extract calendarId for use in asignaturas.txt, horarios.txt, and excepciones.txt
-          calendarId = importResult.calendario.calendarId;
           break;
         case 'horarios.txt':
           importResult.events = await this.processHorariosFile(content, courseId, semester, userEmail, groupLimits);
@@ -236,15 +238,30 @@ export class CalendarImportService {
       };
     }
 
-    const degreeId = course.degree.id;
+    // Load calendar - calendar must exist for subjects to be created
+    if (!calendarId) {
+      return {
+        processed: false,
+        error: 'Calendar ID is required for subject creation',
+        totalLines: 0,
+        processedCount: 0,
+        errorCount: 1,
+        subjects: [],
+        errors: ['Calendar ID is required. Please process calendario.txt first.']
+      };
+    }
 
-    // Load calendar if calendarId is provided (calendar might not exist yet if asignaturas.txt is processed before calendario.txt)
-    let calendar = null;
-    if (calendarId) {
-      calendar = await calendarRepo.findOne({ where: { id: calendarId } });
-      if (!calendar) {
-        console.warn(`[ASIGNATURAS] Calendar with ID ${calendarId} not found. Groups will be created without calendar relation.`);
-      }
+    const calendar = await calendarRepo.findOne({ where: { id: calendarId } });
+    if (!calendar) {
+      return {
+        processed: false,
+        error: `Calendar with ID ${calendarId} not found`,
+        totalLines: 0,
+        processedCount: 0,
+        errorCount: 1,
+        subjects: [],
+        errors: [`Calendar with ID ${calendarId} not found. Please process calendario.txt first.`]
+      };
     }
 
     for (let i = 0; i < lines.length; i++) {
@@ -302,7 +319,7 @@ export class CalendarImportService {
           console.log(`[GROUP LIMITS] Set limit for ${limitKey}: ${groupConfig.number}`);
         }
 
-        let subject = await subjectRepo.findOne({ where: { acronym, degree: { id: degreeId } } });
+        let subject = await subjectRepo.findOne({ where: { acronym, calendar: { id: calendar.id } } });
 
         let isNewSubject = false;
         if (subject) {
@@ -312,7 +329,7 @@ export class CalendarImportService {
           if (subject.siesCode !== siesCode) subject.siesCode = siesCode, hasChanges = true;
           if (hasChanges) await subjectRepo.save(subject);
         } else {
-          subject = subjectRepo.create({ acronym, name, year, degree: course.degree, semester, siesCode, createdBy: userEmail });
+          subject = subjectRepo.create({ acronym, name, year, calendar, semester, siesCode, createdBy: userEmail });
           await subjectRepo.save(subject);
           isNewSubject = true;
         }
@@ -327,37 +344,29 @@ export class CalendarImportService {
 
           for (let groupNumber = 1; groupNumber <= groupConfig.number; groupNumber++) {
             try {
-              // Build where clause - include calendar if available
-              const whereClause: any = {
-                subject: { id: subject.id },
-                number: groupNumber,
-                type: groupConfig.type,
-                language: groupConfig.language
-              };
-              if (calendar) {
-                whereClause.calendar = { id: calendar.id };
-              }
-
-              const existingGroup = await groupRepo.findOne({ where: whereClause });
+              const existingGroup = await groupRepo.findOne({
+                where: {
+                  subject: { id: subject.id },
+                  number: groupNumber,
+                  type: groupConfig.type,
+                  language: groupConfig.language,
+                  calendar: { id: calendar.id }
+                }
+              });
 
               if (existingGroup) {
                 totalGroupsSkipped++;
               } else {
-                // Only create group if calendar is available
-                if (calendar) {
-                  const group = groupRepo.create({
-                    number: groupNumber,
-                    type: groupConfig.type,
-                    language: groupConfig.language,
-                    subject: subject,
-                    calendar: calendar,
-                    createdBy: userEmail
-                  });
-                  await groupRepo.save(group);
-                  totalGroupsCreated++;
-                } else {
-                  console.warn(`[ASIGNATURAS] Skipping group creation for ${acronym}.${groupConfig.type}.${groupNumber} - calendar not available yet`);
-                }
+                const group = groupRepo.create({
+                  number: groupNumber,
+                  type: groupConfig.type,
+                  language: groupConfig.language,
+                  subject: subject,
+                  calendar: calendar,
+                  createdBy: userEmail
+                });
+                await groupRepo.save(group);
+                totalGroupsCreated++;
               }
             } catch (groupError) {
               if (groupError instanceof Error && groupError.message.includes('ER_DUP_ENTRY')) {

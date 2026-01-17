@@ -4,7 +4,7 @@ import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext"
 import { useCallback, useEffect, useState } from "react"
 import { GroupTable } from "@/components/group/GroupTable"
 import { useTranslation } from "react-i18next"
-import { useSubjectsWithEventsAndGroupsByCourseAndSemester } from "@/hooks/subject/useSubjectsWithEventsAndGroupsByCourseIdAndSemester"
+import { useSubjectsWithGroupsByCalendarId } from "@/hooks/subject/useSubjectsWithGroupsByCalendarId"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
 import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext"
 import { useCoursesByDegreeAcronym } from "@/hooks/course/useCoursesByDegreeAcronym"
@@ -53,9 +53,6 @@ export default function GroupPage() {
         ])
     }, [setItems, t, acronym, startYear, endYear, semester, course])
 
-    // Convertir semester a número
-    const semesterNumber = semester ? parseInt(semester, 10) : null;
-
     // Obtener el calendarId
     const { calendarId } = useCalendarByCourseAndSemester(
         acronym || null,
@@ -64,16 +61,13 @@ export default function GroupPage() {
         semester || null
     );
 
-    // Obtener las asignaturas con el courseId encontrado
+    // Obtener las asignaturas con grupos usando el calendarId
     const {
         data: subjects = [],
         isLoading: isSubjectsLoading,
         error: subjectsError,
         refetch
-    } = useSubjectsWithEventsAndGroupsByCourseAndSemester(
-        course?.id || null,
-        semesterNumber
-    );
+    } = useSubjectsWithGroupsByCalendarId(calendarId);
 
     const refetchData = useCallback(() => {
         refetch()

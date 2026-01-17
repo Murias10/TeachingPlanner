@@ -1,7 +1,6 @@
 import { Entity, Column, OneToMany } from 'typeorm'
 import { AuditedEntity } from '@/entities/audited.entity'
 import { Course } from '@/entities/course.entity'
-import { Subject } from '@/entities/subject.entity'
 
 /**
  * Degree entity representing an academic degree program
@@ -20,8 +19,4 @@ export class Degree extends AuditedEntity {
     /** Courses that belong to this degree */
     @OneToMany(() => Course, (course) => course.degree)
     courses!: Course[]
-
-    /** Subjects that belong to this degree */
-    @OneToMany(() => Subject, (subject) => subject.degree)
-    subjects!: Subject[]
 }

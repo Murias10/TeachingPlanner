@@ -3,7 +3,7 @@ import { Calendar, momentLocalizer, Components } from "react-big-calendar";
 import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { useEventsCalendar } from "@/hooks/calendar/useEventsCalendar";
-import { useSubjectsWithEventsAndGroupsByCourseAndSemester } from "@/hooks/subject/useSubjectsWithEventsAndGroupsByCourseIdAndSemester";
+import { useSubjectsWithGroupsByCalendarId } from "@/hooks/subject/useSubjectsWithGroupsByCalendarId";
 import { CalendarEvent } from "@/types/CalendarEvent";
 import ClassFilter, { FilterValues } from "@/components/ClassFilter";
 import { FileText, BookOpen, DoorOpen, Languages, Users, GraduationCap, XCircle, CalendarDays } from "lucide-react";
@@ -112,10 +112,7 @@ export default function HomePage() {
     const { data, isLoading: isLoadingEvents } = useEventsCalendar(selectedDegree?.calendarId || null);
 
     // Obtener asignaturas para el mapping de años
-    const { data: subjectsData } = useSubjectsWithEventsAndGroupsByCourseAndSemester(
-        selectedDegree ? `${selectedDegree.courseStartYear}-${selectedDegree.courseEndYear}` : null,
-        selectedDegree?.semester || null
-    );
+    const { data: subjectsData } = useSubjectsWithGroupsByCalendarId(selectedDegree?.calendarId || null);
 
     // Crear mapping de acronym → year
     const subjectYearMap = useMemo(() => {

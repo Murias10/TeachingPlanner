@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { useCalendarByCourseAndSemester } from "@/hooks/calendar/useCalendarByCourseAndSemester";
 import { usePendingRequestsAsEvents } from "@/hooks/calendar/usePendingRequestsAsEvents";
-import { useSubjectsWithEventsAndGroupsByCourseAndSemester } from "@/hooks/subject/useSubjectsWithEventsAndGroupsByCourseIdAndSemester";
+import { useSubjectsWithGroupsByCalendarId } from "@/hooks/subject/useSubjectsWithGroupsByCalendarId";
 import { CalendarEvent } from "@/types/CalendarEvent";
 import ClassFilter, { FilterValues } from "@/components/ClassFilter";
 import { FileText, BookOpen, DoorOpen, Languages, Users, GraduationCap, XCircle } from "lucide-react";
@@ -212,10 +212,7 @@ export default function CalendarPage() {
     const { data: pendingData, isLoading: isLoadingPending, refetch: refetchPendingRequests } = usePendingRequestsAsEvents(calendarId);
 
     // Obtener asignaturas para el mapping de años
-    const { data: subjectsData } = useSubjectsWithEventsAndGroupsByCourseAndSemester(
-        course?.id || null,
-        semester ? parseInt(semester, 10) : null
-    );
+    const { data: subjectsData } = useSubjectsWithGroupsByCalendarId(calendarId);
 
     // Crear mapping de acronym → year
     const subjectYearMap = useMemo(() => {
@@ -2134,9 +2131,7 @@ export default function CalendarPage() {
                     }
                 }}
                 onSave={handleSaveEvent}
-                degreeId={course?.degree?.id}
-                courseId={course?.id}
-                semester={semester ? parseInt(semester, 10) : undefined}
+                calendarId={calendarId || undefined}
                 initialDate={dragStartDate}
                 initialStartTime={dragStartTime}
                 initialEndTime={dragEndTime}
@@ -2155,9 +2150,7 @@ export default function CalendarPage() {
                 }}
                 onSave={handleUpdateEvent}
                 event={eventToEdit}
-                degreeId={course?.degree?.id}
-                courseId={course?.id}
-                semester={semester ? parseInt(semester, 10) : undefined}
+                calendarId={calendarId || undefined}
                 lectiveDates={lectiveDates}
             />
 
@@ -2232,9 +2225,6 @@ export default function CalendarPage() {
                         }
                     }}
                     onSave={handleSolicitud}
-                    degreeId={course?.degree?.id}
-                    courseId={course?.id}
-                    semester={semester ? parseInt(semester, 10) : undefined}
                     calendarId={calendarId || undefined}
                     initialDate={dragStartDate}
                     initialStartTime={dragStartTime}

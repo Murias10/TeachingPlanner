@@ -5,7 +5,6 @@ import SettingsPage from "@/pages/SettingsPage";
 import UserPage from "@/pages/UserPage";
 import GroupPage from "@/pages/GroupPage";
 import LoginPage from "@/pages/LoginPage";
-import RegisterPage from "@/pages/RegisterPage";
 import ActivatePage from "@/pages/ActivatePage";
 import DegreePage from "@/pages/DegreePage";
 import AppLayout from "@/components/AppLayout";
@@ -28,7 +27,7 @@ export default function App() {
                     {/* Página inicial sin sidebar */}
                     <Route path="/" element={<Start />} />
                     <Route path="login" element={<LoginPage />} />
-                    <Route path="register" element={<RegisterPage />} />
+                    {/* <Route path="register" element={<RegisterPage />} /> */}
                     <Route path="forgot-password" element={<ForgotPasswordPage />} />
                     <Route path="activate" element={<ActivatePage />} />
 
@@ -41,7 +40,7 @@ export default function App() {
                         <Route path="degrees/:acronym/courses/:startYear/:endYear/semester/:semester/calendar" element={<CalendarPage />} />
                         <Route path="degrees/:acronym/courses/:startYear/:endYear/semester/:semester/calendar/solicitudes" element={<SolicitudPage />} />
                         <Route path="degrees/:acronym/courses/:startYear/:endYear/semester/:semester/groups" element={<GroupPage />} />
-                        <Route path="degrees/:acronym/subjects" element={<SubjectPage />} />
+                        <Route path="degrees/:acronym/courses/:startYear/:endYear/semester/:semester/subjects" element={<SubjectPage />} />
                         <Route path="classrooms" element={<ClassroomPage />} />
 
 

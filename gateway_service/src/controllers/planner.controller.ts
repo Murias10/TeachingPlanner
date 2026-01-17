@@ -49,15 +49,15 @@ export const getSubjects = (_req: Request, res: Response, next: NextFunction) =>
         method: 'GET'
     });
 
-export const getSubjectsByDegreeId = (req: Request, res: Response, next: NextFunction) =>
+export const getSubjectsByCalendarId = (req: Request, res: Response, next: NextFunction) =>
     proxyRequest(req, res, next, {
-        url: `${SERVICES.PLANNER}/subjects/degree/${req.params.id}`,
+        url: `${SERVICES.PLANNER}/subjects/calendar/${req.params.id}`,
         method: 'GET'
     });
 
-export const getSubjectsWithEventsAndGroupsByCourseAndSemester = (req: Request, res: Response, next: NextFunction) =>
+export const getSubjectsWithGroupsByCalendarId = (req: Request, res: Response, next: NextFunction) =>
     proxyRequest(req, res, next, {
-        url: `${SERVICES.PLANNER}/subjects/groups/by-course/${req.params.courseId}/semester/${req.params.semester}`,
+        url: `${SERVICES.PLANNER}/subjects/groups/by-calendar/${req.params.calendarId}`,
         method: 'GET'
     });
 

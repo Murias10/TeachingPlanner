@@ -1326,7 +1326,7 @@ export const deletePuntualEvent = async (req: AuditedRequest, res: Response) => 
 
         const puntualEventRepo = AppDataSource.getRepository(PuntualEvent);
 
-        // Buscar el evento puntual
+        // Buscar el evento puntual cancelado
         const puntualEvent = await puntualEventRepo.findOne({
             where: { id: eventId }
         });
@@ -1340,26 +1340,84 @@ export const deletePuntualEvent = async (req: AuditedRequest, res: Response) => 
             return;
         }
 
-        // Setear updatedBy y updatedAt antes de eliminar (para mantener registro de quién lo eliminó y cuándo)
-        const userEmail = getUserEmailFromRequest(req);
-        puntualEvent.updatedBy = userEmail;
-        puntualEvent.updatedAt = new Date();
-        await puntualEventRepo.save(puntualEvent);
+        // Verificar si tiene evento de reemplazo vinculado
+        const hasReplacement = puntualEvent.replacementEventId !== null
+                            && puntualEvent.replacementEventId !== undefined;
 
-        // Eliminar el evento
-        await puntualEventRepo.remove(puntualEvent);
+        if (hasReplacement) {
+            // CASO 2: Evento cancelado con reemplazo - borrar ambos eventos
+            console.log(`[Revert Cancellation] Event has replacement, deleting both events`);
 
-        res.status(200).json({
-            status: 'success',
-            message: 'Puntual event deleted successfully',
-            data: null
-        });
+            // Buscar el evento de reemplazo
+            const replacementEvent = await puntualEventRepo.findOne({
+                where: { id: puntualEvent.replacementEventId! }
+            });
+
+            if (!replacementEvent) {
+                console.warn(`[Revert Cancellation] Replacement event ${puntualEvent.replacementEventId} not found, deleting cancelled event only`);
+            }
+
+            // Usar transacción para borrar ambos eventos atómicamente
+            const queryRunner = AppDataSource.createQueryRunner();
+            await queryRunner.connect();
+            await queryRunner.startTransaction();
+
+            try {
+                // Borrar evento cancelado
+                await queryRunner.manager.remove(puntualEvent);
+                console.log(`[Revert Cancellation] Deleted cancelled event ${eventId}`);
+
+                // Borrar evento de reemplazo (si existe)
+                if (replacementEvent) {
+                    await queryRunner.manager.remove(replacementEvent);
+                    console.log(`[Revert Cancellation] Deleted replacement event ${puntualEvent.replacementEventId}`);
+                }
+
+                await queryRunner.commitTransaction();
+
+                res.status(200).json({
+                    status: 'success',
+                    message: 'Cancelled event and replacement reverted successfully',
+                    data: {
+                        deletedCancelledEventId: eventId,
+                        deletedReplacementEventId: puntualEvent.replacementEventId
+                    }
+                });
+
+            } catch (error) {
+                await queryRunner.rollbackTransaction();
+                throw error;
+            } finally {
+                await queryRunner.release();
+            }
+
+        } else {
+            // CASO 1: Evento cancelado aislado (sin reemplazo) - borrar solo el cancelado
+            console.log(`[Revert Cancellation] Standalone cancelled event, deleting only cancelled event`);
+
+            const userEmail = getUserEmailFromRequest(req);
+            puntualEvent.updatedBy = userEmail;
+            puntualEvent.updatedAt = new Date();
+            await puntualEventRepo.save(puntualEvent);
+
+            await puntualEventRepo.remove(puntualEvent);
+
+            console.log(`[Revert Cancellation] Deleted standalone cancelled event ${eventId}`);
+
+            res.status(200).json({
+                status: 'success',
+                message: 'Standalone cancelled event deleted successfully',
+                data: {
+                    deletedCancelledEventId: eventId
+                }
+            });
+        }
 
     } catch (error) {
-        console.error('Error deleting puntual event:', error);
+        console.error('Error reverting cancellation:', error);
         res.status(500).json({
             status: 'error',
-            message: 'Error deleting puntual event',
+            message: 'Error reverting cancellation',
             data: error instanceof Error ? error.message : error
         });
     }
@@ -2541,23 +2599,7 @@ export const replacePeriodicEvent = async (req: AuditedRequest, res: Response) =
         await queryRunner.startTransaction();
 
         try {
-            // Crear evento cancelado en la fecha original
-            const cancelledEvent = puntualEventRepo.create({
-                day: originalDay,
-                startTime: originalStartTime,
-                endTime: originalEndTime,
-                cancelled: true,
-                comment: `Evento reemplazado - ${comment}`,
-                groups: groups,
-                classrooms: classrooms,
-                createdBy: userEmail
-            });
-
-            await queryRunner.manager.save(cancelledEvent);
-
-            console.log(`[Replace Event] Created cancelled event at ${originalDate} ${originalStartTime}-${originalEndTime}`);
-
-            // Crear evento de reemplazo en la nueva fecha
+            // PASO 1: Crear evento de reemplazo en la nueva fecha (primero para obtener su ID)
             const replacementEvent = puntualEventRepo.create({
                 day: newDay,
                 startTime: newStartTime,
@@ -2572,6 +2614,23 @@ export const replacePeriodicEvent = async (req: AuditedRequest, res: Response) =
             await queryRunner.manager.save(replacementEvent);
 
             console.log(`[Replace Event] Created replacement event at ${newEventDate} ${newStartTime}-${newEndTime}`);
+
+            // PASO 2: Crear evento cancelado en la fecha original vinculado al reemplazo
+            const cancelledEvent = puntualEventRepo.create({
+                day: originalDay,
+                startTime: originalStartTime,
+                endTime: originalEndTime,
+                cancelled: true,
+                comment: `Evento reemplazado - ${comment}`,
+                groups: groups,
+                classrooms: classrooms,
+                createdBy: userEmail,
+                replacementEventId: replacementEvent.id  // Vincular con el evento de reemplazo
+            });
+
+            await queryRunner.manager.save(cancelledEvent);
+
+            console.log(`[Replace Event] Created cancelled event at ${originalDate} ${originalStartTime}-${originalEndTime} linked to replacement ${replacementEvent.id}`);
 
             // Commit de la transacción
             await queryRunner.commitTransaction();

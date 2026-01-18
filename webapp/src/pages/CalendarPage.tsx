@@ -23,7 +23,6 @@ import { CalendarEventWrapper } from "@/components/calendar/CalendarEventWrapper
 import VITE_GATEWAY_API_URL from "@/config/api";
 import { EventDetailsDrawer } from "@/components/calendar/EventDetailsDrawer";
 import { DeleteEventConfirmationDialog } from "@/components/calendar/DeleteEventConfirmationDialog";
-import { ReplaceEventConfirmationDialog } from "@/components/calendar/ReplaceEventConfirmationDialog";
 import ReplaceEventDialog from "@/components/calendar/ReplaceEventDialog";
 import { useCreatePuntualEvent } from "@/hooks/calendar/useCreatePuntualEvent";
 import { useCreatePeriodicEvent } from "@/hooks/calendar/useCreatePeriodicEvent";
@@ -276,7 +275,6 @@ export default function CalendarPage() {
     const [isRevertingEvent, setIsRevertingEvent] = useState(false);
 
     // Estado para el diálogo de reemplazo de evento
-    const [isReplaceConfirmationOpen, setIsReplaceConfirmationOpen] = useState(false);
     const [isReplaceEventDialogOpen, setIsReplaceEventDialogOpen] = useState(false);
     const [eventToReplace, setEventToReplace] = useState<CalendarEvent | null>(null);
 
@@ -1714,11 +1712,7 @@ export default function CalendarPage() {
     // Replace event handlers
     const handleReplaceEvent = (event: CalendarEvent) => {
         setEventToReplace(event);
-        setIsReplaceConfirmationOpen(true);
-    };
-
-    const handleConfirmReplaceIntent = () => {
-        setIsReplaceConfirmationOpen(false);
+        // Ir directamente al diálogo de reemplazo sin confirmación previa
         setIsReplaceEventDialogOpen(true);
     };
 
@@ -2185,22 +2179,6 @@ export default function CalendarPage() {
                 subjectName={eventToRevert?.subject?.name || t('calendar.dialogs.defaultSubject')}
                 title={t('calendar.dialogs.revertCancellation.title')}
                 description={t('calendar.dialogs.revertCancellation.description')}
-            />
-
-            {/* Replace Event Confirmation Dialog */}
-            <ReplaceEventConfirmationDialog
-                open={isReplaceConfirmationOpen}
-                onOpenChange={setIsReplaceConfirmationOpen}
-                onConfirm={handleConfirmReplaceIntent}
-                eventInfo={eventToReplace ? {
-                    groupName: eventToReplace.groups.map(g => {
-                        const subject = eventToReplace.subject;
-                        const langPrefix = g.language === 'EN' ? 'I-' : '';
-                        return `${subject?.acronym}.${g.type}.${langPrefix}${g.number}`;
-                    }).join(', '),
-                    date: new Date(eventToReplace.date).toLocaleDateString('es-ES'),
-                    time: eventToReplace.startTime
-                } : undefined}
             />
 
             {/* Replace Event Dialog */}

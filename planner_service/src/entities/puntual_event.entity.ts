@@ -41,6 +41,14 @@ export class PuntualEvent extends AuditedEntity {
     @Column('varchar', { length: 255, name: 'COMMENT' })
     comment!: string;
 
+    /**
+     * ID of the replacement event if this is a cancelled event from a replacement operation
+     * If this cancelled event has a replacement, this field contains the ID of the new puntual event
+     * If null, this is a standalone cancelled event (not part of a replacement)
+     */
+    @Column('uuid', { name: 'ID_REPLACEMENT_EVENT', nullable: true })
+    replacementEventId?: string | null;
+
     /** Groups participating in this event */
     @ManyToMany(() => Group, (group) => group.puntualEvents)
     @JoinTable({

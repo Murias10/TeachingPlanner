@@ -2067,9 +2067,9 @@ export default function CalendarPage() {
 
                                     // Eventos cancelados
                                     if (calendarEvent?.cancelled) {
-                                        backgroundColor = '#ef4444';
-                                        textColor = '#7f1d1d'; // Rojo oscuro
-                                        opacity = 0.6;
+                                        backgroundColor = '#9ca3af'; // Gris apagado
+                                        textColor = '#374151'; // Gris oscuro
+                                        opacity = 0.7;
                                         return {
                                             style: {
                                                 backgroundColor,

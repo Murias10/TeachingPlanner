@@ -73,21 +73,10 @@ export class CalendarImportService {
   }
 
   /**
-   * Decode file content based on expected encoding
+   * Decode file content as UTF-8
    */
   static decodeFileContent(file: Express.Multer.File): string {
-    const fileName = file.originalname;
-    const ansiFiles = ['excepciones.txt', 'asignaturas.txt'];
-    const utf8Files = ['ubicaciones.txt', 'horarios.txt', 'calendario.txt'];
-
-    if (ansiFiles.includes(fileName)) {
-      const iconv = require('iconv-lite');
-      return iconv.decode(file.buffer, 'windows-1252');
-    } else if (utf8Files.includes(fileName)) {
-      return file.buffer.toString('utf-8');
-    } else {
-      return file.buffer.toString('utf-8');
-    }
+    return file.buffer.toString('utf-8');
   }
 
   /**

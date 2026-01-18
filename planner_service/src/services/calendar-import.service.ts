@@ -1102,9 +1102,6 @@ export class CalendarImportService {
         const limitKey = `${event.subjectAcronym}.${event.groupType}.${event.language}`;
         const maxGroups = groupLimits?.get(limitKey) ?? 0;
 
-        // Log para depuración
-        console.log(`[GROUP VALIDATION] ${groupKey} - maxGroups from asignaturas.txt: ${maxGroups}, requested: ${event.groupNumber}, groupExists: ${!!group}`);
-
         // Validate: group number must not exceed maximum defined in asignaturas.txt
         // NOTE: maxGroups = 0 means no groups should exist for this subject/type/language
         if (event.groupNumber > maxGroups) {
@@ -1143,7 +1140,6 @@ export class CalendarImportService {
           await groupRepo.save(group);
 
           // Track auto-created group as warning
-          console.log(`[GROUP VALIDATION WARNING] ${groupKey} fue creado automáticamente (dentro del límite permitido)`);
           groupsAutoCreated.push({
             row: event.lineNumber,
             groupKey,
@@ -1269,15 +1265,6 @@ export class CalendarImportService {
       }
     };
 
-    // Log final validation summary
-    console.log(`[GROUP VALIDATION SUMMARY - HORARIOS]`, {
-      hasIssues: groupValidation.hasIssues,
-      errorsCount: groupsNotFound.length,
-      warningsCount: groupsAutoCreated.length,
-      eventsCreated,
-      eventsSkipped
-    });
-
     if (groupsNotFound.length > 0) {
       console.warn(`[GROUP VALIDATION] Grupos con errores:`, groupsNotFound.map(g => g.groupKey));
     }
@@ -1388,9 +1375,6 @@ export class CalendarImportService {
         const limitKey = `${subjectAcronym}.${groupType}.${language}`;
         const maxGroups = groupLimits?.get(limitKey) ?? 0;
 
-        // Log para depuración
-        console.log(`[GROUP VALIDATION - EXCEPCIONES] ${groupKey} - limitKey: ${limitKey}, maxGroups from asignaturas.txt: ${maxGroups}, requested: ${groupNumber}, groupExists: ${!!group}`);
-
         // Validate: group number must not exceed maximum (no condition on maxGroups > 0)
         // This ensures validation works even on first import with empty database
         if (groupNumber > maxGroups) {
@@ -1429,7 +1413,6 @@ export class CalendarImportService {
 
           // Track auto-created group as warning (only if maxGroups > 0, meaning this wasn't expected)
           if (maxGroups > 0) {
-            console.log(`[GROUP VALIDATION WARNING - EXCEPCIONES] ${groupKey} fue creado automáticamente`);
             groupsAutoCreated.push({
               row: i + 1,
               groupKey,
@@ -1448,11 +1431,6 @@ export class CalendarImportService {
         const cancelled = startTimeStr === '-1';
         let startTime: string, endTime: string;
 
-        // Debug log
-        if (cancelled) {
-          console.log(`[EXCEPCIONES DEBUG] Evento cancelado detectado: ${dateStr} - ${subjectAcronym}.${groupType}.${groupInfo} - startTimeStr="${startTimeStr}" endTimeStr="${endTimeStr}"`);
-        }
-
         if (cancelled) {
           // Para eventos cancelados, endTimeStr contiene la hora de FIN del evento original
           // Necesitamos obtener la hora de INICIO para que la cancelación funcione correctamente
@@ -1461,8 +1439,6 @@ export class CalendarImportService {
 
           // Obtener día de la semana (L, M, X, J, V)
           const dayOfWeek = this.getDayLetterFromDate(date);
-
-          console.log(`[EXCEPCIONES DEBUG] Buscando evento para cancelar: día=${dayOfWeek}, grupo=${group.id}, endTime=${endTimeNormalized}`);
 
           // CASO 1: Buscar evento puntual existente en esa fecha exacta (prioridad)
           // Esto cubre el caso de querer cancelar un evento puntual de reemplazo
@@ -1485,7 +1461,6 @@ export class CalendarImportService {
             const normalizeTimeForComparison = (time: string) => time.substring(0, 5);
             startTime = normalizeTimeForComparison(existingPuntualEvent.startTime);
             endTime = endTimeNormalized;
-            console.log(`[EXCEPCIONES DEBUG] Encontrado evento puntual: startTime=${startTime}, endTime=${endTime}`);
           } else {
             // CASO 2: Buscar evento periódico que coincida con este grupo en este día de la semana
             const periodicEvents = await periodicEventRepo.find({
@@ -1495,13 +1470,6 @@ export class CalendarImportService {
               },
               relations: ['groups']
             });
-
-            console.log(`[EXCEPCIONES DEBUG] Eventos periódicos encontrados para día ${dayOfWeek}:`, periodicEvents.map(pe => ({
-              id: pe.id,
-              startTime: pe.startTime,
-              endTime: pe.endTime,
-              grupos: pe.groups.map(g => g.id)
-            })));
 
             // Encontrar el evento periódico que pertenece a este grupo y termina a esta hora
             // Normalizar ambas horas para comparación (remover segundos si existen)
@@ -1515,7 +1483,6 @@ export class CalendarImportService {
               // Encontramos el evento periódico - usar su startTime (también normalizado)
               startTime = normalizeTimeForComparison(matchingPeriodicEvent.startTime);
               endTime = endTimeNormalized;
-              console.log(`[EXCEPCIONES DEBUG] Encontrado evento periódico: startTime=${startTime}, endTime=${endTime}`);
             } else {
               // CASO 3: Fallback - asumir duración de 1 hora
               const [hours, mins] = endTimeNormalized.split(':').map(Number);
@@ -1568,7 +1535,6 @@ export class CalendarImportService {
             eventsSkipped++;
           }
         } else {
-          console.log(`[EXCEPCIONES DEBUG] Creando nuevo evento - cancelled=${cancelled}, startTime=${startTime}, endTime=${endTime}`);
           const puntualEvent = puntualEventRepo.create({ day: dayEntity, startTime, endTime, cancelled, comment, groups: [group], classrooms: [classroom], createdBy: userEmail });
           await puntualEventRepo.save(puntualEvent);
           processedEvents.push({ date: dateStr, subject: subjectAcronym, action: 'created', line: i + 1 });
@@ -1593,15 +1559,6 @@ export class CalendarImportService {
         eventsSkipped
       }
     };
-
-    // Log final validation summary
-    console.log(`[GROUP VALIDATION SUMMARY - EXCEPCIONES]`, {
-      hasIssues: groupValidation.hasIssues,
-      errorsCount: groupsNotFound.length,
-      warningsCount: groupsAutoCreated.length,
-      eventsCreated,
-      eventsSkipped
-    });
 
     if (groupsNotFound.length > 0) {
       console.warn(`[GROUP VALIDATION - EXCEPCIONES] Grupos con errores:`, groupsNotFound.map(g => g.groupKey));

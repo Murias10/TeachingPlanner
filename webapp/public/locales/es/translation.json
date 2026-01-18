@@ -473,7 +473,8 @@
             "delete": {
                 "single": {
                     "title": "Confirmar eliminación",
-                    "description": "Esta acción eliminará el curso {{startYear}}-{{endYear}} y toda la información relacionada (grupos, asignaturas, eventos, etc.). Esta acción no se puede deshacer."
+                    "description": "Esta acción eliminará el curso {{startYear}}-{{endYear}} y toda la información relacionada (grupos, asignaturas, eventos, etc.). Esta acción no se puede deshacer.",
+                    "description_with_calendars": "Esta acción eliminará el curso {{startYear}}-{{endYear}} junto con {{calendarCount}} calendario(s) y toda la información relacionada (grupos, asignaturas, eventos, etc.). Esta acción no se puede deshacer."
                 },
                 "multiple": {
                     "title": "Confirmar eliminación múltiple",

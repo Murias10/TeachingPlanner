@@ -4,6 +4,7 @@ import { Course } from '@/entities/course.entity';
 import { validate as isUUID } from "uuid";
 import { Calendar } from '@/entities/calendar.entity';
 import { Degree } from '@/entities/degree.entity';
+import { Subject } from '@/entities/subject.entity';
 import { AuditedRequest } from '@/types/audit.types';
 import { getUserEmailFromRequest } from '@/utils/audit.utils';
 
@@ -241,7 +242,6 @@ export const deleteCourse = async (req: AuditedRequest, res: Response) => {
         const { id } = req.params;
 
         const courseRepo = AppDataSource.getRepository(Course);
-        const calendarRepo = AppDataSource.getRepository(Calendar);
 
         // Verificar si el curso existe
         const course = await courseRepo.findOne({ where: { id } });
@@ -252,29 +252,46 @@ export const deleteCourse = async (req: AuditedRequest, res: Response) => {
                 message: "Course not found",
                 data: null,
             });
+            return;
         }
 
-        // Verificar si hay calendarios asociados
-        const relatedCalendars = await calendarRepo.count({ where: { course: { id } } });
+        console.log(`[DELETE COURSE] Starting deletion for course ${id}...`);
 
-        if (relatedCalendars > 0) {
-            res.status(409).json({
-                status: "error",
-                message: "Cannot delete course: calendars are linked to it",
-                data: { relatedCalendars },
-            });
+        // Paso 1: Obtener todos los subjects de todos los calendarios del curso
+        const subjectRepo = AppDataSource.getRepository(Subject);
+        const subjects = await subjectRepo.find({
+            where: { calendar: { course: { id } } },
+            relations: ['groups'],
+            select: { id: true, groups: { id: true } }
+        });
+
+        const groupIds = subjects.flatMap(s => s.groups.map(g => g.id));
+        console.log(`[DELETE COURSE] Found ${groupIds.length} groups to clean`);
+
+        // Paso 2: Limpiar las tablas junction de los grupos
+        if (groupIds.length > 0) {
+            console.log(`[DELETE COURSE] Cleaning junction tables...`);
+
+            await AppDataSource
+                .createQueryBuilder()
+                .delete()
+                .from('PUNTUAL_EVENTS_GROUPS')
+                .where('ID_GROUP IN (:...groupIds)', { groupIds })
+                .execute();
+
+            await AppDataSource
+                .createQueryBuilder()
+                .delete()
+                .from('PERIODIC_EVENTS_GROUPS')
+                .where('ID_GROUP IN (:...groupIds)', { groupIds })
+                .execute();
         }
 
-        // Eliminar el curso
-        const result = await courseRepo.delete(id);
+        // Paso 3: Eliminar el curso (la cascada eliminará todos los calendarios y sus datos)
+        console.log(`[DELETE COURSE] Deleting course...`);
+        await courseRepo.remove(course);
 
-        if (result.affected === 0) {
-            res.status(404).json({
-                status: "error",
-                message: "Course not found during deletion",
-                data: null,
-            });
-        }
+        console.log('[DELETE COURSE] Course deleted successfully');
 
         res.status(200).json({
             status: "success",

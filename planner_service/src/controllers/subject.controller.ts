@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AppDataSource } from '@/config/data-source';
 import { Subject } from '@/entities/subject.entity';
 import { Calendar } from '@/entities/calendar.entity';
+import { Group } from '@/entities/group.entity';
 import { validate as isValidUUID } from 'uuid';
 import { AuditedRequest } from '@/types/audit.types';
 import { getUserEmailFromRequest } from '@/utils/audit.utils';
@@ -261,9 +262,10 @@ export const deleteSubject = async (req: AuditedRequest, res: Response) => {
         }
 
         const subjectRepo = AppDataSource.getRepository(Subject);
-        const deleteResult = await subjectRepo.delete(id);
 
-        if (deleteResult.affected === 0) {
+        // Verificar que la asignatura existe
+        const subject = await subjectRepo.findOne({ where: { id } });
+        if (!subject) {
             res.status(404).json({
                 status: "error",
                 message: `No se encontró ninguna asignatura con el id '${id}'`,
@@ -271,6 +273,43 @@ export const deleteSubject = async (req: AuditedRequest, res: Response) => {
             });
             return
         }
+
+        // Limpiar tablas junction de los grupos de esta asignatura
+        // Problema: Subject → Group, pero Group tiene referencias en las junction tables
+        // con ON DELETE NO ACTION, por lo que debemos limpiarlas manualmente primero
+        console.log(`[DELETE SUBJECT] Getting groups for subject ${id}...`);
+
+        const groupRepo = AppDataSource.getRepository(Group);
+        const groups = await groupRepo.find({
+            where: { subject: { id } },
+            select: ['id']
+        });
+        const groupIds = groups.map(g => g.id);
+        console.log(`[DELETE SUBJECT] Found ${groupIds.length} groups to clean`);
+
+        if (groupIds.length > 0) {
+            console.log(`[DELETE SUBJECT] Cleaning junction tables for groups...`);
+
+            const puntualGroupResult = await AppDataSource
+                .createQueryBuilder()
+                .delete()
+                .from('PUNTUAL_EVENTS_GROUPS')
+                .where('ID_GROUP IN (:...groupIds)', { groupIds })
+                .execute();
+            console.log(`[DELETE SUBJECT] Cleaned ${puntualGroupResult.affected} rows from PUNTUAL_EVENTS_GROUPS`);
+
+            const periodicGroupResult = await AppDataSource
+                .createQueryBuilder()
+                .delete()
+                .from('PERIODIC_EVENTS_GROUPS')
+                .where('ID_GROUP IN (:...groupIds)', { groupIds })
+                .execute();
+            console.log(`[DELETE SUBJECT] Cleaned ${periodicGroupResult.affected} rows from PERIODIC_EVENTS_GROUPS`);
+        }
+
+        // Ahora eliminar la asignatura (la cascada eliminará los grupos)
+        console.log(`[DELETE SUBJECT] Deleting subject...`);
+        await subjectRepo.remove(subject);
 
         res.status(200).json({
             status: "success",

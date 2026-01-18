@@ -473,7 +473,8 @@
             "delete": {
                 "single": {
                     "title": "Confirm deletion",
-                    "description": "This action will delete the course {{startYear}}-{{endYear}} and all related information (groups, subjects, events, etc.). This action cannot be undone."
+                    "description": "This action will delete the course {{startYear}}-{{endYear}} and all related information (groups, subjects, events, etc.). This action cannot be undone.",
+                    "description_with_calendars": "This action will delete the course {{startYear}}-{{endYear}} along with {{calendarCount}} calendar(s) and all related information (groups, subjects, events, etc.). This action cannot be undone."
                 },
                 "multiple": {
                     "title": "Confirm multiple deletion",

@@ -561,17 +561,27 @@ export default function CoursePage() {
         }
 
         switch (deleteState.type) {
-            case 'single':
+            case 'single': {
+                const course = courses.find(c => c.id === deleteState.courseId);
+                const calendarCount = course?.calendars?.length || 0;
+
                 return {
                     open: true,
                     onOpenChange: handleCloseDeleteDialog,
                     onConfirm: handleConfirmDelete,
                     title: t("dialog.courses.delete.single.title"),
-                    description: t("dialog.courses.delete.single.description", {
-                        startYear: courses.find(c => c.id === deleteState.courseId)?.startYear,
-                        endYear: courses.find(c => c.id === deleteState.courseId)?.endYear
-                    }),
+                    description: calendarCount > 0
+                        ? t("dialog.courses.delete.single.description_with_calendars", {
+                            startYear: course?.startYear,
+                            endYear: course?.endYear,
+                            calendarCount
+                        })
+                        : t("dialog.courses.delete.single.description", {
+                            startYear: course?.startYear,
+                            endYear: course?.endYear
+                        }),
                 };
+            }
 
             case 'bulk':
                 return {

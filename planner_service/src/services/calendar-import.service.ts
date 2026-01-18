@@ -431,23 +431,25 @@ export class CalendarImportService {
         if (parts.length < 3) continue;
 
         const dateStr = parts[0].trim();
-        const dateMatch = dateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+        const dateRegex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+        const dateMatch = dateRegex.exec(dateStr);
         if (!dateMatch) {
           errors.push(`Línea ${i + 1}: Fecha inválida '${dateStr}'`);
           continue;
         }
 
         const [, day, month, year] = dateMatch;
-        const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        const date = new Date(Number.parseInt(year), Number.parseInt(month) - 1, Number.parseInt(day));
 
-        if (isNaN(date.getTime()) || date.getDate() !== parseInt(day) || date.getMonth() !== parseInt(month) - 1) {
+        if (Number.isNaN(date.getTime()) || date.getDate() !== Number.parseInt(day) || date.getMonth() !== Number.parseInt(month) - 1) {
           errors.push(`Línea ${i + 1}: Fecha inválida '${dateStr}'`);
           continue;
         }
 
         dates.push(date);
       } catch (error) {
-        // Skip
+        const errorMsg = `Línea ${i + 1}: Error procesando - ${error instanceof Error ? error.message : error}`;
+        errors.push(errorMsg);
       }
     }
 
@@ -509,13 +511,14 @@ export class CalendarImportService {
 
         if (!dayCharacter) continue;
 
-        const dateMatch = dateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+        const dateRegex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+        const dateMatch = dateRegex.exec(dateStr);
         if (!dateMatch) continue;
 
         const [, day, month, year] = dateMatch;
-        const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        const date = new Date(Number.parseInt(year), Number.parseInt(month) - 1, Number.parseInt(day));
 
-        if (isNaN(date.getTime())) continue;
+        if (Number.isNaN(date.getTime())) continue;
 
         const lective = dayCharacter.toUpperCase() !== 'F';
         const existingDay = await dayRepo.findOne({ where: { calendar: { id: calendar.id }, date } });
@@ -573,7 +576,7 @@ export class CalendarImportService {
     });
 
     // Sort characters alphabetically (case-sensitive: uppercase first, then lowercase)
-    const charactersInUse = Array.from(allCharactersSet).sort().join('');
+    const charactersInUse = Array.from(allCharactersSet).sort((a, b) => a.localeCompare(b)).join('');
     calendar.charactersInUse = charactersInUse;
     await calendarRepo.save(calendar);
 
@@ -1421,18 +1424,20 @@ export class CalendarImportService {
         let startTime: string, endTime: string;
 
         if (cancelled) {
-          // Para eventos cancelados, endTimeStr contiene la hora de FIN del evento original
-          // Necesitamos obtener la hora de INICIO para que la cancelación funcione correctamente
+          // Para eventos cancelados, endTimeStr puede contener hora de INICIO o FIN del evento original
+          // Necesitamos buscar el evento original para determinar ambas horas
           const normalizeTime = (time: string) => time.replace('.', ':');
-          const endTimeNormalized = normalizeTime(endTimeStr);
+          const timeFromFile = normalizeTime(endTimeStr); // No sabemos si es inicio o fin
 
           // Obtener día de la semana (L, M, X, J, V)
           const dayOfWeek = this.getDayLetterFromDate(date);
 
-          // CASO 1: Buscar evento puntual existente en esa fecha exacta (prioridad)
-          // Esto cubre el caso de querer cancelar un evento puntual de reemplazo
+          // Función auxiliar para normalizar horas a formato HH:MM
+          const normalizeTimeForComparison = (time: string) => time.substring(0, 5);
+
+          // PASO 1: Buscar eventos puntuales no cancelados en esa fecha exacta
           const periodicEventRepo = AppDataSource.getRepository(PeriodicEvent);
-          const existingPuntualEvent = await puntualEventRepo
+          const eventosPuntuales = await puntualEventRepo
             .createQueryBuilder('event')
             .leftJoinAndSelect('event.groups', 'group')
             .leftJoinAndSelect('event.day', 'day')
@@ -1440,47 +1445,77 @@ export class CalendarImportService {
             .where('calendar.id = :calendarId', { calendarId: calendar.id })
             .andWhere('day.date = :date', { date })
             .andWhere('group.id = :groupId', { groupId: group.id })
-            .andWhere('event.endTime = :endTime', { endTime: endTimeNormalized })
             .andWhere('event.cancelled = :cancelled', { cancelled: false })
-            .getOne();
+            .getMany();
 
-          if (existingPuntualEvent) {
-            // Encontramos un evento puntual con la misma hora de fin
-            // Normalizar startTime para remover segundos (ej: "18:00:00" -> "18:00")
-            const normalizeTimeForComparison = (time: string) => time.substring(0, 5);
-            startTime = normalizeTimeForComparison(existingPuntualEvent.startTime);
-            endTime = endTimeNormalized;
+          // PASO 2: Buscar eventos periódicos que coincidan con este grupo en este día de la semana
+          const eventosPeriodicos = await periodicEventRepo.find({
+            where: {
+              calendar: { id: calendar.id },
+              weekDay: dayOfWeek
+            },
+            relations: ['groups']
+          });
+
+          // Filtrar eventos periódicos que pertenecen a este grupo
+          const eventosPeriodicosDelGrupo = eventosPeriodicos.filter(pe =>
+            pe.groups.some(g => g.id === group.id)
+          );
+
+          // PASO 3: Verificar si eventos periódicos se generarían en esta fecha
+          // Solo incluir eventos periódicos si el día es lectivo y cumple condiciones de dayCharacter
+          const eventosPeriodicosValidos = dayEntity.lective
+            ? eventosPeriodicosDelGrupo.filter(pe =>
+                this.debeGenerarseEventoPeriodico(pe, dayEntity)
+              )
+            : [];
+
+          // PASO 4: Combinar eventos puntuales + periódicos válidos
+          const eventosCandidatos = [
+            ...eventosPuntuales,
+            ...eventosPeriodicosValidos
+          ];
+
+          // PASO 5: Buscar coincidencia - primero por hora de FIN, luego por hora de INICIO
+          let eventoCoincidente: any = null;
+          let coincidioPor: 'endTime' | 'startTime' | null = null;
+
+          // Intentar coincidir por hora de FIN
+          eventoCoincidente = eventosCandidatos.find(e =>
+            normalizeTimeForComparison(e.endTime) === timeFromFile
+          );
+
+          if (eventoCoincidente) {
+            coincidioPor = 'endTime';
           } else {
-            // CASO 2: Buscar evento periódico que coincida con este grupo en este día de la semana
-            const periodicEvents = await periodicEventRepo.find({
-              where: {
-                calendar: { id: calendar.id },
-                weekDay: dayOfWeek
-              },
-              relations: ['groups']
+            // Intentar coincidir por hora de INICIO
+            eventoCoincidente = eventosCandidatos.find(e =>
+              normalizeTimeForComparison(e.startTime) === timeFromFile
+            );
+            if (eventoCoincidente) {
+              coincidioPor = 'startTime';
+            }
+          }
+
+          // PASO 6: Asignar horas o ignorar evento si no hay coincidencia
+          if (eventoCoincidente) {
+            startTime = normalizeTimeForComparison(eventoCoincidente.startTime);
+            endTime = normalizeTimeForComparison(eventoCoincidente.endTime);
+
+            console.log(`[CANCELADO] Evento encontrado por ${coincidioPor} para ${subjectAcronym}.${groupType}.${groupInfo} en ${dateStr}: ${startTime} - ${endTime}`);
+          } else {
+            // NO se encontró evento coincidente → IGNORAR este evento cancelado
+            console.warn(`[CANCELADO IGNORADO] No se encontró evento para ${subjectAcronym}.${groupType}.${groupInfo} en ${dateStr} con hora ${timeFromFile}. Evento no será creado.`);
+
+            processedEvents.push({
+              date: dateStr,
+              subject: subjectAcronym,
+              action: 'ignored_cancelled',
+              line: i + 1
             });
 
-            // Encontrar el evento periódico que pertenece a este grupo y termina a esta hora
-            // Normalizar ambas horas para comparación (remover segundos si existen)
-            const normalizeTimeForComparison = (time: string) => time.substring(0, 5); // "18:00:00" -> "18:00"
-            const matchingPeriodicEvent = periodicEvents.find(pe =>
-              pe.groups.some(g => g.id === group.id) &&
-              normalizeTimeForComparison(pe.endTime) === endTimeNormalized
-            );
-
-            if (matchingPeriodicEvent) {
-              // Encontramos el evento periódico - usar su startTime (también normalizado)
-              startTime = normalizeTimeForComparison(matchingPeriodicEvent.startTime);
-              endTime = endTimeNormalized;
-            } else {
-              // CASO 3: Fallback - asumir duración de 1 hora
-              const [hours, mins] = endTimeNormalized.split(':').map(Number);
-              const startHour = hours - 1;
-              startTime = `${String(startHour).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
-              endTime = endTimeNormalized;
-
-              console.warn(`[EXCEPCIONES] No se encontró evento periódico ni puntual para ${subjectAcronym}.${groupType}.${groupInfo} en ${dateStr}. Asumiendo duración de 1 hora: ${startTime} - ${endTime}`);
-            }
+            eventsSkipped++;
+            continue; // Saltar este evento, no crearlo
           }
         } else {
           const normalizeTime = (time: string) => time.replace('.', ':');
@@ -1581,6 +1616,31 @@ export class CalendarImportService {
     };
 
     return dayMap[dayOfWeek] || '';
+  }
+
+  /**
+   * Verifica si un evento periódico debe generarse en un día específico
+   * según su eventCharacter y el dayCharacter del día
+   *
+   * Lógica basada en calendar-events.service.ts:
+   * - Eventos con carácter "Normal" (N): Se generan en días lectivos (filtrado posterior por presupuesto)
+   * - Eventos con otros caracteres (P, I, etc): Solo si el dayCharacter incluye el eventCharacter
+   *
+   * @param eventoPeriodico - El evento periódico a verificar
+   * @param dia - El día del calendario
+   * @returns true si el evento debe generarse en ese día
+   */
+  private static debeGenerarseEventoPeriodico(eventoPeriodico: any, dia: any): boolean {
+    const caracterEvento = eventoPeriodico.eventCharacter?.toUpperCase() || '';
+    const caracterDia = (dia.dayCharacter || '').toUpperCase();
+
+    // Eventos con carácter Normal (N) se generan en todos los días lectivos
+    if (caracterEvento === EVENT_CHARACTERS.NORMAL) {
+      return true;
+    }
+
+    // Eventos con otros caracteres (P, I, F, etc) solo se generan si el dayCharacter los incluye
+    return caracterDia.includes(caracterEvento);
   }
 
   /**

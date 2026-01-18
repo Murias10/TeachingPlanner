@@ -1457,10 +1457,16 @@ export class CalendarImportService {
             relations: ['groups']
           });
 
+          console.log(`[CANCELADO DEBUG] Buscando evento para ${subjectAcronym}.${groupType}.${groupInfo} en ${dateStr} (${dayOfWeek})`);
+          console.log(`[CANCELADO DEBUG] Eventos periódicos encontrados: ${eventosPeriodicos.length}`);
+          console.log(`[CANCELADO DEBUG] Eventos puntuales encontrados: ${eventosPuntuales.length}`);
+
           // Filtrar eventos periódicos que pertenecen a este grupo
           const eventosPeriodicosDelGrupo = eventosPeriodicos.filter(pe =>
             pe.groups.some(g => g.id === group.id)
           );
+
+          console.log(`[CANCELADO DEBUG] Eventos periódicos del grupo: ${eventosPeriodicosDelGrupo.length}`);
 
           // PASO 3: Verificar si eventos periódicos se generarían en esta fecha
           // Solo incluir eventos periódicos si el día es lectivo y cumple condiciones de dayCharacter
@@ -1470,11 +1476,18 @@ export class CalendarImportService {
               )
             : [];
 
+          console.log(`[CANCELADO DEBUG] Día lectivo: ${dayEntity.lective}, Eventos periódicos válidos: ${eventosPeriodicosValidos.length}`);
+          if (eventosPeriodicosValidos.length > 0) {
+            console.log(`[CANCELADO DEBUG] Horarios eventos periódicos válidos:`, eventosPeriodicosValidos.map(e => `${e.startTime}-${e.endTime}`));
+          }
+
           // PASO 4: Combinar eventos puntuales + periódicos válidos
           const eventosCandidatos = [
             ...eventosPuntuales,
             ...eventosPeriodicosValidos
           ];
+
+          console.log(`[CANCELADO DEBUG] Total candidatos: ${eventosCandidatos.length}, Buscando coincidencia con hora: ${timeFromFile}`);
 
           // PASO 5: Buscar coincidencia - primero por hora de FIN, luego por hora de INICIO
           let eventoCoincidente: any = null;
@@ -1565,7 +1578,8 @@ export class CalendarImportService {
           eventsCreated++;
         }
       } catch (error) {
-        // Continue on error
+        console.error(`[EXCEPCIONES ERROR] Error procesando línea ${i + 1}: ${line}`, error);
+        errors.push(`Línea ${i + 1}: ${error instanceof Error ? error.message : 'Error desconocido'}`);
       }
     }
 
@@ -1673,6 +1687,31 @@ export class CalendarImportService {
     const courseId = calendar.course.id;
     const semester = calendar.semester;
 
+    // Build groupLimits from existing groups in the calendar
+    // This is needed for validation in processExcepcionesFile
+    const groupLimits = new Map<string, number>();
+    const allGroups = await groupRepo.find({
+      where: { calendar: { id: calendarId } },
+      relations: ['subject']
+    });
+
+    // Group by subject, type, and language to find max group number for each combination
+    const groupsByKey = new Map<string, number[]>();
+    for (const group of allGroups) {
+      const limitKey = `${group.subject.acronym}.${group.type}.${group.language}`;
+      if (!groupsByKey.has(limitKey)) {
+        groupsByKey.set(limitKey, []);
+      }
+      groupsByKey.get(limitKey)!.push(group.number);
+    }
+
+    // Set the maximum group number for each combination
+    for (const [limitKey, numbers] of groupsByKey) {
+      const maxNumber = Math.max(...numbers);
+      groupLimits.set(limitKey, maxNumber);
+      console.log(`[GROUP LIMITS] Set limit for ${limitKey}: ${maxNumber}`);
+    }
+
     // Delete all existing puntual events for this calendar
     const existingEvents = await puntualEventRepo
       .createQueryBuilder('event')
@@ -1688,9 +1727,9 @@ export class CalendarImportService {
       console.log(`[Import Exceptions] Deleted ${deletedCount} existing puntual events`);
     }
 
-    // Process the exceptions file
+    // Process the exceptions file with groupLimits
     const content = this.decodeFileContent(file);
-    const result = await this.processExcepcionesFile(content, courseId, semester, userEmail);
+    const result = await this.processExcepcionesFile(content, courseId, semester, userEmail, groupLimits);
 
     // Count groups not found
     const groupsNotFound: string[] = [];

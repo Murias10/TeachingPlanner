@@ -252,9 +252,13 @@ jobs:
             mv docker-compose.azure.yml docker-compose.yml || true
 
             echo "=========================================="
-            echo "🛑 Deteniendo servicios actuales y eliminando volúmenes"
+            echo "🛑 Deteniendo servicios actuales"
             echo "=========================================="
-            docker compose down -v --rmi all --remove-orphans
+            docker compose down --rmi all --remove-orphans
+
+            # ⚠️ ADVERTENCIA: Descomentar la siguiente línea BORRA todos los datos de las bases de datos
+            # Útil para desarrollo/TFG cuando se necesita resetear el esquema completamente
+            # docker compose down -v --rmi all --remove-orphans
 
             echo "=========================================="
             echo "🚀 Iniciando servicios"

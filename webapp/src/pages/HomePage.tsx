@@ -11,7 +11,7 @@ import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { useTranslation } from "react-i18next";
 import { CalendarEventWrapper } from "@/components/calendar/CalendarEventWrapper";
 import { EventDetailsDrawer } from "@/components/calendar/EventDetailsDrawer";
-import { useDegreesWithActiveCalendars } from "@/hooks/degree/useDegreesWithActiveCalendars";
+import { useActiveCalendars } from "@/hooks/calendar/useActiveCalendars";
 import { sortAlphabetically, sortGruposByAcronymTypeNumber } from "@/utils/filterSortingUtils";
 import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -81,38 +81,38 @@ export default function HomePage() {
     const { t } = useTranslation();
     const { setItems } = useBreadcrumbContext();
 
-    // Estado para la titulación seleccionada
-    const [selectedDegreeId, setSelectedDegreeId] = useState<string | null>(() => {
+    // Estado para el calendario seleccionado
+    const [selectedCalendarId, setSelectedCalendarId] = useState<string | null>(() => {
         // Intentar cargar desde localStorage
-        return localStorage.getItem('homePage_selectedDegreeId');
+        return localStorage.getItem('homePage_selectedCalendarId');
     });
 
-    // Obtener titulaciones con calendarios activos
-    const { data: degreesData, isLoading: isLoadingDegrees } = useDegreesWithActiveCalendars();
+    // Obtener calendarios activos
+    const { data: calendarsData, isLoading: isLoadingCalendars } = useActiveCalendars();
 
-    // Encontrar la titulación seleccionada
-    const selectedDegree = useMemo(() => {
-        if (!degreesData || !selectedDegreeId) return null;
-        return degreesData.find(d => d.id === selectedDegreeId) || null;
-    }, [degreesData, selectedDegreeId]);
+    // Encontrar el calendario seleccionado
+    const selectedCalendar = useMemo(() => {
+        if (!calendarsData || !selectedCalendarId) return null;
+        return calendarsData.find(c => c.id === selectedCalendarId) || null;
+    }, [calendarsData, selectedCalendarId]);
 
-    // Validar que la titulación seleccionada siga siendo válida
+    // Validar que el calendario seleccionado siga siendo válido
     useEffect(() => {
-        if (degreesData && selectedDegreeId) {
-            const isStillValid = degreesData.some(d => d.id === selectedDegreeId);
+        if (calendarsData && selectedCalendarId) {
+            const isStillValid = calendarsData.some(c => c.id === selectedCalendarId);
             if (!isStillValid) {
-                // La titulación ya no es válida, limpiar localStorage
-                localStorage.removeItem('homePage_selectedDegreeId');
-                setSelectedDegreeId(null);
+                // El calendario ya no es válido, limpiar localStorage
+                localStorage.removeItem('homePage_selectedCalendarId');
+                setSelectedCalendarId(null);
             }
         }
-    }, [degreesData, selectedDegreeId]);
+    }, [calendarsData, selectedCalendarId]);
 
     // Hooks que dependen del calendario seleccionado
-    const { data, isLoading: isLoadingEvents } = useEventsCalendar(selectedDegree?.calendarId || null);
+    const { data, isLoading: isLoadingEvents } = useEventsCalendar(selectedCalendar?.id || null);
 
     // Obtener asignaturas para el mapping de años
-    const { data: subjectsData } = useSubjectsWithGroupsByCalendarId(selectedDegree?.calendarId || null);
+    const { data: subjectsData } = useSubjectsWithGroupsByCalendarId(selectedCalendar?.id || null);
 
     // Crear mapping de acronym → year
     const subjectYearMap = useMemo(() => {
@@ -151,10 +151,10 @@ export default function HomePage() {
         ]);
     }, [setItems, t]);
 
-    // Manejar cambio de titulación y guardar en localStorage
-    const handleDegreeChange = (degreeId: string) => {
-        setSelectedDegreeId(degreeId);
-        localStorage.setItem('homePage_selectedDegreeId', degreeId);
+    // Manejar cambio de calendario y guardar en localStorage
+    const handleCalendarChange = (calendarId: string) => {
+        setSelectedCalendarId(calendarId);
+        localStorage.setItem('homePage_selectedCalendarId', calendarId);
     };
 
     // Construir eventos para el calendario
@@ -394,10 +394,10 @@ export default function HomePage() {
         ),
     };
 
-    const isLoading = isLoadingDegrees || isLoadingEvents;
+    const isLoading = isLoadingCalendars || isLoadingEvents;
 
     // Mostrar loading mientras carga
-    if (isLoadingDegrees) {
+    if (isLoadingCalendars) {
         return (
             <div className="flex items-center justify-center h-full">
                 <LoadingSpinner />
@@ -405,29 +405,29 @@ export default function HomePage() {
         );
     }
 
-    // Verificar si hay titulaciones disponibles
-    const hasAvailableDegrees = degreesData && degreesData.length > 0;
+    // Verificar si hay calendarios disponibles
+    const hasAvailableCalendars = calendarsData && calendarsData.length > 0;
 
     return (
         <div className="flex flex-col h-full">
-            {/* Toolbar simplificada con selector de titulación y filtros de año - Solo si hay titulaciones */}
-            {hasAvailableDegrees && (
+            {/* Toolbar simplificada con selector de calendario y filtros de año */}
+            {hasAvailableCalendars && (
                 <div className="border-b p-4 space-y-4">
                     <div className="flex items-center gap-4">
                         <label className="text-sm font-medium text-muted-foreground whitespace-nowrap">
-                            {t("home.selectDegree")}:
+                            {t("home.selectCalendar")}:
                         </label>
                         <Select
-                            value={selectedDegreeId || ""}
-                            onValueChange={handleDegreeChange}
+                            value={selectedCalendarId || ""}
+                            onValueChange={handleCalendarChange}
                         >
-                            <SelectTrigger className="w-auto min-w-[300px]">
-                                <SelectValue placeholder={t("home.selectDegree")} />
+                            <SelectTrigger className="w-auto min-w-[400px]">
+                                <SelectValue placeholder={t("home.selectCalendar")} />
                             </SelectTrigger>
                             <SelectContent>
-                                {degreesData?.map((degree) => (
-                                    <SelectItem key={degree.id} value={degree.id}>
-                                        {degree.name} ({degree.courseStartYear}-{degree.courseEndYear} - Semestre {degree.semester})
+                                {calendarsData?.map((calendar) => (
+                                    <SelectItem key={calendar.id} value={calendar.id}>
+                                        {calendar.degreeAcronym} - {calendar.courseStartYear}/{calendar.courseEndYear} - Semestre {calendar.semester}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
@@ -435,7 +435,7 @@ export default function HomePage() {
                     </div>
 
                     {/* Filtros de año (botones) */}
-                    {selectedDegree && filterOptions.find(opt => opt.category === 'curso') && (
+                    {selectedCalendar && filterOptions.find(opt => opt.category === 'curso') && (
                         <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-sm font-medium text-muted-foreground">{t("calendar.filters.year")}:</span>
                             {filterOptions
@@ -465,8 +465,8 @@ export default function HomePage() {
 
             {/* Main content */}
             <div className="flex-1 overflow-hidden flex">
-                {/* Cuando hay titulaciones disponibles */}
-                {hasAvailableDegrees && selectedDegree && (
+                {/* Cuando hay calendarios disponibles */}
+                {hasAvailableCalendars && selectedCalendar && (
                     <>
                         {/* Panel de filtros */}
                         <ClassFilter
@@ -513,19 +513,19 @@ export default function HomePage() {
                     </>
                 )}
 
-                {/* Mensaje cuando hay titulaciones pero no se ha seleccionado ninguna */}
-                {hasAvailableDegrees && !selectedDegree && !isLoading && (
+                {/* Mensaje cuando hay calendarios pero no se ha seleccionado ninguno */}
+                {hasAvailableCalendars && !selectedCalendar && !isLoading && (
                     <div className="flex-1 flex items-center justify-center p-8">
                         <div className="text-center space-y-2">
                             <p className="text-lg font-medium text-muted-foreground">
-                                {t("home.selectDegreeMessage")}
+                                {t("home.selectCalendarMessage")}
                             </p>
                         </div>
                     </div>
                 )}
 
-                {/* Mensaje cuando NO hay titulaciones con calendarios activos */}
-                {!hasAvailableDegrees && !isLoading && (
+                {/* Mensaje cuando NO hay calendarios activos */}
+                {!hasAvailableCalendars && !isLoading && (
                     <div className="flex-1 p-4 overflow-auto relative">
                         {/* Calendario vacío de fondo */}
                         <div className="absolute inset-0 opacity-30">

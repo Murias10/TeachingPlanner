@@ -730,10 +730,10 @@
         }
     },
     "home": {
-        "selectDegree": "Select a degree",
-        "selectDegreeMessage": "Select a degree to view its calendar",
+        "selectCalendar": "Select a calendar",
+        "selectCalendarMessage": "Select a calendar to view events",
         "noActiveCalendars": "No active calendars",
-        "noActiveCalendarsMessage": "There are no degrees with active calendars for the current date. Calendars will appear here when they are within the academic period."
+        "noActiveCalendarsMessage": "There are no active calendars for the current date. Calendars will appear here when they are within the academic period."
     },
     "calendar": {
         "next": "Next",

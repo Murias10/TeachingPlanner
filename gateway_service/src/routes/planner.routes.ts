@@ -1,6 +1,6 @@
 import express from 'express';
 import multer from 'multer';
-import { getDegrees, getDegreesWithActiveCalendars, getCourses, getCoursesByDegreeId, getCoursesByDegreeAcronym, getSubjects, getSubjectsByCalendarId, getSubjectsWithGroupsByCalendarId, getClassrooms, createClassroom, deleteClassroom, updateClassroom, createDegree, deleteDegree, deleteSubject, createSubject, updateSubject, deleteCourse, deleteCalendar, getDegreeByAcronym, createCourse, createCalendar, getCalendarById, getCalendarDays, duplicateCalendar, createCalendarWithImport, importExceptions, getCalendarEvents, getPendingRequestsAsEvents, exportCalendar, updateCourse, updateDegree, createPuntualEvent, updatePuntualEvent, createPeriodicEvent, createCustomPeriodicEvent, updatePeriodicEvent, updateCustomPeriodicEvent, replacePeriodicEvent, deletePuntualEvent, deletePeriodicEvent, createEventRequest, getEventRequests, getEventRequestById, approveEventRequest, rejectEventRequest, deleteEventRequest, createGroup, deleteGroup, updateGroupPlanifiedHours } from '@/controllers/planner.controller';
+import { getDegrees, getActiveCalendars, getCourses, getCoursesByDegreeId, getCoursesByDegreeAcronym, getSubjects, getSubjectsByCalendarId, getSubjectsWithGroupsByCalendarId, getClassrooms, createClassroom, deleteClassroom, updateClassroom, createDegree, deleteDegree, deleteSubject, createSubject, updateSubject, deleteCourse, deleteCalendar, getDegreeByAcronym, createCourse, createCalendar, getCalendarById, getCalendarDays, duplicateCalendar, createCalendarWithImport, importExceptions, getCalendarEvents, getPendingRequestsAsEvents, exportCalendar, updateCourse, updateDegree, createPuntualEvent, updatePuntualEvent, createPeriodicEvent, createCustomPeriodicEvent, updatePeriodicEvent, updateCustomPeriodicEvent, replacePeriodicEvent, deletePuntualEvent, deletePeriodicEvent, createEventRequest, getEventRequests, getEventRequestById, approveEventRequest, rejectEventRequest, deleteEventRequest, createGroup, deleteGroup, updateGroupPlanifiedHours } from '@/controllers/planner.controller';
 
 // Configurar multer para el gateway
 const storage = multer.memoryStorage();
@@ -21,8 +21,6 @@ const upload = multer({
 const router = express.Router();
 
 router.get('/degrees', getDegrees);
-
-router.get('/degrees/with-active-calendars', getDegreesWithActiveCalendars);
 
 router.get('/degree/acronym/:acronym', getDegreeByAcronym);
 
@@ -71,6 +69,8 @@ router.patch('/course/:id', updateCourse);
 router.delete('/course/:id', deleteCourse)
 
 //////////////////////////////////////////////
+
+router.get('/calendars/active', getActiveCalendars);
 
 router.get('/calendar/:id', getCalendarById);
 

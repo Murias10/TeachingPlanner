@@ -78,6 +78,7 @@ const ReplaceEventDialog: React.FC<ReplaceEventDialogProps> = ({
   const [comment, setComment] = useState<string>('');
   const [openStartTime, setOpenStartTime] = useState(false);
   const [openEndTime, setOpenEndTime] = useState(false);
+  const [openDatePicker, setOpenDatePicker] = useState(false);
 
   // Hook para obtener las aulas
   const { data: classrooms = [] } = useClassrooms();
@@ -86,8 +87,9 @@ const ReplaceEventDialog: React.FC<ReplaceEventDialogProps> = ({
   React.useEffect(() => {
     if (open && eventToReplace) {
       setNewEventDate(eventToReplace.date);
-      setNewStartTime(eventToReplace.startTime);
-      setNewEndTime(eventToReplace.endTime);
+      // Formatear horas para quitar los segundos (HH:mm:ss -> HH:mm)
+      setNewStartTime(eventToReplace.startTime.substring(0, 5));
+      setNewEndTime(eventToReplace.endTime.substring(0, 5));
       setSelectedClassroomIds(eventToReplace.classrooms.map(c => c.id));
       setComment('');
     }
@@ -151,7 +153,7 @@ const ReplaceEventDialog: React.FC<ReplaceEventDialogProps> = ({
                 <p><strong>Grupos:</strong> {groupNames}</p>
                 <p><strong>Aulas:</strong> {originalClassroomNames}</p>
                 <p><strong>Fecha:</strong> {format(new Date(eventToReplace.date), 'dd/MM/yyyy', { locale: es })}</p>
-                <p><strong>Horario:</strong> {eventToReplace.startTime} - {eventToReplace.endTime}</p>
+                <p><strong>Horario:</strong> {eventToReplace.startTime.substring(0, 5)} - {eventToReplace.endTime.substring(0, 5)}</p>
               </div>
             </div>
 
@@ -171,7 +173,7 @@ const ReplaceEventDialog: React.FC<ReplaceEventDialogProps> = ({
               <Label className="text-xs font-semibold">Nueva Fecha y Horario</Label>
               <div className="flex gap-2">
                 {/* Date Selection */}
-                <Popover modal={true}>
+                <Popover open={openDatePicker} onOpenChange={setOpenDatePicker} modal={true}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
@@ -189,6 +191,7 @@ const ReplaceEventDialog: React.FC<ReplaceEventDialogProps> = ({
                       onSelect={(date) => {
                         if (date) {
                           setNewEventDate(format(date, 'yyyy-MM-dd'));
+                          setOpenDatePicker(false);
                         }
                       }}
                       locale={es}
@@ -260,56 +263,59 @@ const ReplaceEventDialog: React.FC<ReplaceEventDialogProps> = ({
               />
             </div>
 
-            {/* Grupos (bloqueado) */}
-            <div className="space-y-1">
-              <Label className="text-xs font-semibold">Grupos</Label>
-              <Input
-                value={groupNames}
-                disabled
-                className="h-8 text-xs bg-muted"
-              />
-            </div>
-
-            {/* Aulas (editable) */}
-            <div className="space-y-1">
-              <Label className="text-xs font-semibold">Aula</Label>
-              {classrooms.length === 0 ? (
-                <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
-                  Cargando aulas...
-                </div>
-              ) : classrooms.length > 8 ? (
-                <SearchableSelect
-                  value={selectedClassroomIds[0] || ''}
-                  onValueChange={(value) => {
-                    setSelectedClassroomIds(value ? [value] : []);
-                  }}
-                  options={classrooms.sort((a, b) => a.code.localeCompare(b.code)).map((classroom) => ({
-                    value: classroom.id,
-                    label: classroom.code
-                  }))}
-                  placeholder="Seleccionar aula"
-                  searchPlaceholder="Buscar aula..."
-                  emptyMessage="No se encontraron aulas."
+            {/* Grupos y Aulas en la misma fila */}
+            <div className="grid grid-cols-2 gap-2">
+              {/* Grupos (bloqueado) */}
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Grupo</Label>
+                <Input
+                  value={groupNames}
+                  disabled
+                  className="h-8 text-xs bg-muted"
                 />
-              ) : (
-                <Select
-                  value={selectedClassroomIds[0] || ''}
-                  onValueChange={(value) => {
-                    setSelectedClassroomIds(value ? [value] : []);
-                  }}
-                >
-                  <SelectTrigger className="h-8 text-xs w-full">
-                    <SelectValue placeholder="Seleccionar aula" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {classrooms.sort((a, b) => a.code.localeCompare(b.code)).map((classroom) => (
-                      <SelectItem key={classroom.id} value={classroom.id}>
-                        {classroom.code}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+              </div>
+
+              {/* Aulas (editable) */}
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Aula</Label>
+                {classrooms.length === 0 ? (
+                  <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
+                    Cargando aulas...
+                  </div>
+                ) : classrooms.length > 8 ? (
+                  <SearchableSelect
+                    value={selectedClassroomIds[0] || ''}
+                    onValueChange={(value) => {
+                      setSelectedClassroomIds(value ? [value] : []);
+                    }}
+                    options={classrooms.sort((a, b) => a.code.localeCompare(b.code)).map((classroom) => ({
+                      value: classroom.id,
+                      label: classroom.code
+                    }))}
+                    placeholder="Seleccionar aula"
+                    searchPlaceholder="Buscar aula..."
+                    emptyMessage="No se encontraron aulas."
+                  />
+                ) : (
+                  <Select
+                    value={selectedClassroomIds[0] || ''}
+                    onValueChange={(value) => {
+                      setSelectedClassroomIds(value ? [value] : []);
+                    }}
+                  >
+                    <SelectTrigger className="h-8 text-xs w-full">
+                      <SelectValue placeholder="Seleccionar aula" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {classrooms.sort((a, b) => a.code.localeCompare(b.code)).map((classroom) => (
+                        <SelectItem key={classroom.id} value={classroom.id}>
+                          {classroom.code}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
             </div>
 
             {/* Comment Field */}
@@ -328,7 +334,7 @@ const ReplaceEventDialog: React.FC<ReplaceEventDialogProps> = ({
             <div className="bg-accent/20 border border-primary/20 rounded p-3 text-xs space-y-1">
               <p className="font-semibold">Resumen del reemplazo</p>
               <p className="text-muted-foreground">
-                El evento del <strong>{format(new Date(eventToReplace.date), 'dd/MM/yyyy', { locale: es })}</strong> a las <strong>{eventToReplace.startTime}</strong> será cancelado
+                El evento del <strong>{format(new Date(eventToReplace.date), 'dd/MM/yyyy', { locale: es })}</strong> a las <strong>{eventToReplace.startTime.substring(0, 5)}</strong> será cancelado
               </p>
               <p className="text-muted-foreground">
                 Se creará un nuevo evento el <strong>{format(new Date(newEventDate), 'dd/MM/yyyy', { locale: es })}</strong> de <strong>{newStartTime} - {newEndTime}</strong>

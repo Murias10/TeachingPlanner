@@ -3008,3 +3008,56 @@ export const duplicateCalendar = async (req: AuditedRequest, res: Response) => {
         });
     }
 };
+
+/**
+ * Get all active calendars (calendars that cover the current date)
+ * Returns all calendars where start <= today <= end
+ * Includes full information about the calendar, course, and degree
+ */
+export const getActiveCalendars = async (_req: AuditedRequest, res: Response) => {
+    try {
+        const currentDate = new Date();
+
+        // Query to get all calendars covering the current date from active courses
+        const calendars = await AppDataSource.getRepository(Calendar)
+            .createQueryBuilder('calendar')
+            .leftJoinAndSelect('calendar.course', 'course')
+            .leftJoinAndSelect('course.degree', 'degree')
+            .where('calendar.start <= :currentDate', { currentDate })
+            .andWhere('calendar.end >= :currentDate', { currentDate })
+            .andWhere('course.state = :courseState', { courseState: 'ACTIVO' })
+            .orderBy('degree.acronym', 'ASC')
+            .addOrderBy('course.startYear', 'DESC')
+            .addOrderBy('calendar.semester', 'ASC')
+            .getMany();
+
+        // Format response with all calendar information
+        const activeCalendars = calendars.map(calendar => ({
+            id: calendar.id,
+            start: calendar.start,
+            end: calendar.end,
+            semester: calendar.semester,
+            courseId: calendar.course.id,
+            courseStartYear: calendar.course.startYear,
+            courseEndYear: calendar.course.endYear,
+            degreeId: calendar.course.degree.id,
+            degreeName: calendar.course.degree.name,
+            degreeAcronym: calendar.course.degree.acronym
+        }));
+
+        res.status(200).json({
+            status: 'success',
+            message: 'Active calendars fetched successfully',
+            data: {
+                calendars: activeCalendars
+            }
+        });
+    } catch (error) {
+        console.error("Error fetching active calendars:", error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error fetching active calendars',
+            data: error instanceof Error ? error.message : error
+        });
+    }
+};

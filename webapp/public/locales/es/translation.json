@@ -730,10 +730,10 @@
         }
     },
     "home": {
-        "selectDegree": "Selecciona una titulación",
-        "selectDegreeMessage": "Selecciona una titulación para ver su calendario",
+        "selectCalendar": "Selecciona un calendario",
+        "selectCalendarMessage": "Selecciona un calendario para ver los eventos",
         "noActiveCalendars": "No hay calendarios activos",
-        "noActiveCalendarsMessage": "No hay ninguna titulación con calendario activo para la fecha actual. Los calendarios aparecerán aquí cuando estén dentro del período lectivo."
+        "noActiveCalendarsMessage": "No hay calendarios activos para la fecha actual. Los calendarios aparecerán aquí cuando estén dentro del período lectivo."
     },
     "calendar": {
         "next": "Siguiente",

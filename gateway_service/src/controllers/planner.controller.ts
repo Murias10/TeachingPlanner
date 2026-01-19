@@ -11,9 +11,9 @@ export const getDegrees = (_req: Request, res: Response, next: NextFunction) =>
         method: 'GET'
     });
 
-export const getDegreesWithActiveCalendars = (_req: Request, res: Response, next: NextFunction) =>
+export const getActiveCalendars = (_req: Request, res: Response, next: NextFunction) =>
     proxyRequest(_req, res, next, {
-        url: `${SERVICES.PLANNER}/degrees/with-active-calendars`,
+        url: `${SERVICES.PLANNER}/calendars/active`,
         method: 'GET'
     });
 

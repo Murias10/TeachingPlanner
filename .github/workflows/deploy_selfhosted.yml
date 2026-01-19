@@ -233,10 +233,10 @@ jobs:
       # -----------------------------------------------------------------------
       # DEPLOY: Desplegar aplicación
       # -----------------------------------------------------------------------
-      - name: 🛑 Detener servicios actuales
+      - name: 🛑 Detener servicios actuales y eliminar volúmenes
         run: |
           cd $HOME/TeachingPlanner
-          docker compose down || true
+          docker compose down -v || true
 
       - name: 🗑️ Limpiar imágenes Docker no utilizadas
         run: |

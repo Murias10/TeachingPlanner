@@ -543,46 +543,48 @@ export default function HomePage() {
                                     <LoadingSpinner />
                                 </div>
                             ) : (
-                                <Calendar
-                                    localizer={localizer}
-                                    events={filteredEvents}
-                                    startAccessor="start"
-                                    endAccessor="end"
-                                    min={moment().hour(9).minute(0).toDate()}
-                                    max={moment().hour(21).minute(0).toDate()}
-                                    style={{ height: '100%' }}
-                                    eventPropGetter={eventStyleGetter}
-                                    dayPropGetter={dayPropGetter}
-                                    components={components}
-                                    defaultView="work_week"
-                                    views={['week', 'work_week', 'day', 'month']}
-                                    culture={t("calendar.locale")}
-                                    formats={{
-                                        timeGutterFormat: 'HH:mm',
-                                        eventTimeRangeFormat: () => '',
-                                        agendaTimeRangeFormat: () => '',
-                                        selectRangeFormat: () => '',
-                                        dayHeaderFormat: (date: Date) => moment(date).format('ddd DD'),
-                                        dayRangeHeaderFormat: ({ start, end }: { start: Date; end: Date }) =>
-                                            `${moment(start).format('MMMM DD')} – ${moment(end).format('DD')}`,
-                                        monthHeaderFormat: (date: Date) => moment(date).format('MMMM YYYY')
-                                    }}
-                                    messages={{
-                                        next: t("calendar.next"),
-                                        previous: t("calendar.previous"),
-                                        today: t("calendar.today"),
-                                        month: t("calendar.month"),
-                                        week: t("calendar.week"),
-                                        day: t("calendar.day"),
-                                        agenda: t("calendar.agenda"),
-                                        date: t("calendar.date"),
-                                        time: t("calendar.time"),
-                                        event: t("calendar.event.label"),
-                                        noEventsInRange: t("calendar.noEvents"),
-                                        showMore: (total: number) => t("calendar.showMore", { count: total }),
-                                        work_week: t("calendar.workWeek")
-                                    }}
-                                />
+                                <div className="h-full bg-white rounded-lg shadow-sm">
+                                    <Calendar
+                                        localizer={localizer}
+                                        events={filteredEvents}
+                                        startAccessor="start"
+                                        endAccessor="end"
+                                        min={moment().hour(9).minute(0).toDate()}
+                                        max={moment().hour(21).minute(0).toDate()}
+                                        style={{ height: '100%' }}
+                                        eventPropGetter={eventStyleGetter}
+                                        dayPropGetter={dayPropGetter}
+                                        components={components}
+                                        defaultView="work_week"
+                                        views={['week', 'work_week', 'day', 'month']}
+                                        culture={t("calendar.locale")}
+                                        formats={{
+                                            timeGutterFormat: 'HH:mm',
+                                            eventTimeRangeFormat: () => '',
+                                            agendaTimeRangeFormat: () => '',
+                                            selectRangeFormat: () => '',
+                                            dayHeaderFormat: (date: Date) => moment(date).format('ddd DD'),
+                                            dayRangeHeaderFormat: ({ start, end }: { start: Date; end: Date }) =>
+                                                `${moment(start).format('MMMM DD')} – ${moment(end).format('DD')}`,
+                                            monthHeaderFormat: (date: Date) => moment(date).format('MMMM YYYY')
+                                        }}
+                                        messages={{
+                                            next: t("calendar.next"),
+                                            previous: t("calendar.previous"),
+                                            today: t("calendar.today"),
+                                            month: t("calendar.month"),
+                                            week: t("calendar.week"),
+                                            day: t("calendar.day"),
+                                            agenda: t("calendar.agenda"),
+                                            date: t("calendar.date"),
+                                            time: t("calendar.time"),
+                                            event: t("calendar.event.label"),
+                                            noEventsInRange: t("calendar.noEvents"),
+                                            showMore: (total: number) => t("calendar.showMore", { count: total }),
+                                            work_week: t("calendar.workWeek")
+                                        }}
+                                    />
+                                </div>
                             )}
                         </div>
                     </>

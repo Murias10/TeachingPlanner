@@ -59,9 +59,9 @@ const SettingsPage = () => {
 
     useEffect(() => {
         setItems([
-            { label: "Ajustes", href: "/settings" },
+            { label: t("settings.title"), href: "/settings" },
         ])
-    }, [setItems]);
+    }, [setItems, t]);
 
     useEffect(() => {
         if (user) {
@@ -89,8 +89,8 @@ const SettingsPage = () => {
             if (googleConnected === 'true') {
                 console.log('[DEBUG] Google connected === true, showing success alert');
                 triggerAlert({
-                    title: 'Conectado',
-                    description: 'Google Calendar conectado exitosamente',
+                    title: t('success.title'),
+                    description: t('settings.google.connectSuccess'),
                     variant: 'success'
                 });
 
@@ -108,8 +108,8 @@ const SettingsPage = () => {
             } else if (googleError) {
                 console.log('[DEBUG] Google error detected:', googleError);
                 triggerAlert({
-                    title: 'Error',
-                    description: `Error al conectar Google Calendar: ${googleError}`,
+                    title: t('error.title'),
+                    description: `${t('error.title')}: ${googleError}`,
                     variant: 'destructive'
                 });
                 // Limpiar parámetros de la URL
@@ -147,8 +147,8 @@ const SettingsPage = () => {
         // Validar que los campos obligatorios no estén vacíos
         if (!name.trim() || !firstSurname.trim() || !secondSurname.trim() || !email.trim()) {
             triggerAlert({
-                title: "Error",
-                description: "Todos los campos obligatorios deben estar completos",
+                title: t("error.title"),
+                description: t("settings.profile.allFieldsRequired"),
                 variant: "destructive"
             });
             return;
@@ -161,8 +161,8 @@ const SettingsPage = () => {
             email === user.email &&
             unioviUser === (user.unioviUser || "")) {
             triggerAlert({
-                title: "Advertencia",
-                description: "No se ha realizado ningún cambio",
+                title: t("warning.title"),
+                description: t("settings.profile.noChanges"),
                 variant: "default"
             });
             return;
@@ -189,13 +189,13 @@ const SettingsPage = () => {
             });
 
             triggerAlert({
-                title: "Éxito",
-                description: "Perfil actualizado exitosamente",
+                title: t("success.title"),
+                description: t("settings.profile.success"),
                 variant: "success"
             });
         } else {
             triggerAlert({
-                title: "Error",
+                title: t("error.title"),
                 description: result.message,
                 variant: "destructive"
             });
@@ -209,8 +209,8 @@ const SettingsPage = () => {
         // Validar campos
         if (!currentPassword || !newPassword || !confirmPassword) {
             triggerAlert({
-                title: "Error",
-                description: "Todos los campos son obligatorios",
+                title: t("error.title"),
+                description: t("settings.password.allFieldsRequired"),
                 variant: "destructive"
             });
             return;
@@ -229,8 +229,8 @@ const SettingsPage = () => {
 
         if (newPassword !== confirmPassword) {
             triggerAlert({
-                title: "Error",
-                description: "Las contraseñas no coinciden",
+                title: t("error.title"),
+                description: t("settings.password.mismatch"),
                 variant: "destructive"
             });
             return;
@@ -244,8 +244,8 @@ const SettingsPage = () => {
 
         if (result.success) {
             triggerAlert({
-                title: "Éxito",
-                description: "Contraseña actualizada exitosamente",
+                title: t("success.title"),
+                description: t("settings.password.success"),
                 variant: "success"
             });
             // Limpiar campos
@@ -254,7 +254,7 @@ const SettingsPage = () => {
             setConfirmPassword("");
         } else {
             triggerAlert({
-                title: "Error",
+                title: t("error.title"),
                 description: result.message,
                 variant: "destructive"
             });
@@ -272,14 +272,14 @@ const SettingsPage = () => {
             setGoogleConnected(false);
             setGoogleEmail(undefined);
             triggerAlert({
-                title: "Desconectado",
-                description: "Google Calendar desconectado exitosamente",
+                title: t("success.title"),
+                description: t("settings.google.disconnectSuccess"),
                 variant: "success"
             });
         } else {
             triggerAlert({
-                title: "Error",
-                description: result.message || "Error al desconectar Google Calendar",
+                title: t("error.title"),
+                description: result.message || t("error.title"),
                 variant: "destructive"
             });
         }
@@ -296,30 +296,30 @@ const SettingsPage = () => {
             {/* Sección de Perfil */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Información del Perfil</CardTitle>
+                    <CardTitle>{t("settings.profile.title")}</CardTitle>
                     <CardDescription>
-                        Actualiza tu información personal
+                        {t("settings.profile.description")}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     {/* Rol (solo lectura) */}
                     <div className="space-y-2">
-                        <Label>Rol</Label>
+                        <Label>{t("settings.profile.role")}</Label>
                         <div className="flex items-center gap-2">
                             <Badge className={user.role === "ADMIN" ? "bg-red-100 text-red-800" : "bg-blue-100 text-blue-800"}>
                                 {user.role}
                             </Badge>
                             <span className="text-sm text-muted-foreground">
                                 {user.role === "ADMIN"
-                                    ? "Acceso completo al sistema"
-                                    : "Solicitar creación y cancelación de eventos"}
+                                    ? t("settings.profile.roleAdmin")
+                                    : t("settings.profile.roleProfessor")}
                             </span>
                         </div>
                     </div>
 
                     {/* Usuario Uniovi (editable) */}
                     <div className="space-y-2">
-                        <Label htmlFor="unioviUser">Usuario Uniovi</Label>
+                        <Label htmlFor="unioviUser">{t("settings.profile.unioviUser")}</Label>
                         <Input
                             id="unioviUser"
                             value={unioviUser}
@@ -331,7 +331,7 @@ const SettingsPage = () => {
 
                     {/* Email (editable) */}
                     <div className="space-y-2">
-                        <Label htmlFor="email">Email *</Label>
+                        <Label htmlFor="email">{t("settings.profile.email")} {t("settings.profile.requiredField")}</Label>
                         <Input
                             id="email"
                             type="email"
@@ -344,37 +344,37 @@ const SettingsPage = () => {
 
                     {/* Nombre (editable) */}
                     <div className="space-y-2">
-                        <Label htmlFor="name">Nombre *</Label>
+                        <Label htmlFor="name">{t("settings.profile.name")} {t("settings.profile.requiredField")}</Label>
                         <Input
                             id="name"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             disabled={isUpdatingProfile}
-                            placeholder="Nombre"
+                            placeholder={t("settings.profile.name")}
                         />
                     </div>
 
                     {/* Primer Apellido (editable) */}
                     <div className="space-y-2">
-                        <Label htmlFor="firstSurname">Primer Apellido *</Label>
+                        <Label htmlFor="firstSurname">{t("settings.profile.firstSurname")} {t("settings.profile.requiredField")}</Label>
                         <Input
                             id="firstSurname"
                             value={firstSurname}
                             onChange={(e) => setFirstSurname(e.target.value)}
                             disabled={isUpdatingProfile}
-                            placeholder="Primer apellido"
+                            placeholder={t("settings.profile.firstSurname")}
                         />
                     </div>
 
                     {/* Segundo Apellido (editable) */}
                     <div className="space-y-2">
-                        <Label htmlFor="secondSurname">Segundo Apellido *</Label>
+                        <Label htmlFor="secondSurname">{t("settings.profile.secondSurname")} {t("settings.profile.requiredField")}</Label>
                         <Input
                             id="secondSurname"
                             value={secondSurname}
                             onChange={(e) => setSecondSurname(e.target.value)}
                             disabled={isUpdatingProfile}
-                            placeholder="Segundo apellido"
+                            placeholder={t("settings.profile.secondSurname")}
                         />
                     </div>
 
@@ -384,7 +384,7 @@ const SettingsPage = () => {
                             disabled={isUpdatingProfile}
                         >
                             {isUpdatingProfile && <Spinner />}
-                            {isUpdatingProfile ? "Actualizando..." : "Actualizar Perfil"}
+                            {isUpdatingProfile ? t("settings.profile.updating") : t("settings.profile.updateButton")}
                         </Button>
                     </div>
                 </CardContent>
@@ -393,33 +393,33 @@ const SettingsPage = () => {
             {/* Sección de Contraseña */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Cambiar Contraseña</CardTitle>
+                    <CardTitle>{t("settings.password.title")}</CardTitle>
                     <CardDescription>
-                        Actualiza tu contraseña de acceso
+                        {t("settings.password.description")}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="space-y-2">
-                        <Label htmlFor="currentPassword">Contraseña Actual *</Label>
+                        <Label htmlFor="currentPassword">{t("settings.password.current")} {t("settings.profile.requiredField")}</Label>
                         <Input
                             id="currentPassword"
                             type="password"
                             value={currentPassword}
                             onChange={(e) => setCurrentPassword(e.target.value)}
                             disabled={isUpdatingPassword}
-                            placeholder="Contraseña actual"
+                            placeholder={t("settings.password.current")}
                         />
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="newPassword">Nueva Contraseña *</Label>
+                        <Label htmlFor="newPassword">{t("settings.password.new")} {t("settings.profile.requiredField")}</Label>
                         <Input
                             id="newPassword"
                             type="password"
                             value={newPassword}
                             onChange={(e) => setNewPassword(e.target.value)}
                             disabled={isUpdatingPassword}
-                            placeholder="Mínimo 8 caracteres"
+                            placeholder={t("settings.password.minChars")}
                         />
                     </div>
 
@@ -429,17 +429,17 @@ const SettingsPage = () => {
                     />
 
                     <div className="space-y-2">
-                        <Label htmlFor="confirmPassword">Confirmar Nueva Contraseña *</Label>
+                        <Label htmlFor="confirmPassword">{t("settings.password.confirm")} {t("settings.profile.requiredField")}</Label>
                         <Input
                             id="confirmPassword"
                             type="password"
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
                             disabled={isUpdatingPassword}
-                            placeholder="Confirma tu nueva contraseña"
+                            placeholder={t("settings.password.confirmPlaceholder")}
                         />
                         {confirmPassword.length > 0 && !passwordsMatch && (
-                            <p className="text-sm text-destructive">Las contraseñas no coinciden</p>
+                            <p className="text-sm text-destructive">{t("settings.password.mismatch")}</p>
                         )}
                     </div>
 
@@ -449,7 +449,7 @@ const SettingsPage = () => {
                             disabled={isUpdatingPassword || !isPasswordFormValid}
                         >
                             {isUpdatingPassword && <Spinner />}
-                            {isUpdatingPassword ? "Actualizando..." : "Cambiar Contraseña"}
+                            {isUpdatingPassword ? t("settings.password.updating") : t("settings.password.changeButton")}
                         </Button>
                     </div>
                 </CardContent>
@@ -461,17 +461,17 @@ const SettingsPage = () => {
                     <CardHeader>
                         <div className="flex items-center gap-2">
                             <Calendar className="h-5 w-5" />
-                            <CardTitle>Google Calendar</CardTitle>
+                            <CardTitle>{t("settings.google.title")}</CardTitle>
                         </div>
                         <CardDescription>
-                            Sincroniza tus calendarios de TeachingPlanner con Google Calendar
+                            {t("settings.google.description")}
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         {isLoadingGoogleStatus ? (
                             <div className="flex items-center justify-center py-6">
                                 <Spinner />
-                                <span className="ml-2 text-sm text-muted-foreground">Cargando estado de conexión...</span>
+                                <span className="ml-2 text-sm text-muted-foreground">{t("settings.google.loadingStatus")}</span>
                             </div>
                         ) : (
                             <>
@@ -482,7 +482,7 @@ const SettingsPage = () => {
                                             <>
                                                 <CheckCircle2 className="h-5 w-5 text-green-600" />
                                                 <div>
-                                                    <p className="font-medium">Conectado a Google Calendar</p>
+                                                    <p className="font-medium">{t("settings.google.connected")}</p>
                                                     {googleEmail && (
                                                         <p className="text-sm text-muted-foreground">{googleEmail}</p>
                                                     )}
@@ -492,9 +492,9 @@ const SettingsPage = () => {
                                             <>
                                                 <XCircle className="h-5 w-5 text-gray-400" />
                                                 <div>
-                                                    <p className="font-medium">No conectado</p>
+                                                    <p className="font-medium">{t("settings.google.notConnected")}</p>
                                                     <p className="text-sm text-muted-foreground">
-                                                        Conecta tu cuenta de Google para sincronizar calendarios
+                                                        {t("settings.google.notConnectedDescription")}
                                                     </p>
                                                 </div>
                                             </>
@@ -510,7 +510,7 @@ const SettingsPage = () => {
                                                 onClick={handleManageSyncs}
                                                 variant="default"
                                             >
-                                                Gestionar Sincronizaciones
+                                                {t("settings.google.manageButton")}
                                             </Button>
                                             <Button
                                                 onClick={handleGoogleDisconnect}
@@ -518,7 +518,7 @@ const SettingsPage = () => {
                                                 disabled={isGoogleLoading}
                                             >
                                                 {isGoogleLoading && <Spinner />}
-                                                {isGoogleLoading ? "Desconectando..." : "Desconectar"}
+                                                {isGoogleLoading ? t("settings.google.disconnecting") : t("settings.google.disconnectButton")}
                                             </Button>
                                         </>
                                     ) : (
@@ -528,20 +528,27 @@ const SettingsPage = () => {
                                             disabled={isGoogleLoading}
                                         >
                                             {isGoogleLoading && <Spinner />}
-                                            {isGoogleLoading ? "Conectando..." : "Conectar con Google Calendar"}
+                                            {isGoogleLoading ? t("settings.google.connecting") : t("settings.google.connectButton")}
                                         </Button>
                                     )}
                                 </div>
 
-                                {/* Información adicional */}
-                                <div className="bg-muted p-4 rounded-lg space-y-2">
-                                    <p className="text-sm font-medium">¿Cómo funciona?</p>
-                                    <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                                        <li>Conecta tu cuenta de Google para autorizar el acceso</li>
-                                        <li>Selecciona qué calendarios quieres sincronizar</li>
-                                        <li>Los eventos se sincronizan automáticamente cada 5 minutos</li>
-                                        <li>Los cambios en cualquier plataforma se reflejan en ambas</li>
-                                    </ul>
+                                {/* Información adicional actualizada */}
+                                <div className="bg-muted p-4 rounded-lg space-y-3">
+                                    <p className="text-sm font-semibold">{t("settings.google.howItWorks")}</p>
+                                    <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
+                                        <li>{t("settings.google.step1")}</li>
+                                        <li>{t("settings.google.step2")}</li>
+                                        <li>{t("settings.google.step3")}</li>
+                                        <li>{t("settings.google.step4")}</li>
+                                        <li>{t("settings.google.step5")}</li>
+                                        <li>{t("settings.google.step6")}</li>
+                                    </ol>
+                                    <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md">
+                                        <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                                            {t("settings.google.note")}
+                                        </p>
+                                    </div>
                                 </div>
                             </>
                         )}

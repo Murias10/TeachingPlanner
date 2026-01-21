@@ -736,6 +736,7 @@
         "noActiveCalendarsMessage": "There are no active calendars for the current date. Calendars will appear here when they are within the academic period."
     },
     "calendar": {
+        "locale": "en",
         "next": "Next",
         "previous": "Previous",
         "today": "Today",

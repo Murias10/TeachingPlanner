@@ -732,18 +732,30 @@ export const CreateCalendarDrawer = ({
                                             </div>
 
                                             {selectedHolidayDates.length > 0 && (
-                                                <div className="space-y-1.5 overflow-y-auto">
-                                                    <p className="text-xs font-medium text-muted-foreground">
-                                                        {t("drawer.calendar.create.tabs.manual.selected.holidays")}
-                                                    </p>
-                                                    <div className="flex flex-wrap gap-1.5">
-                                                        {selectedHolidayDates.map((date) => (
-                                                            <Badge key={date.toString()} variant="secondary" className="text-xs">
-                                                                {format(date, "dd/MM/yyyy")}
-                                                            </Badge>
-                                                        ))}
+                                                <>
+                                                    <div className="flex gap-1.5 text-xs">
+                                                        {['L', 'M', 'X', 'J', 'V'].map((day, idx) => {
+                                                            const count = selectedHolidayDates.filter(d => d.getDay() === idx + 1).length;
+                                                            return count > 0 ? (
+                                                                <Badge key={day} variant="secondary" className="text-xs px-1.5 py-0">
+                                                                    {day}:{count}
+                                                                </Badge>
+                                                            ) : null;
+                                                        })}
                                                     </div>
-                                                </div>
+                                                    <div className="space-y-1.5 overflow-y-auto">
+                                                        <p className="text-xs font-medium text-muted-foreground">
+                                                            {t("drawer.calendar.create.tabs.manual.selected.holidays")}
+                                                        </p>
+                                                        <div className="flex flex-wrap gap-1.5">
+                                                            {selectedHolidayDates.map((date) => (
+                                                                <Badge key={date.toString()} variant="secondary" className="text-xs">
+                                                                    {format(date, "dd/MM/yyyy")}
+                                                                </Badge>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </>
                                             )}
                                         </div>
                                     </div>
@@ -1042,18 +1054,30 @@ export const CreateCalendarDrawer = ({
                                             </div>
 
                                             {duplicateHolidayDates.length > 0 && (
-                                                <div className="space-y-1.5 overflow-y-auto">
-                                                    <p className="text-xs font-medium text-muted-foreground">
-                                                        Festivos seleccionados
-                                                    </p>
-                                                    <div className="flex flex-wrap gap-1.5">
-                                                        {duplicateHolidayDates.map((date) => (
-                                                            <Badge key={date.toString()} variant="secondary" className="text-xs">
-                                                                {format(date, "dd/MM/yyyy")}
-                                                            </Badge>
-                                                        ))}
+                                                <>
+                                                    <div className="flex gap-1.5 text-xs">
+                                                        {['L', 'M', 'X', 'J', 'V'].map((day, idx) => {
+                                                            const count = duplicateHolidayDates.filter(d => d.getDay() === idx + 1).length;
+                                                            return count > 0 ? (
+                                                                <Badge key={day} variant="secondary" className="text-xs px-1.5 py-0">
+                                                                    {day}:{count}
+                                                                </Badge>
+                                                            ) : null;
+                                                        })}
                                                     </div>
-                                                </div>
+                                                    <div className="space-y-1.5 overflow-y-auto">
+                                                        <p className="text-xs font-medium text-muted-foreground">
+                                                            Festivos seleccionados
+                                                        </p>
+                                                        <div className="flex flex-wrap gap-1.5">
+                                                            {duplicateHolidayDates.map((date) => (
+                                                                <Badge key={date.toString()} variant="secondary" className="text-xs">
+                                                                    {format(date, "dd/MM/yyyy")}
+                                                                </Badge>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </>
                                             )}
                                         </div>
                                     </div>

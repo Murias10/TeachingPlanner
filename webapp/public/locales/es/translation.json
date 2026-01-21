@@ -736,6 +736,7 @@
         "noActiveCalendarsMessage": "No hay calendarios activos para la fecha actual. Los calendarios aparecerán aquí cuando estén dentro del período lectivo."
     },
     "calendar": {
+        "locale": "es",
         "next": "Siguiente",
         "previous": "Anterior",
         "today": "Hoy",

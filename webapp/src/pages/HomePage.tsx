@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Calendar, momentLocalizer, Components } from "react-big-calendar";
 import moment from "moment";
+import { format } from "date-fns";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { useEventsCalendar } from "@/hooks/calendar/useEventsCalendar";
 import { useSubjectsWithGroupsByCalendarId } from "@/hooks/subject/useSubjectsWithGroupsByCalendarId";
+import { useCalendarDays } from "@/hooks/calendar/useCalendarDays";
 import { CalendarEvent } from "@/types/CalendarEvent";
 import ClassFilter, { FilterValues } from "@/components/ClassFilter";
 import { FileText, BookOpen, DoorOpen, Languages, Users, GraduationCap, XCircle, CalendarDays } from "lucide-react";
@@ -60,6 +62,22 @@ const SUBJECT_COLORS = [
 // Map para almacenar asignaturas vistas y sus colores asignados
 const subjectColorMap = new Map<string, string>();
 
+// Función para oscurecer un color hex para mejorar el contraste
+const darkenColor = (hex: string, amount: number = 0.6): string => {
+    // Convertir hex a RGB
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+
+    // Oscurecer multiplicando por el amount (0.6 = 60% del brillo original)
+    const newR = Math.round(r * amount);
+    const newG = Math.round(g * amount);
+    const newB = Math.round(b * amount);
+
+    // Convertir de vuelta a hex
+    return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
+};
+
 // Función para generar un color único y consistente basado en la asignatura
 const getSubjectColor = (subjectAcronym: string | undefined): string => {
     if (!subjectAcronym) return '#9CA3AF'; // Color gris por defecto
@@ -111,6 +129,9 @@ export default function HomePage() {
     // Hooks que dependen del calendario seleccionado
     const { data, isLoading: isLoadingEvents } = useEventsCalendar(selectedCalendar?.id || null);
 
+    // Obtener días del calendario
+    const { data: calendarDays } = useCalendarDays(selectedCalendar?.id || null);
+
     // Obtener asignaturas para el mapping de años
     const { data: subjectsData } = useSubjectsWithGroupsByCalendarId(selectedCalendar?.id || null);
 
@@ -125,6 +146,19 @@ export default function HomePage() {
         });
         return map;
     }, [subjectsData]);
+
+    // Crear Set de días lectivos
+    const lectiveDates = useMemo(() => {
+        const dates = new Set<string>();
+        if (calendarDays && Array.isArray(calendarDays)) {
+            calendarDays.forEach(day => {
+                if (day.lective) {
+                    dates.add(format(new Date(day.date), 'yyyy-MM-dd'));
+                }
+            });
+        }
+        return dates;
+    }, [calendarDays]);
 
     // Estado de filtros
     const [filters, setFilters] = useState<FilterValues>({
@@ -360,20 +394,37 @@ export default function HomePage() {
     // Personalizar estilos de eventos
     const eventStyleGetter = (event: MyEvent) => {
         const calendarEvent = event.resource;
-        const baseColor = getSubjectColor(calendarEvent?.subject?.acronym);
-        const isCancelled = calendarEvent?.cancelled || false;
+
+        // Obtener el color basado en la asignatura
+        let backgroundColor = getSubjectColor(calendarEvent?.subject?.acronym);
+        let textColor = darkenColor(backgroundColor, 0.4); // Usar versión oscura del mismo color
+        let opacity = 1;
+        let border = '1px solid white';
+
+        // Eventos cancelados
+        if (calendarEvent?.cancelled) {
+            backgroundColor = '#9ca3af'; // Gris apagado
+            textColor = '#374151'; // Gris oscuro
+            opacity = 0.7;
+            return {
+                style: {
+                    backgroundColor,
+                    color: textColor,
+                    opacity,
+                    border: '1px solid white',
+                    borderRadius: '10px',
+                    textDecoration: 'line-through',
+                }
+            };
+        }
 
         return {
             style: {
-                backgroundColor: isCancelled ? '#9CA3AF' : baseColor,
-                color: '#FFFFFF',
-                border: 'none',
-                borderRadius: '4px',
-                fontSize: '0.75rem',
-                fontWeight: '500',
-                padding: '2px 4px',
-                opacity: isCancelled ? 0.6 : 1,
-                textDecoration: isCancelled ? 'line-through' : 'none'
+                backgroundColor,
+                color: textColor,
+                opacity,
+                border,
+                borderRadius: '10px',
             }
         };
     };
@@ -384,14 +435,49 @@ export default function HomePage() {
         setDetailsDrawerOpen(true);
     };
 
-    // Componentes personalizados
+    // Componentes personalizados - Sin menú contextual para HomePage (solo consulta)
     const components: Components<MyEvent> = {
-        event: (props) => (
-            <CalendarEventWrapper
-                {...props}
-                onViewDetails={handleViewDetails}
-            />
-        ),
+        event: (props) => {
+            const calendarEvent = props.event.resource;
+            if (!calendarEvent) {
+                return <div className="h-full w-full">{props.event.title}</div>;
+            }
+
+            // Extraer el grupo y la hora del título (formato esperado: "Grupo - HH:MM")
+            const titleParts = props.event.title.split(' - ');
+            const groupStr = titleParts[0];
+            const timeStr = titleParts.length > 1 ? titleParts[1] : '';
+
+            return (
+                <div
+                    className="h-full w-full px-1 py-1 flex flex-col gap-0.5 cursor-pointer"
+                    onClick={() => handleViewDetails(calendarEvent)}
+                >
+                    <div className="text-xs font-semibold leading-tight">{groupStr}</div>
+                    <div className="text-[11px] leading-tight font-medium opacity-95">
+                        {timeStr}
+                        {calendarEvent.classrooms.length > 0 && (
+                            <> · {calendarEvent.classrooms.map(c => c.code).join(', ')}</>
+                        )}
+                    </div>
+                </div>
+            );
+        },
+    };
+
+    // Función para estilizar días no lectivos
+    const dayPropGetter = (date: Date) => {
+        const dateKey = format(date, 'yyyy-MM-dd');
+
+        // Colorear si NO está en lectiveDates (días no lectivos)
+        if (!lectiveDates.has(dateKey)) {
+            return {
+                style: {
+                    backgroundColor: 'rgba(156, 163, 175, 0.25)', // Gris con opacidad moderada
+                }
+            };
+        }
+        return {};
     };
 
     const isLoading = isLoadingCalendars || isLoadingEvents;
@@ -410,9 +496,9 @@ export default function HomePage() {
 
     return (
         <div className="flex flex-col h-full">
-            {/* Toolbar simplificada con selector de calendario y filtros de año */}
+            {/* Toolbar con selector de calendario */}
             {hasAvailableCalendars && (
-                <div className="border-b p-4 space-y-4">
+                <div className="border-b p-4">
                     <div className="flex items-center gap-4">
                         <label className="text-sm font-medium text-muted-foreground whitespace-nowrap">
                             {t("home.selectCalendar")}:
@@ -433,33 +519,6 @@ export default function HomePage() {
                             </SelectContent>
                         </Select>
                     </div>
-
-                    {/* Filtros de año (botones) */}
-                    {selectedCalendar && filterOptions.find(opt => opt.category === 'curso') && (
-                        <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm font-medium text-muted-foreground">{t("calendar.filters.year")}:</span>
-                            {filterOptions
-                                .find(opt => opt.category === 'curso')
-                                ?.options.map((yearLabel) => {
-                                    const isActive = filters.curso.includes(yearLabel);
-                                    return (
-                                        <Button
-                                            key={yearLabel}
-                                            variant={isActive ? "default" : "outline"}
-                                            size="sm"
-                                            onClick={() => {
-                                                const newCurso = isActive
-                                                    ? filters.curso.filter(y => y !== yearLabel)
-                                                    : [...filters.curso, yearLabel];
-                                                setFilters({ ...filters, curso: newCurso });
-                                            }}
-                                        >
-                                            {yearLabel}
-                                        </Button>
-                                    );
-                                })}
-                        </div>
-                    )}
                 </div>
             )}
 
@@ -489,10 +548,25 @@ export default function HomePage() {
                                     events={filteredEvents}
                                     startAccessor="start"
                                     endAccessor="end"
+                                    min={moment().hour(9).minute(0).toDate()}
+                                    max={moment().hour(21).minute(0).toDate()}
                                     style={{ height: '100%' }}
                                     eventPropGetter={eventStyleGetter}
+                                    dayPropGetter={dayPropGetter}
                                     components={components}
-                                    views={['month', 'week', 'day']}
+                                    defaultView="work_week"
+                                    views={['week', 'work_week', 'day', 'month']}
+                                    culture={t("calendar.locale")}
+                                    formats={{
+                                        timeGutterFormat: 'HH:mm',
+                                        eventTimeRangeFormat: () => '',
+                                        agendaTimeRangeFormat: () => '',
+                                        selectRangeFormat: () => '',
+                                        dayHeaderFormat: (date: Date) => moment(date).format('ddd DD'),
+                                        dayRangeHeaderFormat: ({ start, end }: { start: Date; end: Date }) =>
+                                            `${moment(start).format('MMMM DD')} – ${moment(end).format('DD')}`,
+                                        monthHeaderFormat: (date: Date) => moment(date).format('MMMM YYYY')
+                                    }}
                                     messages={{
                                         next: t("calendar.next"),
                                         previous: t("calendar.previous"),
@@ -505,7 +579,8 @@ export default function HomePage() {
                                         time: t("calendar.time"),
                                         event: t("calendar.event.label"),
                                         noEventsInRange: t("calendar.noEvents"),
-                                        showMore: (total: number) => t("calendar.showMore", { count: total })
+                                        showMore: (total: number) => t("calendar.showMore", { count: total }),
+                                        work_week: t("calendar.workWeek")
                                     }}
                                 />
                             )}

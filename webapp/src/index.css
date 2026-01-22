@@ -119,3 +119,9 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Estilos personalizados para react-big-calendar */
+.rbc-header {
+  color: #000000 !important;
+  font-weight: 500;
+}

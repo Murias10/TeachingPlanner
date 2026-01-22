@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Calendar, momentLocalizer, Components } from "react-big-calendar";
-import moment from "moment";
+import moment from "@/utils/momentLocales"; // Usar moment con locales pre-cargados
 import { format } from "date-fns";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { useEventsCalendar } from "@/hooks/calendar/useEventsCalendar";
@@ -11,23 +11,14 @@ import ClassFilter, { FilterValues } from "@/components/ClassFilter";
 import { FileText, BookOpen, DoorOpen, Languages, Users, GraduationCap, XCircle, CalendarDays } from "lucide-react";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { useTranslation } from "react-i18next";
-import { CalendarEventWrapper } from "@/components/calendar/CalendarEventWrapper";
 import { EventDetailsDrawer } from "@/components/calendar/EventDetailsDrawer";
 import { useActiveCalendars } from "@/hooks/calendar/useActiveCalendars";
 import { sortAlphabetically, sortGruposByAcronymTypeNumber } from "@/utils/filterSortingUtils";
 import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
 import { generateGroupId } from "@/utils/groupFormatUtils";
 
-// Configurar moment para usar español y que la semana empiece en lunes
-moment.locale('es', {
-    week: {
-        dow: 1, // Lunes es el primer día de la semana (0 = domingo, 1 = lunes)
-        doy: 4  // Usada para calcular la primera semana del año
-    }
-});
-
+// El localizer se crea de forma global
 const localizer = momentLocalizer(moment);
 
 interface MyEvent {
@@ -96,8 +87,34 @@ const getSubjectColor = (subjectAcronym: string | undefined): string => {
 };
 
 export default function HomePage() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const { setItems } = useBreadcrumbContext();
+    const [localeLoaded, setLocaleLoaded] = useState(false);
+
+    // Configurar el locale de moment basándose en el idioma actual de i18next
+    useEffect(() => {
+        // i18n.language puede ser 'es', 'es-ES', 'en', 'en-US', etc.
+        const languageCode = i18n.language.split('-')[0]; // Extraer 'es' de 'es-ES'
+        console.log('🌍 Current i18n language:', i18n.language);
+        console.log('🌍 Language code extracted:', languageCode);
+
+        // Establecer el locale actual
+        moment.locale(languageCode);
+
+        // Configurar que la semana siempre empiece en lunes, independientemente del idioma
+        moment.updateLocale(languageCode, {
+            week: {
+                dow: 1, // Lunes es el primer día de la semana
+                doy: 4
+            }
+        });
+
+        // Verificar el locale actual
+        const currentLocale = moment.locale();
+        console.log('🌍 Final moment locale:', currentLocale);
+        console.log('🗓️ Test format:', moment().format('dddd, MMMM DD, YYYY'));
+        setLocaleLoaded(true);
+    }, [i18n.language]);
 
     // Estado para el calendario seleccionado
     const [selectedCalendarId, setSelectedCalendarId] = useState<string | null>(() => {
@@ -473,7 +490,7 @@ export default function HomePage() {
         if (!lectiveDates.has(dateKey)) {
             return {
                 style: {
-                    backgroundColor: 'rgba(156, 163, 175, 0.25)', // Gris con opacidad moderada
+                    backgroundColor: 'rgba(156, 163, 175, 0.20)', // Gris con opacidad más reducida
                 }
             };
         }
@@ -482,8 +499,8 @@ export default function HomePage() {
 
     const isLoading = isLoadingCalendars || isLoadingEvents;
 
-    // Mostrar loading mientras carga
-    if (isLoadingCalendars) {
+    // Mostrar loading mientras carga o mientras se configura el locale
+    if (isLoadingCalendars || !localeLoaded) {
         return (
             <div className="flex items-center justify-center h-full">
                 <LoadingSpinner />

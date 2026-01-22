@@ -1900,7 +1900,7 @@ export default function CalendarPage() {
         if (!lectiveDates.has(dateKey)) {
             return {
                 style: {
-                    backgroundColor: 'rgba(156, 163, 175, 0.25)', // Gris con opacidad moderada
+                    backgroundColor: 'rgba(156, 163, 175, 0.20)', // Gris con opacidad más reducida
                 }
             };
         }

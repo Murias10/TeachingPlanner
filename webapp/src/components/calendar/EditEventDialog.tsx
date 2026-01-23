@@ -92,6 +92,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
   const [allowEditPlanifiedHours, setAllowEditPlanifiedHours] = useState(false);
   const [initialGroupHours, setInitialGroupHours] = useState<number>(0); // Store initial hours from selected group
   const [initialConfig, setInitialConfig] = useState<RecurrenceConfig | null>(null); // Store initial config to detect changes
+  const [isInitializing, setIsInitializing] = useState(false); // Flag to prevent clearing during initialization
 
   const previousEventTypeRef = React.useRef<string>('T');
 
@@ -101,9 +102,23 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
     return isCustomEventCharacter(event.eventCharacter);
   }, [event]);
 
+  // Resetear estados cuando se cierra el diálogo
+  useEffect(() => {
+    if (!open) {
+      setInitialConfig(null);
+      setIsInitializing(false);
+      setInitialGroupHours(0);
+      setAllowEditPlanifiedHours(false);
+      previousEventTypeRef.current = 'T';
+      previousSubjectIdRef.current = undefined;
+    }
+  }, [open]);
+
   // Actualizar config cuando cambie el evento
   useEffect(() => {
-    if (event) {
+    if (event && open) {
+      // Marcar que estamos inicializando
+      setIsInitializing(true);
       // Para eventos periódicos, usar las horas planificadas del grupo
       const planifiedHours = event.type === 'periodic' && event.groups.length > 0
         ? event.groups[0].planifiedHours || 0
@@ -155,6 +170,15 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
         eventCharacter: event.eventCharacter,
       };
 
+      // Set refs BEFORE any state updates to avoid race conditions
+      if (event.groups.length > 0) {
+        const newEventType = event.groups[0].type;
+        previousEventTypeRef.current = newEventType;
+      }
+      // Also set the subject ref to prevent subject change detection
+      previousSubjectIdRef.current = event.subject?.id;
+
+      // Update all states - config and initialConfig should be set together
       setConfig(newConfig);
       setInitialConfig(newConfig); // Save initial config for comparison
 
@@ -164,20 +188,22 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
         setAllowEditPlanifiedHours(false);
       }
 
-      // Set event type from first group
+      // Set event type state LAST, after refs are already updated
       if (event.groups.length > 0) {
-        const newEventType = event.groups[0].type;
-        setEventType(newEventType);
-        previousEventTypeRef.current = newEventType;
+        setEventType(event.groups[0].type);
       }
+
+      // Marcar que terminamos de inicializar (después de un pequeño delay para asegurar que todos los estados se actualizaron)
+      setTimeout(() => setIsInitializing(false), 0);
     }
-  }, [event]);
+  }, [event, open]);
 
   // Clear group and classroom selections when event type changes (only if user manually changed it)
   React.useEffect(() => {
-    // Only clear if the event type actually changed AND it's different from the previous value
-    // AND we're not in the initial load (check if we have initial config)
-    if (eventType !== previousEventTypeRef.current && initialConfig !== null) {
+    // Only clear if:
+    // 1. The event type actually changed
+    // 2. We're not in the initialization phase
+    if (eventType !== previousEventTypeRef.current && !isInitializing) {
       setConfig(prev => ({
         ...prev,
         groupIds: [],
@@ -185,11 +211,17 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
       }));
       previousEventTypeRef.current = eventType;
     }
-  }, [eventType, initialConfig]);
+  }, [eventType, isInitializing]);
 
   // Clear group selection when subject changes
   const previousSubjectIdRef = React.useRef<string | undefined>(undefined);
   React.useEffect(() => {
+    // Don't clear groups during initialization
+    if (isInitializing) {
+      previousSubjectIdRef.current = config.subjectId;
+      return;
+    }
+
     // Skip the first run (when component mounts)
     if (previousSubjectIdRef.current === undefined) {
       previousSubjectIdRef.current = config.subjectId;
@@ -204,7 +236,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
       }));
     }
     previousSubjectIdRef.current = config.subjectId;
-  }, [config.subjectId]);
+  }, [config.subjectId, isInitializing]);
 
   const { data: classrooms = [] } = useClassrooms();
   const { data: subjects = [], isLoading: isLoadingSubjects } = useSubjectsByCalendarId(calendarId || null);
@@ -230,8 +262,6 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
     return mergedClassrooms;
   }, [classrooms, event]);
 
-  // No need to filter subjects by semester anymore since they come from calendar
-  const filteredSubjects = subjects;
 
   // Calculate monthly pattern labels based on customStartDate
   const monthlyPatternLabels = useMemo(() => {
@@ -302,13 +332,8 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
       return config.weekDays && config.weekDays.length > 0 && config.planifiedHours > 0;
     }
 
-    if (config.frequency === 'custom') {
-      // Custom patterns are read-only in edit mode, so just basic validation
-      return true;
-    }
-
     return true;
-  }, [config.subjectId, config.groupIds, config.classroomIds, eventType, config.frequency, config.eventDate, config.weekDays, config.planifiedHours, config.customStartDate, config.customFrequencyUnit, config.interval]);
+  }, [config.subjectId, config.groupIds, config.classroomIds, eventType, config.frequency, config.eventDate, config.weekDays, config.planifiedHours]);
 
   // Detect if there are any changes from the initial config
   const hasChanges = useMemo(() => {
@@ -344,10 +369,6 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
     { value: 'S', label: 'S' },
     { value: 'D', label: 'D' },
   ];
-
-  const handleFrequencyChange = (value: FrequencyType) => {
-    setConfig({ ...config, frequency: value });
-  };
 
   const toggleWeekDay = (day: WeekDay) => {
     setConfig({
@@ -421,7 +442,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
             {/* Frequency Selection - Always visible */}
             <div className="space-y-1">
               <Label className="text-xs font-semibold">Frecuencia</Label>
-              <Select value={config.frequency} onValueChange={(value) => handleFrequencyChange(value as FrequencyType)} disabled>
+              <Select value={config.frequency} disabled>
                 <SelectTrigger className="h-8 text-xs w-full">
                   <SelectValue />
                 </SelectTrigger>
@@ -575,15 +596,15 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                 <div className="h-8 text-xs flex items-center text-muted-foreground">
                   Cargando asignaturas...
                 </div>
-              ) : filteredSubjects.length === 0 ? (
+              ) : subjects.length === 0 ? (
                 <div className="h-8 text-xs flex items-center text-muted-foreground">
                   No hay asignaturas disponibles
                 </div>
-              ) : filteredSubjects.length > 8 ? (
+              ) : subjects.length > 8 ? (
                 <SearchableSelect
                   value={config.subjectId || ''}
                   onValueChange={(value) => setConfig({ ...config, subjectId: value })}
-                  options={filteredSubjects.sort((a, b) => a.name.localeCompare(b.name)).map((subject) => ({
+                  options={subjects.sort((a, b) => a.name.localeCompare(b.name)).map((subject) => ({
                     value: subject.id,
                     label: subject.name
                   }))}
@@ -597,7 +618,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                     <SelectValue placeholder="Seleccionar asignatura" />
                   </SelectTrigger>
                   <SelectContent>
-                    {filteredSubjects.sort((a, b) => a.name.localeCompare(b.name)).map((subject) => (
+                    {subjects.sort((a, b) => a.name.localeCompare(b.name)).map((subject) => (
                       <SelectItem key={subject.id} value={subject.id}>
                         {subject.name}
                       </SelectItem>

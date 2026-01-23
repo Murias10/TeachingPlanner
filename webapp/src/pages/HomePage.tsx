@@ -268,6 +268,7 @@ export default function HomePage() {
 
         const tipoGrupoSet = new Set<string>();
         const asignaturaSet = new Set<string>();
+        const asignaturaTooltipMap = new Map<string, string>(); // Mapa acronym -> nombre completo
         const gruposSet = new Set<string>();
         const aulaSet = new Set<string>();
         const idiomaSet = new Set<string>();
@@ -280,6 +281,10 @@ export default function HomePage() {
             // Asignatura
             if (event.subject?.acronym) {
                 asignaturaSet.add(event.subject.acronym);
+                // Guardar el nombre completo para tooltips
+                if (event.subject.name) {
+                    asignaturaTooltipMap.set(event.subject.acronym, event.subject.name);
+                }
                 const year = subjectYearMap.get(event.subject.acronym);
                 if (year !== undefined) cursoSet.add(year);
             }
@@ -317,6 +322,7 @@ export default function HomePage() {
                 category: 'asignatura' as const,
                 label: t("calendar.filters.subject"),
                 options: sortAlphabetically(Array.from(asignaturaSet)),
+                optionTooltips: Object.fromEntries(asignaturaTooltipMap),
                 icon: FileText
             },
             {

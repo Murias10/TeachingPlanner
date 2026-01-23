@@ -453,6 +453,7 @@ export default function CalendarPage() {
         // Extraer opciones únicas usando los eventos correspondientes
         const uniqueYears = new Set<number>();
         const uniqueSubjects = new Set<string>();
+        const subjectTooltipMap = new Map<string, string>(); // Mapa acronym -> nombre completo
         const uniqueTypes = new Set<string>();
         const uniqueClassrooms = new Set<string>();
         const uniqueLanguages = new Set<string>();
@@ -471,6 +472,10 @@ export default function CalendarPage() {
         eventsForSubjects.forEach(event => {
             if (event.subject?.acronym) {
                 uniqueSubjects.add(event.subject.acronym);
+                // Guardar el nombre completo para tooltips
+                if (event.subject.name) {
+                    subjectTooltipMap.set(event.subject.acronym, event.subject.name);
+                }
             }
         });
 
@@ -499,6 +504,7 @@ export default function CalendarPage() {
                 category: 'asignatura' as const,
                 label: t('calendar.filters.subject'),
                 options: sortAlphabetically(Array.from(uniqueSubjects)),
+                optionTooltips: Object.fromEntries(subjectTooltipMap),
                 icon: BookOpen
             },
             {

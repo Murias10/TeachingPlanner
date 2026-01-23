@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { formatGroupForDisplay, getGroupAcronym } from '@/utils/groupFormatUtils';
 import { GROUP_TYPE_LABELS, LANGUAGE_LABELS } from '@/constants/groupTypes';
@@ -25,6 +26,7 @@ interface FilterOption {
   category: FilterCategory;
   label: string;
   options: string[];
+  optionTooltips?: Record<string, string>; // Mapa de value -> tooltip text
   icon: React.ComponentType<{ className?: string }>;
 }
 
@@ -206,7 +208,7 @@ export default function ClassFilter({
 
       <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="px-4 py-4 space-y-2">
-          {filterOptions.map(({ category, label, options, icon: Icon }) => {
+          {filterOptions.map(({ category, label, options, optionTooltips, icon: Icon }) => {
             const isExpanded = expandedCategory === category;
             const selectedCount = filters[category].length;
             const showSearch = options.length > SEARCH_THRESHOLD;
@@ -292,8 +294,10 @@ export default function ClassFilter({
                           const groupState = category === 'grupos' ? getGroupState(option) : null;
                           const isDisabled = groupState === 'disabled';
                           const isChecked = filters[category].includes(option);
+                          const tooltip = optionTooltips?.[option];
+                          const hasTooltip = !!tooltip;
 
-                          return (
+                          const optionContent = (
                             <div
                               key={option}
                               className={cn(
@@ -325,6 +329,23 @@ export default function ClassFilter({
                               )}
                             </div>
                           );
+
+                          if (hasTooltip) {
+                            return (
+                              <TooltipProvider key={option} delayDuration={300}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    {optionContent}
+                                  </TooltipTrigger>
+                                  <TooltipContent side="right" className="max-w-xs">
+                                    <p className="text-sm">{tooltip}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            );
+                          }
+
+                          return optionContent;
                         })}
                       </div>
                     </div>

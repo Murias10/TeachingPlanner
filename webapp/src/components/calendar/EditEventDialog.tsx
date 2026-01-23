@@ -35,6 +35,12 @@ interface EditEventDialogProps {
 }
 
 // Helper functions for time calculations
+const formatTimeDisplay = (time: string): string => {
+  // Si el tiempo viene con segundos (HH:mm:ss), solo mostrar HH:mm
+  const parts = time.split(':');
+  return parts.length >= 2 ? `${parts[0]}:${parts[1]}` : time;
+};
+
 const calculateDurationInMinutes = (startTime: string, endTime: string): number => {
   const [startH, startM] = startTime.split(':').map(Number);
   const [endH, endM] = endTime.split(':').map(Number);
@@ -170,7 +176,8 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
   // Clear group and classroom selections when event type changes (only if user manually changed it)
   React.useEffect(() => {
     // Only clear if the event type actually changed AND it's different from the previous value
-    if (eventType !== previousEventTypeRef.current) {
+    // AND we're not in the initial load (check if we have initial config)
+    if (eventType !== previousEventTypeRef.current && initialConfig !== null) {
       setConfig(prev => ({
         ...prev,
         groupIds: [],
@@ -178,7 +185,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
       }));
       previousEventTypeRef.current = eventType;
     }
-  }, [eventType]);
+  }, [eventType, initialConfig]);
 
   // Clear group selection when subject changes
   const previousSubjectIdRef = React.useRef<string | undefined>(undefined);
@@ -516,7 +523,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                       variant="outline"
                       className="h-8 px-3 text-xs justify-between font-normal flex-1"
                     >
-                      {config.startTime}
+                      {formatTimeDisplay(config.startTime)}
                       <ChevronDownIcon className="w-3 h-3" />
                     </Button>
                   </PopoverTrigger>
@@ -544,7 +551,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                       variant="outline"
                       className="h-8 px-3 text-xs justify-between font-normal flex-1"
                     >
-                      {config.endTime}
+                      {formatTimeDisplay(config.endTime)}
                       <ChevronDownIcon className="w-3 h-3" />
                     </Button>
                   </PopoverTrigger>
@@ -932,7 +939,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
             {/* Resumen */}
             <div className="bg-accent/20 border border-primary/20 rounded p-3 text-xs">
               <p className="font-semibold">{getSummary()}</p>
-              <p className="text-muted-foreground text-xs mt-1">{config.startTime} - {config.endTime}</p>
+              <p className="text-muted-foreground text-xs mt-1">{formatTimeDisplay(config.startTime)} - {formatTimeDisplay(config.endTime)}</p>
             </div>
           </div>
         </div>

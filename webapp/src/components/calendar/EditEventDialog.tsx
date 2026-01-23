@@ -89,6 +89,9 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
   const [eventType, setEventType] = useState<string>('T');
   const [openStartTime, setOpenStartTime] = useState(false);
   const [openEndTime, setOpenEndTime] = useState(false);
+  const [openEventDate, setOpenEventDate] = useState(false);
+  const [openCustomStartDate, setOpenCustomStartDate] = useState(false);
+  const [openEndsOnDate, setOpenEndsOnDate] = useState(false);
   const [allowEditPlanifiedHours, setAllowEditPlanifiedHours] = useState(false);
   const [initialGroupHours, setInitialGroupHours] = useState<number>(0); // Store initial hours from selected group
   const [initialConfig, setInitialConfig] = useState<RecurrenceConfig | null>(null); // Store initial config to detect changes
@@ -351,6 +354,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
     return (
       config.startTime !== initialConfig.startTime ||
       config.endTime !== initialConfig.endTime ||
+      config.eventDate !== initialConfig.eventDate ||
       config.subjectId !== initialConfig.subjectId ||
       !arraysEqual(config.groupIds || [], initialConfig.groupIds || []) ||
       !arraysEqual(config.classroomIds || [], initialConfig.classroomIds || []) ||
@@ -464,7 +468,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
               <div className="flex gap-2">
                 {/* Date Selection - for no-repeat */}
                 {!isCustomPeriodicEvent && config.frequency === 'no-repeat' && (
-                  <Popover modal={true}>
+                  <Popover open={openEventDate} onOpenChange={setOpenEventDate} modal={true}>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
@@ -478,9 +482,11 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                       <Calendar
                         mode="single"
                         selected={config.eventDate && !isNaN(new Date(config.eventDate).getTime()) ? new Date(config.eventDate) : new Date()}
+                        defaultMonth={config.eventDate && !isNaN(new Date(config.eventDate).getTime()) ? new Date(config.eventDate) : new Date()}
                         onSelect={(date) => {
                           if (date) {
                             setConfig({ ...config, eventDate: format(date, 'yyyy-MM-dd') });
+                            setOpenEventDate(false);
                           }
                         }}
                         locale={es}
@@ -511,7 +517,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
 
                 {/* Date Selection - for custom */}
                 {!isCustomPeriodicEvent && config.frequency === 'custom' && (
-                  <Popover modal={true}>
+                  <Popover open={openCustomStartDate} onOpenChange={setOpenCustomStartDate} modal={true}>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
@@ -525,9 +531,11 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                       <Calendar
                         mode="single"
                         selected={config.customStartDate && !isNaN(new Date(config.customStartDate).getTime()) ? new Date(config.customStartDate) : new Date()}
+                        defaultMonth={config.customStartDate && !isNaN(new Date(config.customStartDate).getTime()) ? new Date(config.customStartDate) : new Date()}
                         onSelect={(date) => {
                           if (date) {
                             setConfig({ ...config, customStartDate: format(date, 'yyyy-MM-dd') });
+                            setOpenCustomStartDate(false);
                           }
                         }}
                         locale={es}
@@ -890,7 +898,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                       <Label htmlFor="on" className="text-xs cursor-pointer m-0">
                         El
                       </Label>
-                      <Popover>
+                      <Popover open={openEndsOnDate} onOpenChange={setOpenEndsOnDate}>
                         <PopoverTrigger asChild disabled={config.endsType !== 'on'}>
                           <Button
                             variant="ghost"
@@ -904,9 +912,11 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                           <Calendar
                             mode="single"
                             selected={config.endsOnDate ? new Date(config.endsOnDate) : undefined}
+                            defaultMonth={config.endsOnDate ? new Date(config.endsOnDate) : (config.customStartDate ? new Date(config.customStartDate) : new Date())}
                             onSelect={(date) => {
                               if (date) {
                                 setConfig({ ...config, endsOnDate: format(date, 'yyyy-MM-dd') });
+                                setOpenEndsOnDate(false);
                               }
                             }}
                             locale={es}

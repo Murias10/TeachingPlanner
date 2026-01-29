@@ -384,7 +384,203 @@ wc -l .env
 
 ---
 
-## 🚀 Paso 4: Configurar GitHub Container Registry (GHCR)
+## 🔐 Paso 4: Generar Certificados SSL
+
+Para que la aplicación funcione con HTTPS, necesitas generar certificados SSL. Estos certificados permitirán acceder a la aplicación tanto por dominio como por IP.
+
+### 4.1. ¿Qué Tipo de Certificados Usar?
+
+Tienes dos opciones:
+
+| Opción | Ventajas | Desventajas | Recomendado Para |
+|--------|----------|-------------|------------------|
+| **Auto-firmados** | Gratis, rápidos, funcionan con IP | Advertencia en navegador | Desarrollo, acceso interno VPN |
+| **Let's Encrypt** | Confiables, sin advertencias | Solo dominio, no IP | Producción pública |
+
+**Para la VPN de la Universidad**: Usa certificados **auto-firmados** porque:
+- Accedes por IP privada (156.35.95.XXX)
+- Let's Encrypt no puede validar IPs privadas
+- La advertencia del navegador no es problema en uso interno
+
+### 4.2. Generar Certificados Auto-firmados
+
+Conéctate a la VM y ejecuta estos comandos:
+
+```bash
+# Ir al directorio de la aplicación y crear carpeta de certificados
+cd ~/TeachingPlanner
+mkdir -p certs
+cd certs
+
+# Generar certificado que funcione con dominio e IP
+openssl req -x509 -newkey rsa:2048 -nodes -days 365 \
+  -keyout key.pem -out cert.pem \
+  -subj "/C=ES/ST=Asturias/L=Oviedo/O=Universidad de Oviedo/CN=teachingplanner.duckdns.org" \
+  -addext "subjectAltName=DNS:teachingplanner.duckdns.org,DNS:localhost,IP:156.35.95.119,IP:127.0.0.1"
+
+# Establecer permisos seguros
+chmod 600 key.pem
+chmod 644 cert.pem
+
+# Verificar que se generó correctamente
+openssl x509 -in cert.pem -text -noout | grep -A 2 "Subject Alternative Name"
+```
+
+**IMPORTANTE**: Cambia estos valores en el comando:
+- `CN=teachingplanner.duckdns.org` → Tu dominio (o usa `localhost`)
+- `DNS:teachingplanner.duckdns.org` → Tu dominio
+- `IP:156.35.95.119` → La IP real de tu VM
+
+**Salida esperada del último comando**:
+```
+X509v3 Subject Alternative Name:
+    DNS:teachingplanner.duckdns.org, DNS:localhost, IP Address:156.35.95.119, IP Address:127.0.0.1
+```
+
+Si ves tu dominio y tu IP, ¡perfecto! ✅
+
+### 4.3. Actualizar Secrets en GitHub
+
+Los certificados deben estar en GitHub Secrets para que el workflow los copie automáticamente a la VM en cada deploy.
+
+**📝 ¿Por qué en GitHub Secrets?**
+
+Los certificados están en **dos lugares**:
+- **En la VM** (`~/TeachingPlanner/certs/`): Caddy los usa para servir HTTPS
+- **En GitHub Secrets**: El workflow los copia a la VM automáticamente al desplegar
+
+Esto permite que si cambias la IP o los certificados expiran, solo actualices los secrets y el siguiente deploy los copiará automáticamente, sin necesidad de SSH manual.
+
+```bash
+# En la VM, mostrar el contenido de los certificados
+cat ~/TeachingPlanner/certs/cert.pem
+cat ~/TeachingPlanner/certs/key.pem
+```
+
+Luego en GitHub:
+
+1. Ve a tu repositorio: `https://github.com/murias10/TeachingPlanner`
+2. **Settings** → **Secrets and variables** → **Actions**
+3. Crear o actualizar estos secrets:
+
+   **Secret: `SSL_CERT`**
+   - Click en **New repository secret** (o editar si existe)
+   - Name: `SSL_CERT`
+   - Value: Copia **TODO** el contenido de `cert.pem`
+     ```
+     -----BEGIN CERTIFICATE-----
+     MIIDxTCCAq2gAwIBAgIUXXXXXXXXXXXXXXXXXXXXXXXXXXXwDQYJ...
+     ...
+     -----END CERTIFICATE-----
+     ```
+
+   **Secret: `SSL_KEY`**
+   - Click en **New repository secret** (o editar si existe)
+   - Name: `SSL_KEY`
+   - Value: Copia **TODO** el contenido de `key.pem`
+     ```
+     -----BEGIN PRIVATE KEY-----
+     MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC...
+     ...
+     -----END PRIVATE KEY-----
+     ```
+
+**IMPORTANTE**: Copia el contenido COMPLETO, incluyendo las líneas `-----BEGIN` y `-----END`.
+
+### 4.4. Verificar Certificados Localmente (Opcional)
+
+```bash
+# Probar HTTPS desde la VM
+curl -k https://localhost
+curl -k https://156.35.95.119
+
+# El -k ignora errores de certificado auto-firmado
+# Si devuelve HTML, funciona correctamente
+```
+
+---
+
+## 🔄 Actualización: Cambio de IP de la Máquina Virtual
+
+Si la Universidad cambia la IP de tu VM, necesitas regenerar los certificados y actualizar la configuración.
+
+### Pasos a Seguir Cuando Cambia la IP:
+
+#### 1. Actualizar el Archivo .env
+
+```bash
+# En la VM con la nueva IP
+cd ~/TeachingPlanner
+nano .env
+```
+
+Cambia la línea:
+```env
+SERVER_IP=156.35.95.XXX  # Nueva IP aquí
+```
+
+Guarda (`Ctrl+O`, `Enter`, `Ctrl+X`).
+
+#### 2. Regenerar Certificados SSL
+
+```bash
+cd ~/TeachingPlanner/certs
+
+# Generar nuevos certificados con la nueva IP
+openssl req -x509 -newkey rsa:2048 -nodes -days 365 \
+  -keyout key.pem -out cert.pem \
+  -subj "/C=ES/ST=Asturias/L=Oviedo/O=Universidad de Oviedo/CN=teachingplanner.duckdns.org" \
+  -addext "subjectAltName=DNS:teachingplanner.duckdns.org,DNS:localhost,IP:156.35.95.XXX,IP:127.0.0.1"
+
+# Recuerda cambiar 156.35.95.XXX por la nueva IP real
+
+# Establecer permisos
+chmod 600 key.pem
+chmod 644 cert.pem
+```
+
+#### 3. Actualizar Secrets en GitHub
+
+Repite el **Paso 4.3** anterior:
+- Copia el nuevo `cert.pem` al secret `SSL_CERT`
+- Copia el nuevo `key.pem` al secret `SSL_KEY`
+
+#### 4. Reiniciar Servicios
+
+```bash
+cd ~/TeachingPlanner
+
+# Reiniciar webapp para que use los nuevos certificados
+docker compose restart webapp
+
+# Verificar logs
+docker compose logs webapp | tail -20
+```
+
+#### 5. Verificar Acceso
+
+```bash
+# Desde la VM
+curl -k https://156.35.95.XXX  # Nueva IP
+
+# Desde tu navegador (con VPN)
+https://156.35.95.XXX  # Nueva IP
+```
+
+### Checklist de Cambio de IP:
+
+- [ ] Anotar la nueva IP asignada por la Universidad
+- [ ] Actualizar `SERVER_IP` en el archivo `.env`
+- [ ] Regenerar certificados SSL con la nueva IP
+- [ ] Actualizar secrets `SSL_CERT` y `SSL_KEY` en GitHub
+- [ ] Reiniciar servicio webapp
+- [ ] Probar acceso por la nueva IP
+- [ ] Actualizar documentación interna con la nueva IP
+- [ ] Notificar al equipo si corresponde
+
+---
+
+## 🚀 Paso 5: Configurar GitHub Container Registry (GHCR)
 
 Las imágenes Docker se almacenan en GitHub Container Registry. Debes dar permisos al runner para descargarlas.
 
@@ -429,7 +625,7 @@ Para que el workflow pueda hacer push de imágenes:
 
 ---
 
-## 🎯 Paso 5: Actualizar el Workflow de GitHub Actions
+## 🎯 Paso 6: Actualizar el Workflow de GitHub Actions
 
 Asegúrate de que el workflow esté configurado para usar el runner de tu VM.
 
@@ -462,9 +658,9 @@ env:
 
 ---
 
-## 🚀 Paso 6: Realizar el Primer Deploy
+## 🚀 Paso 7: Realizar el Primer Deploy
 
-### 6.1. Hacer Push a main
+### 7.1. Hacer Push a main
 
 Desde tu máquina local:
 
@@ -486,7 +682,7 @@ git commit -m "chore: configurar despliegue en VM UniOvi"
 git push origin main
 ```
 
-### 6.2. Monitorear la Ejecución en GitHub
+### 7.2. Monitorear la Ejecución en GitHub
 
 1. Ve a: `https://github.com/murias10/TeachingPlanner/actions`
 2. Verás el workflow "Deploy to Self-Hosted VM" ejecutándose 🔄
@@ -505,7 +701,7 @@ git push origin main
 
 **Tiempo total estimado**: 7-12 minutos (el primer deploy es más lento)
 
-### 6.3. Verificar el Deploy en la VM
+### 7.3. Verificar el Deploy en la VM
 
 Mientras el workflow se ejecuta, conéctate a la VM:
 
@@ -528,7 +724,7 @@ gateway_1   | Gateway listening on port 3000
 
 ¡El despliegue fue exitoso! 🎉
 
-### 6.4. Verificar que Todos los Servicios Están Corriendo
+### 7.4. Verificar que Todos los Servicios Están Corriendo
 
 ```bash
 # Ver estado de todos los containers
@@ -550,7 +746,7 @@ management_database        Up           3307/tcp
 
 Todos los servicios deben mostrar **STATUS = Up** ✅
 
-### 6.5. Probar la Aplicación
+### 7.5. Probar la Aplicación
 
 Abre tu navegador:
 

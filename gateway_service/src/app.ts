@@ -14,13 +14,20 @@ const whitelist = new Set([
     `http://localhost`,
     `http://localhost:5173`,
 
-    // Producción - añade tus dominios reales aquí
-    "https://156.35.95.65",
-    "http://156.35.95.65",
+    // Producción - usa variables de entorno
+    ...(process.env.DOMAIN ? [
+        `https://${process.env.DOMAIN}`,
+        `http://${process.env.DOMAIN}`
+    ] : []),
+
+    ...(process.env.SERVER_IP ? [
+        `https://${process.env.SERVER_IP}`,
+        `http://${process.env.SERVER_IP}`
+    ] : []),
+
+    // Dominios adicionales (mantener por compatibilidad)
     "https://tfg.juanramon.eii-planificador2",
     "http://tfg.juanramon.eii-planificador2",
-    "https://teachingplanner.duckdns.org",
-    "http://teachingplanner.duckdns.org",
 ]);
 
 // Opciones de CORS usando la whitelist

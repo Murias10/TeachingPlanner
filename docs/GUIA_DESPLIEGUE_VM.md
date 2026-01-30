@@ -344,9 +344,10 @@ FRONTEND_URL=https://teachingplanner.uniovi.es
    - Genera una contraseña de aplicación (16 caracteres)
    - Úsala en `SMTP_PASSWORD` (con o sin espacios, ambos funcionan)
 
-4. **DOMAIN y FRONTEND_URL**: Ajústalos según tu configuración:
-   - Si tienes dominio: `teachingplanner.uniovi.es`
-   - Si accedes por IP: `http://156.35.95.XXX`
+4. **DOMAIN, SERVER_IP y FRONTEND_URL**: Ajústalos según tu configuración:
+   - `DOMAIN`: Tu dominio (ej: `teachingplanner.duckdns.org`)
+   - `SERVER_IP`: La IP de tu VM (ej: `156.35.95.119`) - **solo cambiar si la Universidad te asigna una nueva IP**
+   - `FRONTEND_URL`: Para desarrollo usa `http://localhost:5173`, para producción usa tu dominio con https
 
 Guarda el archivo:
 - Presiona `Ctrl + O` → `Enter` (guardar)
@@ -569,11 +570,13 @@ https://156.35.95.XXX  # Nueva IP
 
 ### Checklist de Cambio de IP:
 
+**Nota**: Solo necesitas hacer esto si la Universidad te asigna una IP diferente. El código lee `SERVER_IP` automáticamente del `.env`.
+
 - [ ] Anotar la nueva IP asignada por la Universidad
 - [ ] Actualizar `SERVER_IP` en el archivo `.env`
-- [ ] Regenerar certificados SSL con la nueva IP
+- [ ] Regenerar certificados SSL con la nueva IP en el SAN
 - [ ] Actualizar secrets `SSL_CERT` y `SSL_KEY` en GitHub
-- [ ] Reiniciar servicio webapp
+- [ ] Reiniciar servicio webapp con `docker-compose up -d --force-recreate webapp`
 - [ ] Probar acceso por la nueva IP
 - [ ] Actualizar documentación interna con la nueva IP
 - [ ] Notificar al equipo si corresponde

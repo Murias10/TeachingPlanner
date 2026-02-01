@@ -20,6 +20,7 @@ export interface CalendarEvent {
     dayCharacter: string;
     dayComment: string;
     comment?: string;
+    isBlocker?: boolean; // Indica si es un evento blocker (ocupa aula sin asignatura/grupo)
     isPending?: boolean; // Indica si es un evento de una solicitud pendiente
     requestId?: string; // ID de la solicitud original (si isPending === true)
     professorId?: string; // Email del professor que solicitó el evento (si isPending === true)

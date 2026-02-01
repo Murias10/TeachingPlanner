@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { Repeat, ChevronDownIcon } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/ui/searchable-select';
+import { MultiSelect } from '@/components/ui/multi-select';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -229,14 +230,31 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
     return selectedSubject.groups.filter(group => group.type === eventType);
   }, [config.subjectId, subjectsWithGroups, eventType]);
 
+  const isBlocker = !config.subjectId;
+
   // Validate that all required fields are filled
   const isFormValid = useMemo(() => {
+    const hasClassrooms = config.classroomIds && config.classroomIds.length > 0;
+
+    // Blocker: solo necesita aulas (y fecha/días según frecuencia)
+    if (isBlocker) {
+      if (!hasClassrooms) return false;
+      if (config.frequency === 'no-repeat') return !!config.eventDate;
+      if (config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd') {
+        return !!(config.weekDays && config.weekDays.length > 0);
+      }
+      if (config.frequency === 'custom') {
+        return !!config.customStartDate && !!config.customFrequencyUnit && config.interval > 0 && !!(config.weekDays && config.weekDays.length > 0);
+      }
+      return true;
+    }
+
+    // Evento normal: requiere asignatura, grupo, aula y tipo
     const baseValid = (
       config.subjectId &&
       config.groupIds &&
       config.groupIds.length > 0 &&
-      config.classroomIds &&
-      config.classroomIds.length > 0 &&
+      hasClassrooms &&
       eventType
     );
 
@@ -256,7 +274,7 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
     }
 
     return true;
-  }, [config.subjectId, config.groupIds, config.classroomIds, eventType, config.frequency, config.eventDate, config.weekDays, config.planifiedHours, config.customStartDate, config.customFrequencyUnit, config.interval]);
+  }, [isBlocker, config.subjectId, config.groupIds, config.classroomIds, eventType, config.frequency, config.eventDate, config.weekDays, config.planifiedHours, config.customStartDate, config.customFrequencyUnit, config.interval]);
 
   const weekDays: { value: WeekDay; label: string }[] = [
     { value: 'L', label: 'L' },
@@ -503,7 +521,7 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
                 <div className="h-8 text-xs flex items-center text-muted-foreground">
                   No hay asignaturas disponibles
                 </div>
-              ) : filteredSubjects.length > 8 ? (
+              ) : (
                 <SearchableSelect
                   value={config.subjectId || ''}
                   onValueChange={(value) => setConfig({ ...config, subjectId: value })}
@@ -515,36 +533,29 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
                   searchPlaceholder="Buscar asignatura..."
                   emptyMessage="No se encontraron asignaturas."
                 />
-              ) : (
-                <Select value={config.subjectId || ''} onValueChange={(value) => setConfig({ ...config, subjectId: value })}>
-                  <SelectTrigger className="h-8 text-xs w-full">
-                    <SelectValue placeholder="Seleccionar asignatura" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {filteredSubjects.sort((a, b) => a.name.localeCompare(b.name)).map((subject) => (
-                      <SelectItem key={subject.id} value={subject.id}>
-                        {subject.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               )}
             </div>
 
-            {/* Event Type Selection - Always visible */}
+            {/* Event Type Selection - Disabled when blocker */}
             <div className="space-y-1">
               <Label className="text-xs font-semibold">Tipo de Evento</Label>
-              <Select value={eventType} onValueChange={(value) => setEventType(value as 'T' | 'S' | 'L' | 'TG')}>
-                <SelectTrigger className="h-8 text-xs w-full">
-                  <SelectValue placeholder="Seleccionar tipo de evento" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="T">Teoría</SelectItem>
-                  <SelectItem value="S">Seminario</SelectItem>
-                  <SelectItem value="L">Laboratorio</SelectItem>
-                  <SelectItem value="TG">Tutorías Grupales</SelectItem>
-                </SelectContent>
-              </Select>
+              {isBlocker ? (
+                <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
+                  No aplica (evento blocker)
+                </div>
+              ) : (
+                <Select value={eventType} onValueChange={(value) => setEventType(value as 'T' | 'S' | 'L' | 'TG')}>
+                  <SelectTrigger className="h-8 text-xs w-full">
+                    <SelectValue placeholder="Seleccionar tipo de evento" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="T">Teoría</SelectItem>
+                    <SelectItem value="S">Seminario</SelectItem>
+                    <SelectItem value="L">Laboratorio</SelectItem>
+                    <SelectItem value="TG">Tutorías Grupales</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             {/* Groups and Classrooms Selection - Same row */}
@@ -619,13 +630,25 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
                 )}
               </div>
 
-              {/* Classrooms Selection - Single select */}
+              {/* Classrooms Selection - Multi-select for blocker, single select otherwise */}
               <div className="space-y-1">
                 <Label className="text-xs font-semibold">Aula</Label>
                 {classrooms.length === 0 ? (
                   <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
                     Cargando aulas...
                   </div>
+                ) : isBlocker ? (
+                  <MultiSelect
+                    values={config.classroomIds || []}
+                    onValuesChange={(values) => setConfig({ ...config, classroomIds: values })}
+                    options={classrooms.sort((a, b) => a.code.localeCompare(b.code)).map((classroom) => ({
+                      value: classroom.id,
+                      label: classroom.code
+                    }))}
+                    placeholder="Seleccionar aulas"
+                    searchPlaceholder="Buscar aula..."
+                    emptyMessage="No se encontraron aulas."
+                  />
                 ) : classrooms.length > 8 ? (
                   <SearchableSelect
                     value={config.classroomIds?.[0] || ''}

@@ -25,7 +25,7 @@ export function DeleteEventConfirmationDialog({
   onOpenChange,
   onConfirm,
   isLoading = false,
-  subjectName = 'esta asignatura',
+  subjectName,
   title,
   description
 }: DeleteEventConfirmationDialogProps) {
@@ -37,7 +37,11 @@ export function DeleteEventConfirmationDialog({
   };
 
   const dialogTitle = title || t("dialog.delete.title");
-  const dialogDescription = description || `¿Estás seguro de que deseas eliminar este evento de '${subjectName}'?`;
+  const dialogDescription = description || (
+    subjectName
+      ? t("calendar.dialogs.deleteEvent", { subjectName })
+      : t("calendar.dialogs.deleteBlockerEvent")
+  );
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>

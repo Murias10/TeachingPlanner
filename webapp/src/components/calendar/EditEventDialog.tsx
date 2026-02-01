@@ -4,6 +4,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Edit as EditIcon, ChevronDownIcon } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/ui/searchable-select';
+import { MultiSelect } from '@/components/ui/multi-select';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -314,13 +315,27 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
   }, [config.subjectId, subjectsWithGroups, eventType, event, config.groupIds]);
 
   // Validate that all required fields are filled
+  const isBlocker = event?.isBlocker || false;
+
   const isFormValid = useMemo(() => {
+    const hasClassrooms = config.classroomIds && config.classroomIds.length > 0;
+
+    // Blocker: solo necesita aulas (y fecha/días según frecuencia)
+    if (isBlocker) {
+      if (!hasClassrooms) return false;
+      if (config.frequency === 'no-repeat') return !!config.eventDate;
+      if (config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd') {
+        return !!(config.weekDays && config.weekDays.length > 0);
+      }
+      return true;
+    }
+
+    // Evento normal
     const baseValid = (
       config.subjectId &&
       config.groupIds &&
       config.groupIds.length > 0 &&
-      config.classroomIds &&
-      config.classroomIds.length > 0 &&
+      hasClassrooms &&
       eventType
     );
 
@@ -336,7 +351,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
     }
 
     return true;
-  }, [config.subjectId, config.groupIds, config.classroomIds, eventType, config.frequency, config.eventDate, config.weekDays, config.planifiedHours]);
+  }, [isBlocker, config.subjectId, config.groupIds, config.classroomIds, eventType, config.frequency, config.eventDate, config.weekDays, config.planifiedHours]);
 
   // Detect if there are any changes from the initial config
   const hasChanges = useMemo(() => {
@@ -608,7 +623,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                 <div className="h-8 text-xs flex items-center text-muted-foreground">
                   No hay asignaturas disponibles
                 </div>
-              ) : subjects.length > 8 ? (
+              ) : (
                 <SearchableSelect
                   value={config.subjectId || ''}
                   onValueChange={(value) => setConfig({ ...config, subjectId: value })}
@@ -620,36 +635,29 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                   searchPlaceholder="Buscar asignatura..."
                   emptyMessage="No se encontraron asignaturas."
                 />
-              ) : (
-                <Select value={config.subjectId || ''} onValueChange={(value) => setConfig({ ...config, subjectId: value })}>
-                  <SelectTrigger className="h-8 text-xs w-full">
-                    <SelectValue placeholder="Seleccionar asignatura" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {subjects.sort((a, b) => a.name.localeCompare(b.name)).map((subject) => (
-                      <SelectItem key={subject.id} value={subject.id}>
-                        {subject.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               )}
             </div>
 
-            {/* Event Type Selection - Always visible */}
+            {/* Event Type Selection - Disabled when blocker */}
             <div className="space-y-1">
               <Label className="text-xs font-semibold">Tipo de Evento</Label>
-              <Select value={eventType} onValueChange={(value) => setEventType(value as 'T' | 'S' | 'L' | 'TG')}>
-                <SelectTrigger className="h-8 text-xs w-full">
-                  <SelectValue placeholder="Seleccionar tipo de evento" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="T">Teoría</SelectItem>
-                  <SelectItem value="S">Seminario</SelectItem>
-                  <SelectItem value="L">Laboratorio</SelectItem>
-                  <SelectItem value="TG">Tutorías Grupales</SelectItem>
-                </SelectContent>
-              </Select>
+              {isBlocker ? (
+                <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
+                  No aplica (evento blocker)
+                </div>
+              ) : (
+                <Select value={eventType} onValueChange={(value) => setEventType(value as 'T' | 'S' | 'L' | 'TG')}>
+                  <SelectTrigger className="h-8 text-xs w-full">
+                    <SelectValue placeholder="Seleccionar tipo de evento" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="T">Teoría</SelectItem>
+                    <SelectItem value="S">Seminario</SelectItem>
+                    <SelectItem value="L">Laboratorio</SelectItem>
+                    <SelectItem value="TG">Tutorías Grupales</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             {/* Groups and Classrooms Selection - Same row */}
@@ -724,13 +732,25 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                 )}
               </div>
 
-              {/* Classrooms Selection - Single select */}
+              {/* Classrooms Selection - Multi-select for blocker, single select otherwise */}
               <div className="space-y-1">
                 <Label className="text-xs font-semibold">Aula</Label>
                 {availableClassrooms.length === 0 ? (
                   <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
                     Cargando aulas...
                   </div>
+                ) : isBlocker ? (
+                  <MultiSelect
+                    values={config.classroomIds || []}
+                    onValuesChange={(values) => setConfig({ ...config, classroomIds: values })}
+                    options={availableClassrooms.sort((a, b) => a.code.localeCompare(b.code)).map((classroom) => ({
+                      value: classroom.id,
+                      label: classroom.code
+                    }))}
+                    placeholder="Seleccionar aulas"
+                    searchPlaceholder="Buscar aula..."
+                    emptyMessage="No se encontraron aulas."
+                  />
                 ) : availableClassrooms.length > 8 ? (
                   <SearchableSelect
                     value={config.classroomIds?.[0] || ''}

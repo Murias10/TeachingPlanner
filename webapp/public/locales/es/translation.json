@@ -79,7 +79,8 @@
         "noResults": "No se encontraron resultados",
         "notAvailable": "No disponible",
         "activeFilters": "Filtros activos",
-        "showCancelledEvents": "Mostrar eventos cancelados"
+        "showCancelledEvents": "Mostrar eventos cancelados",
+        "showBlockerEvents": "Mostrar eventos bloqueantes"
     },
     "alerts": {
         "degree": {
@@ -733,7 +734,7 @@
         "selectCalendar": "Selecciona un calendario",
         "selectCalendarMessage": "Selecciona un calendario para ver los eventos",
         "noActiveCalendars": "No hay calendarios activos",
-        "noActiveCalendarsMessage": "No hay calendarios activos para la fecha actual. Los calendarios aparecerán aquí cuando estén dentro del período lectivo."
+        "noActiveCalendarsMessage": "No hay calendarios activos en este momento. Los calendarios aparecerán aquí cuando sus cursos asociados se pongan en estado activo."
     },
     "calendar": {
         "locale": "es",
@@ -759,7 +760,8 @@
             "groups": "Grupos",
             "classroom": "Aula",
             "language": "Idioma",
-            "showCancelled": "Eventos Cancelados"
+            "showCancelled": "Eventos Cancelados",
+            "showBlockers": "Eventos Bloqueantes"
         },
         "title": "Calendario - Semestre {{semester}}",
         "showingEvents": "Mostrando {{count}} de {{total}} eventos",
@@ -994,7 +996,8 @@
                 "title": "Revertir cancelación",
                 "description": "¿Estás seguro de que deseas revertir la cancelación de este evento? El evento volverá a aparecer en el calendario."
             },
-            "defaultSubject": "esta asignatura"
+            "deleteEvent": "¿Estás seguro de que deseas eliminar este evento de '{{subjectName}}'? Esta acción no se puede deshacer.",
+            "deleteBlockerEvent": "¿Estás seguro de que deseas eliminar este evento bloqueante? Esta acción no se puede deshacer."
         },
         "eventDetails": {
             "title": "Detalles del Evento",

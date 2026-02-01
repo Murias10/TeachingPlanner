@@ -41,6 +41,10 @@ export class PuntualEvent extends AuditedEntity {
     @Column('varchar', { length: 255, name: 'COMMENT' })
     comment!: string;
 
+    /** Indicates if this event is a blocker (occupies classroom without subject/group) */
+    @Column('boolean', { name: 'IS_BLOCKER', default: false })
+    isBlocker!: boolean;
+
     /**
      * ID of the replacement event if this is a cancelled event from a replacement operation
      * If this cancelled event has a replacement, this field contains the ID of the new puntual event

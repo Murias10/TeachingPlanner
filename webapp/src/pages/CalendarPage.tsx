@@ -10,7 +10,7 @@ import { usePendingRequestsAsEvents } from "@/hooks/calendar/usePendingRequestsA
 import { useSubjectsWithGroupsByCalendarId } from "@/hooks/subject/useSubjectsWithGroupsByCalendarId";
 import { CalendarEvent } from "@/types/CalendarEvent";
 import ClassFilter, { FilterValues } from "@/components/ClassFilter";
-import { FileText, BookOpen, DoorOpen, Languages, Users, GraduationCap, XCircle } from "lucide-react";
+import { FileText, BookOpen, DoorOpen, Languages, Users, GraduationCap, XCircle, Lock } from "lucide-react";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { useParams, useNavigate } from "react-router-dom";
 import CalendarToolbar from "@/components/calendar/CalendarToolbar";
@@ -244,7 +244,8 @@ export default function CalendarPage() {
         aula: [],
         idioma: [],
         curso: [],
-        mostrarCancelados: ['si']  // Por defecto mostrar eventos cancelados
+        mostrarCancelados: ['si'],  // Por defecto mostrar eventos cancelados
+        mostrarBlockers: ['si']     // Por defecto mostrar eventos bloqueantes
     });
 
     // Estado para colapsar/expandir filtros
@@ -532,6 +533,11 @@ export default function CalendarPage() {
                 icon: Languages
             },
             ...(isAdmin ? [{
+                category: 'mostrarBlockers' as const,
+                label: t('calendar.filters.showBlockers'),
+                options: ['si'],
+                icon: Lock
+            }, {
                 category: 'mostrarCancelados' as const,
                 label: t('calendar.filters.showCancelled'),
                 options: ['si'],
@@ -545,14 +551,20 @@ export default function CalendarPage() {
         if (allEvents.length === 0) return [];
 
         return allEvents.filter(event => {
+            // Filtro por eventos bloqueantes - se aplica siempre
+            if (event.isBlocker && !filters.mostrarBlockers.includes('si')) {
+                return false;
+            }
+
             // Filtro por eventos cancelados - se aplica siempre
             if (event.cancelled && !filters.mostrarCancelados.includes('si')) {
                 return false;
             }
 
-            // Verificar si hay otros filtros activos (excluyendo mostrarCancelados)
+            // Verificar si hay otros filtros activos (excluyendo mostrarCancelados y mostrarBlockers)
             const otherFilters = { ...filters };
             delete (otherFilters as any).mostrarCancelados;
+            delete (otherFilters as any).mostrarBlockers;
             const hasActiveFilters = Object.values(otherFilters).some(arr => arr.length > 0);
             if (!hasActiveFilters) return true;
 
@@ -627,12 +639,6 @@ export default function CalendarPage() {
             // Calcular el end basándose en la duración real del evento (en horas)
             const endMoment = startMoment.clone().add(event.duration, 'hours');
 
-            // Formatear el nombre del grupo
-            const groupName = `${event.subject?.acronym || 'Sin asignatura'}.${event.groups.map(g => {
-                const lang = g.language === 'EN' ? 'I-' : '';
-                return `${g.type}.${lang}${g.number}`;
-            }).join(', ')}`;
-
             // Formatear la hora en formato 24h (HH:MM)
             const timeStr = startMoment.format('HH:mm');
 
@@ -640,6 +646,24 @@ export default function CalendarPage() {
             const classroomStr = event.classrooms.length > 0
                 ? event.classrooms.map(c => c.code).join(', ')
                 : 'Sin aula asignada';
+
+            // Blocker: label solo con aulas
+            if (event.isBlocker) {
+                const tooltip = `Blocker\n${classroomStr}\n${event.startTime} - ${event.endTime}`;
+                return {
+                    title: `${classroomStr} - ${timeStr}`,
+                    start: startMoment.toDate(),
+                    end: endMoment.toDate(),
+                    resource: event,
+                    tooltip: tooltip
+                };
+            }
+
+            // Formatear el nombre del grupo
+            const groupName = `${event.subject?.acronym || 'Sin asignatura'}.${event.groups.map(g => {
+                const lang = g.language === 'EN' ? 'I-' : '';
+                return `${g.type}.${lang}${g.number}`;
+            }).join(', ')}`;
 
             const tooltip = `${event.subject?.name || 'Sin asignatura'}\n${groupName}\n${event.startTime} - ${event.endTime}\n${classroomStr}`;
 
@@ -860,8 +884,10 @@ export default function CalendarPage() {
     };
 
     const handleSaveEvent = (config: RecurrenceConfig) => {
+        const isBlocker = !config.subjectId;
+
         // Validaciones comunes
-        if (!config.groupIds || config.groupIds.length === 0) {
+        if (!isBlocker && (!config.groupIds || config.groupIds.length === 0)) {
             triggerAlert({
                 title: t('calendar.alerts.validation.noGroups.title'),
                 description: t('calendar.alerts.validation.noGroups.description'),
@@ -891,7 +917,7 @@ export default function CalendarPage() {
 
         // Manejar eventos puntuales
         if (config.frequency === 'no-repeat') {
-            if (!config.eventDate || !config.subjectId) {
+            if (!config.eventDate || (!config.subjectId && !isBlocker)) {
                 triggerAlert({
                     title: t('calendar.alerts.validation.noDateOrSubject.title'),
                     description: t('calendar.alerts.validation.noDateOrSubject.description'),
@@ -954,7 +980,7 @@ export default function CalendarPage() {
                 return;
             }
 
-            if (config.planifiedHours <= 0) {
+            if (!isBlocker && config.planifiedHours <= 0) {
                 triggerAlert({
                     title: t('calendar.alerts.validation.noPlanifiedHours.title'),
                     description: t('calendar.alerts.validation.noPlanifiedHours.description'),
@@ -1064,7 +1090,7 @@ export default function CalendarPage() {
                 return;
             }
 
-            if (config.planifiedHours <= 0) {
+            if (!isBlocker && config.planifiedHours <= 0) {
                 console.log('[Custom Frequency] Error: Horas planificadas inválidas:', config.planifiedHours);
                 triggerAlert({
                     title: t('calendar.alerts.validation.noPlanifiedHours.title'),
@@ -2164,7 +2190,7 @@ export default function CalendarPage() {
                 onOpenChange={setIsDeleteConfirmationOpen}
                 onConfirm={handleConfirmDelete}
                 isLoading={isDeletingEvent}
-                subjectName={eventToDelete?.subject?.name || t('calendar.dialogs.defaultSubject')}
+                subjectName={eventToDelete?.subject?.name}
                 title={deleteType === 'series' ? t('calendar.dialogs.deleteSeries.title') : undefined}
                 description={
                     deleteType === 'series'
@@ -2179,7 +2205,7 @@ export default function CalendarPage() {
                 onOpenChange={setIsRevertConfirmationOpen}
                 onConfirm={handleConfirmRevert}
                 isLoading={isRevertingEvent}
-                subjectName={eventToRevert?.subject?.name || t('calendar.dialogs.defaultSubject')}
+                subjectName={eventToRevert?.subject?.name}
                 title={t('calendar.dialogs.revertCancellation.title')}
                 description={t('calendar.dialogs.revertCancellation.description')}
             />

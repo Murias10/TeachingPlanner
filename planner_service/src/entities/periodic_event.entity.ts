@@ -42,6 +42,10 @@ export class PeriodicEvent extends AuditedEntity {
     @Column('int', { name: 'PLANIFIED_HOURS' })
     planifiedHours!: number;
 
+    /** Indicates if this event is a blocker (occupies classroom without subject/group) */
+    @Column('boolean', { name: 'IS_BLOCKER', default: false })
+    isBlocker!: boolean;
+
     /** Calendar this periodic event belongs to */
     @ManyToOne(() => Calendar, calendar => calendar.periodicEvents, {
         onDelete: 'CASCADE',

@@ -643,7 +643,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
               <Label className="text-xs font-semibold">Tipo de Evento</Label>
               {isBlocker ? (
                 <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
-                  No aplica (evento blocker)
+                  Selecciona una asignatura primero
                 </div>
               ) : (
                 <Select value={eventType} onValueChange={(value) => setEventType(value as 'T' | 'S' | 'L' | 'TG')}>

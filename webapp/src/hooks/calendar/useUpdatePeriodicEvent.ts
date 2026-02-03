@@ -10,6 +10,7 @@ export interface UpdatePeriodicEventPayload {
     weekDay?: string; // L, M, X, J, V, S, D
     classroomIds?: string[];
     planifiedHours?: number;
+    eventType?: string; // NORMAL | BLOCKER | REVISION_* | EVALUACION_*
 }
 
 export interface UpdatePeriodicEventResponse {

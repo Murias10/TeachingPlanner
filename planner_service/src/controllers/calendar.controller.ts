@@ -21,7 +21,7 @@ import { CalendarFormattingService } from '@/services/calendar-formatting.servic
 import { CalendarRepositoryService } from '@/services/calendar-repository.service';
 import { CalendarImportService } from '@/services/calendar-import.service';
 import { CalendarEventsService } from '@/services/calendar-events.service';
-import { EVENT_CHARACTERS, DAY_CHARACTERS, AVAILABLE_CHARACTERS, MAX_EVENT_TYPES, isStandardCharacter } from '@/constants/event-characters.constants';
+import { EVENT_CHARACTERS, DAY_CHARACTERS, AVAILABLE_CHARACTERS, MAX_EVENT_TYPES, isStandardCharacter, EVENT_TYPES, isSpecialEventType } from '@/constants/event-characters.constants';
 import { esSemanaPar } from '@/utils/calendar-week.utils';
 
 export const getCalendars = async (_req: AuditedRequest, res: Response) => {
@@ -927,7 +927,7 @@ export const exportCalendar = async (req: AuditedRequest, res: Response) => {
         // Formato: "Curso:Asignatura.Tipo.Grupo:DíaSemana:HoraComienzo:HoraFin:Aula:SemanasConClase:NúmeroTotalHoras"
         // Ordenado primero por year ascendente, luego por acrónimo de asignatura
         const horariosContent = periodicEvents
-            .filter(event => !event.isBlocker)
+            .filter(event => event.eventType === EVENT_TYPES.NORMAL)
             .sort((a, b) => {
                 // Primero ordenar por year ascendente
                 if (a.year !== b.year) {
@@ -975,7 +975,7 @@ export const exportCalendar = async (req: AuditedRequest, res: Response) => {
         // Con líneas vacías entre grupos de asignaturas
 
         // Primero, procesar los eventos en líneas
-        const excepcionesLines = puntualEvents.filter(event => !event.isBlocker).map(event => {
+        const excepcionesLines = puntualEvents.filter(event => event.eventType === EVENT_TYPES.NORMAL).map(event => {
             // Convertir fecha a formato DD/MM/YYYY
             const date = new Date(event.day.date);
             const dayStr = String(date.getDate()).padStart(2, '0');
@@ -1114,8 +1114,7 @@ export const exportCalendar = async (req: AuditedRequest, res: Response) => {
 
 export const createPuntualEvent = async (req: AuditedRequest, res: Response) => {
     try {
-        const { calendarId, eventDate, startTime, endTime, subjectId, groupIds = [], classroomIds = [], comment = '', cancelled = false } = req.body;
-        const isBlocker = groupIds.length === 0;
+        const { calendarId, eventDate, startTime, endTime, subjectId, groupIds = [], classroomIds = [], comment = '', cancelled = false, eventType = EVENT_TYPES.NORMAL } = req.body;
 
         // Validaciones
         if (!calendarId || !eventDate || !startTime || !endTime) {
@@ -1212,8 +1211,8 @@ export const createPuntualEvent = async (req: AuditedRequest, res: Response) => 
 
             if (!hasTimeOverlap) return false;
 
-            // Verificar si comparte grupo (solo si ambos lados tienen grupo)
-            const sharesGroup = !isBlocker && !event.isBlocker && event.groups?.some(g => groupIds.includes(g.id));
+            // Verificar si comparte grupo (solo si ambos lados tienen grupo; BLOCKER no tiene grupo)
+            const sharesGroup = eventType !== EVENT_TYPES.BLOCKER && event.eventType !== EVENT_TYPES.BLOCKER && event.groups?.some(g => groupIds.includes(g.id));
             // Verificar si comparte aula
             const sharesClassroom = event.classrooms?.some(c => classroomIds.includes(c.id));
 
@@ -1228,7 +1227,7 @@ export const createPuntualEvent = async (req: AuditedRequest, res: Response) => 
         if (conflictingEvents && conflictingEvents.length > 0) {
             // Determinar el tipo específico de conflicto
             const firstConflict = conflictingEvents[0];
-            const sharesGroup = !isBlocker && !firstConflict.isBlocker && firstConflict.groups?.some(g => groupIds.includes(g.id));
+            const sharesGroup = eventType !== EVENT_TYPES.BLOCKER && firstConflict.eventType !== EVENT_TYPES.BLOCKER && firstConflict.groups?.some(g => groupIds.includes(g.id));
             const sharesClassroom = firstConflict.classrooms?.some(c => classroomIds.includes(c.id));
 
             let conflictMessage = 'alerts.puntualEvent.error.shared_both';
@@ -1287,7 +1286,7 @@ export const createPuntualEvent = async (req: AuditedRequest, res: Response) => 
             endTime: endTime,
             cancelled: cancelled,
             comment: comment || '',
-            isBlocker: isBlocker,
+            eventType: eventType,
             groups: groups,
             classrooms: classrooms,
             createdBy: userEmail
@@ -1478,8 +1477,8 @@ export const deletePeriodicEvent = async (req: AuditedRequest, res: Response) =>
             // Delete the periodic event
             await transactionalEntityManager.remove(periodicEvent);
 
-            // Check if this was the last PeriodicEvent for each group (blocker no tiene grupos)
-            if (!periodicEvent.isBlocker) for (const group of groupsToCheck) {
+            // Check if this was the last PeriodicEvent for each group (solo NORMAL actualiza planifiedHours)
+            if (periodicEvent.eventType === EVENT_TYPES.NORMAL) for (const group of groupsToCheck) {
                 const remainingPeriodicEvents = await transactionalEntityManager
                     .createQueryBuilder(PeriodicEvent, 'event')
                     .leftJoinAndSelect('event.groups', 'group')
@@ -1575,7 +1574,7 @@ export const deletePeriodicEvent = async (req: AuditedRequest, res: Response) =>
 export const updatePuntualEvent = async (req: AuditedRequest, res: Response) => {
     try {
         const { eventId } = req.params;
-        const { eventDate, startTime, endTime, subjectId, groupIds = [], classroomIds = [], comment = '' } = req.body;
+        const { eventDate, startTime, endTime, subjectId, groupIds = [], classroomIds = [], comment = '', eventType = EVENT_TYPES.NORMAL } = req.body;
 
         // Validaciones
         if (!eventId || !eventDate || !startTime || !endTime) {
@@ -1665,7 +1664,7 @@ export const updatePuntualEvent = async (req: AuditedRequest, res: Response) => 
 
             if (!hasTimeOverlap) return false;
 
-            const sharesGroup = !puntualEvent.isBlocker && !event.isBlocker && event.groups?.some(g => groupIds.includes(g.id));
+            const sharesGroup = puntualEvent.eventType !== EVENT_TYPES.BLOCKER && event.eventType !== EVENT_TYPES.BLOCKER && event.groups?.some(g => groupIds.includes(g.id));
             const sharesClassroom = event.classrooms?.some(c => classroomIds.includes(c.id));
 
             // Conflicto si comparte grupo O aula (no necesita compartir ambos)
@@ -1675,7 +1674,7 @@ export const updatePuntualEvent = async (req: AuditedRequest, res: Response) => 
         if (conflictingEvents && conflictingEvents.length > 0) {
             // Determinar el tipo específico de conflicto
             const firstConflict = conflictingEvents[0];
-            const sharesGroup = !puntualEvent.isBlocker && !firstConflict.isBlocker && firstConflict.groups?.some(g => groupIds.includes(g.id));
+            const sharesGroup = puntualEvent.eventType !== EVENT_TYPES.BLOCKER && firstConflict.eventType !== EVENT_TYPES.BLOCKER && firstConflict.groups?.some(g => groupIds.includes(g.id));
             const sharesClassroom = firstConflict.classrooms?.some(c => classroomIds.includes(c.id));
 
             let conflictMessage = 'alerts.puntualEvent.error.shared_both';
@@ -1734,6 +1733,7 @@ export const updatePuntualEvent = async (req: AuditedRequest, res: Response) => 
         puntualEvent.comment = comment || '';
         puntualEvent.groups = groups;
         puntualEvent.classrooms = classrooms;
+        puntualEvent.eventType = eventType;
         puntualEvent.updatedBy = userEmail;
         puntualEvent.updatedAt = new Date();
 
@@ -1759,11 +1759,11 @@ export const updatePuntualEvent = async (req: AuditedRequest, res: Response) => 
 
 export const createPeriodicEvent = async (req: AuditedRequest, res: Response) => {
     try {
-        const { calendarId, weekDay, startTime, endTime, planifiedHours, eventCharacter, groupIds = [], classroomIds = [] } = req.body;
-        const isBlocker = groupIds.length === 0;
+        const { calendarId, weekDay, startTime, endTime, planifiedHours, eventCharacter, groupIds = [], classroomIds = [], eventType = EVENT_TYPES.NORMAL } = req.body;
+        const isSpecial = isSpecialEventType(eventType);
 
         // Validaciones
-        if (!calendarId || !weekDay || !startTime || !endTime || (!planifiedHours && !isBlocker)) {
+        if (!calendarId || !weekDay || !startTime || !endTime || (!planifiedHours && !isSpecial)) {
             res.status(400).json({
                 status: 'error',
                 message: 'Missing required fields: calendarId, weekDay, startTime, endTime, planifiedHours',
@@ -1862,9 +1862,9 @@ export const createPeriodicEvent = async (req: AuditedRequest, res: Response) =>
             weekDay: weekDay,
             startTime: startTime,
             endTime: endTime,
-            planifiedHours: isBlocker ? 0 : planifiedHours,
+            planifiedHours: isSpecial ? 0 : planifiedHours,
             eventCharacter: finalEventCharacter,
-            isBlocker: isBlocker,
+            eventType: eventType,
             year: groupYear,
             groups: groups,
             classrooms: classrooms,
@@ -1873,8 +1873,8 @@ export const createPeriodicEvent = async (req: AuditedRequest, res: Response) =>
 
         const savedEvent = await periodicEventRepo.save(periodicEvent);
 
-        // Update Group.planifiedHours for all groups in this event (blocker no tiene grupos)
-        if (!isBlocker) for (const group of groups) {
+        // Update Group.planifiedHours for all groups in this event (solo NORMAL actualiza planifiedHours)
+        if (!isSpecial) for (const group of groups) {
             if (group.planifiedHours !== planifiedHours) {
                 group.planifiedHours = planifiedHours;
                 group.updatedBy = userEmail;
@@ -1935,9 +1935,10 @@ export const createCustomPeriodicEvent = async (req: AuditedRequest, res: Respon
             planifiedHours,
             eventCharacter,
             groupIds = [],
-            classroomIds = []
+            classroomIds = [],
+            eventType = EVENT_TYPES.NORMAL
         } = req.body;
-        const isBlocker = groupIds.length === 0;
+        const isSpecial = isSpecialEventType(eventType);
 
         // Validaciones
         if (!calendarId || !affectedDates || !Array.isArray(affectedDates) || affectedDates.length === 0) {
@@ -1949,7 +1950,7 @@ export const createCustomPeriodicEvent = async (req: AuditedRequest, res: Respon
             return;
         }
 
-        if (!startTime || !endTime || (!planifiedHours && !isBlocker)) {
+        if (!startTime || !endTime || (!planifiedHours && !isSpecial)) {
             res.status(400).json({
                 status: 'error',
                 message: 'Missing required fields: startTime, endTime, planifiedHours',
@@ -2083,9 +2084,9 @@ export const createCustomPeriodicEvent = async (req: AuditedRequest, res: Respon
                 weekDay: weekDay,
                 startTime: startTime,
                 endTime: endTime,
-                planifiedHours: isBlocker ? 0 : planifiedHours,
+                planifiedHours: isSpecial ? 0 : planifiedHours,
                 eventCharacter: finalEventCharacter,
-                isBlocker: isBlocker,
+                eventType: eventType,
                 year: groupYear,
                 groups: groups,
                 classrooms: classrooms,
@@ -2098,8 +2099,8 @@ export const createCustomPeriodicEvent = async (req: AuditedRequest, res: Respon
 
         console.log(`[Custom Periodic Event Create] Created ${createdEvents.length} periodic event(s) for weekDays: ${Array.from(weekDaysSet).join(', ')}`);
 
-        // Update Group.planifiedHours for all groups in this event (blocker no tiene grupos)
-        if (!isBlocker) for (const group of groups) {
+        // Update Group.planifiedHours for all groups in this event (solo NORMAL actualiza planifiedHours)
+        if (!isSpecial) for (const group of groups) {
             if (group.planifiedHours !== planifiedHours) {
                 group.planifiedHours = planifiedHours;
                 group.updatedBy = userEmail;
@@ -2158,7 +2159,7 @@ export const createCustomPeriodicEvent = async (req: AuditedRequest, res: Respon
 export const updatePeriodicEvent = async (req: AuditedRequest, res: Response) => {
     try {
         const { eventId } = req.params;
-        const { startTime, endTime, classroomIds = [], planifiedHours, weekDay } = req.body;
+        const { startTime, endTime, classroomIds = [], planifiedHours, weekDay, eventType = EVENT_TYPES.NORMAL } = req.body;
 
         // Validaciones
         if (!eventId) {
@@ -2210,14 +2211,15 @@ export const updatePeriodicEvent = async (req: AuditedRequest, res: Response) =>
         periodicEvent.startTime = startTime;
         periodicEvent.endTime = endTime;
         periodicEvent.classrooms = classrooms;
+        periodicEvent.eventType = eventType;
         if (weekDay !== undefined && weekDay !== null) {
             periodicEvent.weekDay = weekDay;
         }
         periodicEvent.updatedBy = userEmail;
         periodicEvent.updatedAt = new Date();
 
-        // Si se proporcionaron horas planificadas, actualizarlas (blocker no tiene grupos)
-        if (planifiedHours !== undefined && planifiedHours !== null && !periodicEvent.isBlocker) {
+        // Si se proporcionaron horas planificadas, actualizarlas (solo NORMAL actualiza planifiedHours)
+        if (planifiedHours !== undefined && planifiedHours !== null && periodicEvent.eventType === EVENT_TYPES.NORMAL) {
             periodicEvent.planifiedHours = planifiedHours;
 
             // Update Group.planifiedHours for all groups in this event
@@ -2277,7 +2279,7 @@ export const updatePeriodicEvent = async (req: AuditedRequest, res: Response) =>
  */
 export const updateCustomPeriodicEvent = async (req: AuditedRequest, res: Response) => {
     try {
-        const { eventCharacter, calendarId, startTime, endTime, classroomIds = [], planifiedHours } = req.body;
+        const { eventCharacter, calendarId, startTime, endTime, classroomIds = [], planifiedHours, eventType = EVENT_TYPES.NORMAL } = req.body;
 
         // Validaciones
         if (!eventCharacter || !calendarId) {
@@ -2347,11 +2349,12 @@ export const updateCustomPeriodicEvent = async (req: AuditedRequest, res: Respon
             event.startTime = startTime;
             event.endTime = endTime;
             event.classrooms = classrooms;
+            event.eventType = eventType;
             event.updatedBy = userEmail;
             event.updatedAt = new Date();
 
-            // Update planified hours if provided (blocker no tiene grupos)
-            if (planifiedHours !== undefined && planifiedHours !== null && !event.isBlocker) {
+            // Update planified hours if provided (solo NORMAL actualiza planifiedHours)
+            if (planifiedHours !== undefined && planifiedHours !== null && event.eventType === EVENT_TYPES.NORMAL) {
                 event.planifiedHours = planifiedHours;
 
                 // Update Group.planifiedHours for all groups in this event

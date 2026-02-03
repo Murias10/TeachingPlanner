@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
   Command,
-  CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
@@ -45,6 +44,10 @@ export function SearchableSelect({
   const [open, setOpen] = React.useState(false)
   const [searchValue, setSearchValue] = React.useState("")
 
+  React.useEffect(() => {
+    if (!open) setSearchValue("")
+  }, [open])
+
   const selectedOption = options.find((option) => option.value === value)
 
   // Filter options based on search value
@@ -53,8 +56,7 @@ export function SearchableSelect({
 
     const lowerSearch = searchValue.toLowerCase()
     return options.filter((option) =>
-      option.label.toLowerCase().includes(lowerSearch) ||
-      option.value.toLowerCase().includes(lowerSearch)
+      option.label.toLowerCase().includes(lowerSearch)
     )
   }, [options, searchValue])
 
@@ -81,7 +83,9 @@ export function SearchableSelect({
             onValueChange={setSearchValue}
           />
           <CommandList className="max-h-[300px] overflow-y-auto">
-            <CommandEmpty>{emptyMessage}</CommandEmpty>
+            {filteredOptions.length === 0 && (
+              <div className="py-6 text-center text-xs text-muted-foreground">{emptyMessage}</div>
+            )}
             <CommandGroup>
               {filteredOptions.map((option) => (
                 <CommandItem

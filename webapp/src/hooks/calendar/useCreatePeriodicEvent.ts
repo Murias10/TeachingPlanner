@@ -12,6 +12,7 @@ export interface CreatePeriodicEventPayload {
     eventCharacter?: string; // 'N', 'P', 'I', or custom character
     groupIds?: string[];
     classroomIds?: string[];
+    eventType?: string; // NORMAL | BLOCKER | REVISION_* | EVALUACION_*
 }
 
 export interface CreatePeriodicEventResponse {

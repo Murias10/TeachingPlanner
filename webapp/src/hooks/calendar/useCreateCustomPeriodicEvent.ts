@@ -12,6 +12,7 @@ export interface CreateCustomPeriodicEventPayload {
     eventCharacter?: string; // Optional - backend will assign if not provided
     groupIds?: string[];
     classroomIds?: string[];
+    eventType?: string; // NORMAL | BLOCKER | REVISION_* | EVALUACION_*
 }
 
 export interface CreateCustomPeriodicEventResponse {

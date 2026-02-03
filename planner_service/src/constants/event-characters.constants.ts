@@ -89,6 +89,36 @@ export function findAvailableCharacter(charactersInUse: string): string {
 }
 
 /**
+ * Tipos de evento disponibles
+ *
+ * - NORMAL: Evento clásico que cuenta para horas planificadas y se exporta a TXT
+ * - BLOCKER: Reserva de aula sin asignatura/grupo. No cuenta para horas ni se exporta.
+ * - REVISION: Revisión. No cuenta para horas ni se exporta. Permite multiselect de grupos/aulas.
+ * - EVALUACION: Evaluación. No cuenta para horas ni se exporta. Permite multiselect de grupos/aulas.
+ * - OTRO: Comodín para otros casos. Mismo comportamiento que REVISION/EVALUACION.
+ *
+ * El tipo de grupo (T/L/S) que se evalúa/revisa se determina por los grupos seleccionados,
+ * no por el eventType.
+ */
+export const EVENT_TYPES = {
+  NORMAL: 'NORMAL',
+  BLOCKER: 'BLOCKER',
+  REVISION: 'REVISION',
+  EVALUACION: 'EVALUACION',
+  OTRO: 'OTRO',
+} as const;
+
+export type EventType = typeof EVENT_TYPES[keyof typeof EVENT_TYPES];
+
+/**
+ * Devuelve true si el eventType NO es NORMAL.
+ * Estos tipos no cuentan para horas planificadas y no se exportan a TXT.
+ */
+export function isSpecialEventType(type: string): boolean {
+  return type !== EVENT_TYPES.NORMAL;
+}
+
+/**
  * Obtiene el nombre descriptivo de un carácter estándar
  * @param char - El carácter a describir
  * @returns Descripción del carácter o el carácter mismo si es personalizado

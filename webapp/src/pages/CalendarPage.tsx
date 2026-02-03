@@ -552,7 +552,7 @@ export default function CalendarPage() {
 
         return allEvents.filter(event => {
             // Filtro por eventos bloqueantes - se aplica siempre
-            if (event.isBlocker && !filters.mostrarBlockers.includes('si')) {
+            if (event.eventType === 'BLOCKER' && !filters.mostrarBlockers.includes('si')) {
                 return false;
             }
 
@@ -648,7 +648,7 @@ export default function CalendarPage() {
                 : 'Sin aula asignada';
 
             // Blocker: label solo con aulas
-            if (event.isBlocker) {
+            if (event.eventType === 'BLOCKER') {
                 const tooltip = `Blocker\n${classroomStr}\n${event.startTime} - ${event.endTime}`;
                 return {
                     title: `${classroomStr} - ${timeStr}`,
@@ -884,10 +884,11 @@ export default function CalendarPage() {
     };
 
     const handleSaveEvent = (config: RecurrenceConfig) => {
-        const isBlocker = !config.subjectId;
+        const eventType = config.eventType || 'NORMAL';
+        const isSpecial = eventType !== 'NORMAL';
 
         // Validaciones comunes
-        if (!isBlocker && (!config.groupIds || config.groupIds.length === 0)) {
+        if (eventType !== 'BLOCKER' && (!config.groupIds || config.groupIds.length === 0)) {
             triggerAlert({
                 title: t('calendar.alerts.validation.noGroups.title'),
                 description: t('calendar.alerts.validation.noGroups.description'),
@@ -917,7 +918,7 @@ export default function CalendarPage() {
 
         // Manejar eventos puntuales
         if (config.frequency === 'no-repeat') {
-            if (!config.eventDate || (!config.subjectId && !isBlocker)) {
+            if (!config.eventDate || (!config.subjectId && eventType !== 'BLOCKER')) {
                 triggerAlert({
                     title: t('calendar.alerts.validation.noDateOrSubject.title'),
                     description: t('calendar.alerts.validation.noDateOrSubject.description'),
@@ -945,7 +946,8 @@ export default function CalendarPage() {
                     subjectId: config.subjectId,
                     groupIds: config.groupIds,
                     classroomIds: config.classroomIds || [],
-                    comment: config.comment
+                    comment: config.comment,
+                    eventType: eventType
                 },
                 {
                     onSuccess: () => {
@@ -980,7 +982,7 @@ export default function CalendarPage() {
                 return;
             }
 
-            if (!isBlocker && config.planifiedHours <= 0) {
+            if (!isSpecial && config.planifiedHours <= 0) {
                 triggerAlert({
                     title: t('calendar.alerts.validation.noPlanifiedHours.title'),
                     description: t('calendar.alerts.validation.noPlanifiedHours.description'),
@@ -1026,7 +1028,8 @@ export default function CalendarPage() {
                         planifiedHours: config.planifiedHours,
                         eventCharacter: config.eventCharacter,
                         groupIds: config.groupIds,
-                        classroomIds: config.classroomIds || []
+                        classroomIds: config.classroomIds || [],
+                        eventType: eventType
                     },
                     {
                         onSuccess: () => {
@@ -1090,7 +1093,7 @@ export default function CalendarPage() {
                 return;
             }
 
-            if (!isBlocker && config.planifiedHours <= 0) {
+            if (!isSpecial && config.planifiedHours <= 0) {
                 console.log('[Custom Frequency] Error: Horas planificadas inválidas:', config.planifiedHours);
                 triggerAlert({
                     title: t('calendar.alerts.validation.noPlanifiedHours.title'),
@@ -1202,7 +1205,8 @@ export default function CalendarPage() {
                     endTime: config.endTime,
                     planifiedHours: config.planifiedHours,
                     groupIds: config.groupIds,
-                    classroomIds: config.classroomIds || []
+                    classroomIds: config.classroomIds || [],
+                    eventType: eventType
                 },
                 {
                     onSuccess: (data) => {
@@ -1253,7 +1257,8 @@ export default function CalendarPage() {
                         startTime: config.startTime,
                         endTime: config.endTime,
                         classroomIds: config.classroomIds || [],
-                        planifiedHours: config.planifiedHours
+                        planifiedHours: config.planifiedHours,
+                        eventType: config.eventType
                     });
 
                     setIsEditEventDialogOpen(false);
@@ -1273,7 +1278,8 @@ export default function CalendarPage() {
                     endTime: config.endTime,
                     weekDay: config.weekDays && config.weekDays.length > 0 ? config.weekDays[0] : undefined,
                     classroomIds: config.classroomIds || [],
-                    planifiedHours: config.planifiedHours
+                    planifiedHours: config.planifiedHours,
+                    eventType: config.eventType
                 },
                 {
                     onSuccess: () => {
@@ -1312,7 +1318,8 @@ export default function CalendarPage() {
                     subjectId: config.subjectId,
                     groupIds: config.groupIds,
                     classroomIds: config.classroomIds || [],
-                    comment: config.comment
+                    comment: config.comment,
+                    eventType: config.eventType
                 },
                 {
                     onSuccess: () => {

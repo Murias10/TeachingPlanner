@@ -1,7 +1,7 @@
 import { AppDataSource } from '@/config/data-source';
 import { Day } from '@/entities/day.entity';
 import { PeriodicEvent } from '@/entities/periodic_event.entity';
-import { EVENT_CHARACTERS } from '@/constants/event-characters.constants';
+import { EVENT_CHARACTERS, EVENT_TYPES, isSpecialEventType } from '@/constants/event-characters.constants';
 
 /**
  * CalendarEventsService
@@ -47,12 +47,12 @@ export class CalendarEventsService {
     // MAP para agrupar eventos por grupo
     const eventosPorGrupo = new Map<string, any[]>();
 
-    // PASO 1: Añadir eventos puntuales no cancelados (blockers se devuelven separados)
-    const eventosBlockerPuntuales = this.añadirEventosPuntualesAlMap(diasDelCalendario, eventosPorGrupo);
+    // PASO 1: Añadir eventos puntuales no cancelados (especiales se devuelven separados)
+    const eventosEspecialesPuntuales = this.añadirEventosPuntualesAlMap(diasDelCalendario, eventosPorGrupo);
 
     // PASO 2: Procesar eventos periódicos con carácter Normal (horas compartidas)
     const eventosN = eventosPeriodicos.filter(e => e.eventCharacter.toUpperCase() === EVENT_CHARACTERS.NORMAL);
-    const eventosBlockerPeriodicosN = this.procesarEventosPeriodicosN(
+    const eventosEspecialesPeriodicosN = this.procesarEventosPeriodicosN(
       eventosN,
       diasDelCalendario,
       diasPorClaveFecha,
@@ -62,7 +62,7 @@ export class CalendarEventsService {
 
     // PASO 3: Procesar eventos periódicos NO-N (nueva lógica por dayCharacter)
     const eventosNoN = eventosPeriodicos.filter(e => e.eventCharacter.toUpperCase() !== EVENT_CHARACTERS.NORMAL);
-    const eventosBlockerPeriodicosNoN = this.procesarEventosPeriodicosNoN(
+    const eventosEspecialesPeriodicosNoN = this.procesarEventosPeriodicosNoN(
       eventosNoN,
       diasDelCalendario,
       diasPorClaveFecha,
@@ -84,8 +84,9 @@ export class CalendarEventsService {
     // PASO 6: Añadir eventos cancelados
     const eventosCancelados = this.añadirEventosCancelados(diasDelCalendario);
 
-    // Blockers se concatenan directamente (no pasan por el map ni por filtrarPorHorasProgramadas)
-    return [...eventosFiltrados, ...eventosCancelados, ...eventosBlockerPuntuales, ...eventosBlockerPeriodicosN, ...eventosBlockerPeriodicosNoN];
+    // Eventos especiales (BLOCKER, REVISION_*, EVALUACION_*) se concatenan directamente
+    // (no pasan por el map ni por filtrarPorHorasProgramadas)
+    return [...eventosFiltrados, ...eventosCancelados, ...eventosEspecialesPuntuales, ...eventosEspecialesPeriodicosN, ...eventosEspecialesPeriodicosNoN];
   }
 
   /**
@@ -121,7 +122,7 @@ export class CalendarEventsService {
     diasDelCalendario: any[],
     eventosPorGrupo: Map<string, any[]>
   ): any[] {
-    const eventosBlocker: any[] = [];
+    const eventosEspeciales: any[] = [];
 
     for (const dia of diasDelCalendario) {
       // Solo procesar días lectivos
@@ -133,9 +134,9 @@ export class CalendarEventsService {
         const claveFecha = this.obtenerClaveFecha(dia.date);
         const evento = this.crearObjetoEventoPuntual(eventoPuntual, dia, claveFecha);
 
-        // Blockers no tienen grupo: se acumulan separados y se concatenan al resultado final
-        if (eventoPuntual.isBlocker) {
-          eventosBlocker.push(evento);
+        // Eventos especiales (BLOCKER, REVISION_*, EVALUACION_*) no entran al map de horas
+        if (isSpecialEventType(eventoPuntual.eventType)) {
+          eventosEspeciales.push(evento);
           continue;
         }
 
@@ -150,7 +151,7 @@ export class CalendarEventsService {
       }
     }
 
-    return eventosBlocker;
+    return eventosEspeciales;
   }
 
   /**
@@ -191,7 +192,7 @@ export class CalendarEventsService {
     indiceCanceladosEventos: Set<string>,
     eventosPorGrupo: Map<string, any[]>
   ): any[] {
-    const eventosBlocker: any[] = [];
+    const eventosEspeciales: any[] = [];
 
     for (const dia of diasDelCalendario) {
       // Solo procesar días lectivos
@@ -223,9 +224,9 @@ export class CalendarEventsService {
           diasPorClaveFecha
         );
 
-        // Blockers no tienen grupo: se acumulan separados
-        if (eventoPeriodico.isBlocker) {
-          eventosBlocker.push(evento);
+        // Eventos especiales no entran al map de horas
+        if (isSpecialEventType(eventoPeriodico.eventType)) {
+          eventosEspeciales.push(evento);
           continue;
         }
 
@@ -239,7 +240,7 @@ export class CalendarEventsService {
       }
     }
 
-    return eventosBlocker;
+    return eventosEspeciales;
   }
 
   /**
@@ -361,8 +362,8 @@ export class CalendarEventsService {
       for (const eventoPuntual of dia.puntualEvents || []) {
         if (!eventoPuntual.cancelled) continue;
 
-        if (eventoPuntual.isBlocker) {
-          // Blockers se indexan por aula en lugar de grupo
+        if (eventoPuntual.eventType === EVENT_TYPES.BLOCKER) {
+          // BLOCKER es el único tipo sin grupo: se indexa por aula
           for (const classroom of eventoPuntual.classrooms || []) {
             indice.add(this.crearClaveEventoCanceladoAula(classroom.id, dia.date, eventoPuntual.startTime));
           }
@@ -385,8 +386,8 @@ export class CalendarEventsService {
     dia: any,
     indiceCanceladosEventos: Set<string>
   ): boolean {
-    if (eventoPeriodico.isBlocker) {
-      // Blockers se verifican por aula
+    if (eventoPeriodico.eventType === EVENT_TYPES.BLOCKER) {
+      // BLOCKER es el único tipo sin grupo: se verifica por aula
       return eventoPeriodico.classrooms.some((classroom: any) =>
         indiceCanceladosEventos.has(this.crearClaveEventoCanceladoAula(classroom.id, dia.date, eventoPeriodico.startTime))
       );
@@ -430,7 +431,7 @@ export class CalendarEventsService {
       })),
       type: 'puntual',
       cancelled: false,
-      isBlocker: eventoPuntual.isBlocker || false,
+      eventType: eventoPuntual.eventType || EVENT_TYPES.NORMAL,
       puntualEventId: eventoPuntual.id,
       dayCharacter: dia.dayCharacter || '',
       dayComment: dia.comment || '',
@@ -460,11 +461,11 @@ export class CalendarEventsService {
     indiceCanceladosEventos: Set<string>,
     eventosPorGrupo: Map<string, any[]>
   ): any[] {
-    // Separar blockers antes de agrupar por grupo (no tienen grupo)
-    const blockersN = eventosPeriodicosN.filter(e => e.isBlocker);
-    const noBlockersN = eventosPeriodicosN.filter(e => !e.isBlocker);
+    // Separar especiales antes de agrupar por grupo (no entran al map de horas)
+    const especialesN = eventosPeriodicosN.filter(e => isSpecialEventType(e.eventType));
+    const normalesN = eventosPeriodicosN.filter(e => !isSpecialEventType(e.eventType));
 
-    const eventosPorGrupoN = this.agruparEventosPorGrupo(noBlockersN);
+    const eventosPorGrupoN = this.agruparEventosPorGrupo(normalesN);
 
     for (const [claveGrupo, eventosDelGrupo] of eventosPorGrupoN) {
       this.procesarGrupoConHorasCompartidas(
@@ -477,25 +478,25 @@ export class CalendarEventsService {
       );
     }
 
-    // Procesar blockers N: generan evento en cada día N de la semana correcta
-    const eventosBlocker: any[] = [];
+    // Procesar especiales N: generan evento en cada día N de la semana correcta
+    const eventosEspeciales: any[] = [];
     for (const dia of diasCalendario) {
       if (!dia.lective) continue;
 
       const diaSemanaCalendario = this.obtenerDiaSemanaDesdeFecha(dia.date);
       const caracterDia = (dia.dayCharacter || '').toUpperCase();
 
-      for (const blocker of blockersN) {
+      for (const especial of especialesN) {
         if (!caracterDia.includes(EVENT_CHARACTERS.NORMAL)) continue;
-        if (blocker.weekDay !== diaSemanaCalendario) continue;
-        if (this.tieneConflictoCancelacion(blocker, dia, indiceCanceladosEventos)) continue;
+        if (especial.weekDay !== diaSemanaCalendario) continue;
+        if (this.tieneConflictoCancelacion(especial, dia, indiceCanceladosEventos)) continue;
 
         const claveFecha = this.obtenerClaveFecha(dia.date);
-        eventosBlocker.push(this.crearObjetoEventoPeriodico(blocker, claveFecha, diasPorClaveFecha));
+        eventosEspeciales.push(this.crearObjetoEventoPeriodico(especial, claveFecha, diasPorClaveFecha));
       }
     }
 
-    return eventosBlocker;
+    return eventosEspeciales;
   }
 
   /**
@@ -669,7 +670,7 @@ export class CalendarEventsService {
       })),
       type: 'periodic',
       cancelled: false,
-      isBlocker: eventoPeriodico.isBlocker || false,
+      eventType: eventoPeriodico.eventType || EVENT_TYPES.NORMAL,
       periodicEventId: eventoPeriodico.id,
       eventCharacter: eventoPeriodico.eventCharacter,
       weekDay: eventoPeriodico.weekDay,

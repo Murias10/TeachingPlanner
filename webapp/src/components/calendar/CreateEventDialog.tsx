@@ -21,7 +21,7 @@ import type { RecurrenceConfig, FrequencyType, WeekDay, EndsType, CustomFrequenc
 import { useClassrooms } from '@/hooks/classroom/useClassrooms';
 import { useSubjectsByCalendarId } from '@/hooks/subject/useSubjectsByCalendarId';
 import { useSubjectsWithGroupsByCalendarId } from '@/hooks/subject/useSubjectsWithGroupsByCalendarId';
-import { EVENT_CHARACTERS } from '@/constants/eventCharacters';
+import { EVENT_CHARACTERS, EVENT_TYPES, isSpecialEventType, isReviewOrEvalEventType, EVENT_TYPE_LABELS } from '@/constants/eventCharacters';
 import { getMonthlyPatternLabels } from '@/utils/customPatternCalculator';
 
 interface CreateEventDialogProps {
@@ -82,7 +82,8 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
     comment: '',
   });
 
-  const [eventType, setEventType] = useState<string>('T');
+  const [selectedEventType, setSelectedEventType] = useState<string>(EVENT_TYPES.NORMAL);
+  const [groupType, setGroupType] = useState<string>('T');
   const [openStartTime, setOpenStartTime] = useState(false);
   const [openEndTime, setOpenEndTime] = useState(false);
   const [allowEditPlanifiedHours, setAllowEditPlanifiedHours] = useState(false);
@@ -124,7 +125,7 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
       groupIds: [],
       classroomIds: []
     }));
-  }, [eventType]);
+  }, [selectedEventType]);
 
   // Clear group and classroom selections when subject changes
   React.useEffect(() => {
@@ -217,24 +218,27 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
     }
   }, [config.customStartDate]);
 
-  // Extract groups from subjects with groups for the selected subject and filter by event type
+  const isBlocker = !config.subjectId;
+  const effectiveEventType = isBlocker ? EVENT_TYPES.BLOCKER : selectedEventType;
+  const isReviewOrEval = isReviewOrEvalEventType(selectedEventType);
+
+  // Extract groups from subjects with groups for the selected subject and filter by groupType
   const availableGroups = useMemo(() => {
-    if (!config.subjectId) return [];
+    if (!config.subjectId || isBlocker) return [];
 
-    // Find the selected subject in subjectsWithGroups
     const selectedSubject = subjectsWithGroups.find(s => s.id === config.subjectId);
-
     if (!selectedSubject || !selectedSubject.groups) return [];
 
-    // Filter groups by event type
-    return selectedSubject.groups.filter(group => group.type === eventType);
-  }, [config.subjectId, subjectsWithGroups, eventType]);
-
-  const isBlocker = !config.subjectId;
+    if (groupType) {
+      return selectedSubject.groups.filter(group => group.type === groupType);
+    }
+    return selectedSubject.groups;
+  }, [config.subjectId, subjectsWithGroups, isBlocker, groupType]);
 
   // Validate that all required fields are filled
   const isFormValid = useMemo(() => {
     const hasClassrooms = config.classroomIds && config.classroomIds.length > 0;
+    const isSpecial = isSpecialEventType(effectiveEventType);
 
     // Blocker: solo necesita aulas (y fecha/días según frecuencia)
     if (isBlocker) {
@@ -249,13 +253,12 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
       return true;
     }
 
-    // Evento normal: requiere asignatura, grupo, aula y tipo
+    // Eventos con asignatura: requieren asignatura, grupo(s), aula(s)
     const baseValid = (
       config.subjectId &&
       config.groupIds &&
       config.groupIds.length > 0 &&
-      hasClassrooms &&
-      eventType
+      hasClassrooms
     );
 
     if (!baseValid) return false;
@@ -266,15 +269,16 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
     }
 
     if (config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd') {
-      return config.weekDays && config.weekDays.length > 0 && config.planifiedHours > 0;
+      // Special types don't require planifiedHours
+      return !!(config.weekDays && config.weekDays.length > 0) && (isSpecial || config.planifiedHours > 0);
     }
 
     if (config.frequency === 'custom') {
-      return !!config.customStartDate && !!config.customFrequencyUnit && config.interval > 0 && config.weekDays && config.weekDays.length > 0;
+      return !!config.customStartDate && !!config.customFrequencyUnit && config.interval > 0 && !!(config.weekDays && config.weekDays.length > 0);
     }
 
     return true;
-  }, [isBlocker, config.subjectId, config.groupIds, config.classroomIds, eventType, config.frequency, config.eventDate, config.weekDays, config.planifiedHours, config.customStartDate, config.customFrequencyUnit, config.interval]);
+  }, [effectiveEventType, isBlocker, config.subjectId, config.groupIds, config.classroomIds, config.frequency, config.eventDate, config.weekDays, config.planifiedHours, config.customStartDate, config.customFrequencyUnit, config.interval]);
 
   const weekDays: { value: WeekDay; label: string }[] = [
     { value: 'L', label: 'L' },
@@ -341,7 +345,7 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
     // For 'custom' frequency, eventCharacter will be set by backend
     // For 'no-repeat', eventCharacter is not needed (puntual event)
 
-    onSave({ ...config, eventCharacter });
+    onSave({ ...config, eventCharacter, eventType: effectiveEventType });
     onOpenChange(false);
   };
 
@@ -536,17 +540,30 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
               )}
             </div>
 
-            {/* Event Type Selection - Disabled when blocker */}
+            {/* Tipo de Evento — solo visible cuando hay asignatura */}
+            {config.subjectId && (
             <div className="space-y-1">
               <Label className="text-xs font-semibold">Tipo de Evento</Label>
-              {isBlocker ? (
-                <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
-                  Selecciona una asignatura primero
-                </div>
-              ) : (
-                <Select value={eventType} onValueChange={(value) => setEventType(value as 'T' | 'S' | 'L' | 'TG')}>
+              <Select value={selectedEventType} onValueChange={(value) => setSelectedEventType(value)}>
+                <SelectTrigger className="h-8 text-xs w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(EVENT_TYPE_LABELS).filter(([value]) => value !== EVENT_TYPES.BLOCKER).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            )}
+
+            {/* Tipo de Grupo (T/S/L/TG) — oculto cuando no hay asignatura */}
+            {!isBlocker && (
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Tipo de Grupo</Label>
+                <Select value={groupType} onValueChange={(value) => setGroupType(value)}>
                   <SelectTrigger className="h-8 text-xs w-full">
-                    <SelectValue placeholder="Seleccionar tipo de evento" />
+                    <SelectValue placeholder="Seleccionar tipo de grupo" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="T">Teoría</SelectItem>
@@ -555,14 +572,15 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
                     <SelectItem value="TG">Tutorías Grupales</SelectItem>
                   </SelectContent>
                 </Select>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Groups and Classrooms Selection - Same row */}
             <div className="grid grid-cols-2 gap-2">
-              {/* Groups Selection - Single select */}
+              {/* Groups Selection — oculto para BLOCKER */}
+              {!isBlocker && (
               <div className="space-y-1">
-                <Label className="text-xs font-semibold">Grupo</Label>
+                <Label className="text-xs font-semibold">{isReviewOrEval ? 'Grupos' : 'Grupo'}</Label>
                 {!config.subjectId ? (
                   <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
                     Selecciona una asignatura primero
@@ -571,6 +589,26 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
                   <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
                     Sin grupos disponibles
                   </div>
+                ) : isReviewOrEval ? (
+                  <MultiSelect
+                    values={config.groupIds || []}
+                    onValuesChange={(values) => setConfig({ ...config, groupIds: values })}
+                    options={availableGroups.sort((a, b) => {
+                      const subject = subjects.find(s => s.id === config.subjectId);
+                      const labelA = `${subject?.acronym}.${a.type}.${a.language === 'EN' ? 'I-' : ''}${a.number}`;
+                      const labelB = `${subject?.acronym}.${b.type}.${b.language === 'EN' ? 'I-' : ''}${b.number}`;
+                      return labelA.localeCompare(labelB);
+                    }).map((group) => {
+                      const subject = subjects.find(s => s.id === config.subjectId);
+                      return {
+                        value: group.id,
+                        label: `${subject?.acronym}.${group.type}.${group.language === 'EN' ? 'I-' : ''}${group.number}`
+                      };
+                    })}
+                    placeholder="Seleccionar grupos"
+                    searchPlaceholder="Buscar grupo..."
+                    emptyMessage="No se encontraron grupos."
+                  />
                 ) : availableGroups.length > 8 ? (
                   <SearchableSelect
                     value={config.groupIds?.[0] || ''}
@@ -578,19 +616,15 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
                       setConfig({ ...config, groupIds: value ? [value] : [] });
                     }}
                     options={availableGroups.sort((a, b) => {
-                      const langPrefixA = a.language === 'EN' ? 'I-' : '';
-                      const langPrefixB = b.language === 'EN' ? 'I-' : '';
                       const subject = subjects.find(s => s.id === config.subjectId);
-                      const labelA = `${subject?.acronym}.${a.type}.${langPrefixA}${a.number}`;
-                      const labelB = `${subject?.acronym}.${b.type}.${langPrefixB}${b.number}`;
+                      const labelA = `${subject?.acronym}.${a.type}.${a.language === 'EN' ? 'I-' : ''}${a.number}`;
+                      const labelB = `${subject?.acronym}.${b.type}.${b.language === 'EN' ? 'I-' : ''}${b.number}`;
                       return labelA.localeCompare(labelB);
                     }).map((group) => {
-                      const langPrefix = group.language === 'EN' ? 'I-' : '';
                       const subject = subjects.find(s => s.id === config.subjectId);
-                      const groupLabel = `${subject?.acronym}.${group.type}.${langPrefix}${group.number}`;
                       return {
                         value: group.id,
-                        label: groupLabel
+                        label: `${subject?.acronym}.${group.type}.${group.language === 'EN' ? 'I-' : ''}${group.number}`
                       };
                     })}
                     placeholder="Seleccionar grupo"
@@ -609,19 +643,15 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
                     </SelectTrigger>
                     <SelectContent>
                       {availableGroups.sort((a, b) => {
-                        const langPrefixA = a.language === 'EN' ? 'I-' : '';
-                        const langPrefixB = b.language === 'EN' ? 'I-' : '';
                         const subject = subjects.find(s => s.id === config.subjectId);
-                        const labelA = `${subject?.acronym}.${a.type}.${langPrefixA}${a.number}`;
-                        const labelB = `${subject?.acronym}.${b.type}.${langPrefixB}${b.number}`;
+                        const labelA = `${subject?.acronym}.${a.type}.${a.language === 'EN' ? 'I-' : ''}${a.number}`;
+                        const labelB = `${subject?.acronym}.${b.type}.${b.language === 'EN' ? 'I-' : ''}${b.number}`;
                         return labelA.localeCompare(labelB);
                       }).map((group) => {
-                        const langPrefix = group.language === 'EN' ? 'I-' : '';
                         const subject = subjects.find(s => s.id === config.subjectId);
-                        const groupLabel = `${subject?.acronym}.${group.type}.${langPrefix}${group.number}`;
                         return (
                           <SelectItem key={group.id} value={group.id}>
-                            {groupLabel}
+                            {`${subject?.acronym}.${group.type}.${group.language === 'EN' ? 'I-' : ''}${group.number}`}
                           </SelectItem>
                         );
                       })}
@@ -629,15 +659,16 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
                   </Select>
                 )}
               </div>
+              )}
 
-              {/* Classrooms Selection - Multi-select for blocker, single select otherwise */}
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold">Aula</Label>
+              {/* Classrooms Selection - MultiSelect for special types, single select for NORMAL */}
+              <div className={`space-y-1${isBlocker ? ' col-span-2' : ''}`}>
+                <Label className="text-xs font-semibold">{isSpecialEventType(effectiveEventType) ? 'Aulas' : 'Aula'}</Label>
                 {classrooms.length === 0 ? (
                   <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
                     Cargando aulas...
                   </div>
-                ) : isBlocker ? (
+                ) : isSpecialEventType(effectiveEventType) ? (
                   <MultiSelect
                     values={config.classroomIds || []}
                     onValuesChange={(values) => setConfig({ ...config, classroomIds: values })}
@@ -685,8 +716,8 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
               </div>
             </div>
 
-            {/* Planified Hours - Only visible when frequency is periodic and group is selected */}
-            {(config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd' || config.frequency === 'custom') && config.groupIds && config.groupIds.length > 0 && (
+            {/* Planified Hours - Only visible for periodic NORMAL events with a group selected */}
+            {!isSpecialEventType(effectiveEventType) && (config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd' || config.frequency === 'custom') && config.groupIds && config.groupIds.length > 0 && (
               <div className="space-y-2">
                 <Label htmlFor="planified-hours" className="text-xs font-semibold">Horas Planificadas</Label>
                 <Input

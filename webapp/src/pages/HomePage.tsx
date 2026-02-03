@@ -185,7 +185,8 @@ export default function HomePage() {
         aula: [],
         idioma: [],
         curso: [],
-        mostrarCancelados: []
+        mostrarCancelados: [],
+        mostrarBlockers: []
     });
 
     // Estado de colapso del panel de filtros

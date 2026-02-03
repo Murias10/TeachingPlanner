@@ -19,10 +19,11 @@ import { es } from 'date-fns/locale';
 import { format } from 'date-fns';
 import type { RecurrenceConfig, FrequencyType, WeekDay, EndsType, CustomFrequencyUnit, MonthlyPatternType } from '@/types/RecurrenceConfig';
 import type { CalendarEvent } from '@/types/CalendarEvent';
+import type { Group } from '@/types/Group';
 import { useClassrooms } from '@/hooks/classroom/useClassrooms';
 import { useSubjectsByCalendarId } from '@/hooks/subject/useSubjectsByCalendarId';
 import { useSubjectsWithGroupsByCalendarId } from '@/hooks/subject/useSubjectsWithGroupsByCalendarId';
-import { EVENT_CHARACTERS, isCustomEventCharacter } from '@/constants/eventCharacters';
+import { EVENT_CHARACTERS, EVENT_TYPES, isCustomEventCharacter, isSpecialEventType, isReviewOrEvalEventType, EVENT_TYPE_LABELS } from '@/constants/eventCharacters';
 import { getCharacterDescription } from '@/utils/eventCharacterUtils';
 import { getMonthlyPatternLabels } from '@/utils/customPatternCalculator';
 
@@ -87,7 +88,8 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
     comment: '',
   });
 
-  const [eventType, setEventType] = useState<string>('T');
+  const [selectedEventType, setSelectedEventType] = useState<string>(EVENT_TYPES.NORMAL);
+  const [groupType, setGroupType] = useState<string>('T');
   const [openStartTime, setOpenStartTime] = useState(false);
   const [openEndTime, setOpenEndTime] = useState(false);
   const [openEventDate, setOpenEventDate] = useState(false);
@@ -98,7 +100,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
   const [initialConfig, setInitialConfig] = useState<RecurrenceConfig | null>(null); // Store initial config to detect changes
   const [isInitializing, setIsInitializing] = useState(false); // Flag to prevent clearing during initialization
 
-  const previousEventTypeRef = React.useRef<string>('T');
+  const previousGroupTypeRef = React.useRef<string>('T');
 
   // Detectar si el evento es periódico personalizado (custom character que no es N, P, I, F)
   const isCustomPeriodicEvent = useMemo(() => {
@@ -113,8 +115,10 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
       setIsInitializing(false);
       setInitialGroupHours(0);
       setAllowEditPlanifiedHours(false);
-      previousEventTypeRef.current = 'T';
+      previousGroupTypeRef.current = 'T';
       previousSubjectIdRef.current = undefined;
+      setSelectedEventType(EVENT_TYPES.NORMAL);
+      setGroupType('T');
     }
   }, [open]);
 
@@ -176,8 +180,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
 
       // Set refs BEFORE any state updates to avoid race conditions
       if (event.groups.length > 0) {
-        const newEventType = event.groups[0].type;
-        previousEventTypeRef.current = newEventType;
+        previousGroupTypeRef.current = event.groups[0].type;
       }
       // Also set the subject ref to prevent subject change detection
       previousSubjectIdRef.current = event.subject?.id;
@@ -192,9 +195,10 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
         setAllowEditPlanifiedHours(false);
       }
 
-      // Set event type state LAST, after refs are already updated
+      // Set selectedEventType from the event, groupType from first group
+      setSelectedEventType(event.eventType || EVENT_TYPES.NORMAL);
       if (event.groups.length > 0) {
-        setEventType(event.groups[0].type);
+        setGroupType(event.groups[0].type);
       }
 
       // Marcar que terminamos de inicializar (después de un pequeño delay para asegurar que todos los estados se actualizaron)
@@ -202,20 +206,18 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
     }
   }, [event, open]);
 
-  // Clear group and classroom selections when event type changes (only if user manually changed it)
+  // Clear group and classroom selections when selectedEventType or groupType changes (only if user manually changed it)
   React.useEffect(() => {
-    // Only clear if:
-    // 1. The event type actually changed
-    // 2. We're not in the initialization phase
-    if (eventType !== previousEventTypeRef.current && !isInitializing) {
+    if (isInitializing) return;
+    if (groupType !== previousGroupTypeRef.current) {
       setConfig(prev => ({
         ...prev,
         groupIds: [],
         classroomIds: []
       }));
-      previousEventTypeRef.current = eventType;
+      previousGroupTypeRef.current = groupType;
     }
-  }, [eventType, isInitializing]);
+  }, [groupType, selectedEventType, isInitializing]);
 
   // Clear group selection when subject changes
   const previousSubjectIdRef = React.useRef<string | undefined>(undefined);
@@ -280,45 +282,47 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
     }
   }, [config.customStartDate]);
 
-  // Extract groups from subjects with groups for the selected subject and filter by event type
-  const availableGroups = useMemo(() => {
-    if (!config.subjectId) return [];
+  const isBlocker = !config.subjectId;
+  const effectiveEventType = isBlocker ? EVENT_TYPES.BLOCKER : selectedEventType;
+  const isReviewOrEval = isReviewOrEvalEventType(selectedEventType);
 
-    // Find the selected subject in subjectsWithGroups
+  // Extract groups from subjects with groups for the selected subject and filter by groupType
+  const availableGroups = useMemo((): Group[] => {
+    if (!config.subjectId || isBlocker) return [];
+
     const selectedSubject = subjectsWithGroups.find(s => s.id === config.subjectId);
 
     if (!selectedSubject || !selectedSubject.groups) {
-      // If subjectsWithGroups is not loaded yet, use the groups from the event
       if (event && event.subject?.id === config.subjectId) {
-        return event.groups.filter(group => group.type === eventType);
+        return groupType
+          ? event.groups.filter(group => group.type === groupType)
+          : event.groups;
       }
       return [];
     }
 
-    // Filter groups by event type
-    const filtered = selectedSubject.groups.filter(group => group.type === eventType);
+    const filtered: Group[] = groupType
+      ? selectedSubject.groups.filter((group: Group) => group.type === groupType)
+      : selectedSubject.groups;
 
     // If the filtered list doesn't include the selected group from the event,
     // add it to ensure it's available for selection
     if (event && event.groups.length > 0 && config.groupIds && config.groupIds.length > 0) {
-      const selectedGroupId = config.groupIds[0];
-      const isGroupInList = filtered.some(g => g.id === selectedGroupId);
-      if (!isGroupInList) {
-        const eventGroup = event.groups.find(g => g.id === selectedGroupId);
-        if (eventGroup) {
-          return [...filtered, eventGroup];
-        }
+      const missingGroups = config.groupIds
+        .filter(id => !filtered.some(g => g.id === id))
+        .map(id => event.groups.find(g => g.id === id))
+        .filter((g): g is Group => !!g);
+      if (missingGroups.length > 0) {
+        return [...filtered, ...missingGroups];
       }
     }
 
     return filtered;
-  }, [config.subjectId, subjectsWithGroups, eventType, event, config.groupIds]);
-
-  // Validate that all required fields are filled
-  const isBlocker = event?.isBlocker || false;
+  }, [config.subjectId, subjectsWithGroups, isBlocker, groupType, event, config.groupIds]);
 
   const isFormValid = useMemo(() => {
     const hasClassrooms = config.classroomIds && config.classroomIds.length > 0;
+    const isSpecial = isSpecialEventType(effectiveEventType);
 
     // Blocker: solo necesita aulas (y fecha/días según frecuencia)
     if (isBlocker) {
@@ -330,28 +334,26 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
       return true;
     }
 
-    // Evento normal
+    // Eventos con asignatura: requieren asignatura, grupo(s), aula(s)
     const baseValid = (
       config.subjectId &&
       config.groupIds &&
       config.groupIds.length > 0 &&
-      hasClassrooms &&
-      eventType
+      hasClassrooms
     );
 
     if (!baseValid) return false;
 
-    // Additional validation based on frequency
     if (config.frequency === 'no-repeat') {
       return !!config.eventDate;
     }
 
     if (config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd') {
-      return config.weekDays && config.weekDays.length > 0 && config.planifiedHours > 0;
+      return !!(config.weekDays && config.weekDays.length > 0) && (isSpecial || config.planifiedHours > 0);
     }
 
     return true;
-  }, [isBlocker, config.subjectId, config.groupIds, config.classroomIds, eventType, config.frequency, config.eventDate, config.weekDays, config.planifiedHours]);
+  }, [effectiveEventType, isBlocker, config.subjectId, config.groupIds, config.classroomIds, config.frequency, config.eventDate, config.weekDays, config.planifiedHours]);
 
   // Detect if there are any changes from the initial config
   const hasChanges = useMemo(() => {
@@ -375,9 +377,10 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
       !arraysEqual(config.classroomIds || [], initialConfig.classroomIds || []) ||
       !arraysEqual(config.weekDays || [], initialConfig.weekDays || []) ||
       (allowEditPlanifiedHours && config.planifiedHours !== initialConfig.planifiedHours) ||
-      config.comment !== initialConfig.comment
+      config.comment !== initialConfig.comment ||
+      effectiveEventType !== (event?.eventType || EVENT_TYPES.NORMAL)
     );
-  }, [config, initialConfig, allowEditPlanifiedHours]);
+  }, [config, initialConfig, allowEditPlanifiedHours, effectiveEventType, event]);
 
   const weekDays: { value: WeekDay; label: string }[] = [
     { value: 'L', label: 'L' },
@@ -438,7 +441,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
 
   const handleSave = () => {
     if (event) {
-      onSave(event.id, config);
+      onSave(event.id, { ...config, eventType: effectiveEventType });
       onOpenChange(false);
     }
   };
@@ -638,17 +641,30 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
               )}
             </div>
 
-            {/* Event Type Selection - Disabled when blocker */}
+            {/* Tipo de Evento — solo visible cuando hay asignatura */}
+            {config.subjectId && (
             <div className="space-y-1">
               <Label className="text-xs font-semibold">Tipo de Evento</Label>
-              {isBlocker ? (
-                <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
-                  Selecciona una asignatura primero
-                </div>
-              ) : (
-                <Select value={eventType} onValueChange={(value) => setEventType(value as 'T' | 'S' | 'L' | 'TG')}>
+              <Select value={selectedEventType} onValueChange={(value) => setSelectedEventType(value)}>
+                <SelectTrigger className="h-8 text-xs w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(EVENT_TYPE_LABELS).filter(([value]) => value !== EVENT_TYPES.BLOCKER).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            )}
+
+            {/* Tipo de Grupo (T/S/L/TG) — oculto cuando no hay asignatura */}
+            {!isBlocker && (
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Tipo de Grupo</Label>
+                <Select value={groupType} onValueChange={(value) => setGroupType(value)}>
                   <SelectTrigger className="h-8 text-xs w-full">
-                    <SelectValue placeholder="Seleccionar tipo de evento" />
+                    <SelectValue placeholder="Seleccionar tipo de grupo" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="T">Teoría</SelectItem>
@@ -657,14 +673,15 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                     <SelectItem value="TG">Tutorías Grupales</SelectItem>
                   </SelectContent>
                 </Select>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Groups and Classrooms Selection - Same row */}
             <div className="grid grid-cols-2 gap-2">
-              {/* Groups Selection - Single select */}
+              {/* Groups Selection — oculto para BLOCKER */}
+              {!isBlocker && (
               <div className="space-y-1">
-                <Label className="text-xs font-semibold">Grupo</Label>
+                <Label className="text-xs font-semibold">{isReviewOrEval ? 'Grupos' : 'Grupo'}</Label>
                 {!config.subjectId ? (
                   <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
                     Selecciona una asignatura primero
@@ -673,6 +690,26 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                   <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
                     Sin grupos disponibles
                   </div>
+                ) : isReviewOrEval ? (
+                  <MultiSelect
+                    values={config.groupIds || []}
+                    onValuesChange={(values) => setConfig({ ...config, groupIds: values })}
+                    options={availableGroups.sort((a, b) => {
+                      const subject = subjects.find(s => s.id === config.subjectId);
+                      const labelA = `${subject?.acronym}.${a.type}.${a.language === 'EN' ? 'I-' : ''}${a.number}`;
+                      const labelB = `${subject?.acronym}.${b.type}.${b.language === 'EN' ? 'I-' : ''}${b.number}`;
+                      return labelA.localeCompare(labelB);
+                    }).map((group) => {
+                      const subject = subjects.find(s => s.id === config.subjectId);
+                      return {
+                        value: group.id,
+                        label: `${subject?.acronym}.${group.type}.${group.language === 'EN' ? 'I-' : ''}${group.number}`
+                      };
+                    })}
+                    placeholder="Seleccionar grupos"
+                    searchPlaceholder="Buscar grupo..."
+                    emptyMessage="No se encontraron grupos."
+                  />
                 ) : availableGroups.length > 8 ? (
                   <SearchableSelect
                     value={config.groupIds?.[0] || ''}
@@ -680,19 +717,15 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                       setConfig({ ...config, groupIds: value ? [value] : [] });
                     }}
                     options={availableGroups.sort((a, b) => {
-                      const langPrefixA = a.language === 'EN' ? 'I-' : '';
-                      const langPrefixB = b.language === 'EN' ? 'I-' : '';
                       const subject = subjects.find(s => s.id === config.subjectId);
-                      const labelA = `${subject?.acronym}.${a.type}.${langPrefixA}${a.number}`;
-                      const labelB = `${subject?.acronym}.${b.type}.${langPrefixB}${b.number}`;
+                      const labelA = `${subject?.acronym}.${a.type}.${a.language === 'EN' ? 'I-' : ''}${a.number}`;
+                      const labelB = `${subject?.acronym}.${b.type}.${b.language === 'EN' ? 'I-' : ''}${b.number}`;
                       return labelA.localeCompare(labelB);
                     }).map((group) => {
-                      const langPrefix = group.language === 'EN' ? 'I-' : '';
                       const subject = subjects.find(s => s.id === config.subjectId);
-                      const groupLabel = `${subject?.acronym}.${group.type}.${langPrefix}${group.number}`;
                       return {
                         value: group.id,
-                        label: groupLabel
+                        label: `${subject?.acronym}.${group.type}.${group.language === 'EN' ? 'I-' : ''}${group.number}`
                       };
                     })}
                     placeholder="Seleccionar grupo"
@@ -711,19 +744,15 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                     </SelectTrigger>
                     <SelectContent>
                       {availableGroups.sort((a, b) => {
-                        const langPrefixA = a.language === 'EN' ? 'I-' : '';
-                        const langPrefixB = b.language === 'EN' ? 'I-' : '';
                         const subject = subjects.find(s => s.id === config.subjectId);
-                        const labelA = `${subject?.acronym}.${a.type}.${langPrefixA}${a.number}`;
-                        const labelB = `${subject?.acronym}.${b.type}.${langPrefixB}${b.number}`;
+                        const labelA = `${subject?.acronym}.${a.type}.${a.language === 'EN' ? 'I-' : ''}${a.number}`;
+                        const labelB = `${subject?.acronym}.${b.type}.${b.language === 'EN' ? 'I-' : ''}${b.number}`;
                         return labelA.localeCompare(labelB);
                       }).map((group) => {
-                        const langPrefix = group.language === 'EN' ? 'I-' : '';
                         const subject = subjects.find(s => s.id === config.subjectId);
-                        const groupLabel = `${subject?.acronym}.${group.type}.${langPrefix}${group.number}`;
                         return (
                           <SelectItem key={group.id} value={group.id}>
-                            {groupLabel}
+                            {`${subject?.acronym}.${group.type}.${group.language === 'EN' ? 'I-' : ''}${group.number}`}
                           </SelectItem>
                         );
                       })}
@@ -731,15 +760,16 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                   </Select>
                 )}
               </div>
+              )}
 
-              {/* Classrooms Selection - Multi-select for blocker, single select otherwise */}
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold">Aula</Label>
+              {/* Classrooms Selection - MultiSelect for special types, single select for NORMAL */}
+              <div className={`space-y-1${isBlocker ? ' col-span-2' : ''}`}>
+                <Label className="text-xs font-semibold">{isSpecialEventType(effectiveEventType) ? 'Aulas' : 'Aula'}</Label>
                 {availableClassrooms.length === 0 ? (
                   <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
                     Cargando aulas...
                   </div>
-                ) : isBlocker ? (
+                ) : isSpecialEventType(effectiveEventType) ? (
                   <MultiSelect
                     values={config.classroomIds || []}
                     onValuesChange={(values) => setConfig({ ...config, classroomIds: values })}
@@ -787,8 +817,8 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
               </div>
             </div>
 
-            {/* Planified Hours - Only visible when frequency is periodic and group is selected */}
-            {(config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd' || isCustomPeriodicEvent) && config.groupIds && config.groupIds.length > 0 && (
+            {/* Planified Hours - Only visible for periodic NORMAL events with a group selected */}
+            {!isSpecialEventType(effectiveEventType) && (config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd' || isCustomPeriodicEvent) && config.groupIds && config.groupIds.length > 0 && (
               <div className="space-y-2">
                 <Label htmlFor="planified-hours" className="text-xs font-semibold">Horas Planificadas</Label>
                 <Input

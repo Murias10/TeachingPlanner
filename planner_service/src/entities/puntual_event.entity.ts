@@ -41,9 +41,14 @@ export class PuntualEvent extends AuditedEntity {
     @Column('varchar', { length: 255, name: 'COMMENT' })
     comment!: string;
 
-    /** Indicates if this event is a blocker (occupies classroom without subject/group) */
-    @Column('boolean', { name: 'IS_BLOCKER', default: false })
-    isBlocker!: boolean;
+    /**
+     * Type of event. Determines behaviour:
+     * - NORMAL: counts for planned hours, exported to TXT
+     * - BLOCKER / REVISION_* / EVALUACION_*: does NOT count for planned hours, NOT exported to TXT
+     * See EVENT_TYPES in event-characters.constants.ts
+     */
+    @Column('varchar', { length: 30, name: 'EVENT_TYPE', default: 'NORMAL' })
+    eventType!: string;
 
     /**
      * ID of the replacement event if this is a cancelled event from a replacement operation

@@ -26,4 +26,5 @@ export interface RecurrenceConfig {
   groupIds?: string[];
   classroomIds?: string[];
   comment: string; // Comment field for puntual events
+  eventType?: string; // NORMAL | BLOCKER | REVISION_* | EVALUACION_* — see EVENT_TYPES
 }

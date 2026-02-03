@@ -12,6 +12,7 @@ export interface CreatePuntualEventPayload {
     groupIds?: string[];
     classroomIds?: string[];
     comment: string;
+    eventType?: string; // NORMAL | BLOCKER | REVISION_* | EVALUACION_*
 }
 
 export interface CreatePuntualEventResponse {

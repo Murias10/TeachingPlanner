@@ -3,7 +3,6 @@ import { Check, ChevronsUpDown, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
   Command,
-  CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
@@ -44,14 +43,17 @@ export function MultiSelect({
   const [open, setOpen] = React.useState(false)
   const [searchValue, setSearchValue] = React.useState("")
 
+  React.useEffect(() => {
+    if (!open) setSearchValue("")
+  }, [open])
+
   const selectedOptions = options.filter((option) => values.includes(option.value))
 
   const filteredOptions = React.useMemo(() => {
     if (!searchValue) return options
     const lowerSearch = searchValue.toLowerCase()
     return options.filter((option) =>
-      option.label.toLowerCase().includes(lowerSearch) ||
-      option.value.toLowerCase().includes(lowerSearch)
+      option.label.toLowerCase().includes(lowerSearch)
     )
   }, [options, searchValue])
 
@@ -117,7 +119,33 @@ export function MultiSelect({
             onValueChange={setSearchValue}
           />
           <CommandList className="max-h-[300px] overflow-y-auto">
-            <CommandEmpty>{emptyMessage}</CommandEmpty>
+            {filteredOptions.length === 0 && (
+              <div className="py-6 text-center text-xs text-muted-foreground">{emptyMessage}</div>
+            )}
+            {filteredOptions.length > 0 && (
+              <CommandGroup>
+                <CommandItem
+                  value="__select_all__"
+                  onSelect={() => {
+                    const allSelected = filteredOptions.every((o) => values.includes(o.value))
+                    onValuesChange(
+                      allSelected
+                        ? values.filter((v) => !filteredOptions.some((o) => o.value === v))
+                        : [...new Set([...values, ...filteredOptions.map((o) => o.value)])]
+                    )
+                  }}
+                  className="text-xs font-medium"
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      filteredOptions.every((o) => values.includes(o.value)) ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  {filteredOptions.every((o) => values.includes(o.value)) ? "Deseleccionar todos" : "Seleccionar todos"}
+                </CommandItem>
+              </CommandGroup>
+            )}
             <CommandGroup>
               {filteredOptions.map((option) => {
                 const isSelected = values.includes(option.value)

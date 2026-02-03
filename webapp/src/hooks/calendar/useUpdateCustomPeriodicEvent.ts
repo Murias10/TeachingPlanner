@@ -10,6 +10,7 @@ interface UpdateCustomPeriodicEventData {
     endTime: string;
     classroomIds?: string[];
     planifiedHours?: number;
+    eventType?: string; // NORMAL | BLOCKER | REVISION_* | EVALUACION_*
 }
 
 interface UpdateCustomPeriodicEventResult {

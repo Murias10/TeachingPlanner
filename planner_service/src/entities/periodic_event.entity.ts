@@ -42,9 +42,14 @@ export class PeriodicEvent extends AuditedEntity {
     @Column('int', { name: 'PLANIFIED_HOURS' })
     planifiedHours!: number;
 
-    /** Indicates if this event is a blocker (occupies classroom without subject/group) */
-    @Column('boolean', { name: 'IS_BLOCKER', default: false })
-    isBlocker!: boolean;
+    /**
+     * Type of event. Determines behaviour:
+     * - NORMAL: counts for planned hours, exported to TXT
+     * - BLOCKER / REVISION_* / EVALUACION_*: does NOT count for planned hours, NOT exported to TXT
+     * See EVENT_TYPES in event-characters.constants.ts
+     */
+    @Column('varchar', { length: 30, name: 'EVENT_TYPE', default: 'NORMAL' })
+    eventType!: string;
 
     /** Calendar this periodic event belongs to */
     @ManyToOne(() => Calendar, calendar => calendar.periodicEvents, {

@@ -8,7 +8,8 @@ import { useSubjectsWithGroupsByCalendarId } from "@/hooks/subject/useSubjectsWi
 import { useCalendarDays } from "@/hooks/calendar/useCalendarDays";
 import { CalendarEvent } from "@/types/CalendarEvent";
 import ClassFilter, { FilterValues } from "@/components/ClassFilter";
-import { FileText, BookOpen, DoorOpen, Languages, Users, GraduationCap, XCircle, CalendarDays } from "lucide-react";
+import { FileText, BookOpen, DoorOpen, Languages, Users, GraduationCap, Tag, CalendarDays } from "lucide-react";
+import { EVENT_TYPES } from "@/constants/eventCharacters";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { useTranslation } from "react-i18next";
 import { EventDetailsDrawer } from "@/components/calendar/EventDetailsDrawer";
@@ -185,8 +186,7 @@ export default function HomePage() {
         aula: [],
         idioma: [],
         curso: [],
-        mostrarCancelados: [],
-        mostrarBlockers: []
+        tipoEvento: []
     });
 
     // Estado de colapso del panel de filtros
@@ -215,15 +215,7 @@ export default function HomePage() {
             return [];
         }
 
-        const filteredData = data.events.filter((event: CalendarEvent) => {
-            // No mostrar eventos cancelados a menos que el filtro esté activado
-            if (event.cancelled && !filters.mostrarCancelados.includes('true')) {
-                return false;
-            }
-            return true;
-        });
-
-        const mappedEvents = filteredData.map((event: CalendarEvent) => {
+        const mappedEvents = data.events.map((event: CalendarEvent) => {
             // Construir fechas de inicio y fin usando moment
             const eventDate = event.date.split('T')[0];
             const startMoment = moment(`${eventDate}T${event.startTime}`);
@@ -247,7 +239,7 @@ export default function HomePage() {
         });
 
         return mappedEvents;
-    }, [data, filters.mostrarCancelados]);
+    }, [data]);
 
     // Construir opciones para los filtros (usando eventos filtrados por año)
     const filterOptions = useMemo(() => {
@@ -351,10 +343,10 @@ export default function HomePage() {
                 icon: Languages
             },
             {
-                category: 'mostrarCancelados' as const,
-                label: t("calendar.filters.showCancelled"),
-                options: ['true'],
-                icon: XCircle
+                category: 'tipoEvento' as const,
+                label: t('calendar.filters.eventType'),
+                options: [EVENT_TYPES.NORMAL, EVENT_TYPES.BLOCKER, EVENT_TYPES.REVISION, EVENT_TYPES.EVALUACION, EVENT_TYPES.OTRO, 'CANCELADO'],
+                icon: Tag
             }
         ].filter(option => option.options.length > 0);
     }, [data, filters.curso, subjectYearMap, t]);
@@ -364,6 +356,15 @@ export default function HomePage() {
         return events.filter(event => {
             const calendarEvent = event.resource;
             if (!calendarEvent) return false;
+
+            // Filtro por tipo de evento: sin selección = todos visibles;
+            // con selección = solo los tipos marcados.
+            if (filters.tipoEvento.length > 0) {
+                const isCancelled = calendarEvent.cancelled;
+                const matchesCancelado = isCancelled && filters.tipoEvento.includes('CANCELADO');
+                const matchesEventType = !isCancelled && filters.tipoEvento.includes(calendarEvent.eventType);
+                if (!matchesCancelado && !matchesEventType) return false;
+            }
 
             // Filtro de año
             if (filters.curso.length > 0) {

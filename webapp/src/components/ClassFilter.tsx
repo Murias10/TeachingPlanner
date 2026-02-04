@@ -10,7 +10,7 @@ import { formatGroupForDisplay, getGroupAcronym } from '@/utils/groupFormatUtils
 import { GROUP_TYPE_LABELS, LANGUAGE_LABELS } from '@/constants/groupTypes';
 import { useTranslation } from 'react-i18next';
 
-type FilterCategory = 'tipoGrupo' | 'asignatura' | 'grupos' | 'aula' | 'idioma' | 'curso' | 'mostrarCancelados' | 'mostrarBlockers';
+type FilterCategory = 'tipoGrupo' | 'asignatura' | 'grupos' | 'aula' | 'idioma' | 'curso' | 'tipoEvento';
 
 export interface FilterValues {
   tipoGrupo: string[];
@@ -19,8 +19,7 @@ export interface FilterValues {
   aula: string[];
   idioma: string[];
   curso: string[];
-  mostrarCancelados: string[];
-  mostrarBlockers: string[];
+  tipoEvento: string[];
 }
 
 interface FilterOption {
@@ -55,8 +54,7 @@ export default function ClassFilter({
     aula: '',
     idioma: '',
     curso: '',
-    mostrarCancelados: '',
-    mostrarBlockers: ''
+    tipoEvento: ''
   });
 
   const SEARCH_THRESHOLD = 8; // Mostrar búsqueda si hay más de 8 opciones
@@ -113,8 +111,7 @@ export default function ClassFilter({
       aula: [],
       idioma: [],
       curso: [],
-      mostrarCancelados: [],
-      mostrarBlockers: []
+      tipoEvento: []
     });
   };
 
@@ -128,11 +125,8 @@ export default function ClassFilter({
     if (category === 'grupos') {
       return formatGroupForDisplay(value);
     }
-    if (category === 'mostrarCancelados') {
-      return t('filters.showCancelledEvents');
-    }
-    if (category === 'mostrarBlockers') {
-      return t('filters.showBlockerEvents');
+    if (category === 'tipoEvento') {
+      return t(`filters.eventTypes.${value}`);
     }
     return value;
   };

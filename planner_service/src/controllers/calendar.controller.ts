@@ -345,39 +345,22 @@ export const deleteCalendar = async (req: AuditedRequest, res: Response) => {
             return;
         }
 
-        // Paso 1: Limpiar tablas junction de los grupos de las asignaturas
-        // Problema: Calendar → Subject → Group, pero Group tiene referencias en las junction tables
-        // con ON DELETE NO ACTION, por lo que debemos limpiarlas manualmente primero
-        console.log(`[DELETE CALENDAR] Step 1: Getting groups from calendar subjects...`);
+        // Paso 1: Eliminar los grupos manualmente antes de borrar el calendario.
+        // Las junction tables PERIODIC_EVENTS_GROUPS y PUNTUAL_EVENTS_GROUPS tienen
+        // ON DELETE NO ACTION en las FK hacia Groups. Al hacer groupRepo.remove(),
+        // TypeORM limpia automáticamente esas junction tables ManyToMany.
+        console.log(`[DELETE CALENDAR] Step 1: Getting groups from calendar...`);
 
-        const subjectRepo = AppDataSource.getRepository(Subject);
-        const subjects = await subjectRepo.find({
-            where: { calendar: { id: calendarId } },
-            relations: ['groups'],
-            select: { id: true, groups: { id: true } }
+        const groupRepo = AppDataSource.getRepository(Group);
+        const groups = await groupRepo.find({
+            where: { calendar: { id: calendarId } }
         });
+        console.log(`[DELETE CALENDAR] Found ${groups.length} groups to remove`);
 
-        const groupIds = subjects.flatMap(s => s.groups.map(g => g.id));
-        console.log(`[DELETE CALENDAR] Found ${groupIds.length} groups to clean`);
-
-        if (groupIds.length > 0) {
-            console.log(`[DELETE CALENDAR] Step 2: Cleaning junction tables for groups...`);
-
-            const puntualGroupResult = await AppDataSource
-                .createQueryBuilder()
-                .delete()
-                .from('PUNTUAL_EVENTS_GROUPS')
-                .where('ID_GROUP IN (:...groupIds)', { groupIds })
-                .execute();
-            console.log(`[DELETE CALENDAR] Cleaned ${puntualGroupResult.affected} rows from PUNTUAL_EVENTS_GROUPS`);
-
-            const periodicGroupResult = await AppDataSource
-                .createQueryBuilder()
-                .delete()
-                .from('PERIODIC_EVENTS_GROUPS')
-                .where('ID_GROUP IN (:...groupIds)', { groupIds })
-                .execute();
-            console.log(`[DELETE CALENDAR] Cleaned ${periodicGroupResult.affected} rows from PERIODIC_EVENTS_GROUPS`);
+        if (groups.length > 0) {
+            console.log(`[DELETE CALENDAR] Step 2: Removing groups (cleans junction tables automatically)...`);
+            await groupRepo.remove(groups);
+            console.log(`[DELETE CALENDAR] Removed ${groups.length} groups`);
         }
 
         // Paso 2: Eliminar el calendario

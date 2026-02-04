@@ -10,7 +10,7 @@ import { usePendingRequestsAsEvents } from "@/hooks/calendar/usePendingRequestsA
 import { useSubjectsWithGroupsByCalendarId } from "@/hooks/subject/useSubjectsWithGroupsByCalendarId";
 import { CalendarEvent } from "@/types/CalendarEvent";
 import ClassFilter, { FilterValues } from "@/components/ClassFilter";
-import { FileText, BookOpen, DoorOpen, Languages, Users, GraduationCap, XCircle, Lock } from "lucide-react";
+import { FileText, BookOpen, DoorOpen, Languages, Users, GraduationCap, Tag } from "lucide-react";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { useParams, useNavigate } from "react-router-dom";
 import CalendarToolbar from "@/components/calendar/CalendarToolbar";
@@ -49,7 +49,7 @@ import { generateGoogleCalendarCSV, downloadCSV } from "@/utils/csvExport";
 import { generateGroupId } from "@/utils/groupFormatUtils";
 import { sortAlphabetically, sortGruposByAcronymTypeNumber } from "@/utils/filterSortingUtils";
 import { getAuthHeaders } from "@/utils/authHeaders";
-import { EVENT_CHARACTERS, isCustomEventCharacter } from "@/constants/eventCharacters";
+import { EVENT_CHARACTERS, EVENT_TYPES, isCustomEventCharacter } from "@/constants/eventCharacters";
 
 // El localizer se crea de forma global
 const localizer = momentLocalizer(moment);
@@ -244,8 +244,7 @@ export default function CalendarPage() {
         aula: [],
         idioma: [],
         curso: [],
-        mostrarCancelados: ['si'],  // Por defecto mostrar eventos cancelados
-        mostrarBlockers: ['si']     // Por defecto mostrar eventos bloqueantes
+        tipoEvento: []  // Sin selección = todos visibles
     });
 
     // Estado para colapsar/expandir filtros
@@ -532,17 +531,12 @@ export default function CalendarPage() {
                 options: sortAlphabetically(Array.from(uniqueLanguages)),
                 icon: Languages
             },
-            ...(isAdmin ? [{
-                category: 'mostrarBlockers' as const,
-                label: t('calendar.filters.showBlockers'),
-                options: ['si'],
-                icon: Lock
-            }, {
-                category: 'mostrarCancelados' as const,
-                label: t('calendar.filters.showCancelled'),
-                options: ['si'],
-                icon: XCircle
-            }] : [])
+            {
+                category: 'tipoEvento' as const,
+                label: t('calendar.filters.eventType'),
+                options: [EVENT_TYPES.NORMAL, EVENT_TYPES.BLOCKER, EVENT_TYPES.REVISION, EVENT_TYPES.EVALUACION, EVENT_TYPES.OTRO, 'CANCELADO'],
+                icon: Tag
+            }
         ];
     }, [allEvents, availableGrupos, subjectYearMap, isAdmin, filters.curso, filters.asignatura, filters.tipoGrupo, t]);
 
@@ -551,20 +545,18 @@ export default function CalendarPage() {
         if (allEvents.length === 0) return [];
 
         return allEvents.filter(event => {
-            // Filtro por eventos bloqueantes - se aplica siempre
-            if (event.eventType === 'BLOCKER' && !filters.mostrarBlockers.includes('si')) {
-                return false;
+            // Filtro por tipo de evento: sin selección = todos visibles;
+            // con selección = solo los tipos marcados.
+            // "CANCELADO" es un valor especial que matchea event.cancelled === true.
+            if (filters.tipoEvento.length > 0) {
+                const isCancelled = event.cancelled;
+                const matchesCancelado = isCancelled && filters.tipoEvento.includes('CANCELADO');
+                const matchesEventType = !isCancelled && filters.tipoEvento.includes(event.eventType);
+                if (!matchesCancelado && !matchesEventType) return false;
             }
 
-            // Filtro por eventos cancelados - se aplica siempre
-            if (event.cancelled && !filters.mostrarCancelados.includes('si')) {
-                return false;
-            }
-
-            // Verificar si hay otros filtros activos (excluyendo mostrarCancelados y mostrarBlockers)
-            const otherFilters = { ...filters };
-            delete (otherFilters as any).mostrarCancelados;
-            delete (otherFilters as any).mostrarBlockers;
+            // Verificar si hay otros filtros activos (excluyendo tipoEvento)
+            const { tipoEvento: _, ...otherFilters } = filters;
             const hasActiveFilters = Object.values(otherFilters).some(arr => arr.length > 0);
             if (!hasActiveFilters) return true;
 

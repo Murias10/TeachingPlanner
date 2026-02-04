@@ -79,8 +79,14 @@
         "noResults": "No results found",
         "notAvailable": "Not available",
         "activeFilters": "Active filters",
-        "showCancelledEvents": "Show cancelled events",
-        "showBlockerEvents": "Show blocker events"
+        "eventTypes": {
+            "NORMAL": "Normal",
+            "BLOCKER": "Blocker",
+            "REVISION": "Review",
+            "EVALUACION": "Evaluation",
+            "OTRO": "Other",
+            "CANCELADO": "Cancelled"
+        }
     },
     "alerts": {
         "degree": {
@@ -760,8 +766,7 @@
             "groups": "Groups",
             "classroom": "Classroom",
             "language": "Language",
-            "showCancelled": "Cancelled events",
-            "showBlockers": "Blocker events"
+            "eventType": "Event type"
         },
         "title": "Calendar - Semester {{semester}}",
         "showingEvents": "Showing {{count}} of {{total}} events",

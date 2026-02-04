@@ -76,7 +76,7 @@ export class PeriodicEvent extends AuditedEntity {
     /** Classrooms where this periodic event will be held */
     @ManyToMany(() => Classroom, (classroom) => classroom.periodicEvents)
     @JoinTable({
-        name: 'PERIODIC_EVENTS__CLASSROOMS',
+        name: 'PERIODIC_EVENTS_CLASSROOMS',
         joinColumn: { name: 'ID_CLASSROOM', referencedColumnName: 'id' },
         inverseJoinColumn: { name: 'ID_PERIODIC_EVENT', referencedColumnName: 'id' },
     })

@@ -15,7 +15,7 @@ import {
     DropdownMenuLabel,
     DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal, Trash2, ChevronsRight, Plus, Users, BookOpen } from "lucide-react"
+import { MoreHorizontal, Trash2, ChevronsRight, Plus, Users, BookOpen, FileText } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
 type Props = {
@@ -42,6 +42,10 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
 
     const goToManageSubjects = (semester: number) => {
         navigate(`${course.startYear}/${course.endYear}/semester/${semester}/subjects`)
+    }
+
+    const goToManageRequests = (semester: number) => {
+        navigate(`${course.startYear}/${course.endYear}/semester/${semester}/solicitudes`)
     }
 
     // Funciones auxiliares para encontrar calendarios por semestre
@@ -100,6 +104,21 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
                             </TooltipTrigger>
                             <TooltipContent>
                                 <p>Gestionar grupos</p>
+                            </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="size-10"
+                                    onClick={() => goToManageRequests(1)}
+                                >
+                                    <FileText />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Gestionar solicitudes</p>
                             </TooltipContent>
                         </Tooltip>
                         <Tooltip>
@@ -164,6 +183,21 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
                         </Tooltip>
                         <Tooltip>
                             <TooltipTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="size-10"
+                                    disabled
+                                >
+                                    <FileText />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Gestionar solicitudes (requiere calendario)</p>
+                            </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
                                 <Button variant="outline" size="icon" className="size-10" onClick={() => createCalendar(course.id, 1)}>
                                     <Plus />
                                 </Button>
@@ -217,6 +251,21 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
                             </TooltipTrigger>
                             <TooltipContent>
                                 <p>Gestionar grupos</p>
+                            </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="size-10"
+                                    onClick={() => goToManageRequests(2)}
+                                >
+                                    <FileText />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Gestionar solicitudes</p>
                             </TooltipContent>
                         </Tooltip>
                         <Tooltip>
@@ -277,6 +326,21 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
                             </TooltipTrigger>
                             <TooltipContent>
                                 <p>Gestionar grupos (requiere calendario)</p>
+                            </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="size-10"
+                                    disabled
+                                >
+                                    <FileText />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Gestionar solicitudes (requiere calendario)</p>
                             </TooltipContent>
                         </Tooltip>
                         <Tooltip>

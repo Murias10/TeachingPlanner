@@ -20,7 +20,7 @@ const eventRequestService = new EventRequestService();
  */
 export const createEventRequest = async (req: AuditedRequest, res: Response) => {
     try {
-        const { calendarId, eventType, eventData } = req.body;
+        const { calendarId, eventType, eventData, requestType = 'CREATE', originalEventId = null } = req.body;
         const userEmail = getUserEmailFromRequest(req);
 
         // Validations
@@ -51,6 +51,24 @@ export const createEventRequest = async (req: AuditedRequest, res: Response) => 
             return;
         }
 
+        if (!['CREATE', 'EDIT', 'CANCEL', 'REPLACE'].includes(requestType)) {
+            res.status(400).json({
+                status: 'error',
+                message: 'requestType must be CREATE, EDIT, CANCEL or REPLACE',
+                data: null,
+            });
+            return;
+        }
+
+        if (requestType !== 'CREATE' && !originalEventId) {
+            res.status(400).json({
+                status: 'error',
+                message: 'originalEventId is required for EDIT, CANCEL and REPLACE requests',
+                data: null,
+            });
+            return;
+        }
+
         // Verify calendar exists
         const calendarRepo = AppDataSource.getRepository(Calendar);
         const calendar = await calendarRepo.findOne({ where: { id: calendarId } });
@@ -69,6 +87,8 @@ export const createEventRequest = async (req: AuditedRequest, res: Response) => 
             calendarId,
             eventType: eventType as 'PUNTUAL' | 'PERIODIC',
             eventData,
+            requestType: requestType as 'CREATE' | 'EDIT' | 'CANCEL' | 'REPLACE',
+            originalEventId: originalEventId || null,
             professorId: userEmail,
             status: 'PENDING',
             createdBy: userEmail,
@@ -207,9 +227,17 @@ export const approveEventRequest = async (req: AuditedRequest, res: Response) =>
 
             let createdEventId: string;
 
-            if (eventRequest.eventType === 'PUNTUAL') {
+            if (eventRequest.requestType === 'EDIT') {
+                createdEventId = await editEventFromRequest(completedEventRequest);
+            } else if (eventRequest.requestType === 'CANCEL') {
+                createdEventId = await cancelEventFromRequest(completedEventRequest);
+            } else if (eventRequest.requestType === 'REPLACE') {
+                createdEventId = await replaceEventFromRequest(completedEventRequest);
+            } else if (eventRequest.eventType === 'PUNTUAL') {
+                // CREATE puntual
                 createdEventId = await createPuntualEventFromRequest(completedEventRequest);
             } else {
+                // CREATE periodic
                 createdEventId = await createPeriodicEventFromRequest(completedEventRequest);
             }
 
@@ -314,7 +342,7 @@ export const rejectEventRequest = async (req: AuditedRequest, res: Response) => 
  */
 async function createPuntualEventFromRequest(eventRequest: EventRequest): Promise<string> {
     const { calendarId, eventData } = eventRequest;
-    const { dayId, eventDate, startTime, endTime, groupIds = [], classroomIds = [], comment = '' } = eventData;
+    const { dayId, eventDate, startTime, endTime, groupIds = [], classroomIds = [], comment = '', eventType: requestedEventType = 'NORMAL' } = eventData;
 
     if (!startTime || !endTime) {
         throw new Error('Missing required fields for PUNTUAL event: startTime, endTime');
@@ -363,18 +391,20 @@ async function createPuntualEventFromRequest(eventRequest: EventRequest): Promis
 
     // Validate conflicts: check if there are events at the same time with the same group or classroom
     const conflictingEvents = day.puntualEvents?.filter(event => {
+        if (event.cancelled) return false;
+
         const eventStart = event.startTime;
         const eventEnd = event.endTime;
         const hasTimeOverlap = startTime < eventEnd && endTime > eventStart;
 
         if (!hasTimeOverlap) return false;
 
-        // Check if shares group
-        const sharesGroup = event.groups?.some(g => groupIds.includes(g.id)) || groupIds.length === 0;
-        // Check if shares classroom
-        const sharesClassroom = event.classrooms?.some(c => classroomIds.includes(c.id)) || classroomIds.length === 0;
+        // Check if shares group (only if both have groups)
+        const sharesGroup = groupIds.length > 0 && event.groups?.some(g => groupIds.includes(g.id));
+        // Check if shares classroom (only if both have classrooms)
+        const sharesClassroom = classroomIds.length > 0 && event.classrooms?.some(c => classroomIds.includes(c.id));
 
-        return sharesGroup && sharesClassroom;
+        return sharesGroup || sharesClassroom;
     });
 
     if (conflictingEvents && conflictingEvents.length > 0) {
@@ -410,6 +440,7 @@ async function createPuntualEventFromRequest(eventRequest: EventRequest): Promis
         endTime,
         cancelled: false,
         comment: comment || '',
+        eventType: requestedEventType,
         groups,
         classrooms,
         createdBy: eventRequest.professorId,
@@ -485,7 +516,8 @@ export const deleteEventRequest = async (req: AuditedRequest, res: Response) => 
  */
 async function createPeriodicEventFromRequest(eventRequest: EventRequest): Promise<string> {
     const { calendarId, eventData } = eventRequest;
-    const { startTime, endTime, frequency, weekDays, planifiedHours, groupIds = [], classroomIds = [] } = eventData;
+    const { startTime, endTime, frequency, weekDays, planifiedHours, groupIds = [], classroomIds = [], eventType: requestedEventType = 'NORMAL' } = eventData;
+    const { isSpecialEventType } = await import('@/constants/event-characters.constants');
 
     // Validations
     if (!startTime || !endTime) {
@@ -506,7 +538,8 @@ async function createPeriodicEventFromRequest(eventRequest: EventRequest): Promi
         throw new Error('Missing required field for PERIODIC event: weekDays');
     }
 
-    if (!planifiedHours || planifiedHours <= 0) {
+    // planifiedHours only required for NORMAL events
+    if (!isSpecialEventType(requestedEventType) && (!planifiedHours || planifiedHours <= 0)) {
         throw new Error('Missing or invalid planifiedHours for PERIODIC event');
     }
 
@@ -583,8 +616,9 @@ async function createPeriodicEventFromRequest(eventRequest: EventRequest): Promi
             weekDay: weekDay,
             startTime: startTime,
             endTime: endTime,
-            planifiedHours: planifiedHours,
+            planifiedHours: isSpecialEventType(requestedEventType) ? 0 : planifiedHours,
             eventCharacter: eventCharacter,
+            eventType: requestedEventType,
             year: groupYear,
             groups: groups,
             classrooms: classrooms,
@@ -595,31 +629,33 @@ async function createPeriodicEventFromRequest(eventRequest: EventRequest): Promi
         createdEventIds.push(savedEvent.id);
     }
 
-    // Update Group.planifiedHours for all groups
-    for (const group of groups) {
-        if (group.planifiedHours !== planifiedHours) {
-            group.planifiedHours = planifiedHours;
-            group.updatedBy = eventRequest.professorId;
-            group.updatedAt = new Date();
-            await groupRepo.save(group);
+    // Update Group.planifiedHours only for NORMAL events
+    if (!isSpecialEventType(requestedEventType)) {
+        for (const group of groups) {
+            if (group.planifiedHours !== planifiedHours) {
+                group.planifiedHours = planifiedHours;
+                group.updatedBy = eventRequest.professorId;
+                group.updatedAt = new Date();
+                await groupRepo.save(group);
 
-            // Update ALL PeriodicEvents associated with this group
-            const allPeriodicEventsForGroup = await periodicEventRepo
-                .createQueryBuilder('event')
-                .leftJoinAndSelect('event.groups', 'group')
-                .where('group.id = :groupId', { groupId: group.id })
-                .getMany();
+                // Update ALL PeriodicEvents associated with this group
+                const allPeriodicEventsForGroup = await periodicEventRepo
+                    .createQueryBuilder('event')
+                    .leftJoinAndSelect('event.groups', 'group')
+                    .where('group.id = :groupId', { groupId: group.id })
+                    .getMany();
 
-            for (const event of allPeriodicEventsForGroup) {
-                if (event.planifiedHours !== planifiedHours) {
-                    event.planifiedHours = planifiedHours;
-                    event.updatedBy = eventRequest.professorId;
-                    event.updatedAt = new Date();
-                    await periodicEventRepo.save(event);
+                for (const event of allPeriodicEventsForGroup) {
+                    if (event.planifiedHours !== planifiedHours) {
+                        event.planifiedHours = planifiedHours;
+                        event.updatedBy = eventRequest.professorId;
+                        event.updatedAt = new Date();
+                        await periodicEventRepo.save(event);
+                    }
                 }
-            }
 
-            console.log(`[Request Approve - Periodic Event] Updated planified hours for group ${group.type}-${group.number}`);
+                console.log(`[Request Approve - Periodic Event] Updated planified hours for group ${group.type}-${group.number}`);
+            }
         }
     }
 
@@ -641,8 +677,10 @@ async function createCustomPeriodicEventFromRequest(eventRequest: EventRequest):
         affectedDates, // Array de fechas calculadas en el frontend
         planifiedHours,
         groupIds = [],
-        classroomIds = []
+        classroomIds = [],
+        eventType: requestedEventType = 'NORMAL'
     } = eventData;
+    const { isSpecialEventType } = await import('@/constants/event-characters.constants');
 
     // Validations
     if (!startTime || !endTime) {
@@ -653,7 +691,8 @@ async function createCustomPeriodicEventFromRequest(eventRequest: EventRequest):
         throw new Error('Missing or empty affectedDates for CUSTOM PERIODIC event');
     }
 
-    if (!planifiedHours || planifiedHours <= 0) {
+    // planifiedHours only required for NORMAL events
+    if (!isSpecialEventType(requestedEventType) && (!planifiedHours || planifiedHours <= 0)) {
         throw new Error('Missing or invalid planifiedHours for CUSTOM PERIODIC event');
     }
 
@@ -740,8 +779,9 @@ async function createCustomPeriodicEventFromRequest(eventRequest: EventRequest):
             weekDay: weekDay,
             startTime: startTime,
             endTime: endTime,
-            planifiedHours: planifiedHours,
+            planifiedHours: isSpecialEventType(requestedEventType) ? 0 : planifiedHours,
             eventCharacter: eventCharacter,
+            eventType: requestedEventType,
             year: groupYear,
             groups: groups,
             classrooms: classrooms,
@@ -767,4 +807,259 @@ async function createCustomPeriodicEventFromRequest(eventRequest: EventRequest):
     console.log(`[Request Approve - Custom Periodic Event] Created ${createdEventIds.length} custom periodic events with character '${eventCharacter}'`);
 
     return createdEventIds[0];
+}
+
+/**
+ * Helper: apply an EDIT request to an existing event.
+ * Only startTime, endTime, comment (puntual) and weekDay (periodic) are editable.
+ * Groups and classrooms are NOT changed.
+ */
+async function editEventFromRequest(eventRequest: EventRequest): Promise<string> {
+    const { originalEventId, eventData } = eventRequest;
+    if (!originalEventId) {
+        throw new Error('originalEventId is required for EDIT requests');
+    }
+
+    const { startTime, endTime, comment, eventDate, weekDay } = eventData;
+
+    const puntualEventRepo = AppDataSource.getRepository(PuntualEvent);
+    const periodicEventRepo = AppDataSource.getRepository(PeriodicEvent);
+
+    if (eventRequest.eventType === 'PUNTUAL') {
+        const event = await puntualEventRepo.findOne({
+            where: { id: originalEventId },
+            relations: ['day', 'groups', 'classrooms'],
+        });
+        if (!event) throw new Error('Original puntual event not found');
+
+        if (startTime) event.startTime = startTime;
+        if (endTime) event.endTime = endTime;
+        if (comment !== undefined) event.comment = comment;
+        event.updatedBy = eventRequest.professorId;
+        event.updatedAt = new Date();
+
+        // If eventDate changed, move to new day
+        if (eventDate) {
+            const dayRepo = AppDataSource.getRepository(Day);
+            const newDay = await dayRepo.findOne({
+                where: {
+                    date: new Date(eventDate),
+                    calendar: { id: eventRequest.calendarId }
+                }
+            });
+            if (!newDay) throw new Error('New date does not exist in the calendar');
+            event.day = newDay;
+        }
+
+        await puntualEventRepo.save(event);
+        return event.id;
+    } else {
+        // PERIODIC
+        const event = await periodicEventRepo.findOne({ where: { id: originalEventId } });
+        if (!event) throw new Error('Original periodic event not found');
+
+        if (startTime) event.startTime = startTime;
+        if (endTime) event.endTime = endTime;
+        if (weekDay) event.weekDay = weekDay;
+        event.updatedBy = eventRequest.professorId;
+        event.updatedAt = new Date();
+
+        await periodicEventRepo.save(event);
+        return event.id;
+    }
+}
+
+/**
+ * Helper: cancel an existing event by setting cancelled = true (puntual)
+ * or removing it (periodic). For periodic events we only cancel on the
+ * specific occurrence via a cancelled puntual event on that day — but
+ * since professors can only cancel whole periodic events here, we just
+ * delete the periodic event row.
+ */
+async function cancelEventFromRequest(eventRequest: EventRequest): Promise<string> {
+    const { originalEventId, eventData } = eventRequest;
+    if (!originalEventId) {
+        throw new Error('originalEventId is required for CANCEL requests');
+    }
+
+    const { comment } = eventData;
+
+    const puntualEventRepo = AppDataSource.getRepository(PuntualEvent);
+    const periodicEventRepo = AppDataSource.getRepository(PeriodicEvent);
+
+    if (eventRequest.eventType === 'PUNTUAL') {
+        const event = await puntualEventRepo.findOne({ where: { id: originalEventId } });
+        if (!event) throw new Error('Original puntual event not found');
+
+        event.cancelled = true;
+        if (comment !== undefined) event.comment = comment;
+        event.updatedBy = eventRequest.professorId;
+        event.updatedAt = new Date();
+
+        await puntualEventRepo.save(event);
+        return event.id;
+    } else {
+        // PERIODIC — delete the event row
+        const event = await periodicEventRepo.findOne({ where: { id: originalEventId } });
+        if (!event) throw new Error('Original periodic event not found');
+
+        await periodicEventRepo.remove(event);
+        return originalEventId;
+    }
+}
+
+/**
+ * Helper: replace a puntual event — creates a replacement event on a new date
+ * and marks the original as cancelled with replacementEventId link.
+ * Groups and classrooms are inherited from the original event.
+ * Admin can override classroomIds before approval.
+ */
+async function replaceEventFromRequest(eventRequest: EventRequest): Promise<string> {
+    const { originalEventId, calendarId, eventData } = eventRequest;
+    if (!originalEventId) {
+        throw new Error('originalEventId is required for REPLACE requests');
+    }
+
+    const { newEventDate, startTime, endTime, comment, classroomIds: adminClassroomIds } = eventData;
+
+    if (!newEventDate || !startTime || !endTime) {
+        throw new Error('newEventDate, startTime and endTime are required for REPLACE requests');
+    }
+
+    const puntualEventRepo = AppDataSource.getRepository(PuntualEvent);
+    const periodicEventRepo = AppDataSource.getRepository(PeriodicEvent);
+    const dayRepo = AppDataSource.getRepository(Day);
+    const classroomRepo = AppDataSource.getRepository(Classroom);
+
+    // Find new day
+    const newEventDateObj = new Date(newEventDate);
+    newEventDateObj.setHours(0, 0, 0, 0);
+
+    const newDay = await dayRepo.findOne({
+        where: {
+            date: newEventDateObj,
+            calendar: { id: calendarId }
+        }
+    });
+    if (!newDay) throw new Error('The new event date does not exist in the calendar');
+
+    if (eventRequest.eventType === 'PUNTUAL') {
+        // Load original with relations
+        const originalEvent = await puntualEventRepo.findOne({
+            where: { id: originalEventId },
+            relations: ['day', 'groups', 'classrooms'],
+        });
+        if (!originalEvent) throw new Error('Original puntual event not found');
+
+        // Classrooms: admin override if provided, otherwise inherit
+        const classrooms = adminClassroomIds && adminClassroomIds.length > 0
+            ? await classroomRepo.find({ where: { id: In(adminClassroomIds) } })
+            : originalEvent.classrooms;
+
+        const queryRunner = AppDataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
+
+        try {
+            // Create replacement event
+            const replacementEvent = puntualEventRepo.create({
+                day: newDay,
+                startTime,
+                endTime,
+                cancelled: false,
+                comment: comment || '',
+                eventType: originalEvent.eventType,
+                groups: originalEvent.groups,
+                classrooms,
+                createdBy: eventRequest.professorId,
+            });
+            await queryRunner.manager.save(replacementEvent);
+
+            // Mark original as cancelled, link to replacement
+            originalEvent.cancelled = true;
+            originalEvent.comment = `Evento reemplazado - ${comment || ''}`;
+            originalEvent.replacementEventId = replacementEvent.id;
+            originalEvent.updatedBy = eventRequest.professorId;
+            originalEvent.updatedAt = new Date();
+            await queryRunner.manager.save(originalEvent);
+
+            await queryRunner.commitTransaction();
+            return replacementEvent.id;
+        } catch (error) {
+            await queryRunner.rollbackTransaction();
+            throw error;
+        } finally {
+            await queryRunner.release();
+        }
+    } else {
+        // PERIODIC replace: create a cancelled puntual event on the original occurrence date
+        // and a replacement puntual event on the new date, both inheriting groups/classrooms
+        const originalEvent = await periodicEventRepo.findOne({
+            where: { id: originalEventId },
+            relations: ['groups', 'classrooms', 'calendar'],
+        });
+        if (!originalEvent) throw new Error('Original periodic event not found');
+
+        // For periodic replace, eventData must include originalDate (the specific occurrence)
+        const { originalDate } = eventData;
+        if (!originalDate) throw new Error('originalDate is required to replace a periodic event occurrence');
+
+        const originalDateObj = new Date(originalDate);
+        originalDateObj.setHours(0, 0, 0, 0);
+
+        const originalDay = await dayRepo.findOne({
+            where: {
+                date: originalDateObj,
+                calendar: { id: calendarId }
+            }
+        });
+        if (!originalDay) throw new Error('Original date does not exist in the calendar');
+
+        const classrooms = adminClassroomIds && adminClassroomIds.length > 0
+            ? await classroomRepo.find({ where: { id: In(adminClassroomIds) } })
+            : originalEvent.classrooms;
+
+        const queryRunner = AppDataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
+
+        try {
+            // Create replacement puntual event on new date
+            const replacementEvent = puntualEventRepo.create({
+                day: newDay,
+                startTime,
+                endTime,
+                cancelled: false,
+                comment: comment || '',
+                eventType: originalEvent.eventType,
+                groups: originalEvent.groups,
+                classrooms,
+                createdBy: eventRequest.professorId,
+            });
+            await queryRunner.manager.save(replacementEvent);
+
+            // Create cancelled puntual event on original date linked to replacement
+            const cancelledEvent = puntualEventRepo.create({
+                day: originalDay,
+                startTime: originalEvent.startTime,
+                endTime: originalEvent.endTime,
+                cancelled: true,
+                comment: `Evento reemplazado - ${comment || ''}`,
+                eventType: originalEvent.eventType,
+                groups: originalEvent.groups,
+                classrooms: originalEvent.classrooms,
+                replacementEventId: replacementEvent.id,
+                createdBy: eventRequest.professorId,
+            });
+            await queryRunner.manager.save(cancelledEvent);
+
+            await queryRunner.commitTransaction();
+            return replacementEvent.id;
+        } catch (error) {
+            await queryRunner.rollbackTransaction();
+            throw error;
+        } finally {
+            await queryRunner.release();
+        }
+    }
 }

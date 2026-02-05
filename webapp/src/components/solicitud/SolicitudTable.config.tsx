@@ -15,6 +15,7 @@ interface EventRequest {
     professorId: string;
     calendarId: string;
     eventType: 'PUNTUAL' | 'PERIODIC';
+    requestType?: 'CREATE' | 'EDIT' | 'CANCEL' | 'REPLACE';
     eventData: Record<string, any>;
     status: 'PENDING' | 'APPROVED' | 'REJECTED';
     reviewedBy?: string;
@@ -27,6 +28,18 @@ interface EventRequest {
     courseEndYear?: number | null;
     semester?: number | null;
 }
+
+const REQUEST_TYPE_LABELS: Record<string, string> = {
+    CREATE: 'Crear',
+    EDIT: 'Editar',
+    CANCEL: 'Cancelar',
+    REPLACE: 'Reemplazar',
+};
+
+const getRequestTypeBadge = (requestType: string) => {
+    const variant = requestType === 'CANCEL' ? 'destructive' : 'secondary';
+    return <Badge variant={variant}>{REQUEST_TYPE_LABELS[requestType] || requestType}</Badge>;
+};
 
 interface ColumnExtraProps {
     onApprove: (solicitud: EventRequest) => void;
@@ -112,6 +125,17 @@ export const columns = ({ onApprove, onReject, t }: ColumnExtraProps): ColumnDef
         },
         meta: {
             label: "Semestre"
+        }
+    },
+    {
+        accessorKey: "requestType",
+        header: () => <div>Tipo solicitud</div>,
+        cell: ({ row }) => {
+            const rt = (row.getValue("requestType") as string) || 'CREATE';
+            return getRequestTypeBadge(rt);
+        },
+        meta: {
+            label: "Tipo solicitud"
         }
     },
     {

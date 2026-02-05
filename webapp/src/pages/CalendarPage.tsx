@@ -12,7 +12,7 @@ import { CalendarEvent } from "@/types/CalendarEvent";
 import ClassFilter, { FilterValues } from "@/components/ClassFilter";
 import { FileText, BookOpen, DoorOpen, Languages, Users, GraduationCap, Tag } from "lucide-react";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import CalendarToolbar from "@/components/calendar/CalendarToolbar";
 import CreateEventDialog from "@/components/calendar/CreateEventDialog";
 import EditEventDialog from "@/components/calendar/EditEventDialog";
@@ -24,6 +24,9 @@ import VITE_GATEWAY_API_URL from "@/config/api";
 import { EventDetailsDrawer } from "@/components/calendar/EventDetailsDrawer";
 import { DeleteEventConfirmationDialog } from "@/components/calendar/DeleteEventConfirmationDialog";
 import ReplaceEventDialog from "@/components/calendar/ReplaceEventDialog";
+import RequestEditDialog from "@/components/solicitud/RequestEditDialog";
+import RequestCancelDialog from "@/components/solicitud/RequestCancelDialog";
+import RequestReplaceDialog from "@/components/solicitud/RequestReplaceDialog";
 import { useCreatePuntualEvent } from "@/hooks/calendar/useCreatePuntualEvent";
 import { useCreatePeriodicEvent } from "@/hooks/calendar/useCreatePeriodicEvent";
 import { useCreateCustomPeriodicEvent } from "@/hooks/calendar/useCreateCustomPeriodicEvent";
@@ -44,7 +47,6 @@ import ApproveRequestDialog from "@/components/solicitud/ApproveRequestDialog";
 import RejectRequestDialog from "@/components/calendar/RejectRequestDialog";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Bell } from "lucide-react";
 import { generateGoogleCalendarCSV, downloadCSV } from "@/utils/csvExport";
 import { generateGroupId } from "@/utils/groupFormatUtils";
 import { sortAlphabetically, sortGruposByAcronymTypeNumber } from "@/utils/filterSortingUtils";
@@ -104,9 +106,9 @@ const subjectColorMap = new Map<string, string>();
 // Función para oscurecer un color hex para mejorar el contraste
 const darkenColor = (hex: string, amount: number = 0.6): string => {
     // Convertir hex a RGB
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
+    const r = Number.parseInt(hex.slice(1, 3), 16);
+    const g = Number.parseInt(hex.slice(3, 5), 16);
+    const b = Number.parseInt(hex.slice(5, 7), 16);
 
     // Oscurecer multiplicando por el amount (0.6 = 60% del brillo original)
     const newR = Math.round(r * amount);
@@ -137,7 +139,6 @@ const getSubjectColor = (subjectAcronym: string | undefined): string => {
 export default function CalendarPage() {
 
     const { t, i18n } = useTranslation()
-    const navigate = useNavigate();
     const { triggerAlert } = useFloatingAlertContext();
     const { user } = useAuth();
     const [localeLoaded, setLocaleLoaded] = useState(false);
@@ -263,6 +264,12 @@ export default function CalendarPage() {
     // Estado para el drawer de detalles del evento
     const [isEventDetailsDrawerOpen, setIsEventDetailsDrawerOpen] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | undefined>(undefined);
+
+    // Estado para los diálogos de solicitud (edit/cancel/replace)
+    const [isRequestEditOpen, setIsRequestEditOpen] = useState(false);
+    const [isRequestCancelOpen, setIsRequestCancelOpen] = useState(false);
+    const [isRequestReplaceOpen, setIsRequestReplaceOpen] = useState(false);
+    const [eventForRequest, setEventForRequest] = useState<CalendarEvent | undefined>(undefined);
 
     // Estado para el diálogo de eliminación de evento
     const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);
@@ -1481,6 +1488,24 @@ export default function CalendarPage() {
         setIsEventDetailsDrawerOpen(true);
     };
 
+    const handleRequestEdit = (event: CalendarEvent) => {
+        setEventForRequest(event);
+        setIsEventDetailsDrawerOpen(false);
+        setIsRequestEditOpen(true);
+    };
+
+    const handleRequestCancel = (event: CalendarEvent) => {
+        setEventForRequest(event);
+        setIsEventDetailsDrawerOpen(false);
+        setIsRequestCancelOpen(true);
+    };
+
+    const handleRequestReplace = (event: CalendarEvent) => {
+        setEventForRequest(event);
+        setIsEventDetailsDrawerOpen(false);
+        setIsRequestReplaceOpen(true);
+    };
+
     const handleApproveRequest = async (event: CalendarEvent) => {
         if (!event.requestId) {
             triggerAlert({
@@ -1814,7 +1839,8 @@ export default function CalendarPage() {
                 groupIds: config.groupIds,
                 classroomIds: config.classroomIds,
                 comment: config.comment || '',
-                cancelled: false
+                cancelled: false,
+                eventType: config.eventType || 'NORMAL'
             };
         } else if (config.frequency === 'custom') {
             // Evento custom periodic - calcular affectedDates
@@ -1852,7 +1878,8 @@ export default function CalendarPage() {
                 endsType: config.endsType,
                 endsOnDate: config.endsOnDate,
                 endsAfterOccurrences: config.endsAfterOccurrences,
-                customStartDate: config.customStartDate
+                customStartDate: config.customStartDate,
+                eventType: config.eventType || 'NORMAL'
             };
         } else {
             // Evento recurrente estándar (weekly, biweekly-even, biweekly-odd)
@@ -1868,7 +1895,8 @@ export default function CalendarPage() {
                 interval: config.interval,
                 endsType: config.endsType,
                 endsOnDate: config.endsOnDate,
-                endsAfterOccurrences: config.endsAfterOccurrences
+                endsAfterOccurrences: config.endsAfterOccurrences,
+                eventType: config.eventType || 'NORMAL'
             };
         }
 
@@ -1901,6 +1929,65 @@ export default function CalendarPage() {
         }
     };
 
+    const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
+
+    const handleSubmitRequestEdit = async (config: { originalEventId: string; eventType: 'PUNTUAL' | 'PERIODIC'; startTime: string; endTime: string; eventDate?: string; weekDay?: string; comment: string }) => {
+        setIsSubmittingRequest(true);
+        const result = await crearSolicitud(
+            calendarId!,
+            config.eventType,
+            { startTime: config.startTime, endTime: config.endTime, eventDate: config.eventDate, weekDay: config.weekDay, comment: config.comment },
+            () => { refetch(); refetchPendingRequests(); },
+            'EDIT',
+            config.originalEventId
+        );
+        setIsSubmittingRequest(false);
+        if (result.success) {
+            triggerAlert({ title: t('calendar.alerts.request.sent.title'), description: t('calendar.alerts.request.sent.description'), variant: 'success' });
+            setIsRequestEditOpen(false);
+        } else {
+            triggerAlert({ title: t('calendar.alerts.request.sendError.title'), description: result.message || t('calendar.alerts.request.sendError.description'), variant: 'destructive' });
+        }
+    };
+
+    const handleSubmitRequestCancel = async (config: { originalEventId: string; eventType: 'PUNTUAL' | 'PERIODIC'; comment: string }) => {
+        setIsSubmittingRequest(true);
+        const result = await crearSolicitud(
+            calendarId!,
+            config.eventType,
+            { comment: config.comment },
+            () => { refetch(); refetchPendingRequests(); },
+            'CANCEL',
+            config.originalEventId
+        );
+        setIsSubmittingRequest(false);
+        if (result.success) {
+            triggerAlert({ title: t('calendar.alerts.request.sent.title'), description: t('calendar.alerts.request.sent.description'), variant: 'success' });
+            setIsRequestCancelOpen(false);
+        } else {
+            triggerAlert({ title: t('calendar.alerts.request.sendError.title'), description: result.message || t('calendar.alerts.request.sendError.description'), variant: 'destructive' });
+        }
+    };
+
+    const handleSubmitRequestReplace = async (config: { originalEventId: string; eventType: 'PUNTUAL' | 'PERIODIC'; originalDate?: string; newEventDate: string; startTime: string; endTime: string; comment: string }) => {
+        setIsSubmittingRequest(true);
+        const result = await crearSolicitud(
+            calendarId!,
+            config.eventType,
+            { newEventDate: config.newEventDate, startTime: config.startTime, endTime: config.endTime, comment: config.comment, originalDate: config.originalDate },
+            () => { refetch(); refetchPendingRequests(); },
+            'REPLACE',
+            config.originalEventId
+        );
+        setIsSubmittingRequest(false);
+        if (result.success) {
+            triggerAlert({ title: t('calendar.alerts.request.sent.title'), description: t('calendar.alerts.request.sent.description'), variant: 'success' });
+            setIsRequestReplaceOpen(false);
+        } else {
+            triggerAlert({ title: t('calendar.alerts.request.sendError.title'), description: result.message || t('calendar.alerts.request.sendError.description'), variant: 'destructive' });
+        }
+    };
+
     // Custom event component with context menu
     const EventComponent = ({ event }: { event: MyEvent }) => (
         <CalendarEventWrapper
@@ -1916,6 +2003,9 @@ export default function CalendarPage() {
             onReplaceEvent={handleReplaceEvent}
             onDeleteSeries={handleDeleteSeries}
             onRevertCancellation={handleRevertCancellation}
+            onRequestEdit={handleRequestEdit}
+            onRequestCancel={handleRequestCancel}
+            onRequestReplace={handleRequestReplace}
         />
     );
 
@@ -1972,24 +2062,6 @@ export default function CalendarPage() {
                                 onImportExceptions={() => setIsImportExceptionsDialogOpen(true)}
                                 isAdmin={isAdmin}
                             />
-                        )}
-                        {isAdmin && (
-                            <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => navigate(`/degrees/${acronym}/courses/${startYear}/${endYear}/semester/${semester}/calendar/solicitudes`)}
-                                            className="h-9 gap-2"
-                                        >
-                                            <Bell className="w-4 h-4" />
-                                            <span className="hidden sm:inline text-xs">{t('calendar.toolbar.requests')}</span>
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>{t('calendar.toolbar.requestsTooltip')}</TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
                         )}
                     </div>
 
@@ -2236,6 +2308,41 @@ export default function CalendarPage() {
                     initialStartTime={dragStartTime}
                     initialEndTime={dragEndTime}
                     lectiveDates={lectiveDates}
+                />
+            )}
+
+            {/* Solicitud Editar — Solo para PROFESSOR */}
+            {!isAdmin && (
+                <RequestEditDialog
+                    open={isRequestEditOpen}
+                    onOpenChange={setIsRequestEditOpen}
+                    onSave={handleSubmitRequestEdit}
+                    event={eventForRequest}
+                    lectiveDates={lectiveDates}
+                    isSubmitting={isSubmittingRequest}
+                />
+            )}
+
+            {/* Solicitud Cancelar — Solo para PROFESSOR */}
+            {!isAdmin && (
+                <RequestCancelDialog
+                    open={isRequestCancelOpen}
+                    onOpenChange={setIsRequestCancelOpen}
+                    onSave={handleSubmitRequestCancel}
+                    event={eventForRequest}
+                    isSubmitting={isSubmittingRequest}
+                />
+            )}
+
+            {/* Solicitud Reemplazo — Solo para PROFESSOR */}
+            {!isAdmin && (
+                <RequestReplaceDialog
+                    open={isRequestReplaceOpen}
+                    onOpenChange={setIsRequestReplaceOpen}
+                    onSave={handleSubmitRequestReplace}
+                    event={eventForRequest}
+                    lectiveDates={lectiveDates}
+                    isSubmitting={isSubmittingRequest}
                 />
             )}
 

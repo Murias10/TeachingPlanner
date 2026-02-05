@@ -27,6 +27,9 @@ interface CalendarEventWrapperProps {
   onReplaceEvent?: (event: CalendarEvent) => void;
   onDeleteSeries?: (event: CalendarEvent) => void;
   onRevertCancellation?: (event: CalendarEvent) => void;
+  onRequestEdit?: (event: CalendarEvent) => void;
+  onRequestCancel?: (event: CalendarEvent) => void;
+  onRequestReplace?: (event: CalendarEvent) => void;
 }
 
 export function CalendarEventWrapper({
@@ -42,6 +45,9 @@ export function CalendarEventWrapper({
   onReplaceEvent,
   onDeleteSeries,
   onRevertCancellation,
+  onRequestEdit,
+  onRequestCancel,
+  onRequestReplace,
 }: CalendarEventWrapperProps) {
   const { user } = useAuth();
   const calendarEvent = event.resource;
@@ -108,6 +114,21 @@ export function CalendarEventWrapper({
   const handleRevertCancellation = (e: React.MouseEvent<HTMLDivElement>) => {
     e.preventDefault();
     onRevertCancellation?.(calendarEvent);
+  };
+
+  const handleRequestEdit = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    onRequestEdit?.(calendarEvent);
+  };
+
+  const handleRequestCancel = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    onRequestCancel?.(calendarEvent);
+  };
+
+  const handleRequestReplace = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    onRequestReplace?.(calendarEvent);
   };
 
   // Renderizar contenido del evento sin menú contextual para non-admin o en solicitudes pendientes para professor
@@ -295,6 +316,40 @@ export function CalendarEventWrapper({
     );
   }
 
-  // Para otros casos (PROFESSOR con evento regular, etc)
+  // Si es un evento regular y el usuario es PROFESSOR
+  if (isProfessor && !isCancelled) {
+    return (
+      <ContextMenu>
+        <ContextMenuTrigger className="h-full w-full cursor-pointer">
+          {renderEventContent()}
+        </ContextMenuTrigger>
+        <ContextMenuContent className="w-56">
+          <ContextMenuItem onClick={handleViewDetails}>
+            <Calendar />
+            Ver detalles
+          </ContextMenuItem>
+
+          <ContextMenuSeparator />
+
+          <ContextMenuItem onClick={handleRequestEdit}>
+            <Edit />
+            Solicitar editar
+          </ContextMenuItem>
+
+          <ContextMenuItem onClick={handleRequestReplace}>
+            <Replace />
+            Solicitar reemplazo
+          </ContextMenuItem>
+
+          <ContextMenuItem variant="destructive" onClick={handleRequestCancel}>
+            <XCircle />
+            Solicitar cancelar
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
+    );
+  }
+
+  // Fallback (otros casos)
   return renderEventContent();
 }

@@ -42,7 +42,7 @@ const SolicitudPage = () => {
     const { t } = useTranslation();
     const { setItems } = useBreadcrumbContext();
     const { triggerAlert } = useFloatingAlert();
-    const { user } = useAuth();
+    const { user, isLoading: authLoading } = useAuth();
     const listarSolicitudes = useListarSolicitudes();
     const aprobarSolicitud = useAprobarSolicitud();
     const rechazarSolicitud = useRechazarSolicitud();
@@ -95,13 +95,23 @@ const SolicitudPage = () => {
             { label: t("breadcrumb.courses"), href: `/degrees/${acronym}/courses` },
             // Miga intermedia con el año académico (sin enlace, solo informativo)
             ...(course ? [{ label: `${course.startYear}/${course.endYear}`, href: "" }] : []),
-            { label: t("breadcrumb.calendar"), href: `/degrees/${acronym}/courses/${startYear}/${endYear}/semester/${semester}/calendar` },
+            { label: t("breadcrumb.calendar"), href: "" },
             { label: "Solicitudes", href: "" },
         ]);
         cargarSolicitudes();
     }, [setItems, t, acronym, startYear, endYear, semester, cargarSolicitudes, course]);
 
-    // Protección: Solo ADMIN puede acceder
+    // Protección: Solo ADMIN puede acceder - esperar a que termine de cargar
+    if (authLoading) {
+        return (
+            <section className="h-full rounded-xl bg-muted/50 flex items-center justify-center m-2 p-10">
+                <div className="flex items-center justify-center h-full">
+                    <LoadingSpinner />
+                </div>
+            </section>
+        );
+    }
+
     if (user?.role !== 'ADMIN') {
         return <Navigate to="/degrees" replace />;
     }

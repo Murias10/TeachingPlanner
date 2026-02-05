@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { Repeat, ChevronDownIcon } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/ui/searchable-select';
+import { MultiSelect } from '@/components/ui/multi-select';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -20,6 +21,18 @@ import { useClassrooms } from '@/hooks/classroom/useClassrooms';
 import { useSubjectsByCalendarId } from '@/hooks/subject/useSubjectsByCalendarId';
 import { useSubjectsWithGroupsByCalendarId } from '@/hooks/subject/useSubjectsWithGroupsByCalendarId';
 import { getMonthlyPatternLabels } from '@/utils/customPatternCalculator';
+import { EVENT_TYPES, isSpecialEventType, isReviewOrEvalEventType, EVENT_TYPE_LABELS } from '@/constants/eventCharacters';
+
+interface EventRequest {
+  id: string;
+  professorId: string;
+  calendarId: string;
+  eventType: 'PUNTUAL' | 'PERIODIC';
+  requestType?: 'CREATE' | 'EDIT' | 'CANCEL' | 'REPLACE';
+  originalEventId?: string | null;
+  eventData: Record<string, any>;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+}
 
 interface CreateSolicitudDialogProps {
   open: boolean;
@@ -30,6 +43,10 @@ interface CreateSolicitudDialogProps {
   initialStartTime?: string | null;
   initialEndTime?: string | null;
   lectiveDates?: Set<string>;
+  // Review mode props
+  reviewingSolicitud?: EventRequest | null;
+  onApproveReview?: (solicitudId: string, planifiedHours: number | undefined, classroomIds: string[]) => void;
+  isSubmittingReview?: boolean;
 }
 
 // Helper functions for time calculations
@@ -87,7 +104,8 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
     comment: '',
   });
 
-  const [eventType, setEventType] = useState<string>('T');
+  const [groupType, setGroupType] = useState<string>('T');
+  const [selectedEventType, setSelectedEventType] = useState<string>(EVENT_TYPES.NORMAL);
   const [openStartTime, setOpenStartTime] = useState(false);
   const [openEndTime, setOpenEndTime] = useState(false);
 
@@ -115,14 +133,14 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
     setConfig(newConfig);
   }, [initialDate, initialStartTime, initialEndTime]);
 
-  // Clear group and classroom selections when event type changes
+  // Clear group and classroom selections when group type or event type changes
   React.useEffect(() => {
     setConfig(prev => ({
       ...prev,
       groupIds: [],
       classroomIds: []
     }));
-  }, [eventType]);
+  }, [groupType, selectedEventType]);
 
   const { data: classrooms = [] } = useClassrooms();
   const { data: subjects = [], isLoading: isLoadingSubjects } = useSubjectsByCalendarId(calendarId || null);
@@ -146,18 +164,20 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
     }
   }, [config.customStartDate]);
 
-  // Extract groups from subjects with groups for the selected subject and filter by event type
+  const isReviewOrEval = isReviewOrEvalEventType(selectedEventType);
+
+  // Extract groups from subjects with groups for the selected subject and filter by group type
   const availableGroups = useMemo(() => {
     if (!config.subjectId) return [];
 
-    // Find the selected subject in subjectsWithGroups
     const selectedSubject = subjectsWithGroups.find(s => s.id === config.subjectId);
-
     if (!selectedSubject || !selectedSubject.groups) return [];
 
-    // Filter groups by event type
-    return selectedSubject.groups.filter(group => group.type === eventType);
-  }, [config.subjectId, subjectsWithGroups, eventType]);
+    // For review/eval types, show all group types; otherwise filter by groupType
+    return isReviewOrEval
+      ? selectedSubject.groups
+      : selectedSubject.groups.filter(group => group.type === groupType);
+  }, [config.subjectId, subjectsWithGroups, groupType, isReviewOrEval]);
 
   // Validate that all required fields are filled
   // NOTE: planifiedHours and classroomIds are now optional - admin will complete them
@@ -166,7 +186,8 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
       config.subjectId &&
       config.groupIds &&
       config.groupIds.length > 0 &&
-      eventType
+      groupType &&
+      selectedEventType
     );
 
     if (!baseValid) return false;
@@ -185,7 +206,7 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
     }
 
     return true;
-  }, [config.subjectId, config.groupIds, eventType, config.frequency, config.eventDate, config.weekDays, config.customStartDate, config.customFrequencyUnit, config.interval]);
+  }, [config.subjectId, config.groupIds, groupType, selectedEventType, config.frequency, config.eventDate, config.weekDays, config.customStartDate, config.customFrequencyUnit, config.interval]);
 
   const weekDays: { value: WeekDay; label: string }[] = [
     { value: 'L', label: 'L' },
@@ -240,7 +261,7 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
 
   const handleSave = () => {
     if (calendarId) {
-      onSave(calendarId, eventType, config);
+      onSave(calendarId, groupType, { ...config, eventType: selectedEventType });
       onOpenChange(false);
     }
   };
@@ -410,8 +431,8 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
               </div>
             </div>
 
-            {/* Planified Hours - Only visible when frequency is 'weekly' or biweekly */}
-            {(config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd') && (
+            {/* Planified Hours - Only visible for standard periodic NORMAL events */}
+            {(config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd') && !isSpecialEventType(selectedEventType) && (
               <div className="space-y-1">
                 <Label htmlFor="planified-hours" className="text-xs font-semibold">Horas Planificadas</Label>
                 <Input
@@ -466,27 +487,46 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
               )}
             </div>
 
-            {/* Event Type Selection - Always visible */}
+            {/* Tipo de Evento — solo visible cuando hay asignatura */}
+            {config.subjectId && (
             <div className="space-y-1">
               <Label className="text-xs font-semibold">Tipo de Evento</Label>
-              <Select value={eventType} onValueChange={(value) => setEventType(value as 'T' | 'S' | 'L' | 'TG')}>
+              <Select value={selectedEventType} onValueChange={(value) => setSelectedEventType(value)}>
                 <SelectTrigger className="h-8 text-xs w-full">
-                  <SelectValue placeholder="Seleccionar tipo de evento" />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="T">Teoría</SelectItem>
-                  <SelectItem value="S">Seminario</SelectItem>
-                  <SelectItem value="L">Laboratorio</SelectItem>
-                  <SelectItem value="TG">Tutorías Grupales</SelectItem>
+                  {Object.entries(EVENT_TYPE_LABELS).filter(([value]) => value !== EVENT_TYPES.BLOCKER).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
+            )}
+
+            {/* Tipo de Grupo (T/S/L/TG) — oculto para tipos review/eval */}
+            {!isReviewOrEval && (
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Tipo de Grupo</Label>
+                <Select value={groupType} onValueChange={(value) => setGroupType(value)}>
+                  <SelectTrigger className="h-8 text-xs w-full">
+                    <SelectValue placeholder="Seleccionar tipo de grupo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="T">Teoría</SelectItem>
+                    <SelectItem value="S">Seminario</SelectItem>
+                    <SelectItem value="L">Laboratorio</SelectItem>
+                    <SelectItem value="TG">Tutorías Grupales</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* Groups and Classrooms Selection - Same row */}
             <div className="grid grid-cols-2 gap-2">
-              {/* Groups Selection - Single select */}
+              {/* Groups Selection — MultiSelect for review/eval, single select otherwise */}
               <div className="space-y-1">
-                <Label className="text-xs font-semibold">Grupo</Label>
+                <Label className="text-xs font-semibold">{isReviewOrEval ? 'Grupos' : 'Grupo'}</Label>
                 {!config.subjectId ? (
                   <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
                     Selecciona una asignatura primero
@@ -495,6 +535,26 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
                   <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
                     Sin grupos disponibles
                   </div>
+                ) : isReviewOrEval ? (
+                  <MultiSelect
+                    values={config.groupIds || []}
+                    onValuesChange={(values) => setConfig({ ...config, groupIds: values })}
+                    options={availableGroups.sort((a, b) => {
+                      const subject = subjects.find(s => s.id === config.subjectId);
+                      const labelA = `${subject?.acronym}.${a.type}.${a.language === 'EN' ? 'I-' : ''}${a.number}`;
+                      const labelB = `${subject?.acronym}.${b.type}.${b.language === 'EN' ? 'I-' : ''}${b.number}`;
+                      return labelA.localeCompare(labelB);
+                    }).map((group) => {
+                      const subject = subjects.find(s => s.id === config.subjectId);
+                      return {
+                        value: group.id,
+                        label: `${subject?.acronym}.${group.type}.${group.language === 'EN' ? 'I-' : ''}${group.number}`
+                      };
+                    })}
+                    placeholder="Seleccionar grupos"
+                    searchPlaceholder="Buscar grupo..."
+                    emptyMessage="No se encontraron grupos."
+                  />
                 ) : availableGroups.length > 8 ? (
                   <SearchableSelect
                     value={config.groupIds?.[0] || ''}
@@ -502,19 +562,15 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
                       setConfig({ ...config, groupIds: value ? [value] : [] });
                     }}
                     options={availableGroups.sort((a, b) => {
-                      const langPrefixA = a.language === 'EN' ? 'I-' : '';
-                      const langPrefixB = b.language === 'EN' ? 'I-' : '';
                       const subject = subjects.find(s => s.id === config.subjectId);
-                      const labelA = `${subject?.acronym}.${a.type}.${langPrefixA}${a.number}`;
-                      const labelB = `${subject?.acronym}.${b.type}.${langPrefixB}${b.number}`;
+                      const labelA = `${subject?.acronym}.${a.type}.${a.language === 'EN' ? 'I-' : ''}${a.number}`;
+                      const labelB = `${subject?.acronym}.${b.type}.${b.language === 'EN' ? 'I-' : ''}${b.number}`;
                       return labelA.localeCompare(labelB);
                     }).map((group) => {
-                      const langPrefix = group.language === 'EN' ? 'I-' : '';
                       const subject = subjects.find(s => s.id === config.subjectId);
-                      const groupLabel = `${subject?.acronym}.${group.type}.${langPrefix}${group.number}`;
                       return {
                         value: group.id,
-                        label: groupLabel
+                        label: `${subject?.acronym}.${group.type}.${group.language === 'EN' ? 'I-' : ''}${group.number}`
                       };
                     })}
                     placeholder="Seleccionar grupo"
@@ -533,19 +589,15 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
                     </SelectTrigger>
                     <SelectContent>
                       {availableGroups.sort((a, b) => {
-                        const langPrefixA = a.language === 'EN' ? 'I-' : '';
-                        const langPrefixB = b.language === 'EN' ? 'I-' : '';
                         const subject = subjects.find(s => s.id === config.subjectId);
-                        const labelA = `${subject?.acronym}.${a.type}.${langPrefixA}${a.number}`;
-                        const labelB = `${subject?.acronym}.${b.type}.${langPrefixB}${b.number}`;
+                        const labelA = `${subject?.acronym}.${a.type}.${a.language === 'EN' ? 'I-' : ''}${a.number}`;
+                        const labelB = `${subject?.acronym}.${b.type}.${b.language === 'EN' ? 'I-' : ''}${b.number}`;
                         return labelA.localeCompare(labelB);
                       }).map((group) => {
-                        const langPrefix = group.language === 'EN' ? 'I-' : '';
                         const subject = subjects.find(s => s.id === config.subjectId);
-                        const groupLabel = `${subject?.acronym}.${group.type}.${langPrefix}${group.number}`;
                         return (
                           <SelectItem key={group.id} value={group.id}>
-                            {groupLabel}
+                            {`${subject?.acronym}.${group.type}.${group.language === 'EN' ? 'I-' : ''}${group.number}`}
                           </SelectItem>
                         );
                       })}
@@ -554,13 +606,25 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
                 )}
               </div>
 
-              {/* Classrooms Selection - Single select */}
+              {/* Classrooms Selection — MultiSelect for special types, single select for NORMAL */}
               <div className="space-y-1">
-                <Label className="text-xs font-semibold">Aula</Label>
+                <Label className="text-xs font-semibold">{isSpecialEventType(selectedEventType) ? 'Aulas' : 'Aula'}</Label>
                 {classrooms.length === 0 ? (
                   <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
                     Cargando aulas...
                   </div>
+                ) : isSpecialEventType(selectedEventType) ? (
+                  <MultiSelect
+                    values={config.classroomIds || []}
+                    onValuesChange={(values) => setConfig({ ...config, classroomIds: values })}
+                    options={classrooms.sort((a, b) => a.code.localeCompare(b.code)).map((classroom) => ({
+                      value: classroom.id,
+                      label: classroom.code
+                    }))}
+                    placeholder="Seleccionar aulas"
+                    searchPlaceholder="Buscar aula..."
+                    emptyMessage="No se encontraron aulas."
+                  />
                 ) : classrooms.length > 8 ? (
                   <SearchableSelect
                     value={config.classroomIds?.[0] || ''}

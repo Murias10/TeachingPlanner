@@ -609,7 +609,118 @@ export const getPendingRequestsAsEvents = async (req: AuditedRequest, res: Respo
         for (const request of pendingRequests) {
             const eventData = request.eventData;
 
-            // Procesar solicitudes PUNTUALES
+            // --- Solicitudes EDIT / CANCEL / REPLACE: buscar el evento original ---
+            if (request.requestType && request.requestType !== 'CREATE' && request.originalEventId) {
+                const puntualRepo = AppDataSource.getRepository(PuntualEvent);
+                const periodicRepo = AppDataSource.getRepository(PeriodicEvent);
+
+                if (request.eventType === 'PUNTUAL') {
+                    const originalEvent = await puntualRepo.findOne({
+                        where: { id: request.originalEventId },
+                        relations: ['day', 'groups', 'groups.subject', 'classrooms']
+                    });
+
+                    if (originalEvent && originalEvent.day) {
+                        let displayDate: string;
+                        let displayStartTime = originalEvent.startTime;
+                        let displayEndTime = originalEvent.endTime;
+
+                        if (request.requestType === 'REPLACE') {
+                            displayDate = eventData.newEventDate;
+                            displayStartTime = eventData.startTime || displayStartTime;
+                            displayEndTime = eventData.endTime || displayEndTime;
+                        } else if (request.requestType === 'EDIT') {
+                            displayDate = eventData.eventDate || originalEvent.day.date.toISOString().split('T')[0];
+                            displayStartTime = eventData.startTime || displayStartTime;
+                            displayEndTime = eventData.endTime || displayEndTime;
+                        } else {
+                            // CANCEL: mostrar en la fecha original
+                            displayDate = originalEvent.day.date.toISOString().split('T')[0];
+                        }
+
+                        pendingEvents.push({
+                            id: `request-${request.id}`,
+                            type: 'puntual',
+                            comment: eventData.comment || null,
+                            ...CalendarFormattingService.formatEventData(
+                                originalEvent.groups,
+                                originalEvent.classrooms,
+                                request,
+                                displayStartTime,
+                                displayEndTime,
+                                new Date(displayDate).toISOString()
+                            )
+                        });
+                    }
+                } else if (request.eventType === 'PERIODIC') {
+                    const originalEvent = await periodicRepo.findOne({
+                        where: { id: request.originalEventId },
+                        relations: ['groups', 'groups.subject', 'classrooms']
+                    });
+
+                    if (originalEvent) {
+                        let displayDate: string | null = null;
+                        let displayStartTime = originalEvent.startTime;
+                        let displayEndTime = originalEvent.endTime;
+
+                        if (request.requestType === 'REPLACE') {
+                            // REPLACE periódico: mostrar en la nueva fecha
+                            displayDate = eventData.newEventDate;
+                            displayStartTime = eventData.startTime || displayStartTime;
+                            displayEndTime = eventData.endTime || displayEndTime;
+                        } else {
+                            // EDIT o CANCEL periódico: mostrar en la primera ocurrencia lectiva del día de la semana
+                            const targetWeekDay = (request.requestType === 'EDIT' && eventData.weekDay)
+                                ? eventData.weekDay
+                                : originalEvent.weekDay;
+
+                            if (request.requestType === 'EDIT') {
+                                displayStartTime = eventData.startTime || displayStartTime;
+                                displayEndTime = eventData.endTime || displayEndTime;
+                            }
+
+                            const weekDayMap: { [key: string]: number } = {
+                                'D': 0, 'L': 1, 'M': 2, 'X': 3, 'J': 4, 'V': 5, 'S': 6
+                            };
+                            const targetDayNum = weekDayMap[targetWeekDay?.toUpperCase()];
+
+                            const days = await dayRepo.find({
+                                where: { calendar: { id } },
+                                order: { date: 'ASC' }
+                            });
+
+                            // Encontrar la primera ocurrencia lectiva del día objetivo
+                            const matchingDay = days.find(day =>
+                                day.lective && day.date.getDay() === targetDayNum
+                            );
+
+                            if (matchingDay) {
+                                displayDate = matchingDay.date.toISOString().split('T')[0];
+                            }
+                        }
+
+                        if (displayDate) {
+                            pendingEvents.push({
+                                id: `request-${request.id}`,
+                                type: 'periodic',
+                                comment: eventData.comment || null,
+                                ...CalendarFormattingService.formatEventData(
+                                    originalEvent.groups,
+                                    originalEvent.classrooms,
+                                    request,
+                                    displayStartTime,
+                                    displayEndTime,
+                                    new Date(displayDate).toISOString()
+                                )
+                            });
+                        }
+                    }
+                }
+
+                continue; // No procesar como CREATE
+            }
+
+            // Procesar solicitudes PUNTUALES (CREATE)
             if (request.eventType === 'PUNTUAL') {
                 const { eventDate, startTime, endTime, groupIds, classroomIds, comment } = eventData;
 

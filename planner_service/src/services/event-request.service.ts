@@ -57,15 +57,39 @@ export class EventRequestService {
 
         const results = await query.orderBy('er.createdAt', 'DESC').getMany();
 
+        // Log to debug - check if relations are loaded
+        if (results.length > 0) {
+            console.log('[EventRequestService] Sample result - has calendar:', !!results[0].calendar);
+            const cal: any = results[0].calendar;
+            if (cal) {
+                console.log('[EventRequestService] Calendar data:', {
+                    id: cal.id,
+                    semester: cal.semester,
+                    hasCourse: !!cal.course,
+                    courseData: cal.course ? {
+                        startYear: cal.course.startYear,
+                        endYear: cal.course.endYear,
+                        hasDegree: !!cal.course.degree
+                    } : null
+                });
+            }
+        }
+
         // Transform results to include degree, course info
-        return results.map(er => ({
-            ...er,
-            degreeAcronym: er.calendar?.course?.degree?.acronym || null,
-            degreeName: er.calendar?.course?.degree?.name || null,
-            courseStartYear: er.calendar?.course?.startYear || null,
-            courseEndYear: er.calendar?.course?.endYear || null,
-            semester: er.calendar?.semester || null,
-        }));
+        return results.map(er => {
+            const cal: any = er.calendar;
+            const course: any = cal?.course;
+            const degree: any = course?.degree;
+
+            return {
+                ...er,
+                degreeAcronym: degree?.acronym || null,
+                degreeName: degree?.name || null,
+                courseStartYear: course?.startYear || null,
+                courseEndYear: course?.endYear || null,
+                semester: cal?.semester || null,
+            };
+        });
     }
 
     /**

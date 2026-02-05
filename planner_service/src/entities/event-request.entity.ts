@@ -3,7 +3,7 @@ import { AuditedEntity } from '@/entities/audited.entity';
 import { Calendar } from '@/entities/calendar.entity';
 
 /**
- * EventRequest entity representing a request from a PROFESSOR to create an event
+ * EventRequest entity representing a request from a PROFESSOR to create/edit/cancel/replace an event
  * Extends AuditedEntity for automatic audit tracking (createdAt, createdBy, updatedAt, updatedBy)
  */
 @Entity('EVENT_REQUESTS')
@@ -28,6 +28,24 @@ export class EventRequest extends AuditedEntity {
         enum: ['PUNTUAL', 'PERIODIC'],
     })
     eventType!: 'PUNTUAL' | 'PERIODIC';
+
+    /**
+     * Kind of request: CREATE a new event, EDIT an existing one, CANCEL it, or REPLACE it
+     * Default: CREATE (backwards compatible with existing requests)
+     */
+    @Column('enum', {
+        name: 'REQUEST_TYPE',
+        enum: ['CREATE', 'EDIT', 'CANCEL', 'REPLACE'],
+        default: 'CREATE',
+    })
+    requestType!: 'CREATE' | 'EDIT' | 'CANCEL' | 'REPLACE';
+
+    /**
+     * ID of the existing event that is being edited / cancelled / replaced.
+     * NULL for CREATE requests.
+     */
+    @Column('varchar', { name: 'ORIGINAL_EVENT_ID', length: 36, nullable: true })
+    originalEventId!: string | null;
 
     /**
      * Complete event data in JSON format
@@ -73,7 +91,7 @@ export class EventRequest extends AuditedEntity {
      * Relationship to Calendar (optional, for convenience)
      * Can be loaded with leftJoinAndSelect if needed
      */
-    @ManyToOne(() => Calendar, { onDelete: 'CASCADE', lazy: true })
+    @ManyToOne(() => Calendar, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'CALENDAR_ID' })
     calendar?: Calendar;
 }

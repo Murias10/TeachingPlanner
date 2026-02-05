@@ -14,13 +14,15 @@ export const useCrearSolicitud = () => {
         calendarId: string,
         eventType: string,
         eventData: any,
-        refetch?: () => void
+        refetch?: () => void,
+        requestType: string = 'CREATE',
+        originalEventId: string | null = null
     ): Promise<CreateSolicitudResponse> => {
         try {
             const response = await fetch(`${VITE_GATEWAY_API_URL}/event-request`, {
                 method: "POST",
                 headers: getAuthHeaders({ "Content-Type": "application/json" }),
-                body: JSON.stringify({ calendarId, eventType, eventData })
+                body: JSON.stringify({ calendarId, eventType, eventData, requestType, originalEventId })
             });
 
             let json;

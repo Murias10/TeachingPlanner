@@ -36,6 +36,7 @@ interface EventRequest {
     professorId: string;
     calendarId: string;
     eventType: 'PUNTUAL' | 'PERIODIC';
+    requestType?: 'CREATE' | 'EDIT' | 'CANCEL' | 'REPLACE';
     eventData: Record<string, any>;
     status: 'PENDING' | 'APPROVED' | 'REJECTED';
     reviewedBy?: string;

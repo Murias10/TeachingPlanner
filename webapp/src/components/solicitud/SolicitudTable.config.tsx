@@ -1,7 +1,7 @@
 import { ColumnDef } from "@tanstack/react-table"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ArrowUpDown, Check, X } from "lucide-react"
+import { ArrowUpDown, Check, X, Eye } from "lucide-react"
 import {
     Tooltip,
     TooltipContent,
@@ -44,6 +44,7 @@ const getRequestTypeBadge = (requestType: string) => {
 interface ColumnExtraProps {
     onApprove: (solicitud: EventRequest) => void;
     onReject: (solicitud: EventRequest) => void;
+    onReview: (solicitud: EventRequest) => void;
     t: TFunction;
 }
 
@@ -64,7 +65,7 @@ const getEventTypeLabel = (eventType: string) => {
     return eventType === 'PUNTUAL' ? 'Puntual' : 'Periódica';
 };
 
-export const columns = ({ onApprove, onReject, t }: ColumnExtraProps): ColumnDef<EventRequest>[] => [
+export const columns = ({ onApprove, onReject, onReview, t }: ColumnExtraProps): ColumnDef<EventRequest>[] => [
     {
         accessorKey: "professorId",
         enableHiding: false,
@@ -190,13 +191,26 @@ export const columns = ({ onApprove, onReject, t }: ColumnExtraProps): ColumnDef
                             <Button
                                 variant="ghost"
                                 size="sm"
+                                onClick={() => onReview(solicitud)}
+                                className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-100 hover:text-blue-700"
+                            >
+                                <Eye className="h-4 w-4" />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Revisar solicitud</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="sm"
                                 onClick={() => onApprove(solicitud)}
                                 className="h-8 w-8 p-0 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700"
                             >
                                 <Check className="h-4 w-4" />
                             </Button>
                         </TooltipTrigger>
-                        <TooltipContent>Aprobar</TooltipContent>
+                        <TooltipContent>Aprobar directamente</TooltipContent>
                     </Tooltip>
                     <Tooltip>
                         <TooltipTrigger asChild>

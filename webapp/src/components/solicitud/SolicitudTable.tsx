@@ -54,9 +54,10 @@ interface SolicitudTableProps {
     solicitudes: EventRequest[];
     onApprove: (solicitud: EventRequest) => void;
     onReject: (solicitud: EventRequest) => void;
+    onReview: (solicitud: EventRequest) => void;
 }
 
-export function SolicitudTable({ solicitudes, onApprove, onReject }: SolicitudTableProps) {
+export function SolicitudTable({ solicitudes, onApprove, onReject, onReview }: SolicitudTableProps) {
     const { t } = useTranslation()
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -65,7 +66,7 @@ export function SolicitudTable({ solicitudes, onApprove, onReject }: SolicitudTa
 
     const table = useReactTable({
         data: solicitudes,
-        columns: defaultColumns({ onApprove, onReject, t }),
+        columns: defaultColumns({ onApprove, onReject, onReview, t }),
         state: {
             sorting,
             columnFilters,

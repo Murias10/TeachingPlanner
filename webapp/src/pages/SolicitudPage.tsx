@@ -272,6 +272,7 @@ const SolicitudPage = () => {
                                 solicitudes={solicitudes}
                                 onApprove={handleApprove}
                                 onReject={handleReject}
+                                onReview={handleApprove}
                             />
                         </div>
                     )}

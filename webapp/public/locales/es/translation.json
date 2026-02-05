@@ -518,13 +518,34 @@
             "columns": {
                 "title": "Columnas",
                 "professorId": "Profesor",
+                "degreeAcronym": "Titulación",
+                "courseYear": "Curso",
+                "semester": "Semestre",
+                "requestType": "Tipo solicitud",
                 "eventType": "Tipo de Evento",
                 "createdAt": "Fecha de Solicitud",
                 "status": "Estado",
                 "actions": "Acciones"
             },
             "no.results": "No hay resultados.",
-            "total": "Total: {{count}} solicitudes"
+            "total": "Total: {{count}} solicitudes",
+            "actions": {
+                "review": "Revisar solicitud",
+                "approve": "Aprobar directamente",
+                "reject": "Rechazar"
+            },
+            "status": {
+                "pending": "Pendiente",
+                "approved": "Aprobada",
+                "rejected": "Rechazada",
+                "processed": "Procesada"
+            },
+            "requestType": {
+                "create": "Crear",
+                "edit": "Editar",
+                "cancel": "Cancelar",
+                "replace": "Reemplazar"
+            }
         },
         "classrooms": {
             "filter.placeholder": "Filtrar por código...",
@@ -1248,5 +1269,187 @@
             "step6": "Los cambios en TeachingPlanner (nuevos eventos, modificaciones, eliminaciones) se reflejarán en Google Calendar cuando ejecutes la sincronización",
             "note": "Nota importante: La sincronización es unidireccional (TeachingPlanner → Google Calendar). Los cambios realizados directamente en Google Calendar no se sincronizan de vuelta a TeachingPlanner."
         }
+    },
+    "requests": {
+        "page": {
+            "title": "Solicitudes de Eventos",
+            "subtitle": "Semestre {{semester}} • {{degree}} • {{startYear}}-{{endYear}}",
+            "loading": "Cargando solicitudes...",
+            "error": "No se pudieron cargar las solicitudes",
+            "filters": {
+                "pending": "Pendientes",
+                "approved": "Aprobadas",
+                "rejected": "Rechazadas",
+                "all": "Todas"
+            },
+            "refresh": "Actualizar solicitudes"
+        },
+        "dialog": {
+            "approve": {
+                "title": "Aprobar solicitud",
+                "description": "Diálogo para aprobar una solicitud de evento",
+                "professor": "Profesor",
+                "requestDate": "Fecha de solicitud",
+                "eventType": "Tipo de evento",
+                "frequency": "Frecuencia",
+                "schedule": "Horario",
+                "weekDays": "Días de la semana",
+                "date": "Fecha",
+                "comment": "Comentario",
+                "newDate": "Nueva fecha",
+                "originalEvent": "Evento original",
+                "planifiedHours": "Horas Planificadas",
+                "planifiedHoursPlaceholder": "Ej: 30",
+                "planifiedHoursRequired": "Horas Planificadas *",
+                "planifiedHoursHint": "El profesor no especificó las horas planificadas",
+                "classroom": "Aula",
+                "classroomRequired": "Aula *",
+                "classroomPlaceholder": "Seleccionar aula",
+                "classroomSearch": "Buscar aula...",
+                "classroomNotFound": "No se encontraron aulas.",
+                "classroomHint": "El profesor no especificó un aula",
+                "classroomLoading": "Cargando aulas...",
+                "groups": "Grupos",
+                "eventType": {
+                    "punctual": "Puntual",
+                    "periodic": "Periódico"
+                },
+                "frequency": {
+                    "noRepeat": "No se repite (Puntual)",
+                    "weekly": "Semanalmente",
+                    "biweeklyEven": "Quincenal (Semanas pares)",
+                    "biweeklyOdd": "Quincenal (Semanas impares)",
+                    "custom": "Personalizado"
+                },
+                "cancel": "Cancelar",
+                "approve": "Aprobar",
+                "approving": "Aprobando...",
+                "loading": "Cargando información de la solicitud..."
+            },
+            "reject": {
+                "title": "Rechazar solicitud",
+                "description": "Asegúrate de proporcionar un comentario sobre el motivo del rechazo",
+                "professor": "Profesor",
+                "eventType": "Tipo de evento",
+                "requestDate": "Fecha de solicitud",
+                "comments": "Comentarios",
+                "commentsPlaceholder": "Proporciona un comentario sobre el motivo del rechazo...",
+                "cancel": "Cancelar",
+                "reject": "Rechazar",
+                "processing": "Procesando..."
+            }
+        },
+        "contextMenu": {
+            "requestEdit": "Solicitar edición",
+            "requestCancel": "Solicitar cancelación",
+            "requestReplace": "Solicitar reemplazo",
+            "deleteRequest": "Eliminar solicitud"
+        }
+    },
+    "solicitud": {
+        "create": {
+            "title": "Crear solicitud de evento",
+            "punctual": "Evento Puntual",
+            "periodic": "Evento Periódico",
+            "tabs": {
+                "punctual": "Puntual",
+                "periodic": "Periódico"
+            },
+            "subject": "Asignatura",
+            "subjectPlaceholder": "Selecciona una asignatura",
+            "subjectSearch": "Buscar asignatura...",
+            "subjectNotFound": "No se encontraron asignaturas",
+            "eventType": "Tipo de evento",
+            "eventTypePlaceholder": "Selecciona tipo de evento",
+            "normal": "Normal",
+            "blocker": "Bloqueante",
+            "revision": "Revisión",
+            "evaluation": "Evaluación",
+            "other": "Otro",
+            "date": "Fecha",
+            "datePlaceholder": "Selecciona fecha",
+            "startTime": "Hora de inicio",
+            "endTime": "Hora de fin",
+            "weekDay": "Día de la semana",
+            "weekDayPlaceholder": "Selecciona día",
+            "monday": "Lunes",
+            "tuesday": "Martes",
+            "wednesday": "Miércoles",
+            "thursday": "Jueves",
+            "friday": "Viernes",
+            "saturday": "Sábado",
+            "sunday": "Domingo",
+            "frequency": "Frecuencia",
+            "frequencyPlaceholder": "Selecciona frecuencia",
+            "weekly": "Semanal",
+            "biweeklyEven": "Quincenal (semanas pares)",
+            "biweeklyOdd": "Quincenal (semanas impares)",
+            "custom": "Personalizada",
+            "planifiedHours": "Horas planificadas",
+            "planifiedHoursPlaceholder": "ej.: 30",
+            "planifiedHoursHint": "Solo para eventos normales",
+            "groups": "Grupos",
+            "groupsPlaceholder": "Selecciona grupos",
+            "groupsSearch": "Buscar grupos...",
+            "groupsNotFound": "No se encontraron grupos",
+            "classroom": "Aula (opcional)",
+            "classroomPlaceholder": "Selecciona aula",
+            "classroomSearch": "Buscar aula...",
+            "classroomNotFound": "No se encontraron aulas.",
+            "comment": "Comentario (opcional)",
+            "commentPlaceholder": "Agrega un comentario opcional...",
+            "blockerHint": "Para eventos bloqueantes debes seleccionar al menos una asignatura. Selecciona la asignatura cuyas horas quieres afectar.",
+            "cancel": "Cancelar",
+            "send": "Enviar solicitud",
+            "sending": "Enviando..."
+        },
+        "edit": {
+            "title": "Editar solicitud de evento",
+            "description": "Modifica los detalles del evento",
+            "currentData": "Datos actuales",
+            "newData": "Datos nuevos",
+            "noChanges": "No se realizarán cambios",
+            "save": "Guardar cambios",
+            "saving": "Guardando..."
+        },
+        "cancel": {
+            "title": "Solicitar cancelación de evento",
+            "description": "Solicita la cancelación de este evento",
+            "eventInfo": "Información del evento",
+            "subject": "Asignatura",
+            "date": "Fecha",
+            "time": "Horario",
+            "group": "Grupo",
+            "classroom": "Aula",
+            "reason": "Motivo de cancelación",
+            "reasonPlaceholder": "Explica por qué quieres cancelar este evento...",
+            "cancel": "Cancelar",
+            "send": "Enviar solicitud de cancelación",
+            "sending": "Enviando..."
+        },
+        "replace": {
+            "title": "Solicitar reemplazo de evento",
+            "description": "Solicita reemplazar este evento por una nueva fecha",
+            "currentEvent": "Evento actual",
+            "subject": "Asignatura",
+            "currentDate": "Fecha actual",
+            "time": "Horario",
+            "group": "Grupo",
+            "classroom": "Aula",
+            "newDate": "Nueva fecha",
+            "newDatePlaceholder": "Selecciona nueva fecha",
+            "reason": "Motivo del reemplazo (opcional)",
+            "reasonPlaceholder": "Explica por qué quieres reemplazar este evento...",
+            "cancel": "Cancelar",
+            "send": "Enviar solicitud de reemplazo",
+            "sending": "Enviando..."
+        }
+    },
+    "courseButtons": {
+        "manageSubjects": "Gestionar asignaturas",
+        "manageGroups": "Gestionar grupos",
+        "manageRequests": "Gestionar solicitudes",
+        "manageRequestsTooltip": "Gestionar solicitudes",
+        "requiresCalendar": "Requiere calendario"
     }
 }

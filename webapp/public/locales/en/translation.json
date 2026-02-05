@@ -518,13 +518,34 @@
             "columns": {
                 "title": "Columns",
                 "professorId": "Professor",
+                "degreeAcronym": "Degree",
+                "courseYear": "Course",
+                "semester": "Semester",
+                "requestType": "Request type",
                 "eventType": "Event type",
                 "createdAt": "Request date",
                 "status": "Status",
                 "actions": "Actions"
             },
             "no.results": "No results.",
-            "total": "Total: {{count}} requests"
+            "total": "Total: {{count}} requests",
+            "actions": {
+                "review": "Review request",
+                "approve": "Approve directly",
+                "reject": "Reject"
+            },
+            "status": {
+                "pending": "Pending",
+                "approved": "Approved",
+                "rejected": "Rejected",
+                "processed": "Processed"
+            },
+            "requestType": {
+                "create": "Create",
+                "edit": "Edit",
+                "cancel": "Cancel",
+                "replace": "Replace"
+            }
         },
         "classrooms": {
             "filter.placeholder": "Filter by code...",
@@ -1245,5 +1266,187 @@
             "step6": "Changes in TeachingPlanner (new events, modifications, deletions) will be reflected in Google Calendar when you run the sync",
             "note": "Important note: Synchronization is one-way (TeachingPlanner → Google Calendar). Changes made directly in Google Calendar are not synced back to TeachingPlanner."
         }
+    },
+    "requests": {
+        "page": {
+            "title": "Event Requests",
+            "subtitle": "Semester {{semester}} • {{degree}} • {{startYear}}-{{endYear}}",
+            "loading": "Loading requests...",
+            "error": "Could not load requests",
+            "filters": {
+                "pending": "Pending",
+                "approved": "Approved",
+                "rejected": "Rejected",
+                "all": "All"
+            },
+            "refresh": "Refresh requests"
+        },
+        "dialog": {
+            "approve": {
+                "title": "Approve request",
+                "description": "Dialog to approve an event request",
+                "professor": "Professor",
+                "requestDate": "Request date",
+                "eventType": "Event type",
+                "frequency": "Frequency",
+                "schedule": "Schedule",
+                "weekDays": "Days of the week",
+                "date": "Date",
+                "comment": "Comment",
+                "newDate": "New date",
+                "originalEvent": "Original event",
+                "planifiedHours": "Planned hours",
+                "planifiedHoursPlaceholder": "e.g.: 30",
+                "planifiedHoursRequired": "Planned hours *",
+                "planifiedHoursHint": "Professor did not specify planned hours",
+                "classroom": "Classroom",
+                "classroomRequired": "Classroom *",
+                "classroomPlaceholder": "Select classroom",
+                "classroomSearch": "Search classroom...",
+                "classroomNotFound": "No classrooms found.",
+                "classroomHint": "Professor did not specify a classroom",
+                "classroomLoading": "Loading classrooms...",
+                "groups": "Groups",
+                "eventType": {
+                    "punctual": "Punctual",
+                    "periodic": "Periodic"
+                },
+                "frequency": {
+                    "noRepeat": "Does not repeat (Punctual)",
+                    "weekly": "Weekly",
+                    "biweeklyEven": "Biweekly (Even weeks)",
+                    "biweeklyOdd": "Biweekly (Odd weeks)",
+                    "custom": "Custom"
+                },
+                "cancel": "Cancel",
+                "approve": "Approve",
+                "approving": "Approving...",
+                "loading": "Loading request information..."
+            },
+            "reject": {
+                "title": "Reject request",
+                "description": "Make sure to provide a comment about the reason for rejection",
+                "professor": "Professor",
+                "eventType": "Event type",
+                "requestDate": "Request date",
+                "comments": "Comments",
+                "commentsPlaceholder": "Provide a comment about the reason for rejection...",
+                "cancel": "Cancel",
+                "reject": "Reject",
+                "processing": "Processing..."
+            }
+        },
+        "contextMenu": {
+            "requestEdit": "Request edit",
+            "requestCancel": "Request cancellation",
+            "requestReplace": "Request replacement",
+            "deleteRequest": "Delete request"
+        }
+    },
+    "solicitud": {
+        "create": {
+            "title": "Create event request",
+            "punctual": "Punctual Event",
+            "periodic": "Periodic Event",
+            "tabs": {
+                "punctual": "Punctual",
+                "periodic": "Periodic"
+            },
+            "subject": "Subject",
+            "subjectPlaceholder": "Select a subject",
+            "subjectSearch": "Search subject...",
+            "subjectNotFound": "No subjects found",
+            "eventType": "Event type",
+            "eventTypePlaceholder": "Select event type",
+            "normal": "Normal",
+            "blocker": "Blocker",
+            "revision": "Review",
+            "evaluation": "Evaluation",
+            "other": "Other",
+            "date": "Date",
+            "datePlaceholder": "Select date",
+            "startTime": "Start time",
+            "endTime": "End time",
+            "weekDay": "Day of the week",
+            "weekDayPlaceholder": "Select day",
+            "monday": "Monday",
+            "tuesday": "Tuesday",
+            "wednesday": "Wednesday",
+            "thursday": "Thursday",
+            "friday": "Friday",
+            "saturday": "Saturday",
+            "sunday": "Sunday",
+            "frequency": "Frequency",
+            "frequencyPlaceholder": "Select frequency",
+            "weekly": "Weekly",
+            "biweeklyEven": "Biweekly (even weeks)",
+            "biweeklyOdd": "Biweekly (odd weeks)",
+            "custom": "Custom",
+            "planifiedHours": "Planned hours",
+            "planifiedHoursPlaceholder": "e.g.: 30",
+            "planifiedHoursHint": "Only for normal events",
+            "groups": "Groups",
+            "groupsPlaceholder": "Select groups",
+            "groupsSearch": "Search groups...",
+            "groupsNotFound": "No groups found",
+            "classroom": "Classroom (optional)",
+            "classroomPlaceholder": "Select classroom",
+            "classroomSearch": "Search classroom...",
+            "classroomNotFound": "No classrooms found.",
+            "comment": "Comment (optional)",
+            "commentPlaceholder": "Add an optional comment...",
+            "blockerHint": "For blocker events you must select at least one subject. Select the subject whose hours you want to affect.",
+            "cancel": "Cancel",
+            "send": "Send request",
+            "sending": "Sending..."
+        },
+        "edit": {
+            "title": "Edit event request",
+            "description": "Modify event details",
+            "currentData": "Current data",
+            "newData": "New data",
+            "noChanges": "No changes will be made",
+            "save": "Save changes",
+            "saving": "Saving..."
+        },
+        "cancel": {
+            "title": "Request event cancellation",
+            "description": "Request cancellation of this event",
+            "eventInfo": "Event information",
+            "subject": "Subject",
+            "date": "Date",
+            "time": "Time",
+            "group": "Group",
+            "classroom": "Classroom",
+            "reason": "Reason for cancellation",
+            "reasonPlaceholder": "Explain why you want to cancel this event...",
+            "cancel": "Cancel",
+            "send": "Send cancellation request",
+            "sending": "Sending..."
+        },
+        "replace": {
+            "title": "Request event replacement",
+            "description": "Request to replace this event with a new date",
+            "currentEvent": "Current event",
+            "subject": "Subject",
+            "currentDate": "Current date",
+            "time": "Time",
+            "group": "Group",
+            "classroom": "Classroom",
+            "newDate": "New date",
+            "newDatePlaceholder": "Select new date",
+            "reason": "Reason for replacement (optional)",
+            "reasonPlaceholder": "Explain why you want to replace this event...",
+            "cancel": "Cancel",
+            "send": "Send replacement request",
+            "sending": "Sending..."
+        }
+    },
+    "courseButtons": {
+        "manageSubjects": "Manage subjects",
+        "manageGroups": "Manage groups",
+        "manageRequests": "Manage requests",
+        "manageRequestsTooltip": "Manage requests",
+        "requiresCalendar": "Requires calendar"
     }
 }

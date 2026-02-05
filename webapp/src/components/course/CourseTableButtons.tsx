@@ -88,7 +88,7 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                                <p>Gestionar asignaturas</p>
+                                <p>{t("courseButtons.manageSubjects")}</p>
                             </TooltipContent>
                         </Tooltip>
                         <Tooltip>
@@ -103,7 +103,7 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                                <p>Gestionar grupos</p>
+                                <p>{t("courseButtons.manageGroups")}</p>
                             </TooltipContent>
                         </Tooltip>
                         <Tooltip>
@@ -118,7 +118,7 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                                <p>Gestionar solicitudes</p>
+                                <p>{t("courseButtons.manageRequests")}</p>
                             </TooltipContent>
                         </Tooltip>
                         <Tooltip>
@@ -163,7 +163,7 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                                <p>Gestionar asignaturas (requiere calendario)</p>
+                                <p>{t("courseButtons.manageSubjects")} ({t("courseButtons.requiresCalendar")})</p>
                             </TooltipContent>
                         </Tooltip>
                         <Tooltip>
@@ -178,7 +178,7 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                                <p>Gestionar grupos (requiere calendario)</p>
+                                <p>{t("courseButtons.manageGroups")} ({t("courseButtons.requiresCalendar")})</p>
                             </TooltipContent>
                         </Tooltip>
                         <Tooltip>
@@ -193,7 +193,7 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                                <p>Gestionar solicitudes (requiere calendario)</p>
+                                <p>{t("courseButtons.manageRequests")} ({t("courseButtons.requiresCalendar")})</p>
                             </TooltipContent>
                         </Tooltip>
                         <Tooltip>
@@ -235,7 +235,7 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                                <p>Gestionar asignaturas</p>
+                                <p>{t("courseButtons.manageSubjects")}</p>
                             </TooltipContent>
                         </Tooltip>
                         <Tooltip>
@@ -250,7 +250,7 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                                <p>Gestionar grupos</p>
+                                <p>{t("courseButtons.manageGroups")}</p>
                             </TooltipContent>
                         </Tooltip>
                         <Tooltip>
@@ -265,7 +265,7 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                                <p>Gestionar solicitudes</p>
+                                <p>{t("courseButtons.manageRequests")}</p>
                             </TooltipContent>
                         </Tooltip>
                         <Tooltip>
@@ -310,7 +310,7 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                                <p>Gestionar asignaturas (requiere calendario)</p>
+                                <p>{t("courseButtons.manageSubjects")} ({t("courseButtons.requiresCalendar")})</p>
                             </TooltipContent>
                         </Tooltip>
                         <Tooltip>
@@ -325,7 +325,7 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                                <p>Gestionar grupos (requiere calendario)</p>
+                                <p>{t("courseButtons.manageGroups")} ({t("courseButtons.requiresCalendar")})</p>
                             </TooltipContent>
                         </Tooltip>
                         <Tooltip>
@@ -340,7 +340,7 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                                <p>Gestionar solicitudes (requiere calendario)</p>
+                                <p>{t("courseButtons.manageRequests")} ({t("courseButtons.requiresCalendar")})</p>
                             </TooltipContent>
                         </Tooltip>
                         <Tooltip>

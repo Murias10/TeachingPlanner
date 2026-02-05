@@ -29,16 +29,10 @@ interface EventRequest {
     semester?: number | null;
 }
 
-const REQUEST_TYPE_LABELS: Record<string, string> = {
-    CREATE: 'Crear',
-    EDIT: 'Editar',
-    CANCEL: 'Cancelar',
-    REPLACE: 'Reemplazar',
-};
-
-const getRequestTypeBadge = (requestType: string) => {
+const getRequestTypeBadge = (requestType: string, t: TFunction) => {
     const variant = requestType === 'CANCEL' ? 'destructive' : 'secondary';
-    return <Badge variant={variant}>{REQUEST_TYPE_LABELS[requestType] || requestType}</Badge>;
+    const label = t(`table.solicitudes.requestType.${requestType.toLowerCase()}` as any) || requestType;
+    return <Badge variant={variant}>{label}</Badge>;
 };
 
 interface ColumnExtraProps {
@@ -48,21 +42,21 @@ interface ColumnExtraProps {
     t: TFunction;
 }
 
-const getStatusBadge = (status: string) => {
+const getStatusBadge = (status: string, t: TFunction) => {
     switch (status) {
         case 'PENDING':
-            return <Badge className="bg-amber-200 text-amber-900">Pendiente</Badge>;
+            return <Badge className="bg-amber-200 text-amber-900">{t("table.solicitudes.status.pending")}</Badge>;
         case 'APPROVED':
-            return <Badge className="bg-emerald-200 text-emerald-900">Aprobada</Badge>;
+            return <Badge className="bg-emerald-200 text-emerald-900">{t("table.solicitudes.status.approved")}</Badge>;
         case 'REJECTED':
-            return <Badge className="bg-rose-200 text-rose-900">Rechazada</Badge>;
+            return <Badge className="bg-rose-200 text-rose-900">{t("table.solicitudes.status.rejected")}</Badge>;
         default:
-            return <Badge>Desconocido</Badge>;
+            return <Badge>{t("table.solicitudes.status.pending")}</Badge>;
     }
 };
 
-const getEventTypeLabel = (eventType: string) => {
-    return eventType === 'PUNTUAL' ? 'Puntual' : 'Periódica';
+const getEventTypeLabel = (eventType: string, t: TFunction) => {
+    return eventType === 'PUNTUAL' ? t("requests.dialog.approve.eventType.punctual") : t("requests.dialog.approve.eventType.periodic");
 };
 
 export const columns = ({ onApprove, onReject, onReview, t }: ColumnExtraProps): ColumnDef<EventRequest>[] => [
@@ -88,7 +82,7 @@ export const columns = ({ onApprove, onReject, onReview, t }: ColumnExtraProps):
     },
     {
         accessorKey: "degreeAcronym",
-        header: () => <div>Titulación</div>,
+        header: () => <div>{t("table.solicitudes.columns.degreeAcronym")}</div>,
         cell: ({ row }) => {
             const acronym = row.original.degreeAcronym;
             const name = row.original.degreeName;
@@ -97,52 +91,52 @@ export const columns = ({ onApprove, onReject, onReview, t }: ColumnExtraProps):
                     <TooltipTrigger asChild>
                         <div className="font-medium cursor-help">{acronym || '-'}</div>
                     </TooltipTrigger>
-                    <TooltipContent>{name || 'Sin información'}</TooltipContent>
+                    <TooltipContent>{name || t("filters.notAvailable")}</TooltipContent>
                 </Tooltip>
             );
         },
         meta: {
-            label: "Titulación"
+            label: t("table.solicitudes.columns.degreeAcronym")
         }
     },
     {
         id: "courseYear",
-        header: () => <div>Curso</div>,
+        header: () => <div>{t("table.solicitudes.columns.courseYear")}</div>,
         cell: ({ row }) => {
             const startYear = row.original.courseStartYear;
             const endYear = row.original.courseEndYear;
             return <div>{startYear && endYear ? `${startYear}-${endYear}` : '-'}</div>;
         },
         meta: {
-            label: "Curso"
+            label: t("table.solicitudes.columns.courseYear")
         }
     },
     {
         accessorKey: "semester",
-        header: () => <div>Semestre</div>,
+        header: () => <div>{t("table.solicitudes.columns.semester")}</div>,
         cell: ({ row }) => {
             const semester = row.getValue("semester") as number | null;
             return <div>{semester ? String(semester) : '-'}</div>;
         },
         meta: {
-            label: "Semestre"
+            label: t("table.solicitudes.columns.semester")
         }
     },
     {
         accessorKey: "requestType",
-        header: () => <div>Tipo solicitud</div>,
+        header: () => <div>{t("table.solicitudes.columns.requestType")}</div>,
         cell: ({ row }) => {
             const rt = (row.getValue("requestType") as string) || 'CREATE';
-            return getRequestTypeBadge(rt);
+            return getRequestTypeBadge(rt, t);
         },
         meta: {
-            label: "Tipo solicitud"
+            label: t("table.solicitudes.columns.requestType")
         }
     },
     {
         accessorKey: "eventType",
         header: () => <div>{t("table.solicitudes.columns.eventType")}</div>,
-        cell: ({ row }) => <div>{getEventTypeLabel(row.getValue("eventType"))}</div>,
+        cell: ({ row }) => <div>{getEventTypeLabel(row.getValue("eventType"), t)}</div>,
         meta: {
             label: t("table.solicitudes.columns.eventType")
         }
@@ -169,7 +163,7 @@ export const columns = ({ onApprove, onReject, onReview, t }: ColumnExtraProps):
     {
         accessorKey: "status",
         header: () => <div>{t("table.solicitudes.columns.status")}</div>,
-        cell: ({ row }) => getStatusBadge(row.getValue("status")),
+        cell: ({ row }) => getStatusBadge(row.getValue("status"), t),
         meta: {
             label: t("table.solicitudes.columns.status")
         }
@@ -181,7 +175,7 @@ export const columns = ({ onApprove, onReject, onReview, t }: ColumnExtraProps):
             const solicitud = row.original;
 
             if (solicitud.status !== 'PENDING') {
-                return <span className="text-xs text-muted-foreground">Procesada</span>;
+                return <span className="text-xs text-muted-foreground">{t("table.solicitudes.status.processed")}</span>;
             }
 
             return (
@@ -197,7 +191,7 @@ export const columns = ({ onApprove, onReject, onReview, t }: ColumnExtraProps):
                                 <Eye className="h-4 w-4" />
                             </Button>
                         </TooltipTrigger>
-                        <TooltipContent>Revisar solicitud</TooltipContent>
+                        <TooltipContent>{t("table.solicitudes.actions.review")}</TooltipContent>
                     </Tooltip>
                     <Tooltip>
                         <TooltipTrigger asChild>
@@ -210,7 +204,7 @@ export const columns = ({ onApprove, onReject, onReview, t }: ColumnExtraProps):
                                 <Check className="h-4 w-4" />
                             </Button>
                         </TooltipTrigger>
-                        <TooltipContent>Aprobar directamente</TooltipContent>
+                        <TooltipContent>{t("table.solicitudes.actions.approve")}</TooltipContent>
                     </Tooltip>
                     <Tooltip>
                         <TooltipTrigger asChild>
@@ -223,7 +217,7 @@ export const columns = ({ onApprove, onReject, onReview, t }: ColumnExtraProps):
                                 <X className="h-4 w-4" />
                             </Button>
                         </TooltipTrigger>
-                        <TooltipContent>Rechazar</TooltipContent>
+                        <TooltipContent>{t("table.solicitudes.actions.reject")}</TooltipContent>
                     </Tooltip>
                 </div>
             );

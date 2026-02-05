@@ -12,14 +12,9 @@ import { MultiSelect } from '@/components/ui/multi-select';
 import { useClassrooms } from '@/hooks/classroom/useClassrooms';
 import { Badge } from '@/components/ui/badge';
 import { isSpecialEventType, isReviewOrEvalEventType, EVENT_TYPE_LABELS } from '@/constants/eventCharacters';
+import { useTranslation } from 'react-i18next';
 import moment from 'moment';
 
-const REQUEST_TYPE_LABELS: Record<string, string> = {
-    CREATE: 'Crear',
-    EDIT: 'Editar',
-    CANCEL: 'Cancelar',
-    REPLACE: 'Reemplazar',
-};
 
 interface EventRequest {
     id: string;
@@ -51,6 +46,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
     onApprove,
     isSubmitting
 }) => {
+    const { t } = useTranslation();
     const { data: classrooms = [] } = useClassrooms();
     const [planifiedHours, setPlanifiedHours] = useState<number | undefined>(undefined);
     const [selectedClassroomIds, setSelectedClassroomIds] = useState<string[]>([]);
@@ -96,11 +92,11 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
 
     const getFrequencyLabel = (frequency: string) => {
         switch (frequency) {
-            case 'no-repeat': return 'No se repite (Puntual)';
-            case 'weekly': return 'Semanalmente';
-            case 'biweekly-even': return 'Quincenal (Semanas pares)';
-            case 'biweekly-odd': return 'Quincenal (Semanas impares)';
-            case 'custom': return 'Personalizado';
+            case 'no-repeat': return t("requests.dialog.approve.frequency.noRepeat");
+            case 'weekly': return t("requests.dialog.approve.frequency.weekly");
+            case 'biweekly-even': return t("requests.dialog.approve.frequency.biweeklyEven");
+            case 'biweekly-odd': return t("requests.dialog.approve.frequency.biweeklyOdd");
+            case 'custom': return t("requests.dialog.approve.frequency.custom");
             default: return frequency;
         }
     };
@@ -113,10 +109,10 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                         <div className="p-2 bg-accent rounded-lg">
                             <CheckCircle2 className="w-5 h-5" />
                         </div>
-                        <DialogTitle className="text-lg font-semibold">Aprobar solicitud</DialogTitle>
+                        <DialogTitle className="text-lg font-semibold">{t("requests.dialog.approve.title")}</DialogTitle>
                     </div>
                     <DialogDescription className="hidden">
-                        Diálogo para aprobar una solicitud de evento
+                        {t("requests.dialog.approve.description")}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -126,7 +122,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                             {/* Tipo de solicitud badge */}
                             <div className="flex items-center gap-2">
                                 <Badge variant={requestType === 'CANCEL' ? 'destructive' : 'secondary'} className="text-xs">
-                                    {REQUEST_TYPE_LABELS[requestType] || requestType}
+                                    {t(`table.solicitudes.requestType.${requestType.toLowerCase()}`)}
                                 </Badge>
                                 {eventDataEventType !== 'NORMAL' && (
                                     <Badge variant="outline" className="text-xs">
@@ -138,24 +134,24 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                             {/* Info básica de la solicitud */}
                             <div className="grid grid-cols-2 gap-3 p-3 bg-accent/20 rounded border border-primary/20">
                                 <div>
-                                    <Label className="text-xs font-semibold">Profesor</Label>
+                                    <Label className="text-xs font-semibold">{t("requests.dialog.approve.professor")}</Label>
                                     <p className="text-xs mt-1">{solicitud.professorId}</p>
                                 </div>
                                 <div>
-                                    <Label className="text-xs font-semibold">Fecha de solicitud</Label>
+                                    <Label className="text-xs font-semibold">{t("requests.dialog.approve.requestDate")}</Label>
                                     <p className="text-xs mt-1">{moment(solicitud.createdAt).format('DD/MM/YYYY HH:mm')}</p>
                                 </div>
                                 <div>
-                                    <Label className="text-xs font-semibold">Tipo de evento</Label>
-                                    <p className="text-xs mt-1">{solicitud.eventType === 'PUNTUAL' ? 'Puntual' : 'Periódico'}</p>
+                                    <Label className="text-xs font-semibold">{t("requests.dialog.approve.eventType")}</Label>
+                                    <p className="text-xs mt-1">{solicitud.eventType === 'PUNTUAL' ? t("requests.dialog.approve.eventType.punctual") : t("requests.dialog.approve.eventType.periodic")}</p>
                                 </div>
                                 <div>
-                                    <Label className="text-xs font-semibold">Frecuencia</Label>
+                                    <Label className="text-xs font-semibold">{t("requests.dialog.approve.frequency")}</Label>
                                     <p className="text-xs mt-1">{getFrequencyLabel(solicitud.eventData.frequency || 'no-repeat')}</p>
                                 </div>
                                 {solicitud.eventData.groupIds && solicitud.eventData.groupIds.length > 0 && (
                                     <div className="col-span-2">
-                                        <Label className="text-xs font-semibold">Grupos</Label>
+                                        <Label className="text-xs font-semibold">{t("requests.dialog.approve.groups")}</Label>
                                         <p className="text-xs mt-1">{solicitud.eventData.groupIds.join(', ')}</p>
                                     </div>
                                 )}
@@ -163,7 +159,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
 
                             {/* Horario */}
                             <div className="space-y-1">
-                                <Label className="text-xs font-semibold">Horario</Label>
+                                <Label className="text-xs font-semibold">{t("requests.dialog.approve.schedule")}</Label>
                                 <div className="grid grid-cols-2 gap-2">
                                     <div className="h-8 px-3 border rounded flex items-center text-xs">
                                         {solicitud.eventData.startTime}
@@ -177,7 +173,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                             {/* Días de la semana (para eventos periódicos) */}
                             {isPeriodicEvent && solicitud.eventData.weekDays && (
                                 <div className="space-y-1">
-                                    <Label className="text-xs font-semibold">Días de la semana</Label>
+                                    <Label className="text-xs font-semibold">{t("requests.dialog.approve.weekDays")}</Label>
                                     <div className="h-8 px-3 border rounded flex items-center text-xs">
                                         {solicitud.eventData.weekDays.join(', ')}
                                     </div>
@@ -187,7 +183,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                             {/* Fecha (para eventos puntuales) */}
                             {!isPeriodicEvent && solicitud.eventData.eventDate && (
                                 <div className="space-y-1">
-                                    <Label className="text-xs font-semibold">Fecha</Label>
+                                    <Label className="text-xs font-semibold">{t("requests.dialog.approve.date")}</Label>
                                     <div className="h-8 px-3 border rounded flex items-center text-xs">
                                         {moment(solicitud.eventData.eventDate).format('DD/MM/YYYY')}
                                     </div>
@@ -197,7 +193,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                             {/* Comentario */}
                             {solicitud.eventData.comment && (
                                 <div className="space-y-1">
-                                    <Label className="text-xs font-semibold">Comentario</Label>
+                                    <Label className="text-xs font-semibold">{t("requests.dialog.approve.comment")}</Label>
                                     <div className="min-h-8 px-3 py-2 border rounded text-xs text-muted-foreground">
                                         {solicitud.eventData.comment}
                                     </div>
@@ -207,7 +203,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                             {/* Nueva fecha (para solicitudes de reemplazo) */}
                             {requestType === 'REPLACE' && solicitud.eventData.newEventDate && (
                                 <div className="space-y-1">
-                                    <Label className="text-xs font-semibold">Nueva fecha</Label>
+                                    <Label className="text-xs font-semibold">{t("requests.dialog.approve.newDate")}</Label>
                                     <div className="h-8 px-3 border rounded flex items-center text-xs">
                                         {moment(solicitud.eventData.newEventDate).format('DD/MM/YYYY')}
                                     </div>
@@ -217,7 +213,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                             {/* ID del evento original (para EDIT/CANCEL/REPLACE) */}
                             {!isCreateRequest && solicitud.originalEventId && (
                                 <div className="space-y-1">
-                                    <Label className="text-xs font-semibold">Evento original</Label>
+                                    <Label className="text-xs font-semibold">{t("requests.dialog.approve.originalEvent")}</Label>
                                     <div className="h-8 px-3 border rounded flex items-center text-xs text-muted-foreground">
                                         {solicitud.originalEventId}
                                     </div>
@@ -228,7 +224,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                             {isPeriodicEvent && needsPlanifiedHours && (
                                 <div className="space-y-1">
                                     <Label htmlFor="planified-hours" className="text-xs font-semibold">
-                                        Horas Planificadas <span className="text-destructive">*</span>
+                                        {t("requests.dialog.approve.planifiedHoursRequired")}
                                     </Label>
                                     <Input
                                         id="planified-hours"
@@ -237,18 +233,18 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                                         step="0.5"
                                         value={planifiedHours || ''}
                                         onChange={(e) => setPlanifiedHours(e.target.value ? parseFloat(e.target.value) : undefined)}
-                                        placeholder="Ej: 30"
+                                        placeholder={t("requests.dialog.approve.planifiedHoursPlaceholder")}
                                         className="h-8 text-xs"
                                     />
                                     <p className="text-xs text-muted-foreground">
-                                        El profesor no especificó las horas planificadas
+                                        {t("requests.dialog.approve.planifiedHoursHint")}
                                     </p>
                                 </div>
                             )}
 
                             {isPeriodicEvent && !needsPlanifiedHours && (
                                 <div className="space-y-1">
-                                    <Label className="text-xs font-semibold">Horas Planificadas</Label>
+                                    <Label className="text-xs font-semibold">{t("requests.dialog.approve.planifiedHours")}</Label>
                                     <div className="h-8 px-3 border rounded flex items-center text-xs">
                                         {solicitud.eventData.planifiedHours}
                                     </div>
@@ -259,11 +255,11 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                             {isCreateRequest && (
                                 <div className="space-y-1">
                                     <Label className="text-xs font-semibold">
-                                        Aula{needsClassroom && <span className="text-destructive ml-1">*</span>}
+                                        {needsClassroom ? t("requests.dialog.approve.classroomRequired") : t("requests.dialog.approve.classroom")}
                                     </Label>
                                     {classrooms.length === 0 ? (
                                         <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
-                                            Cargando aulas...
+                                            {t("requests.dialog.approve.classroomLoading")}
                                         </div>
                                     ) : isSpecialEvent || isReviewOrEval ? (
                                         // MultiSelect para eventos especiales (BLOCKER, REVISION, EVALUACION)
@@ -274,7 +270,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                                             }))}
                                             values={selectedClassroomIds}
                                             onValuesChange={setSelectedClassroomIds}
-                                            placeholder="Seleccionar aulas"
+                                            placeholder={t("requests.dialog.approve.classroomPlaceholder")}
                                         />
                                     ) : classrooms.length > 8 ? (
                                         <SearchableSelect
@@ -286,9 +282,9 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                                                 value: classroom.id,
                                                 label: classroom.code
                                             }))}
-                                            placeholder="Seleccionar aula"
-                                            searchPlaceholder="Buscar aula..."
-                                            emptyMessage="No se encontraron aulas."
+                                            placeholder={t("requests.dialog.approve.classroomPlaceholder")}
+                                            searchPlaceholder={t("requests.dialog.approve.classroomSearch")}
+                                            emptyMessage={t("requests.dialog.approve.classroomNotFound")}
                                         />
                                     ) : (
                                         <Select
@@ -298,7 +294,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                                             }}
                                         >
                                             <SelectTrigger className="h-8 text-xs w-full">
-                                                <SelectValue placeholder="Seleccionar aula" />
+                                                <SelectValue placeholder={t("requests.dialog.approve.classroomPlaceholder")} />
                                             </SelectTrigger>
                                             <SelectContent>
                                                 {classrooms.sort((a, b) => a.code.localeCompare(b.code)).map((classroom) => (
@@ -311,7 +307,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                                     )}
                                     {needsClassroom && (
                                         <p className="text-xs text-muted-foreground">
-                                            El profesor no especificó un aula
+                                            {t("requests.dialog.approve.classroomHint")}
                                         </p>
                                     )}
                                 </div>
@@ -319,7 +315,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                         </div>
                     ) : (
                         <div className="h-32 flex items-center justify-center text-xs text-muted-foreground">
-                            Cargando información de la solicitud...
+                            {t("requests.dialog.approve.loading")}
                         </div>
                     )}
                 </div>
@@ -332,14 +328,14 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                         disabled={isSubmitting}
                         className="h-8 text-xs"
                     >
-                        Cancelar
+                        {t("requests.dialog.approve.cancel")}
                     </Button>
                     <Button
                         onClick={handleApprove}
                         disabled={!canApprove || isSubmitting}
                         className="h-8 text-xs"
                     >
-                        {isSubmitting ? 'Aprobando...' : 'Aprobar'}
+                        {isSubmitting ? t("requests.dialog.approve.approving") : t("requests.dialog.approve.approve")}
                     </Button>
                 </div>
             </DialogContent>

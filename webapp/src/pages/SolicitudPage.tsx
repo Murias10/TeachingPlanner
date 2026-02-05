@@ -137,23 +137,23 @@ const SolicitudPage = () => {
 
             if (result.success) {
                 triggerAlert({
-                    title: 'Solicitud aprobada',
-                    description: 'El evento ha sido creado exitosamente',
+                    title: t("calendar.alerts.request.approvedShort.title"),
+                    description: t("calendar.alerts.request.approvedShort.description"),
                     variant: 'success'
                 });
                 setApproveDialogOpen(false);
                 cargarSolicitudes();
             } else {
                 triggerAlert({
-                    title: 'Error',
-                    description: result.message || 'Error al aprobar la solicitud',
+                    title: t("common.error"),
+                    description: result.message || t("calendar.alerts.request.approveErrorWithMessage.description"),
                     variant: 'destructive'
                 });
             }
         } catch {
             triggerAlert({
-                title: 'Error',
-                description: 'Ocurrió un error al aprobar la solicitud',
+                title: t("common.error"),
+                description: t("calendar.alerts.request.approveErrorGeneric.description"),
                 variant: 'destructive'
             });
         } finally {
@@ -179,23 +179,23 @@ const SolicitudPage = () => {
 
             if (result.success) {
                 triggerAlert({
-                    title: 'Solicitud rechazada',
-                    description: 'La solicitud ha sido rechazada',
+                    title: t("calendar.alerts.request.rejected.title"),
+                    description: t("calendar.alerts.request.rejected.description"),
                     variant: 'success'
                 });
                 setRejectDialogOpen(false);
                 cargarSolicitudes();
             } else {
                 triggerAlert({
-                    title: 'Error',
-                    description: result.message || 'Error al rechazar la solicitud',
+                    title: t("common.error"),
+                    description: result.message || t("calendar.alerts.request.rejectError.description"),
                     variant: 'destructive'
                 });
             }
         } catch {
             triggerAlert({
-                title: 'Error',
-                description: 'Ocurrió un error al rechazar la solicitud',
+                title: t("common.error"),
+                description: t("calendar.alerts.request.rejectErrorGeneric.description"),
                 variant: 'destructive'
             });
         } finally {
@@ -223,10 +223,15 @@ const SolicitudPage = () => {
                 {/* Header */}
                 <div className="px-6 py-5 border-b bg-background">
                     <h1 className="text-2xl font-semibold text-foreground mb-1">
-                        Solicitudes de Eventos
+                        {t("requests.page.title")}
                     </h1>
                     <p className="text-sm text-muted-foreground">
-                        Semestre {semester} • {degree?.name || acronym?.toUpperCase()} • {startYear}-{endYear}
+                        {t("requests.page.subtitle", {
+                            semester,
+                            degree: degree?.name || acronym?.toUpperCase(),
+                            startYear,
+                            endYear
+                        })}
                     </p>
                 </div>
 
@@ -243,10 +248,10 @@ const SolicitudPage = () => {
                                 }}
                                 size="sm"
                             >
-                                {status === 'PENDING' && 'Pendientes'}
-                                {status === 'APPROVED' && 'Aprobadas'}
-                                {status === 'REJECTED' && 'Rechazadas'}
-                                {status === 'all' && 'Todas'}
+                                {status === 'PENDING' && t("requests.page.filters.pending")}
+                                {status === 'APPROVED' && t("requests.page.filters.approved")}
+                                {status === 'REJECTED' && t("requests.page.filters.rejected")}
+                                {status === 'all' && t("requests.page.filters.all")}
                             </Button>
                         ))}
                     </div>
@@ -254,7 +259,7 @@ const SolicitudPage = () => {
                         onClick={() => cargarSolicitudes()}
                         disabled={isLoading}
                         className="p-2 rounded-md hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Actualizar solicitudes"
+                        title={t("requests.page.refresh")}
                     >
                         <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
                     </button>
@@ -292,9 +297,9 @@ const SolicitudPage = () => {
             <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Rechazar solicitud</DialogTitle>
+                        <DialogTitle>{t("requests.dialog.reject.title")}</DialogTitle>
                         <DialogDescription>
-                            Asegúrate de proporcionar un comentario sobre el motivo del rechazo
+                            {t("requests.dialog.reject.description")}
                         </DialogDescription>
                     </DialogHeader>
 
@@ -302,19 +307,19 @@ const SolicitudPage = () => {
                         {selectedSolicitud && (
                             <>
                                 <div>
-                                    <label className="text-sm font-medium">Profesor</label>
+                                    <label className="text-sm font-medium">{t("requests.dialog.reject.professor")}</label>
                                     <p className="text-sm text-muted-foreground mt-1">
                                         {selectedSolicitud.professorId}
                                     </p>
                                 </div>
                                 <div>
-                                    <label className="text-sm font-medium">Tipo de evento</label>
+                                    <label className="text-sm font-medium">{t("requests.dialog.reject.eventType")}</label>
                                     <p className="text-sm text-muted-foreground mt-1">
                                         {getEventTypeLabel(selectedSolicitud.eventType)}
                                     </p>
                                 </div>
                                 <div>
-                                    <label className="text-sm font-medium">Fecha de solicitud</label>
+                                    <label className="text-sm font-medium">{t("requests.dialog.reject.requestDate")}</label>
                                     <p className="text-sm text-muted-foreground mt-1">
                                         {moment(selectedSolicitud.createdAt).format('DD/MM/YYYY HH:mm')}
                                     </p>
@@ -324,11 +329,11 @@ const SolicitudPage = () => {
 
                         <div>
                             <label htmlFor="comments" className="text-sm font-medium">
-                                Comentarios
+                                {t("requests.dialog.reject.comments")}
                             </label>
                             <Textarea
                                 id="comments"
-                                placeholder="Proporciona un comentario sobre el motivo del rechazo..."
+                                placeholder={t("requests.dialog.reject.commentsPlaceholder")}
                                 value={comments}
                                 onChange={(e) => setComments(e.target.value)}
                                 className="mt-2 min-h-20"
@@ -342,14 +347,14 @@ const SolicitudPage = () => {
                             onClick={() => setRejectDialogOpen(false)}
                             disabled={isSubmitting}
                         >
-                            Cancelar
+                            {t("requests.dialog.reject.cancel")}
                         </Button>
                         <Button
                             onClick={handleConfirmReject}
                             disabled={isSubmitting || !comments.trim()}
                             variant="destructive"
                         >
-                            {isSubmitting ? 'Procesando...' : 'Rechazar'}
+                            {isSubmitting ? t("requests.dialog.reject.processing") : t("requests.dialog.reject.reject")}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

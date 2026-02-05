@@ -170,8 +170,8 @@ export default function ClassFilter({
   // Vista expandida
   return (
     <aside className={cn(
-      "w-72 border-r bg-background/50 flex flex-col transition-all duration-300 overflow-hidden",
-      "h-full"
+      "w-72 border-r bg-background/50 flex flex-col transition-all duration-300",
+      "h-full min-h-0 overflow-hidden"
     )}>
       <div className="p-6 border-b bg-card shrink-0">
         <div className="flex items-center justify-between mb-1">

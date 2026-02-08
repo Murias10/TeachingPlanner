@@ -43,7 +43,7 @@ import { useDeleteRequest } from "@/hooks/event-request/useDeleteRequest";
 import { useGetSolicitudById } from "@/hooks/event-request/useGetSolicitudById";
 import { useAprobarSolicitud } from "@/hooks/event-request/useAprobarSolicitud";
 import { useRechazarSolicitud } from "@/hooks/event-request/useRechazarSolicitud";
-import ApproveRequestDialog from "@/components/solicitud/ApproveRequestDialog";
+import ApproveRequestDialog, { canApproveRequestDirectly } from "@/components/solicitud/ApproveRequestDialog";
 import RejectRequestDialog from "@/components/calendar/RejectRequestDialog";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -1525,9 +1525,45 @@ export default function CalendarPage() {
             actualRequestId = actualRequestId.substring(0, 36);
         }
 
-        // Approve directly without additional data
+        // Get the full solicitud to extract the config
         try {
-            const result = await aprobarSolicitud(actualRequestId, undefined, refetchPendingRequests);
+            const response = await fetch(`${VITE_GATEWAY_API_URL}/event-request/${actualRequestId}`, {
+                headers: getAuthHeaders()
+            });
+
+            if (!response.ok) {
+                triggerAlert({
+                    title: t('calendar.alerts.request.approveError.title'),
+                    description: 'No se pudo obtener la información de la solicitud',
+                    variant: 'destructive'
+                });
+                return;
+            }
+
+            const body = await response.json();
+            const solicitud = body.data;
+
+            if (!solicitud || !solicitud.eventData) {
+                triggerAlert({
+                    title: t('calendar.alerts.request.approveError.title'),
+                    description: 'No se pudo obtener la información de la solicitud',
+                    variant: 'destructive'
+                });
+                return;
+            }
+
+            // Validar si la solicitud tiene todos los datos necesarios
+            if (!canApproveRequestDirectly(solicitud.eventData)) {
+                // Faltan datos -> Abrir diálogo de revisión para completar
+                setReviewRequestId(actualRequestId);
+                setApproveDialogOpen(true);
+                return;
+            }
+
+            // Use the event data from the solicitud as the config
+            const config = solicitud.eventData as RecurrenceConfig;
+
+            const result = await aprobarSolicitud(actualRequestId, config, refetchPendingRequests);
 
             if (result.success) {
                 triggerAlert({
@@ -1640,7 +1676,7 @@ export default function CalendarPage() {
         setApproveDialogOpen(true);
     };
 
-    const handleApproveWithData = async (planifiedHours: number | undefined, classroomIds: string[]) => {
+    const handleApproveWithData = async (config: RecurrenceConfig) => {
         if (!requestToReview) return;
 
         setIsSubmittingApproval(true);
@@ -1648,7 +1684,7 @@ export default function CalendarPage() {
         try {
             const result = await aprobarSolicitud(
                 requestToReview.id,
-                { planifiedHours, classroomIds },
+                config,
                 () => {
                     refetchPendingRequests();
                     refetch();
@@ -2365,6 +2401,8 @@ export default function CalendarPage() {
                         solicitud={requestToReview || null}
                         onApprove={handleApproveWithData}
                         isSubmitting={isSubmittingApproval}
+                        lectiveDates={lectiveDates}
+                        calendarEndDate={data?.endDate}
                     />
 
                     {/* Reject Request Dialog */}

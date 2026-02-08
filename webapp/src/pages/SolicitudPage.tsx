@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import { useParams, Navigate } from "react-router-dom";
 import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext";
 import { useTranslation } from "react-i18next";
@@ -9,6 +9,7 @@ import { useRechazarSolicitud } from "@/hooks/event-request/useRechazarSolicitud
 import { useFloatingAlert } from "@/hooks/useFloatingAlert";
 import { useDegreeByAcronym } from "@/hooks/degree/useDegreeByAcronym";
 import { useCoursesByDegreeAcronym } from "@/hooks/course/useCoursesByDegreeAcronym";
+import { useCalendarByCourseAndSemester } from "@/hooks/calendar/useCalendarByCourseAndSemester";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,7 +23,8 @@ import {
 } from "@/components/ui/dialog";
 import { RefreshCw } from "lucide-react";
 import { SolicitudTable } from "@/components/solicitud/SolicitudTable";
-import ApproveRequestDialog from "@/components/solicitud/ApproveRequestDialog";
+import ApproveRequestDialog, { canApproveRequestDirectly } from "@/components/solicitud/ApproveRequestDialog";
+import type { RecurrenceConfig } from '@/types/RecurrenceConfig';
 import moment from "moment";
 
 interface EventRequest {
@@ -66,6 +68,18 @@ const SolicitudPage = () => {
     const [comments, setComments] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [statusFilter, setStatusFilter] = useState<'all' | 'PENDING' | 'APPROVED' | 'REJECTED'>('PENDING');
+
+    // Get calendar data to obtain lective dates
+    const { data: calendarData } = useCalendarByCourseAndSemester(
+        acronym || null,
+        startYear || null,
+        endYear || null,
+        semester || null
+    );
+
+    const lectiveDates = useMemo(() => {
+        return new Set(calendarData?.lectiveDates || []);
+    }, [calendarData?.lectiveDates]);
 
     const cargarSolicitudes = useCallback(async (filter?: 'all' | 'PENDING' | 'APPROVED' | 'REJECTED') => {
         setIsLoading(true);
@@ -118,12 +132,23 @@ const SolicitudPage = () => {
 
     const handleApprove = (solicitud: EventRequest) => {
         console.log('[SolicitudPage] handleApprove called with:', solicitud);
+
+        // Validar si la solicitud tiene todos los datos necesarios
+        if (!canApproveRequestDirectly(solicitud.eventData)) {
+            // Faltan datos -> Abrir diálogo de revisión automáticamente
+            setSelectedSolicitud(solicitud);
+            setApproveDialogOpen(true);
+            console.log('[SolicitudPage] Incomplete data - Opening review dialog');
+            return;
+        }
+
+        // Tiene todos los datos -> Abrir diálogo de revisión (mismo comportamiento que antes)
         setSelectedSolicitud(solicitud);
         setApproveDialogOpen(true);
         console.log('[SolicitudPage] Dialog should open now');
     };
 
-    const handleApproveWithData = async (planifiedHours: number | undefined, classroomIds: string[]) => {
+    const handleApproveWithData = async (config: RecurrenceConfig) => {
         if (!selectedSolicitud) return;
 
         setIsSubmitting(true);
@@ -131,7 +156,7 @@ const SolicitudPage = () => {
         try {
             const result = await aprobarSolicitud(
                 selectedSolicitud.id,
-                { planifiedHours, classroomIds },
+                config,
                 () => cargarSolicitudes()
             );
 
@@ -291,6 +316,8 @@ const SolicitudPage = () => {
                 solicitud={selectedSolicitud}
                 onApprove={handleApproveWithData}
                 isSubmitting={isSubmitting}
+                lectiveDates={lectiveDates}
+                calendarEndDate={calendarData?.endDate}
             />
 
             {/* Reject Request Dialog */}

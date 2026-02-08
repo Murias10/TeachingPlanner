@@ -15,7 +15,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { TimePicker } from '@/components/ui/time-picker';
 import { Textarea } from '@/components/ui/textarea';
 import { es } from 'date-fns/locale';
-import { format } from 'date-fns';
+import { format, getDay, parseISO } from 'date-fns';
 import type { RecurrenceConfig, FrequencyType, WeekDay, EndsType, CustomFrequencyUnit, MonthlyPatternType } from '@/types/RecurrenceConfig';
 import { useClassrooms } from '@/hooks/classroom/useClassrooms';
 import { useSubjectsByCalendarId } from '@/hooks/subject/useSubjectsByCalendarId';
@@ -133,20 +133,84 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
     setConfig(newConfig);
   }, [initialDate, initialStartTime, initialEndTime]);
 
-  // Clear group and classroom selections when group type or event type changes
+  // Clear group and classroom selections when event type changes
   React.useEffect(() => {
     setConfig(prev => ({
       ...prev,
       groupIds: [],
       classroomIds: []
     }));
-  }, [groupType, selectedEventType]);
+  }, [selectedEventType]);
 
+  // Clear group and classroom selections when subject changes
+  React.useEffect(() => {
+    setConfig(prev => ({
+      ...prev,
+      groupIds: [],
+      classroomIds: []
+    }));
+  }, [config.subjectId]);
+
+  // Hooks must be declared before effects that use them
   const { data: classrooms = [] } = useClassrooms();
   const { data: subjects = [], isLoading: isLoadingSubjects } = useSubjectsByCalendarId(calendarId || null);
-
-  // Get all subjects with their groups using the same hook as GroupPage
   const { data: subjectsWithGroups = [] } = useSubjectsWithGroupsByCalendarId(calendarId || null);
+
+  // Auto-complete planified hours from selected group (like CreateEventDialog)
+  React.useEffect(() => {
+    if (config.groupIds && config.groupIds.length > 0 &&
+        (config.frequency === 'weekly' || config.frequency === 'biweekly-even' ||
+         config.frequency === 'biweekly-odd' || config.frequency === 'custom')) {
+      const selectedGroupId = config.groupIds[0];
+      const selectedSubject = subjectsWithGroups.find(s => s.id === config.subjectId);
+      const selectedGroup = selectedSubject?.groups?.find(g => g.id === selectedGroupId);
+
+      if (selectedGroup) {
+        const groupHours = selectedGroup.planifiedHours || 0;
+        setConfig(prev => ({
+          ...prev,
+          planifiedHours: groupHours
+        }));
+      }
+    } else {
+      // Reset planified hours when group is deselected
+      setConfig(prev => ({
+        ...prev,
+        planifiedHours: 0
+      }));
+    }
+  }, [config.groupIds, config.subjectId, config.frequency, subjectsWithGroups]);
+
+  // Pre-select weekday when frequency is 'weekly' and initialDate is provided
+  React.useEffect(() => {
+    if ((config.frequency === 'weekly' || config.frequency === 'biweekly-even' ||
+         config.frequency === 'biweekly-odd') && initialDate &&
+         (!config.weekDays || config.weekDays.length === 0)) {
+      try {
+        const date = parseISO(initialDate);
+        const dayOfWeek = getDay(date); // 0=Sunday, 1=Monday, 2=Tuesday, etc.
+
+        // Map day number to WeekDay character
+        const dayMap: { [key: number]: WeekDay } = {
+          1: 'L', // Monday
+          2: 'M', // Tuesday
+          3: 'X', // Wednesday
+          4: 'J', // Thursday
+          5: 'V', // Friday
+        };
+
+        const selectedDay = dayMap[dayOfWeek];
+        if (selectedDay) {
+          setConfig(prev => ({
+            ...prev,
+            weekDays: [selectedDay]
+          }));
+        }
+      } catch (error) {
+        console.error('Error parsing initial date:', error);
+      }
+    }
+  }, [config.frequency, initialDate]);
 
   // No need to filter subjects by semester anymore since they come from calendar
   const filteredSubjects = subjects;
@@ -431,23 +495,6 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
               </div>
             </div>
 
-            {/* Planified Hours - Only visible for standard periodic NORMAL events */}
-            {(config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd') && !isSpecialEventType(selectedEventType) && (
-              <div className="space-y-1">
-                <Label htmlFor="planified-hours" className="text-xs font-semibold">Horas Planificadas</Label>
-                <Input
-                  id="planified-hours"
-                  type="number"
-                  min="0"
-                  step="0.5"
-                  value={config.planifiedHours || ''}
-                  onChange={(e) => setConfig({ ...config, planifiedHours: parseFloat(e.target.value) || 0 })}
-                  placeholder="Ej: 30"
-                  className="h-8 text-xs"
-                />
-              </div>
-            )}
-
             {/* Subject Selection - Always visible */}
             <div className="space-y-1">
               <Label className="text-xs font-semibold">Asignatura</Label>
@@ -608,7 +655,7 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
 
               {/* Classrooms Selection — MultiSelect for special types, single select for NORMAL */}
               <div className="space-y-1">
-                <Label className="text-xs font-semibold">{isSpecialEventType(selectedEventType) ? 'Aulas' : 'Aula'}</Label>
+                <Label className="text-xs font-semibold">{isSpecialEventType(selectedEventType) ? 'Aulas (opcional)' : 'Aula (opcional)'}</Label>
                 {classrooms.length === 0 ? (
                   <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
                     Cargando aulas...
@@ -660,6 +707,20 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
                 )}
               </div>
             </div>
+
+            {/* Planified Hours - Read-only display for professor, only when group is selected */}
+            {!isSpecialEventType(selectedEventType) && (config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd' || config.frequency === 'custom') && config.groupIds && config.groupIds.length > 0 && (
+              <div className="space-y-1">
+                <Label htmlFor="planified-hours" className="text-xs font-semibold">Horas Planificadas</Label>
+                <Input
+                  id="planified-hours"
+                  type="text"
+                  value={config.planifiedHours > 0 ? `${config.planifiedHours} horas` : 'Sin horas planificadas'}
+                  disabled
+                  className="h-8 text-xs disabled:opacity-70 disabled:cursor-not-allowed"
+                />
+              </div>
+            )}
 
             {/* Custom Frequency Options - Only visible for custom frequency */}
             {config.frequency === 'custom' && (
@@ -813,7 +874,7 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
             {/* Comment Field - Only visible when frequency is 'no-repeat' */}
             {config.frequency === 'no-repeat' && (
               <div className="space-y-1">
-                <Label htmlFor="comment" className="text-xs font-semibold">Comentario</Label>
+                <Label htmlFor="comment" className="text-xs font-semibold">Comentario (opcional)</Label>
                 <Textarea
                   id="comment"
                   placeholder="Añade un comentario sobre este evento..."

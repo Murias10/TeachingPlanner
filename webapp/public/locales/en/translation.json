@@ -532,7 +532,8 @@
             "actions": {
                 "review": "Review request",
                 "approve": "Approve directly",
-                "reject": "Reject"
+                "reject": "Reject",
+                "incompleteData": "Missing required data (classroom, group, etc.). Use 'Review' to complete"
             },
             "status": {
                 "pending": "Pending",

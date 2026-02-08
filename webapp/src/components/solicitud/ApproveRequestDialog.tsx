@@ -1,346 +1,959 @@
 "use client"
 
-import React, { useState, useMemo, useEffect } from 'react';
-import { CheckCircle2 } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
+import React, { useState, useMemo } from 'react';
+import { CheckCircle2, ChevronDownIcon } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { MultiSelect } from '@/components/ui/multi-select';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { TimePicker } from '@/components/ui/time-picker';
+import { Textarea } from '@/components/ui/textarea';
+import { es } from 'date-fns/locale';
+import { format, getDay, parseISO } from 'date-fns';
+import type { RecurrenceConfig, FrequencyType, WeekDay, EndsType, CustomFrequencyUnit, MonthlyPatternType } from '@/types/RecurrenceConfig';
 import { useClassrooms } from '@/hooks/classroom/useClassrooms';
-import { Badge } from '@/components/ui/badge';
-import { isSpecialEventType, isReviewOrEvalEventType, EVENT_TYPE_LABELS } from '@/constants/eventCharacters';
-import { useTranslation } from 'react-i18next';
-import moment from 'moment';
+import { useSubjectsByCalendarId } from '@/hooks/subject/useSubjectsByCalendarId';
+import { useSubjectsWithGroupsByCalendarId } from '@/hooks/subject/useSubjectsWithGroupsByCalendarId';
+import { getMonthlyPatternLabels } from '@/utils/customPatternCalculator';
+import { EVENT_TYPES, isSpecialEventType, isReviewOrEvalEventType, EVENT_TYPE_LABELS } from '@/constants/eventCharacters';
 
+/**
+ * Validates if a request has all required data to be approved directly
+ */
+export const canApproveRequestDirectly = (eventData: Record<string, any>): boolean => {
+  const hasClassrooms = eventData.classroomIds && eventData.classroomIds.length > 0;
+  const isSpecial = eventData.eventType && isSpecialEventType(eventData.eventType);
+  const isBlocker = !eventData.subjectId;
+
+  // Blocker: only needs classrooms (and date/days based on frequency)
+  if (isBlocker) {
+    if (!hasClassrooms) return false;
+    if (eventData.frequency === 'no-repeat') return !!eventData.eventDate;
+    if (eventData.frequency === 'weekly' || eventData.frequency === 'biweekly-even' || eventData.frequency === 'biweekly-odd') {
+      return !!(eventData.weekDays && eventData.weekDays.length > 0);
+    }
+    if (eventData.frequency === 'custom') {
+      return !!eventData.customStartDate && !!eventData.customFrequencyUnit && eventData.interval > 0 && !!(eventData.weekDays && eventData.weekDays.length > 0);
+    }
+    return true;
+  }
+
+  // Events with subject: require subject, group(s), classroom(s)
+  const baseValid = (
+    eventData.subjectId &&
+    eventData.groupIds &&
+    eventData.groupIds.length > 0 &&
+    hasClassrooms
+  );
+
+  if (!baseValid) return false;
+
+  // Additional validation based on frequency
+  if (eventData.frequency === 'no-repeat') {
+    return !!eventData.eventDate;
+  }
+
+  if (eventData.frequency === 'weekly' || eventData.frequency === 'biweekly-even' || eventData.frequency === 'biweekly-odd') {
+    // Special types don't require planifiedHours
+    return !!(eventData.weekDays && eventData.weekDays.length > 0) && (isSpecial || eventData.planifiedHours > 0);
+  }
+
+  if (eventData.frequency === 'custom') {
+    return !!eventData.customStartDate && !!eventData.customFrequencyUnit && eventData.interval > 0 && !!(eventData.weekDays && eventData.weekDays.length > 0);
+  }
+
+  return true;
+};
 
 interface EventRequest {
-    id: string;
-    professorId: string;
-    calendarId: string;
-    eventType: 'PUNTUAL' | 'PERIODIC';
-    requestType?: 'CREATE' | 'EDIT' | 'CANCEL' | 'REPLACE';
-    originalEventId?: string | null;
-    eventData: Record<string, any>;
-    status: 'PENDING' | 'APPROVED' | 'REJECTED';
-    reviewedBy?: string;
-    reviewedAt?: string;
-    comments?: string;
-    createdAt: string;
+  id: string;
+  professorId: string;
+  calendarId: string;
+  eventType: 'PUNTUAL' | 'PERIODIC';
+  requestType?: 'CREATE' | 'EDIT' | 'CANCEL' | 'REPLACE';
+  originalEventId?: string | null;
+  eventData: Record<string, any>;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  reviewedBy?: string;
+  reviewedAt?: string;
+  comments?: string;
+  createdAt: string;
 }
 
 interface ApproveRequestDialogProps {
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
-    solicitud: EventRequest | null;
-    onApprove: (planifiedHours: number | undefined, classroomIds: string[]) => void;
-    isSubmitting: boolean;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  solicitud: EventRequest | null;
+  onApprove: (config: RecurrenceConfig) => void;
+  isSubmitting: boolean;
+  lectiveDates?: Set<string>;
+  calendarEndDate?: string;
 }
 
+// Helper functions for time calculations
+const calculateDurationInMinutes = (startTime: string, endTime: string): number => {
+  const [startH, startM] = startTime.split(':').map(Number);
+  const [endH, endM] = endTime.split(':').map(Number);
+  return (endH * 60 + endM) - (startH * 60 + startM);
+};
+
+const addMinutesToTime = (time: string, minutes: number): string => {
+  const [hours, mins] = time.split(':').map(Number);
+  let totalMinutes = hours * 60 + mins + minutes;
+
+  // Clamp to valid range: 09:00 (540 min) to 21:00 (1260 min)
+  totalMinutes = Math.max(540, Math.min(1260, totalMinutes));
+
+  const newHours = Math.floor(totalMinutes / 60);
+  const newMinutes = totalMinutes % 60;
+
+  // Round to nearest 15-minute interval
+  const roundedMinutes = Math.round(newMinutes / 15) * 15;
+  const finalMinutes = roundedMinutes === 60 ? 0 : roundedMinutes;
+  const finalHours = roundedMinutes === 60 ? newHours + 1 : newHours;
+
+  return `${finalHours.toString().padStart(2, '0')}:${finalMinutes.toString().padStart(2, '0')}`;
+};
+
 const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
-    open,
-    onOpenChange,
-    solicitud,
-    onApprove,
-    isSubmitting
+  open,
+  onOpenChange,
+  solicitud,
+  onApprove,
+  isSubmitting,
+  lectiveDates = new Set(),
+  calendarEndDate
 }) => {
-    const { t } = useTranslation();
-    const { data: classrooms = [] } = useClassrooms();
-    const [planifiedHours, setPlanifiedHours] = useState<number | undefined>(undefined);
-    const [selectedClassroomIds, setSelectedClassroomIds] = useState<string[]>([]);
+  const [config, setConfig] = useState<RecurrenceConfig>({
+    frequency: 'no-repeat',
+    interval: 1,
+    weekDays: [],
+    endsType: 'never',
+    endsOnDate: '',
+    endsAfterOccurrences: 1,
+    startTime: '09:00',
+    endTime: '10:00',
+    planifiedHours: 0,
+    eventDate: format(new Date(), 'yyyy-MM-dd'),
+    customStartDate: format(new Date(), 'yyyy-MM-dd'),
+    customFrequencyUnit: 'week',
+    monthlyPatternType: 'day-of-month',
+    subjectId: undefined,
+    groupIds: [],
+    classroomIds: [],
+    comment: '',
+  });
 
-    // Reset state when dialog opens with new solicitud
-    useEffect(() => {
-        if (solicitud && open) {
-            // Pre-fill with existing data if available
-            setPlanifiedHours(solicitud.eventData.planifiedHours);
-            setSelectedClassroomIds(solicitud.eventData.classroomIds || []);
+  const [groupType, setGroupType] = useState<string>('T');
+  const [selectedEventType, setSelectedEventType] = useState<string>(EVENT_TYPES.NORMAL);
+  const [openStartTime, setOpenStartTime] = useState(false);
+  const [openEndTime, setOpenEndTime] = useState(false);
+
+  const calendarId = solicitud?.calendarId;
+
+  // Pre-fill form with solicitud data when dialog opens
+  React.useEffect(() => {
+    if (solicitud && open) {
+      const eventData = solicitud.eventData;
+
+      const newConfig: RecurrenceConfig = {
+        frequency: (eventData.frequency || 'no-repeat') as FrequencyType,
+        interval: eventData.interval || 1,
+        weekDays: eventData.weekDays || [],
+        endsType: (eventData.endsType || 'never') as EndsType,
+        endsOnDate: eventData.endsOnDate || '',
+        endsAfterOccurrences: eventData.endsAfterOccurrences || 1,
+        startTime: eventData.startTime || '09:00',
+        endTime: eventData.endTime || '10:00',
+        planifiedHours: eventData.planifiedHours || 0,
+        eventDate: eventData.eventDate || format(new Date(), 'yyyy-MM-dd'),
+        customStartDate: eventData.customStartDate || eventData.eventDate || format(new Date(), 'yyyy-MM-dd'),
+        customFrequencyUnit: (eventData.customFrequencyUnit || 'week') as CustomFrequencyUnit,
+        monthlyPatternType: (eventData.monthlyPatternType || 'day-of-month') as MonthlyPatternType,
+        subjectId: eventData.subjectId,
+        groupIds: eventData.groupIds || [],
+        classroomIds: eventData.classroomIds || [],
+        comment: eventData.comment || '',
+      };
+
+      setConfig(newConfig);
+      setSelectedEventType(eventData.eventType || EVENT_TYPES.NORMAL);
+
+      // Determine group type from first group if available
+      if (eventData.groupIds && eventData.groupIds.length > 0) {
+        // Try to extract group type from group data if available
+        // Otherwise default to 'T'
+        setGroupType('T');
+      }
+    }
+  }, [solicitud, open]);
+
+  // Clear group and classroom selections when event type changes
+  React.useEffect(() => {
+    setConfig(prev => ({
+      ...prev,
+      groupIds: [],
+      classroomIds: []
+    }));
+  }, [selectedEventType]);
+
+  // Clear group and classroom selections when subject changes
+  React.useEffect(() => {
+    setConfig(prev => ({
+      ...prev,
+      groupIds: [],
+      classroomIds: []
+    }));
+  }, [config.subjectId]);
+
+  // Hooks must be declared before effects that use them
+  const { data: classrooms = [] } = useClassrooms();
+  const { data: subjects = [], isLoading: isLoadingSubjects } = useSubjectsByCalendarId(calendarId || null);
+  const { data: subjectsWithGroups = [] } = useSubjectsWithGroupsByCalendarId(calendarId || null);
+
+  // Auto-complete planified hours from selected group
+  React.useEffect(() => {
+    if (config.groupIds && config.groupIds.length > 0 &&
+        (config.frequency === 'weekly' || config.frequency === 'biweekly-even' ||
+         config.frequency === 'biweekly-odd' || config.frequency === 'custom')) {
+      const selectedGroupId = config.groupIds[0];
+      const selectedSubject = subjectsWithGroups.find(s => s.id === config.subjectId);
+      const selectedGroup = selectedSubject?.groups?.find(g => g.id === selectedGroupId);
+
+      if (selectedGroup) {
+        const groupHours = selectedGroup.planifiedHours || 0;
+        setConfig(prev => ({
+          ...prev,
+          planifiedHours: groupHours
+        }));
+      }
+    } else {
+      // Reset planified hours when group is deselected
+      setConfig(prev => ({
+        ...prev,
+        planifiedHours: 0
+      }));
+    }
+  }, [config.groupIds, config.subjectId, config.frequency, subjectsWithGroups]);
+
+  // Pre-select weekday when frequency is 'weekly' and customStartDate is provided
+  React.useEffect(() => {
+    if ((config.frequency === 'weekly' || config.frequency === 'biweekly-even' ||
+         config.frequency === 'biweekly-odd') && config.customStartDate &&
+         (!config.weekDays || config.weekDays.length === 0)) {
+      try {
+        const date = parseISO(config.customStartDate);
+        const dayOfWeek = getDay(date);
+
+        const dayMap: { [key: number]: WeekDay } = {
+          1: 'L',
+          2: 'M',
+          3: 'X',
+          4: 'J',
+          5: 'V',
+        };
+
+        const selectedDay = dayMap[dayOfWeek];
+        if (selectedDay) {
+          setConfig(prev => ({
+            ...prev,
+            weekDays: [selectedDay]
+          }));
         }
-    }, [solicitud, open]);
+      } catch (error) {
+        console.error('Error parsing custom start date:', error);
+      }
+    }
+  }, [config.frequency, config.customStartDate]);
 
-    const isPeriodicEvent = solicitud?.eventType === 'PERIODIC';
-    const requestType = solicitud?.requestType || 'CREATE';
-    const eventDataEventType = solicitud?.eventData?.eventType || 'NORMAL';
-    const isCreateRequest = requestType === 'CREATE';
-    const isSpecialEvent = isSpecialEventType(eventDataEventType);
-    const isReviewOrEval = isReviewOrEvalEventType(eventDataEventType);
-    const needsPlanifiedHours = isCreateRequest && isPeriodicEvent && !isSpecialEvent && !solicitud?.eventData.planifiedHours;
-    const needsClassroom = isCreateRequest && (!solicitud?.eventData.classroomIds || solicitud.eventData.classroomIds.length === 0);
+  const filteredSubjects = subjects;
 
-    // Validate that required fields are filled
-    const canApprove = useMemo(() => {
-        if (!isPeriodicEvent) {
-            // For puntual events, only classroom might be missing
-            return !needsClassroom || selectedClassroomIds.length > 0;
-        }
+  // Calculate monthly pattern labels based on customStartDate
+  const monthlyPatternLabels = useMemo(() => {
+    if (!config.customStartDate) {
+      return { dayOfMonth: '', dayOfWeek: '' };
+    }
+    return getMonthlyPatternLabels(new Date(config.customStartDate));
+  }, [config.customStartDate]);
 
-        // For periodic events, both might be missing
-        const hasPlanifiedHours = !needsPlanifiedHours || (planifiedHours !== undefined && planifiedHours > 0);
-        const hasClassroom = !needsClassroom || selectedClassroomIds.length > 0;
+  const weekDays: { value: WeekDay; label: string }[] = [
+    { value: 'L', label: 'L' },
+    { value: 'M', label: 'M' },
+    { value: 'X', label: 'X' },
+    { value: 'J', label: 'J' },
+    { value: 'V', label: 'V' },
+    { value: 'S', label: 'S' },
+    { value: 'D', label: 'D' },
+  ];
 
-        return hasPlanifiedHours && hasClassroom;
-    }, [isPeriodicEvent, needsPlanifiedHours, needsClassroom, planifiedHours, selectedClassroomIds]);
+  const isReviewOrEval = isReviewOrEvalEventType(selectedEventType);
 
-    const handleApprove = () => {
-        const finalPlanifiedHours = needsPlanifiedHours ? planifiedHours : undefined;
-        const finalClassroomIds = needsClassroom ? selectedClassroomIds : [];
+  // Filter available groups based on selected subject and group type
+  const availableGroups = useMemo(() => {
+    if (!config.subjectId || !subjectsWithGroups.length) {
+      return [];
+    }
 
-        onApprove(finalPlanifiedHours, finalClassroomIds);
-    };
+    const selectedSubject = subjectsWithGroups.find(s => s.id === config.subjectId);
+    if (!selectedSubject || !selectedSubject.groups) {
+      return [];
+    }
 
-    const getFrequencyLabel = (frequency: string) => {
-        switch (frequency) {
-            case 'no-repeat': return t("requests.dialog.approve.frequency.noRepeat");
-            case 'weekly': return t("requests.dialog.approve.frequency.weekly");
-            case 'biweekly-even': return t("requests.dialog.approve.frequency.biweeklyEven");
-            case 'biweekly-odd': return t("requests.dialog.approve.frequency.biweeklyOdd");
-            case 'custom': return t("requests.dialog.approve.frequency.custom");
-            default: return frequency;
-        }
-    };
+    // For review/eval, return all groups regardless of type
+    if (isReviewOrEval) {
+      return selectedSubject.groups;
+    }
 
-    return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="flex flex-col max-h-[90vh] p-0">
-                <DialogHeader className="px-6 pt-6 pb-0">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-accent rounded-lg">
-                            <CheckCircle2 className="w-5 h-5" />
-                        </div>
-                        <DialogTitle className="text-lg font-semibold">{t("requests.dialog.approve.title")}</DialogTitle>
-                    </div>
-                    <DialogDescription className="hidden">
-                        {t("requests.dialog.approve.description")}
-                    </DialogDescription>
-                </DialogHeader>
+    // Otherwise, filter by group type
+    return selectedSubject.groups.filter(g => g.type === groupType);
+  }, [config.subjectId, groupType, subjectsWithGroups, isReviewOrEval]);
 
-                <div className="overflow-y-auto flex-1 px-6 py-3">
-                    {solicitud ? (
-                        <div className="space-y-3">
-                            {/* Tipo de solicitud badge */}
-                            <div className="flex items-center gap-2">
-                                <Badge variant={requestType === 'CANCEL' ? 'destructive' : 'secondary'} className="text-xs">
-                                    {t(`table.solicitudes.requestType.${requestType.toLowerCase()}`)}
-                                </Badge>
-                                {eventDataEventType !== 'NORMAL' && (
-                                    <Badge variant="outline" className="text-xs">
-                                        {EVENT_TYPE_LABELS[eventDataEventType] || eventDataEventType}
-                                    </Badge>
-                                )}
-                            </div>
+  const handleSave = () => {
+    if (!calendarId) return;
+    onApprove(config);
+  };
 
-                            {/* Info básica de la solicitud */}
-                            <div className="grid grid-cols-2 gap-3 p-3 bg-accent/20 rounded border border-primary/20">
-                                <div>
-                                    <Label className="text-xs font-semibold">{t("requests.dialog.approve.professor")}</Label>
-                                    <p className="text-xs mt-1">{solicitud.professorId}</p>
-                                </div>
-                                <div>
-                                    <Label className="text-xs font-semibold">{t("requests.dialog.approve.requestDate")}</Label>
-                                    <p className="text-xs mt-1">{moment(solicitud.createdAt).format('DD/MM/YYYY HH:mm')}</p>
-                                </div>
-                                <div>
-                                    <Label className="text-xs font-semibold">{t("requests.dialog.approve.eventType")}</Label>
-                                    <p className="text-xs mt-1">{solicitud.eventType === 'PUNTUAL' ? t("requests.dialog.approve.eventType.punctual") : t("requests.dialog.approve.eventType.periodic")}</p>
-                                </div>
-                                <div>
-                                    <Label className="text-xs font-semibold">{t("requests.dialog.approve.frequency")}</Label>
-                                    <p className="text-xs mt-1">{getFrequencyLabel(solicitud.eventData.frequency || 'no-repeat')}</p>
-                                </div>
-                                {solicitud.eventData.groupIds && solicitud.eventData.groupIds.length > 0 && (
-                                    <div className="col-span-2">
-                                        <Label className="text-xs font-semibold">{t("requests.dialog.approve.groups")}</Label>
-                                        <p className="text-xs mt-1">{solicitud.eventData.groupIds.join(', ')}</p>
-                                    </div>
-                                )}
-                            </div>
+  // Validate that all required fields are filled
+  const isFormValid = useMemo(() => {
+    const hasClassrooms = config.classroomIds && config.classroomIds.length > 0;
+    const isSpecial = isSpecialEventType(selectedEventType);
+    const isBlocker = !config.subjectId;
 
-                            {/* Horario */}
-                            <div className="space-y-1">
-                                <Label className="text-xs font-semibold">{t("requests.dialog.approve.schedule")}</Label>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div className="h-8 px-3 border rounded flex items-center text-xs">
-                                        {solicitud.eventData.startTime}
-                                    </div>
-                                    <div className="h-8 px-3 border rounded flex items-center text-xs">
-                                        {solicitud.eventData.endTime}
-                                    </div>
-                                </div>
-                            </div>
+    // Blocker: solo necesita aulas (y fecha/días según frecuencia)
+    if (isBlocker) {
+      if (!hasClassrooms) return false;
+      if (config.frequency === 'no-repeat') return !!config.eventDate;
+      if (config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd') {
+        return !!(config.weekDays && config.weekDays.length > 0);
+      }
+      if (config.frequency === 'custom') {
+        return !!config.customStartDate && !!config.customFrequencyUnit && config.interval > 0 && !!(config.weekDays && config.weekDays.length > 0);
+      }
+      return true;
+    }
 
-                            {/* Días de la semana (para eventos periódicos) */}
-                            {isPeriodicEvent && solicitud.eventData.weekDays && (
-                                <div className="space-y-1">
-                                    <Label className="text-xs font-semibold">{t("requests.dialog.approve.weekDays")}</Label>
-                                    <div className="h-8 px-3 border rounded flex items-center text-xs">
-                                        {solicitud.eventData.weekDays.join(', ')}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Fecha (para eventos puntuales) */}
-                            {!isPeriodicEvent && solicitud.eventData.eventDate && (
-                                <div className="space-y-1">
-                                    <Label className="text-xs font-semibold">{t("requests.dialog.approve.date")}</Label>
-                                    <div className="h-8 px-3 border rounded flex items-center text-xs">
-                                        {moment(solicitud.eventData.eventDate).format('DD/MM/YYYY')}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Comentario */}
-                            {solicitud.eventData.comment && (
-                                <div className="space-y-1">
-                                    <Label className="text-xs font-semibold">{t("requests.dialog.approve.comment")}</Label>
-                                    <div className="min-h-8 px-3 py-2 border rounded text-xs text-muted-foreground">
-                                        {solicitud.eventData.comment}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Nueva fecha (para solicitudes de reemplazo) */}
-                            {requestType === 'REPLACE' && solicitud.eventData.newEventDate && (
-                                <div className="space-y-1">
-                                    <Label className="text-xs font-semibold">{t("requests.dialog.approve.newDate")}</Label>
-                                    <div className="h-8 px-3 border rounded flex items-center text-xs">
-                                        {moment(solicitud.eventData.newEventDate).format('DD/MM/YYYY')}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* ID del evento original (para EDIT/CANCEL/REPLACE) */}
-                            {!isCreateRequest && solicitud.originalEventId && (
-                                <div className="space-y-1">
-                                    <Label className="text-xs font-semibold">{t("requests.dialog.approve.originalEvent")}</Label>
-                                    <div className="h-8 px-3 border rounded flex items-center text-xs text-muted-foreground">
-                                        {solicitud.originalEventId}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Horas planificadas - Solo para eventos periódicos NORMAL en CREATE */}
-                            {isPeriodicEvent && needsPlanifiedHours && (
-                                <div className="space-y-1">
-                                    <Label htmlFor="planified-hours" className="text-xs font-semibold">
-                                        {t("requests.dialog.approve.planifiedHoursRequired")}
-                                    </Label>
-                                    <Input
-                                        id="planified-hours"
-                                        type="number"
-                                        min="0"
-                                        step="0.5"
-                                        value={planifiedHours || ''}
-                                        onChange={(e) => setPlanifiedHours(e.target.value ? parseFloat(e.target.value) : undefined)}
-                                        placeholder={t("requests.dialog.approve.planifiedHoursPlaceholder")}
-                                        className="h-8 text-xs"
-                                    />
-                                    <p className="text-xs text-muted-foreground">
-                                        {t("requests.dialog.approve.planifiedHoursHint")}
-                                    </p>
-                                </div>
-                            )}
-
-                            {isPeriodicEvent && !needsPlanifiedHours && (
-                                <div className="space-y-1">
-                                    <Label className="text-xs font-semibold">{t("requests.dialog.approve.planifiedHours")}</Label>
-                                    <div className="h-8 px-3 border rounded flex items-center text-xs">
-                                        {solicitud.eventData.planifiedHours}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Selección de aula - Siempre editable en modo revisión */}
-                            {isCreateRequest && (
-                                <div className="space-y-1">
-                                    <Label className="text-xs font-semibold">
-                                        {needsClassroom ? t("requests.dialog.approve.classroomRequired") : t("requests.dialog.approve.classroom")}
-                                    </Label>
-                                    {classrooms.length === 0 ? (
-                                        <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
-                                            {t("requests.dialog.approve.classroomLoading")}
-                                        </div>
-                                    ) : isSpecialEvent || isReviewOrEval ? (
-                                        // MultiSelect para eventos especiales (BLOCKER, REVISION, EVALUACION)
-                                        <MultiSelect
-                                            options={classrooms.sort((a, b) => a.code.localeCompare(b.code)).map((classroom) => ({
-                                                value: classroom.id,
-                                                label: classroom.code
-                                            }))}
-                                            values={selectedClassroomIds}
-                                            onValuesChange={setSelectedClassroomIds}
-                                            placeholder={t("requests.dialog.approve.classroomPlaceholder")}
-                                        />
-                                    ) : classrooms.length > 8 ? (
-                                        <SearchableSelect
-                                            value={selectedClassroomIds[0] || ''}
-                                            onValueChange={(value) => {
-                                                setSelectedClassroomIds(value ? [value] : []);
-                                            }}
-                                            options={classrooms.sort((a, b) => a.code.localeCompare(b.code)).map((classroom) => ({
-                                                value: classroom.id,
-                                                label: classroom.code
-                                            }))}
-                                            placeholder={t("requests.dialog.approve.classroomPlaceholder")}
-                                            searchPlaceholder={t("requests.dialog.approve.classroomSearch")}
-                                            emptyMessage={t("requests.dialog.approve.classroomNotFound")}
-                                        />
-                                    ) : (
-                                        <Select
-                                            value={selectedClassroomIds[0] || ''}
-                                            onValueChange={(value) => {
-                                                setSelectedClassroomIds(value ? [value] : []);
-                                            }}
-                                        >
-                                            <SelectTrigger className="h-8 text-xs w-full">
-                                                <SelectValue placeholder={t("requests.dialog.approve.classroomPlaceholder")} />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {classrooms.sort((a, b) => a.code.localeCompare(b.code)).map((classroom) => (
-                                                    <SelectItem key={classroom.id} value={classroom.id}>
-                                                        {classroom.code}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    )}
-                                    {needsClassroom && (
-                                        <p className="text-xs text-muted-foreground">
-                                            {t("requests.dialog.approve.classroomHint")}
-                                        </p>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    ) : (
-                        <div className="h-32 flex items-center justify-center text-xs text-muted-foreground">
-                            {t("requests.dialog.approve.loading")}
-                        </div>
-                    )}
-                </div>
-
-                {/* Buttons */}
-                <div className="flex gap-2 justify-end px-6 pb-6 border-t pt-4">
-                    <Button
-                        variant="outline"
-                        onClick={() => onOpenChange(false)}
-                        disabled={isSubmitting}
-                        className="h-8 text-xs"
-                    >
-                        {t("requests.dialog.approve.cancel")}
-                    </Button>
-                    <Button
-                        onClick={handleApprove}
-                        disabled={!canApprove || isSubmitting}
-                        className="h-8 text-xs"
-                    >
-                        {isSubmitting ? t("requests.dialog.approve.approving") : t("requests.dialog.approve.approve")}
-                    </Button>
-                </div>
-            </DialogContent>
-        </Dialog>
+    // Eventos con asignatura: requieren asignatura, grupo(s), aula(s)
+    const baseValid = (
+      config.subjectId &&
+      config.groupIds &&
+      config.groupIds.length > 0 &&
+      hasClassrooms
     );
+
+    if (!baseValid) return false;
+
+    // Additional validation based on frequency
+    if (config.frequency === 'no-repeat') {
+      return !!config.eventDate;
+    }
+
+    if (config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd') {
+      // Special types don't require planifiedHours
+      return !!(config.weekDays && config.weekDays.length > 0) && (isSpecial || config.planifiedHours > 0);
+    }
+
+    if (config.frequency === 'custom') {
+      return !!config.customStartDate && !!config.customFrequencyUnit && config.interval > 0 && !!(config.weekDays && config.weekDays.length > 0);
+    }
+
+    return true;
+  }, [selectedEventType, config.subjectId, config.groupIds, config.classroomIds, config.frequency, config.eventDate, config.weekDays, config.planifiedHours, config.customStartDate, config.customFrequencyUnit, config.interval]);
+
+  if (!solicitud) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="flex flex-col max-h-[90vh] p-0">
+        <DialogHeader className="px-6 pt-6 pb-0">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-accent rounded-lg">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+            <DialogTitle className="text-lg font-semibold">Revisar solicitud</DialogTitle>
+          </div>
+          <DialogDescription className="hidden">Diálogo para revisar y aprobar una solicitud de evento</DialogDescription>
+        </DialogHeader>
+
+        <div className="overflow-y-auto flex-1 px-6 py-3">
+          <div className="space-y-3">
+            {/* Frequency Selection */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Frecuencia</Label>
+              <Select value={config.frequency} onValueChange={(value) => setConfig({ ...config, frequency: value as FrequencyType })}>
+                <SelectTrigger className="h-8 text-xs w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="no-repeat">No se repite</SelectItem>
+                  <SelectItem value="weekly">Semanalmente</SelectItem>
+                  <SelectItem value="biweekly-even">Quincenal (Semanas Pares)</SelectItem>
+                  <SelectItem value="biweekly-odd">Quincenal (Semanas Impares)</SelectItem>
+                  <SelectItem value="custom">Personalizado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Date and Time Selection Row */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">
+                {config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd' ? 'Día y Horario' : config.frequency === 'custom' ? 'Fecha Inicio y Horario' : 'Fecha y Horario'}
+              </Label>
+              <div className="flex gap-2">
+                {/* Date Picker - Only for puntual (no-repeat) */}
+                {config.frequency === 'no-repeat' && (
+                  <Popover modal={true}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="h-8 px-3 text-xs justify-between font-normal flex-1">
+                        {config.eventDate && !isNaN(new Date(config.eventDate).getTime())
+                          ? format(new Date(config.eventDate), 'dd/MM/yyyy', { locale: es })
+                          : 'Fecha'}
+                        <ChevronDownIcon className="w-3 h-3" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={config.eventDate && !isNaN(new Date(config.eventDate).getTime()) ? new Date(config.eventDate) : new Date()}
+                        onSelect={(date) => {
+                          if (date) {
+                            setConfig({ ...config, eventDate: format(date, 'yyyy-MM-dd') });
+                          }
+                        }}
+                        locale={es}
+                        disabled={(date) => !lectiveDates.has(format(date, 'yyyy-MM-dd'))}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                )}
+
+                {/* Weekday Selection - for weekly and biweekly */}
+                {(config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd') && (
+                  <Select
+                    value={config.weekDays[0] || ''}
+                    onValueChange={(value) => setConfig({ ...config, weekDays: [value as WeekDay] })}
+                  >
+                    <SelectTrigger className="h-8 px-3 text-xs font-normal flex-1">
+                      <SelectValue placeholder="Seleccionar día" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="L">Lunes</SelectItem>
+                      <SelectItem value="M">Martes</SelectItem>
+                      <SelectItem value="X">Miércoles</SelectItem>
+                      <SelectItem value="J">Jueves</SelectItem>
+                      <SelectItem value="V">Viernes</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+
+                {/* Date Picker for custom frequency start date */}
+                {config.frequency === 'custom' && (
+                  <Popover modal={true}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="h-8 px-3 text-xs justify-between font-normal flex-1">
+                        {config.customStartDate && !isNaN(new Date(config.customStartDate).getTime())
+                          ? format(new Date(config.customStartDate), 'dd/MM/yyyy', { locale: es })
+                          : 'Fecha'}
+                        <ChevronDownIcon className="w-3 h-3" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={config.customStartDate && !isNaN(new Date(config.customStartDate).getTime()) ? new Date(config.customStartDate) : new Date()}
+                        onSelect={(date) => {
+                          if (date) {
+                            setConfig({ ...config, customStartDate: format(date, 'yyyy-MM-dd') });
+                          }
+                        }}
+                        locale={es}
+                        disabled={(date) => !lectiveDates.has(format(date, 'yyyy-MM-dd'))}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                )}
+
+                {/* Start Time */}
+                <Popover open={openStartTime} onOpenChange={setOpenStartTime} modal={true}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="h-8 px-3 text-xs justify-between font-normal flex-1"
+                    >
+                      {config.startTime}
+                      <ChevronDownIcon className="w-3 h-3" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <TimePicker
+                      value={config.startTime}
+                      onChange={(value) => {
+                        const duration = calculateDurationInMinutes(config.startTime, config.endTime);
+                        const newEndTime = addMinutesToTime(value, duration);
+                        setConfig({ ...config, startTime: value, endTime: newEndTime });
+                        setOpenStartTime(false);
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
+
+                <span className="text-xs text-muted-foreground flex items-center">-</span>
+
+                {/* End Time */}
+                <Popover open={openEndTime} onOpenChange={setOpenEndTime} modal={true}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="h-8 px-3 text-xs justify-between font-normal flex-1"
+                    >
+                      {config.endTime}
+                      <ChevronDownIcon className="w-3 h-3" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <TimePicker
+                      value={config.endTime}
+                      onChange={(value) => {
+                        setConfig({ ...config, endTime: value });
+                        setOpenEndTime(false);
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+
+            {/* Subject Selection - Always visible */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Asignatura</Label>
+              {isLoadingSubjects ? (
+                <div className="h-8 text-xs flex items-center text-muted-foreground">
+                  Cargando asignaturas...
+                </div>
+              ) : filteredSubjects.length === 0 ? (
+                <div className="h-8 text-xs flex items-center text-muted-foreground">
+                  No hay asignaturas disponibles
+                </div>
+              ) : filteredSubjects.length > 8 ? (
+                <SearchableSelect
+                  value={config.subjectId || ''}
+                  onValueChange={(value) => setConfig({ ...config, subjectId: value })}
+                  options={filteredSubjects.sort((a, b) => a.name.localeCompare(b.name)).map((subject) => ({
+                    value: subject.id,
+                    label: subject.name
+                  }))}
+                  placeholder="Seleccionar asignatura"
+                  searchPlaceholder="Buscar asignatura..."
+                  emptyMessage="No se encontraron asignaturas."
+                />
+              ) : (
+                <Select value={config.subjectId || ''} onValueChange={(value) => setConfig({ ...config, subjectId: value })}>
+                  <SelectTrigger className="h-8 text-xs w-full">
+                    <SelectValue placeholder="Seleccionar asignatura" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filteredSubjects.sort((a, b) => a.name.localeCompare(b.name)).map((subject) => (
+                      <SelectItem key={subject.id} value={subject.id}>
+                        {subject.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            {/* Tipo de Evento */}
+            {config.subjectId && (
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Tipo de Evento</Label>
+              <Select value={selectedEventType} onValueChange={(value) => setSelectedEventType(value)}>
+                <SelectTrigger className="h-8 text-xs w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(EVENT_TYPE_LABELS).filter(([value]) => value !== EVENT_TYPES.BLOCKER).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            )}
+
+            {/* Tipo de Grupo */}
+            {!isReviewOrEval && (
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Tipo de Grupo</Label>
+                <Select value={groupType} onValueChange={(value) => setGroupType(value)}>
+                  <SelectTrigger className="h-8 text-xs w-full">
+                    <SelectValue placeholder="Seleccionar tipo de grupo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="T">Teoría</SelectItem>
+                    <SelectItem value="S">Seminario</SelectItem>
+                    <SelectItem value="L">Laboratorio</SelectItem>
+                    <SelectItem value="TG">Tutorías Grupales</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Groups and Classrooms Selection - Same row */}
+            <div className="grid grid-cols-2 gap-2">
+              {/* Groups Selection */}
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">{isReviewOrEval ? 'Grupos' : 'Grupo'}</Label>
+                {!config.subjectId ? (
+                  <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
+                    Selecciona una asignatura primero
+                  </div>
+                ) : availableGroups.length === 0 ? (
+                  <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
+                    Sin grupos disponibles
+                  </div>
+                ) : isReviewOrEval ? (
+                  <MultiSelect
+                    values={config.groupIds || []}
+                    onValuesChange={(values) => setConfig({ ...config, groupIds: values })}
+                    options={availableGroups.sort((a, b) => {
+                      const subject = subjects.find(s => s.id === config.subjectId);
+                      const labelA = `${subject?.acronym}.${a.type}.${a.language === 'EN' ? 'I-' : ''}${a.number}`;
+                      const labelB = `${subject?.acronym}.${b.type}.${b.language === 'EN' ? 'I-' : ''}${b.number}`;
+                      return labelA.localeCompare(labelB);
+                    }).map((group) => {
+                      const subject = subjects.find(s => s.id === config.subjectId);
+                      return {
+                        value: group.id,
+                        label: `${subject?.acronym}.${group.type}.${group.language === 'EN' ? 'I-' : ''}${group.number}`
+                      };
+                    })}
+                    placeholder="Seleccionar grupos"
+                    searchPlaceholder="Buscar grupo..."
+                    emptyMessage="No se encontraron grupos."
+                  />
+                ) : availableGroups.length > 8 ? (
+                  <SearchableSelect
+                    value={config.groupIds?.[0] || ''}
+                    onValueChange={(value) => {
+                      setConfig({ ...config, groupIds: value ? [value] : [] });
+                    }}
+                    options={availableGroups.sort((a, b) => {
+                      const subject = subjects.find(s => s.id === config.subjectId);
+                      const labelA = `${subject?.acronym}.${a.type}.${a.language === 'EN' ? 'I-' : ''}${a.number}`;
+                      const labelB = `${subject?.acronym}.${b.type}.${b.language === 'EN' ? 'I-' : ''}${b.number}`;
+                      return labelA.localeCompare(labelB);
+                    }).map((group) => {
+                      const subject = subjects.find(s => s.id === config.subjectId);
+                      return {
+                        value: group.id,
+                        label: `${subject?.acronym}.${group.type}.${group.language === 'EN' ? 'I-' : ''}${group.number}`
+                      };
+                    })}
+                    placeholder="Seleccionar grupo"
+                    searchPlaceholder="Buscar grupo..."
+                    emptyMessage="No se encontraron grupos."
+                  />
+                ) : (
+                  <Select
+                    value={config.groupIds?.[0] || ''}
+                    onValueChange={(value) => {
+                      setConfig({ ...config, groupIds: value ? [value] : [] });
+                    }}
+                  >
+                    <SelectTrigger className="h-8 text-xs w-full">
+                      <SelectValue placeholder="Seleccionar grupo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableGroups.sort((a, b) => {
+                        const subject = subjects.find(s => s.id === config.subjectId);
+                        const labelA = `${subject?.acronym}.${a.type}.${a.language === 'EN' ? 'I-' : ''}${a.number}`;
+                        const labelB = `${subject?.acronym}.${b.type}.${b.language === 'EN' ? 'I-' : ''}${b.number}`;
+                        return labelA.localeCompare(labelB);
+                      }).map((group) => {
+                        const subject = subjects.find(s => s.id === config.subjectId);
+                        return (
+                          <SelectItem key={group.id} value={group.id}>
+                            {`${subject?.acronym}.${group.type}.${group.language === 'EN' ? 'I-' : ''}${group.number}`}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+
+              {/* Classrooms Selection */}
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">{isSpecialEventType(selectedEventType) ? 'Aulas' : 'Aula'}</Label>
+                {classrooms.length === 0 ? (
+                  <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
+                    Cargando aulas...
+                  </div>
+                ) : isSpecialEventType(selectedEventType) ? (
+                  <MultiSelect
+                    values={config.classroomIds || []}
+                    onValuesChange={(values) => setConfig({ ...config, classroomIds: values })}
+                    options={classrooms.sort((a, b) => a.code.localeCompare(b.code)).map((classroom) => ({
+                      value: classroom.id,
+                      label: classroom.code
+                    }))}
+                    placeholder="Seleccionar aulas"
+                    searchPlaceholder="Buscar aula..."
+                    emptyMessage="No se encontraron aulas."
+                  />
+                ) : classrooms.length > 8 ? (
+                  <SearchableSelect
+                    value={config.classroomIds?.[0] || ''}
+                    onValueChange={(value) => {
+                      setConfig({ ...config, classroomIds: value ? [value] : [] });
+                    }}
+                    options={classrooms.sort((a, b) => a.code.localeCompare(b.code)).map((classroom) => ({
+                      value: classroom.id,
+                      label: classroom.code
+                    }))}
+                    placeholder="Seleccionar aula"
+                    searchPlaceholder="Buscar aula..."
+                    emptyMessage="No se encontraron aulas."
+                  />
+                ) : (
+                  <Select
+                    value={config.classroomIds?.[0] || ''}
+                    onValueChange={(value) => {
+                      setConfig({ ...config, classroomIds: value ? [value] : [] });
+                    }}
+                  >
+                    <SelectTrigger className="h-8 text-xs w-full">
+                      <SelectValue placeholder="Seleccionar aula" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {classrooms.sort((a, b) => a.code.localeCompare(b.code)).map((classroom) => (
+                        <SelectItem key={classroom.id} value={classroom.id}>
+                          {classroom.code}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            </div>
+
+            {/* Planified Hours - Only visible for periodic NORMAL events with a group selected */}
+            {!isSpecialEventType(selectedEventType) && (config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd' || config.frequency === 'custom') && config.groupIds && config.groupIds.length > 0 && (
+              <div className="space-y-2">
+                <Label htmlFor="planified-hours" className="text-xs font-semibold">Horas Planificadas</Label>
+                <Input
+                  id="planified-hours"
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  value={config.planifiedHours || ''}
+                  onChange={(e) => setConfig({ ...config, planifiedHours: parseFloat(e.target.value) || 0 })}
+                  placeholder="Ej: 30"
+                  className="h-8 text-xs"
+                />
+              </div>
+            )}
+
+            {/* Custom Frequency Options */}
+            {config.frequency === 'custom' && (
+              <div className="space-y-3 p-3 border border-primary/20 rounded bg-accent/20">
+                {/* Frequency Unit Selection */}
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold">Repetir cada</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      min="1"
+                      value={config.interval}
+                      onChange={(e) => setConfig({ ...config, interval: parseInt(e.target.value) || 1 })}
+                      className="h-8 text-xs w-16"
+                    />
+                    <Select
+                      value={config.customFrequencyUnit || 'week'}
+                      onValueChange={(value) => setConfig({ ...config, customFrequencyUnit: value as CustomFrequencyUnit, weekDays: [] })}
+                    >
+                      <SelectTrigger className="h-8 px-3 text-xs font-normal flex-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="day">
+                          {config.interval === 1 ? 'día' : 'días'}
+                        </SelectItem>
+                        <SelectItem value="week">
+                          {config.interval === 1 ? 'semana' : 'semanas'}
+                        </SelectItem>
+                        <SelectItem value="month">
+                          {config.interval === 1 ? 'mes' : 'meses'}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Weekday Selection for weekly custom */}
+                {config.customFrequencyUnit === 'week' && (
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold">Días</Label>
+                    <div className="grid grid-cols-5 gap-1">
+                      {weekDays.filter(day => day.value !== 'S' && day.value !== 'D').map((day) => (
+                        <Button
+                          key={day.value}
+                          variant={config.weekDays.includes(day.value) ? 'default' : 'outline'}
+                          className="h-8 text-xs font-semibold flex-1"
+                          onClick={() => {
+                            const newWeekDays = config.weekDays.includes(day.value)
+                              ? config.weekDays.filter(d => d !== day.value)
+                              : [...config.weekDays, day.value];
+                            setConfig({ ...config, weekDays: newWeekDays });
+                          }}
+                        >
+                          {day.label}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Month Pattern Selection - Only for monthly custom frequency */}
+                {config.customFrequencyUnit === 'month' && (
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold">Patrón Mensual</Label>
+                    <Select
+                      value={config.monthlyPatternType || 'day-of-month'}
+                      onValueChange={(value: MonthlyPatternType) => setConfig({ ...config, monthlyPatternType: value })}
+                    >
+                      <SelectTrigger className="h-8 text-xs w-full">
+                        <SelectValue placeholder="Seleccionar patrón" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="day-of-month">{monthlyPatternLabels.dayOfMonth}</SelectItem>
+                        <SelectItem value="day-of-week">{monthlyPatternLabels.dayOfWeek}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* Finalización */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold">Finaliza</Label>
+                  <RadioGroup
+                    value={config.endsType}
+                    onValueChange={(value: EndsType) => setConfig({ ...config, endsType: value })}
+                    className="space-y-2"
+                  >
+                    <div className={`flex items-center gap-2 p-2 rounded border transition-all cursor-pointer ${config.endsType === 'never' ? 'border-primary bg-primary/10' : 'border-primary/20 bg-accent/20'
+                      }`}>
+                      <RadioGroupItem value="never" id="never" />
+                      <Label htmlFor="never" className="text-xs cursor-pointer m-0 flex-1">
+                        Nunca
+                      </Label>
+                    </div>
+
+                    <div className={`flex items-center gap-2 p-2 rounded border transition-all cursor-pointer ${config.endsType === 'on' ? 'border-primary bg-primary/10' : 'border-primary/20 bg-accent/20'
+                      }`}>
+                      <RadioGroupItem value="on" id="on" />
+                      <Label htmlFor="on" className="text-xs cursor-pointer m-0">
+                        El
+                      </Label>
+                      <Popover>
+                        <PopoverTrigger asChild disabled={config.endsType !== 'on'}>
+                          <Button
+                            variant="ghost"
+                            className="h-7 px-2 text-xs flex-1 justify-between font-normal"
+                          >
+                            {config.endsOnDate ? format(new Date(config.endsOnDate), 'dd/MM/yyyy', { locale: es }) : 'Seleccionar fecha'}
+                            <ChevronDownIcon className="w-3 h-3" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto overflow-hidden p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={config.endsOnDate ? new Date(config.endsOnDate) : undefined}
+                            onSelect={(date) => {
+                              if (date) {
+                                setConfig({ ...config, endsOnDate: format(date, 'yyyy-MM-dd') });
+                              }
+                            }}
+                            locale={es}
+                            disabled={(date) => {
+                              const startDate = config.customStartDate ? new Date(config.customStartDate) : new Date();
+                              if (date < startDate) return true;
+                              if (calendarEndDate) {
+                                const endDate = new Date(calendarEndDate);
+                                if (date > endDate) return true;
+                              }
+                              return false;
+                            }}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    <div className={`flex items-center gap-2 p-2 rounded border transition-all cursor-pointer ${config.endsType === 'after' ? 'border-primary bg-primary/10' : 'border-primary/20 bg-accent/20'
+                      }`}>
+                      <RadioGroupItem value="after" id="after" />
+                      <Label htmlFor="after" className="text-xs cursor-pointer m-0">
+                        Después de
+                      </Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={config.endsAfterOccurrences}
+                        onChange={(e) =>
+                          setConfig({ ...config, endsAfterOccurrences: parseInt(e.target.value) || 1 })
+                        }
+                        disabled={config.endsType !== 'after'}
+                        className="h-7 w-16 text-xs"
+                      />
+                      <span className="text-xs">ocurrencias</span>
+                    </div>
+                  </RadioGroup>
+                </div>
+              </div>
+            )}
+
+            {/* Comment Field */}
+            {config.frequency === 'no-repeat' && (
+              <div className="space-y-1">
+                <Label htmlFor="comment" className="text-xs font-semibold">Comentario (opcional)</Label>
+                <Textarea
+                  id="comment"
+                  placeholder="Añade un comentario sobre este evento..."
+                  value={config.comment}
+                  onChange={(e) => setConfig({ ...config, comment: e.target.value })}
+                  className="h-20 text-xs resize-none"
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Buttons */}
+        <div className="flex gap-2 justify-end px-6 pb-6 border-t pt-4">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isSubmitting}
+            className="h-8 text-xs"
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleSave}
+            disabled={!isFormValid || isSubmitting}
+            className="h-8 text-xs"
+          >
+            {isSubmitting ? 'Aprobando...' : 'Aprobar solicitud'}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 };
 
 export default ApproveRequestDialog;

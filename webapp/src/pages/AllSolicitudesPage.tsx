@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import { Navigate } from "react-router-dom";
 import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext";
 import { useTranslation } from "react-i18next";
@@ -11,8 +11,10 @@ import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 import { SolicitudTable } from "@/components/solicitud/SolicitudTable";
-import ApproveRequestDialog from "@/components/solicitud/ApproveRequestDialog";
+import ApproveRequestDialog, { canApproveRequestDirectly } from "@/components/solicitud/ApproveRequestDialog";
 import RejectRequestDialog from "@/components/calendar/RejectRequestDialog";
+import type { RecurrenceConfig } from '@/types/RecurrenceConfig';
+import { useEventsCalendar } from "@/hooks/calendar/useEventsCalendar";
 
 interface EventRequest {
     id: string;
@@ -49,6 +51,13 @@ const AllSolicitudesPage = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [statusFilter, setStatusFilter] = useState<'all' | 'PENDING' | 'APPROVED' | 'REJECTED'>('PENDING');
 
+    // Get lective dates for the selected solicitud's calendar
+    const { data: calendarData } = useEventsCalendar(selectedSolicitud?.calendarId || null);
+
+    const lectiveDates = useMemo(() => {
+        return new Set(calendarData?.lectiveDates || []);
+    }, [calendarData?.lectiveDates]);
+
     const cargarSolicitudes = useCallback(async (filter?: 'all' | 'PENDING' | 'APPROVED' | 'REJECTED') => {
         setIsLoading(true);
         const filterToUse = filter ?? statusFilter;
@@ -83,11 +92,20 @@ const AllSolicitudesPage = () => {
     }
 
     const handleApprove = (solicitud: EventRequest) => {
+        // Validar si la solicitud tiene todos los datos necesarios
+        if (!canApproveRequestDirectly(solicitud.eventData)) {
+            // Faltan datos -> Abrir diálogo de revisión automáticamente
+            setSelectedSolicitud(solicitud);
+            setApproveDialogOpen(true);
+            return;
+        }
+
+        // Tiene todos los datos -> Abrir diálogo de revisión
         setSelectedSolicitud(solicitud);
         setApproveDialogOpen(true);
     };
 
-    const handleApproveWithData = async (planifiedHours: number | undefined, classroomIds: string[]) => {
+    const handleApproveWithData = async (config: RecurrenceConfig) => {
         if (!selectedSolicitud) return;
 
         setIsSubmitting(true);
@@ -95,7 +113,7 @@ const AllSolicitudesPage = () => {
         try {
             const result = await aprobarSolicitud(
                 selectedSolicitud.id,
-                { planifiedHours, classroomIds },
+                config,
                 () => cargarSolicitudes()
             );
 
@@ -245,6 +263,8 @@ const AllSolicitudesPage = () => {
                 solicitud={selectedSolicitud}
                 onApprove={handleApproveWithData}
                 isSubmitting={isSubmitting}
+                lectiveDates={lectiveDates}
+                calendarEndDate={calendarData?.endDate}
             />
 
             {/* Reject Request Dialog */}

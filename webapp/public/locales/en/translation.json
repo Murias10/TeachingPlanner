@@ -80,7 +80,7 @@
         "notAvailable": "Not available",
         "activeFilters": "Active filters",
         "eventTypes": {
-            "NORMAL": "Normal",
+            "NORMAL": "Standard",
             "BLOCKER": "Blocker",
             "REVISION": "Review",
             "EVALUACION": "Evaluation",
@@ -1359,7 +1359,7 @@
             "subjectNotFound": "No subjects found",
             "eventType": "Event type",
             "eventTypePlaceholder": "Select event type",
-            "normal": "Normal",
+            "normal": "Standard",
             "blocker": "Blocker",
             "revision": "Review",
             "evaluation": "Evaluation",

@@ -641,39 +641,42 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
               )}
             </div>
 
-            {/* Tipo de Evento — solo visible cuando hay asignatura */}
+            {/* Tipo de Evento y Tipo de Grupo en la misma fila */}
             {config.subjectId && (
-            <div className="space-y-1">
-              <Label className="text-xs font-semibold">Tipo de Evento</Label>
-              <Select value={selectedEventType} onValueChange={(value) => setSelectedEventType(value)}>
-                <SelectTrigger className="h-8 text-xs w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(EVENT_TYPE_LABELS).filter(([value]) => value !== EVENT_TYPES.BLOCKER).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>{label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            )}
-
-            {/* Tipo de Grupo (T/S/L/TG) — oculto cuando no hay asignatura */}
-            {!isBlocker && (
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold">Tipo de Grupo</Label>
-                <Select value={groupType} onValueChange={(value) => setGroupType(value)}>
+            <div className="flex gap-2">
+              {/* Tipo de Evento */}
+              <div className="space-y-1 flex-1">
+                <Label className="text-xs font-semibold">Tipo de Evento</Label>
+                <Select value={selectedEventType} onValueChange={(value) => setSelectedEventType(value)}>
                   <SelectTrigger className="h-8 text-xs w-full">
-                    <SelectValue placeholder="Seleccionar tipo de grupo" />
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="T">Teoría</SelectItem>
-                    <SelectItem value="S">Seminario</SelectItem>
-                    <SelectItem value="L">Laboratorio</SelectItem>
-                    <SelectItem value="TG">Tutorías Grupales</SelectItem>
+                    {Object.entries(EVENT_TYPE_LABELS).filter(([value]) => value !== EVENT_TYPES.BLOCKER).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>{label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Tipo de Grupo (T/S/L/TG) — oculto cuando no hay asignatura */}
+              {!isBlocker && (
+                <div className="space-y-1 flex-1">
+                  <Label className="text-xs font-semibold">Tipo de Grupo</Label>
+                  <Select value={groupType} onValueChange={(value) => setGroupType(value)}>
+                    <SelectTrigger className="h-8 text-xs w-full">
+                      <SelectValue placeholder="Seleccionar tipo de grupo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="T">Teoría</SelectItem>
+                      <SelectItem value="S">Seminario</SelectItem>
+                      <SelectItem value="L">Laboratorio</SelectItem>
+                      <SelectItem value="TG">Tutorías Grupales</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
             )}
 
             {/* Groups and Classrooms Selection - Same row */}

@@ -80,7 +80,7 @@
         "notAvailable": "No disponible",
         "activeFilters": "Filtros activos",
         "eventTypes": {
-            "NORMAL": "Normal",
+            "NORMAL": "Estándar",
             "BLOCKER": "Bloqueante",
             "REVISION": "Revisión",
             "EVALUACION": "Evaluación",
@@ -1362,7 +1362,7 @@
             "subjectNotFound": "No se encontraron asignaturas",
             "eventType": "Tipo de evento",
             "eventTypePlaceholder": "Selecciona tipo de evento",
-            "normal": "Normal",
+            "normal": "Estándar",
             "blocker": "Bloqueante",
             "revision": "Revisión",
             "evaluation": "Evaluación",

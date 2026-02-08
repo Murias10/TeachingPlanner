@@ -219,6 +219,9 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
 
   // Auto-complete planified hours from selected group
   React.useEffect(() => {
+    // Only run when dialog is open and we have solicitud data
+    if (!open || !solicitud) return;
+
     if (config.groupIds && config.groupIds.length > 0 &&
         (config.frequency === 'weekly' || config.frequency === 'biweekly-even' ||
          config.frequency === 'biweekly-odd' || config.frequency === 'custom')) {
@@ -228,19 +231,24 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
 
       if (selectedGroup) {
         const groupHours = selectedGroup.planifiedHours || 0;
-        setConfig(prev => ({
-          ...prev,
-          planifiedHours: groupHours
-        }));
+        // Only update if value actually changed
+        if (config.planifiedHours !== groupHours) {
+          setConfig(prev => ({
+            ...prev,
+            planifiedHours: groupHours
+          }));
+        }
       }
     } else {
-      // Reset planified hours when group is deselected
-      setConfig(prev => ({
-        ...prev,
-        planifiedHours: 0
-      }));
+      // Only reset if not already 0
+      if (config.planifiedHours !== 0) {
+        setConfig(prev => ({
+          ...prev,
+          planifiedHours: 0
+        }));
+      }
     }
-  }, [config.groupIds, config.subjectId, config.frequency, subjectsWithGroups]);
+  }, [open, solicitud, config.groupIds, config.subjectId, config.frequency, config.planifiedHours, subjectsWithGroups]);
 
   // Pre-select weekday when frequency is 'weekly' and customStartDate is provided
   React.useEffect(() => {
@@ -567,39 +575,42 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
               )}
             </div>
 
-            {/* Tipo de Evento */}
+            {/* Tipo de Evento y Tipo de Grupo en la misma fila */}
             {config.subjectId && (
-            <div className="space-y-1">
-              <Label className="text-xs font-semibold">Tipo de Evento</Label>
-              <Select value={selectedEventType} onValueChange={(value) => setSelectedEventType(value)}>
-                <SelectTrigger className="h-8 text-xs w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(EVENT_TYPE_LABELS).filter(([value]) => value !== EVENT_TYPES.BLOCKER).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>{label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            )}
-
-            {/* Tipo de Grupo */}
-            {!isReviewOrEval && (
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold">Tipo de Grupo</Label>
-                <Select value={groupType} onValueChange={(value) => setGroupType(value)}>
+            <div className="flex gap-2">
+              {/* Tipo de Evento */}
+              <div className="space-y-1 flex-1">
+                <Label className="text-xs font-semibold">Tipo de Evento</Label>
+                <Select value={selectedEventType} onValueChange={(value) => setSelectedEventType(value)}>
                   <SelectTrigger className="h-8 text-xs w-full">
-                    <SelectValue placeholder="Seleccionar tipo de grupo" />
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="T">Teoría</SelectItem>
-                    <SelectItem value="S">Seminario</SelectItem>
-                    <SelectItem value="L">Laboratorio</SelectItem>
-                    <SelectItem value="TG">Tutorías Grupales</SelectItem>
+                    {Object.entries(EVENT_TYPE_LABELS).filter(([value]) => value !== EVENT_TYPES.BLOCKER).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>{label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Tipo de Grupo */}
+              {!isReviewOrEval && (
+                <div className="space-y-1 flex-1">
+                  <Label className="text-xs font-semibold">Tipo de Grupo</Label>
+                  <Select value={groupType} onValueChange={(value) => setGroupType(value)}>
+                    <SelectTrigger className="h-8 text-xs w-full">
+                      <SelectValue placeholder="Seleccionar tipo de grupo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="T">Teoría</SelectItem>
+                      <SelectItem value="S">Seminario</SelectItem>
+                      <SelectItem value="L">Laboratorio</SelectItem>
+                      <SelectItem value="TG">Tutorías Grupales</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
             )}
 
             {/* Groups and Classrooms Selection - Same row */}

@@ -593,23 +593,21 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                 </Select>
               </div>
 
-              {/* Tipo de Grupo */}
-              {!isReviewOrEval && (
-                <div className="space-y-1 flex-1">
-                  <Label className="text-xs font-semibold">Tipo de Grupo</Label>
-                  <Select value={groupType} onValueChange={(value) => setGroupType(value)}>
-                    <SelectTrigger className="h-8 text-xs w-full">
-                      <SelectValue placeholder="Seleccionar tipo de grupo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="T">Teoría</SelectItem>
-                      <SelectItem value="S">Seminario</SelectItem>
-                      <SelectItem value="L">Laboratorio</SelectItem>
-                      <SelectItem value="TG">Tutorías Grupales</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
+              {/* Tipo de Grupo (T/S/L/TG) — siempre visible cuando hay asignatura */}
+              <div className="space-y-1 flex-1">
+                <Label className="text-xs font-semibold">Tipo de Grupo</Label>
+                <Select value={groupType} onValueChange={(value) => setGroupType(value)}>
+                  <SelectTrigger className="h-8 text-xs w-full">
+                    <SelectValue placeholder="Seleccionar tipo de grupo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="T">Teoría</SelectItem>
+                    <SelectItem value="S">Seminario</SelectItem>
+                    <SelectItem value="L">Laboratorio</SelectItem>
+                    <SelectItem value="TG">Tutorías Grupales</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             )}
 

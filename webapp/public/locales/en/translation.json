@@ -532,6 +532,7 @@
             "actions": {
                 "review": "Review request",
                 "approve": "Approve directly",
+                "approveWithReview": "Approve (dialog will open to complete data)",
                 "reject": "Reject",
                 "incompleteData": "Missing required data (classroom, group, etc.). Use 'Review' to complete"
             },

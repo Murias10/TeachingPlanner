@@ -1,7 +1,7 @@
 import { ColumnDef } from "@tanstack/react-table"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ArrowUpDown, Check, X, Eye, AlertCircle } from "lucide-react"
+import { ArrowUpDown, Check, X, Eye } from "lucide-react"
 import {
     Tooltip,
     TooltipContent,
@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/tooltip"
 import moment from "moment"
 import { TFunction } from "i18next"
-import { canApproveRequestDirectly } from "@/components/solicitud/ApproveRequestDialog"
 
 interface EventRequest {
     id: string;
@@ -174,7 +173,6 @@ export const columns = ({ onApprove, onReject, onReview, t }: ColumnExtraProps):
         enableHiding: false,
         cell: ({ row }) => {
             const solicitud = row.original;
-            const canApproveDirectly = canApproveRequestDirectly(solicitud.eventData);
 
             if (solicitud.status !== 'PENDING') {
                 return <span className="text-xs text-muted-foreground">{t("table.solicitudes.status.processed")}</span>;
@@ -201,17 +199,13 @@ export const columns = ({ onApprove, onReject, onReview, t }: ColumnExtraProps):
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => onApprove(solicitud)}
-                                disabled={!canApproveDirectly}
-                                className="h-8 w-8 p-0 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="h-8 w-8 p-0 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700"
                             >
-                                {canApproveDirectly ? <Check className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+                                <Check className="h-4 w-4" />
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                            {canApproveDirectly
-                                ? t("table.solicitudes.actions.approve")
-                                : t("table.solicitudes.actions.incompleteData")
-                            }
+                            {t("table.solicitudes.actions.approve")}
                         </TooltipContent>
                     </Tooltip>
                     <Tooltip>

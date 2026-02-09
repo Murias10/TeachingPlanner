@@ -19,7 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useUpdateUser } from "@/hooks/user/useUpdateUser";
-import { useFloatingAlert } from "@/hooks/useFloatingAlert";
+import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext";
 import { User } from "@/types/auth.types";
 
 export interface EditUserFormData {
@@ -38,7 +38,7 @@ interface EditUserDrawerProps {
 
 export function EditUserDrawer({ open, onOpenChange, user, onSuccess }: EditUserDrawerProps) {
     const { updateUser } = useUpdateUser();
-    const { triggerAlert } = useFloatingAlert();
+    const { triggerAlert } = useFloatingAlertContext();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [name, setName] = useState("");
     const [firstSurname, setFirstSurname] = useState("");

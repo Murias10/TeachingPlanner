@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Spinner } from "@/components/ui/spinner";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { useCalendarSync } from "@/hooks/google/useCalendarSync";
-import { useFloatingAlert } from "@/hooks/useFloatingAlert";
+import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext";
 import { Navigate, useNavigate } from "react-router-dom";
 import { Calendar, RefreshCw, ArrowLeft } from "lucide-react";
 import { useDegrees } from "@/hooks/degree/useDegrees";
@@ -25,7 +25,7 @@ import {
 const CalendarSyncPage = () => {
     const { setItems } = useBreadcrumbContext();
     const { user } = useAuth();
-    const { triggerAlert } = useFloatingAlert();
+    const { triggerAlert } = useFloatingAlertContext();
     const navigate = useNavigate();
     const { syncs, isSyncsLoading, toggleSync, syncNow, isLoading } = useCalendarSync();
     const { data: degrees = [] } = useDegrees();

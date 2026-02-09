@@ -33,6 +33,13 @@ export const useFloatingAlert = () => {
     }, [])
 
     const hideAlert = useCallback((id: string) => {
+        // Limpiar el timeout automático si existe
+        const timeout = timeoutRefs.current.get(id)
+        if (timeout) {
+            clearTimeout(timeout)
+            timeoutRefs.current.delete(id)
+        }
+
         // Cambiar show a false para activar la animación de salida
         setAlerts(prev =>
             prev.map(alert =>
@@ -65,10 +72,10 @@ export const useFloatingAlert = () => {
             )
         }, 50)
 
-        // Programar ocultamiento después de 3 segundos
+        // Programar ocultamiento después de 5 segundos
         const hideTimeout = setTimeout(() => {
             hideAlert(id)
-        }, 3000)
+        }, 5000)
 
         timeoutRefs.current.set(id, hideTimeout)
     }, [hideAlert])
@@ -82,6 +89,7 @@ export const useFloatingAlert = () => {
     return {
         alerts,
         triggerAlert,
+        hideAlert,
         removeAlert,
         cleanup
     }

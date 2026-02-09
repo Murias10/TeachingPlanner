@@ -26,7 +26,7 @@ import { Input } from "@/components/ui/input"
 import { useTranslation } from "react-i18next"
 import VITE_GATEWAY_API_URL from "@/config/api"
 import { getAuthHeaders } from "@/utils/authHeaders"
-import { useFloatingAlert } from "@/hooks/useFloatingAlert"
+import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext"
 
 type Props = {
     readonly subject: Subject
@@ -37,7 +37,7 @@ type Props = {
 export function GroupTableButtons({ subject, onDeleteGroup, onCreateGroup }: Readonly<Props>) {
 
     const { t } = useTranslation()
-    const { triggerAlert } = useFloatingAlert()
+    const { triggerAlert } = useFloatingAlertContext()
 
     const [open, setOpen] = useState(false)
     const [selectedGroups, setSelectedGroups] = useState<string[]>([])

@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useListarSolicitudes } from "@/hooks/event-request/useListarSolicitudes";
 import { useAprobarSolicitud } from "@/hooks/event-request/useAprobarSolicitud";
 import { useRechazarSolicitud } from "@/hooks/event-request/useRechazarSolicitud";
-import { useFloatingAlert } from "@/hooks/useFloatingAlert";
+import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
@@ -37,7 +37,7 @@ interface EventRequest {
 const AllSolicitudesPage = () => {
     const { t } = useTranslation();
     const { setItems } = useBreadcrumbContext();
-    const { triggerAlert } = useFloatingAlert();
+    const { triggerAlert } = useFloatingAlertContext();
     const { user } = useAuth();
     const listarSolicitudes = useListarSolicitudes();
     const aprobarSolicitud = useAprobarSolicitud();

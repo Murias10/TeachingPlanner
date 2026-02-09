@@ -1,7 +1,7 @@
 import { useFloatingAlert } from "@/hooks/useFloatingAlert"
 import { FloatingAlertContainer } from "@/components/FloatingAlertContainer"
 import { FloatingAlertContext } from "@/contexts/FloatingAlertContextInstance"
-import { useEffect } from "react"
+import { useEffect, useMemo } from "react"
 
 interface TriggerAlertArgs {
     title: string
@@ -14,17 +14,19 @@ export interface FloatingAlertContextType {
 }
 
 export function FloatingAlertProvider({ children }: { children: React.ReactNode }) {
-    const { alerts, triggerAlert, cleanup } = useFloatingAlert()
+    const { alerts, triggerAlert, hideAlert, cleanup } = useFloatingAlert()
 
     // Cleanup al desmontar el provider
     useEffect(() => {
         return () => cleanup()
     }, [cleanup])
 
+    const contextValue = useMemo(() => ({ triggerAlert }), [triggerAlert])
+
     return (
-        <FloatingAlertContext.Provider value={{ triggerAlert }}>
+        <FloatingAlertContext.Provider value={contextValue}>
             {children}
-            <FloatingAlertContainer alerts={alerts} />
+            <FloatingAlertContainer alerts={alerts} onCloseAlert={hideAlert} />
         </FloatingAlertContext.Provider>
     )
 }

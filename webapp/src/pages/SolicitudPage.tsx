@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useListarSolicitudes } from "@/hooks/event-request/useListarSolicitudes";
 import { useAprobarSolicitud } from "@/hooks/event-request/useAprobarSolicitud";
 import { useRechazarSolicitud } from "@/hooks/event-request/useRechazarSolicitud";
-import { useFloatingAlert } from "@/hooks/useFloatingAlert";
+import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext";
 import { useDegreeByAcronym } from "@/hooks/degree/useDegreeByAcronym";
 import { useCoursesByDegreeAcronym } from "@/hooks/course/useCoursesByDegreeAcronym";
 import { useCalendarByCourseAndSemester } from "@/hooks/calendar/useCalendarByCourseAndSemester";
@@ -43,7 +43,7 @@ interface EventRequest {
 const SolicitudPage = () => {
     const { t } = useTranslation();
     const { setItems } = useBreadcrumbContext();
-    const { triggerAlert } = useFloatingAlert();
+    const { triggerAlert } = useFloatingAlertContext();
     const { user, isLoading: authLoading } = useAuth();
     const listarSolicitudes = useListarSolicitudes();
     const aprobarSolicitud = useAprobarSolicitud();

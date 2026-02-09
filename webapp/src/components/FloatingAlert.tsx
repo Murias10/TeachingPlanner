@@ -1,5 +1,5 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Terminal } from "lucide-react"
+import { Terminal, X } from "lucide-react"
 import clsx from "clsx"
 import { AlertVariant } from "@/hooks/useFloatingAlert"
 
@@ -8,6 +8,7 @@ export interface FloatingAlertProps {
     title: string
     description: string
     variant?: AlertVariant
+    onClose?: () => void
 }
 
 const variantClasses: Record<AlertVariant, string> = {
@@ -22,16 +23,50 @@ export function FloatingAlert({
     title,
     description,
     variant = "default",
+    onClose,
 }: FloatingAlertProps) {
+    const handleClose = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        e.preventDefault();
+        onClose?.();
+    };
+
     return (
-        <Alert className={clsx(
-            "shadow-lg transition-all duration-1000 mb-2",
-            variantClasses[variant],
-            show ? "translate-x-0 opacity-100" : "translate-x-full opacity-0"
-        )}>
-            <Terminal className="h-4 w-4" />
-            <AlertTitle>{title}</AlertTitle>
-            <AlertDescription>{description}</AlertDescription>
-        </Alert>
+        <div
+            className={clsx(
+                "relative transition-all duration-1000 mb-2 pointer-events-auto",
+                show ? "translate-x-0 opacity-100" : "translate-x-full opacity-0"
+            )}
+            onClick={(e) => e.stopPropagation()}
+        >
+            <Alert className={clsx(
+                "shadow-lg",
+                onClose && "pr-10",
+                variantClasses[variant]
+            )}>
+                <Terminal className="h-4 w-4" />
+                <AlertTitle>{title}</AlertTitle>
+                <AlertDescription>{description}</AlertDescription>
+            </Alert>
+            {onClose && (
+                <button
+                    onClick={handleClose}
+                    onMouseDown={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                    }}
+                    onPointerDown={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                    }}
+                    className="absolute top-2 right-2 h-6 w-6 rounded-full bg-white shadow-md border border-gray-300 flex items-center justify-center hover:bg-gray-100 active:scale-95 focus:outline-none focus:ring-2 focus:ring-ring transition-transform cursor-pointer"
+                    style={{ zIndex: 9999 }}
+                    aria-label="Cerrar alerta"
+                    type="button"
+                >
+                    <X className="h-3 w-3 text-gray-600 pointer-events-none" strokeWidth={2.5} />
+                </button>
+            )}
+        </div>
     )
 }

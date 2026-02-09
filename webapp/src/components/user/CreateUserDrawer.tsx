@@ -21,7 +21,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useCreateUser } from "@/hooks/user/useCreateUser";
-import { useFloatingAlert } from "@/hooks/useFloatingAlert";
+import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext";
 
 interface CreateUserDrawerProps {
     open: boolean;
@@ -32,7 +32,7 @@ interface CreateUserDrawerProps {
 export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDrawerProps) {
     const { t } = useTranslation();
     const { createUser } = useCreateUser();
-    const { triggerAlert } = useFloatingAlert();
+    const { triggerAlert } = useFloatingAlertContext();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const [formData, setFormData] = useState({

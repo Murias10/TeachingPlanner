@@ -9,7 +9,7 @@ import { Course } from '@/entities/course.entity'
 @Entity('DEGREES')
 export class Degree extends AuditedEntity {
     /** Full name of the degree program */
-    @Column('varchar', { length: 100, name: 'NAME', unique: true })
+    @Column('varchar', { length: 100, name: 'NAME' })
     name!: string
 
     /** Acronym or abbreviation of the degree */

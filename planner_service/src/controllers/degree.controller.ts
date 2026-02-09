@@ -82,20 +82,14 @@ export const createDegree = async (req: AuditedRequest, res: Response) => {
     try {
         const degreeRepo = AppDataSource.getRepository(Degree);
 
-        const conflicts: string[] = [];
-
-        const nameExists = await degreeRepo.findOneBy({ name });
-        if (nameExists) conflicts.push("name");
-
+        // Verificar que el acrónimo no exista (debe ser único)
         const acronymExists = await degreeRepo.findOneBy({ acronym });
-        if (acronymExists) conflicts.push("acronym");
-
-        if (conflicts.length > 0) {
+        if (acronymExists) {
             res.status(409).json({
                 status: "error",
-                message: "Degree already exists with conflicting fields",
+                message: "A degree with this acronym already exists",
                 data: {
-                    fields: conflicts,
+                    fields: ["acronym"],
                 },
             });
             return;
@@ -170,28 +164,19 @@ export const updateDegree = async (req: AuditedRequest, res: Response) => {
             return;
         }
 
-        // Verificar conflictos de unicidad (solo si cambiaron)
-        const conflicts: string[] = [];
-
-        if (name !== degree.name) {
-            const nameExists = await degreeRepo.findOneBy({ name });
-            if (nameExists) conflicts.push("name");
-        }
-
+        // Verificar que el acrónimo no esté en uso por otra titulación (solo si cambió)
         if (acronym !== degree.acronym) {
             const acronymExists = await degreeRepo.findOneBy({ acronym });
-            if (acronymExists) conflicts.push("acronym");
-        }
-
-        if (conflicts.length > 0) {
-            res.status(409).json({
-                status: "error",
-                message: "Degree already exists with conflicting fields",
-                data: {
-                    fields: conflicts,
-                }
-            });
-            return;
+            if (acronymExists) {
+                res.status(409).json({
+                    status: "error",
+                    message: "A degree with this acronym already exists",
+                    data: {
+                        fields: ["acronym"],
+                    }
+                });
+                return;
+            }
         }
 
         // Actualizar los campos

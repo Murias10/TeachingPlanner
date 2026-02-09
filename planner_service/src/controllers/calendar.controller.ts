@@ -345,27 +345,58 @@ export const deleteCalendar = async (req: AuditedRequest, res: Response) => {
             return;
         }
 
-        // Paso 1: Eliminar los grupos manualmente antes de borrar el calendario.
-        // Las junction tables PERIODIC_EVENTS_GROUPS y PUNTUAL_EVENTS_GROUPS tienen
-        // ON DELETE NO ACTION en las FK hacia Groups. Al hacer groupRepo.remove(),
-        // TypeORM limpia automáticamente esas junction tables ManyToMany.
-        console.log(`[DELETE CALENDAR] Step 1: Getting groups from calendar...`);
+        // IMPORTANTE: Eliminar eventos ANTES que grupos
+        // Las junction tables (PERIODIC_EVENTS_GROUPS, PUNTUAL_EVENTS_GROUPS) tienen
+        // ON DELETE NO ACTION en las FK hacia Groups.
+        // TypeORM solo limpia automáticamente las junction tables cuando eliminas
+        // desde el lado del @JoinTable (el lado que "posee" la relación).
+        // En este caso, PeriodicEvent y PuntualEvent poseen las relaciones.
 
+        // Paso 1: Eliminar PeriodicEvents del calendario
+        console.log(`[DELETE CALENDAR] Step 1: Deleting periodic events...`);
+        const periodicEventRepo = AppDataSource.getRepository(PeriodicEvent);
+        const periodicEvents = await periodicEventRepo.find({
+            where: { calendar: { id: calendarId } }
+        });
+        console.log(`[DELETE CALENDAR] Found ${periodicEvents.length} periodic events to remove`);
+        if (periodicEvents.length > 0) {
+            await periodicEventRepo.remove(periodicEvents);
+            console.log(`[DELETE CALENDAR] Removed ${periodicEvents.length} periodic events`);
+        }
+
+        // Paso 2: Eliminar PuntualEvents del calendario (a través de Days)
+        console.log(`[DELETE CALENDAR] Step 2: Deleting puntual events...`);
+        const dayRepo = AppDataSource.getRepository(Day);
+        const days = await dayRepo.find({
+            where: { calendar: { id: calendarId } },
+            relations: ['puntualEvents']
+        });
+
+        let totalPuntualEvents = 0;
+        const puntualEventRepo = AppDataSource.getRepository(PuntualEvent);
+        for (const day of days) {
+            if (day.puntualEvents && day.puntualEvents.length > 0) {
+                totalPuntualEvents += day.puntualEvents.length;
+                await puntualEventRepo.remove(day.puntualEvents);
+            }
+        }
+        console.log(`[DELETE CALENDAR] Removed ${totalPuntualEvents} puntual events`);
+
+        // Paso 3: Eliminar grupos (ahora que las junction tables están limpias)
+        console.log(`[DELETE CALENDAR] Step 3: Deleting groups...`);
         const groupRepo = AppDataSource.getRepository(Group);
         const groups = await groupRepo.find({
             where: { calendar: { id: calendarId } }
         });
         console.log(`[DELETE CALENDAR] Found ${groups.length} groups to remove`);
-
         if (groups.length > 0) {
-            console.log(`[DELETE CALENDAR] Step 2: Removing groups (cleans junction tables automatically)...`);
             await groupRepo.remove(groups);
             console.log(`[DELETE CALENDAR] Removed ${groups.length} groups`);
         }
 
-        // Paso 2: Eliminar el calendario
-        // La cascada automática eliminará: Subject, Day, PeriodicEvent, PuntualEvent, etc.
-        console.log(`[DELETE CALENDAR] Step 3: Deleting calendar...`);
+        // Paso 4: Eliminar el calendario
+        // La cascada automática eliminará: Subject, Day (ahora sin eventos), etc.
+        console.log(`[DELETE CALENDAR] Step 4: Deleting calendar...`);
         await calendarRepo.remove(calendar);
 
         console.log('[DELETE CALENDAR] Calendar deleted successfully');

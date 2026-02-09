@@ -52,14 +52,10 @@ export class Group extends AuditedEntity {
     subject!: Subject;
 
     /** Puntual events associated with this group */
-    @ManyToMany(() => PuntualEvent, (puntualEvent) => puntualEvent.groups, {
-        cascade: true,
-    })
+    @ManyToMany(() => PuntualEvent, (puntualEvent) => puntualEvent.groups)
     puntualEvents!: PuntualEvent[];
 
     /** Periodic events associated with this group */
-    @ManyToMany(() => PeriodicEvent, (periodicEvent) => periodicEvent.groups, {
-        cascade: true,
-    })
+    @ManyToMany(() => PeriodicEvent, (periodicEvent) => periodicEvent.groups)
     periodicEvents!: Event[];
 }

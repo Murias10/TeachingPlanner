@@ -34,8 +34,8 @@ export function FloatingAlert({
     return (
         <div
             className={clsx(
-                "relative transition-all duration-1000 mb-2 pointer-events-auto",
-                show ? "translate-x-0 opacity-100" : "translate-x-full opacity-0"
+                "relative transition-all duration-1000 overflow-hidden pointer-events-auto",
+                show ? "translate-x-0 opacity-100 mb-2 max-h-96" : "translate-x-full opacity-0 mb-0 max-h-0"
             )}
             onClick={(e) => e.stopPropagation()}
         >

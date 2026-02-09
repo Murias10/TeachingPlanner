@@ -13,10 +13,15 @@ interface DeleteResponse {
 export const useDeleteClassroom = () => {
     const deleteClassroom = useCallback(async (
         classroomId: string,
-        refetch?: () => void
+        refetch?: () => void,
+        force?: boolean
     ): Promise<DeleteResponse> => {
         try {
-            const res = await fetch(`${VITE_GATEWAY_API_URL}/classroom/${classroomId}`, {
+            const url = force
+                ? `${VITE_GATEWAY_API_URL}/classroom/${classroomId}?force=true`
+                : `${VITE_GATEWAY_API_URL}/classroom/${classroomId}`;
+
+            const res = await fetch(url, {
                 method: "DELETE",
                 headers: getAuthHeaders()
             });
@@ -25,9 +30,11 @@ export const useDeleteClassroom = () => {
             if (!res.ok) {
                 // Intentar obtener el mensaje de error del servidor
                 let errorMessage = `Error ${res.status}`;
+                let errorData = undefined;
                 try {
                     const errorJson = await res.json();
                     errorMessage = errorJson.message || errorMessage;
+                    errorData = errorJson.data; // Capturar el data para errores 409
                 } catch {
                     // Si no se puede parsear el JSON de error, usar mensaje genérico
                     errorMessage = `Error ${res.status}: ${res.statusText}`;
@@ -37,6 +44,7 @@ export const useDeleteClassroom = () => {
                     success: false,
                     status: res.status,
                     message: errorMessage,
+                    data: errorData, // Incluir el data en la respuesta de error
                 };
             }
 

@@ -72,10 +72,10 @@ export const useFloatingAlert = () => {
             )
         }, 50)
 
-        // Programar ocultamiento después de 5 segundos
+        // Programar ocultamiento después de 7 segundos
         const hideTimeout = setTimeout(() => {
             hideAlert(id)
-        }, 5000)
+        }, 7000)
 
         timeoutRefs.current.set(id, hideTimeout)
     }, [hideAlert])

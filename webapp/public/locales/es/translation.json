@@ -255,6 +255,24 @@
                 }
             }
         },
+        "calendar": {
+            "error": {
+                "delete": {
+                    "title": "Error al eliminar el calendario",
+                    "description": "No se pudo eliminar el calendario. Por favor, inténtalo de nuevo más tarde."
+                }
+            },
+            "success": {
+                "create": {
+                    "title": "Calendario creado",
+                    "description": "El calendario del semestre {{semester}} del año {{year}} fue creado correctamente."
+                },
+                "delete": {
+                    "title": "Calendario eliminado",
+                    "description": "El calendario fue eliminado correctamente."
+                }
+            }
+        },
         "puntualEvent": {
             "error": {
                 "title": "Conflicto de horario",
@@ -550,6 +568,7 @@
             }
         },
         "classrooms": {
+            "title": "Aulas",
             "filter.placeholder": "Filtrar por código...",
             "columns": {
                 "title": "Columnas",
@@ -566,6 +585,7 @@
             }
         },
         "subjects": {
+            "title": "Asignaturas",
             "filter.placeholder": "Filtrar por nombre...",
             "columns": {
                 "title": "Columnas",
@@ -641,6 +661,7 @@
             "editPlanifiedHours": "Editar horas planificadas"
         },
         "degrees": {
+            "title": "Titulaciones",
             "filter.placeholder": "Filtrar por nombre...",
             "columns": {
                 "title": "Columnas",

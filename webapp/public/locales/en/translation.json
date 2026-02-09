@@ -255,6 +255,24 @@
                 }
             }
         },
+        "calendar": {
+            "error": {
+                "delete": {
+                    "title": "Error deleting calendar",
+                    "description": "Could not delete the calendar. Please try again later."
+                }
+            },
+            "success": {
+                "create": {
+                    "title": "Calendar created",
+                    "description": "The calendar for semester {{semester}} of year {{year}} was successfully created."
+                },
+                "delete": {
+                    "title": "Calendar deleted",
+                    "description": "The calendar was successfully deleted."
+                }
+            }
+        },
         "puntualEvent": {
             "error": {
                 "title": "Schedule conflict",
@@ -550,6 +568,7 @@
             }
         },
         "classrooms": {
+            "title": "Classrooms",
             "filter.placeholder": "Filter by code...",
             "columns": {
                 "title": "Columns",
@@ -566,6 +585,7 @@
             }
         },
         "subjects": {
+            "title": "Subjects",
             "filter.placeholder": "Filter by name...",
             "columns": {
                 "title": "Columns",
@@ -641,6 +661,7 @@
             "editPlanifiedHours": "Edit planned hours"
         },
         "degrees": {
+            "title": "Degrees",
             "filter.placeholder": "Filter by name...",
             "columns": {
                 "title": "Columns",

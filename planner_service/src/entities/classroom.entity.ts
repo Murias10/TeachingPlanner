@@ -22,14 +22,10 @@ export class Classroom extends AuditedEntity {
     gisUrl!: string;
 
     /** Periodic events held in this classroom */
-    @ManyToMany(() => PeriodicEvent, (periodicEvent) => periodicEvent.classrooms, {
-        cascade: true
-    })
+    @ManyToMany(() => PeriodicEvent, (periodicEvent) => periodicEvent.classrooms)
     periodicEvents!: PeriodicEvent[];
 
     /** Puntual events held in this classroom */
-    @ManyToMany(() => PuntualEvent, (puntualEvent) => puntualEvent.classrooms, {
-        cascade: true
-    })
+    @ManyToMany(() => PuntualEvent, (puntualEvent) => puntualEvent.classrooms)
     puntualEvents!: PuntualEvent[];
 }

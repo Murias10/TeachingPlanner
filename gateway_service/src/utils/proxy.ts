@@ -75,9 +75,16 @@ export const proxyRequest = async (
   try {
     const headers = buildRequestHeaders(req, options);
 
+    // Construir la URL con query parameters si existen
+    let url = options.url;
+    if (req.query && Object.keys(req.query).length > 0) {
+      const queryString = new URLSearchParams(req.query as Record<string, string>).toString();
+      url = `${url}?${queryString}`;
+    }
+
     const axiosConfig: AxiosRequestConfig = {
       method: options.method || 'GET',
-      url: options.url,
+      url,
       headers,
       ...(options.body && { data: options.body })
     };

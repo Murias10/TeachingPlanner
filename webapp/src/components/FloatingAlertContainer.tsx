@@ -9,7 +9,7 @@ interface FloatingAlertContainerProps {
 export function FloatingAlertContainer({ alerts, onCloseAlert }: FloatingAlertContainerProps) {
     return (
         <div className="fixed right-4 bottom-4 z-[9999] max-w-md w-[90%] sm:w-full">
-            <div className="flex flex-col-reverse gap-2">
+            <div className="flex flex-col-reverse">
                 {alerts.map((alert) => (
                     <FloatingAlert
                         key={alert.id}

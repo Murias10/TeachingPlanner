@@ -1,7 +1,7 @@
 import { ClassroomToolbar } from "@/components/classroom/ClassroomToolbar"
 import { ClassroomTable } from "@/components/classroom/ClassroomTable"
 import { CreateClassroomDrawer } from "@/components/classroom/CreateClassroomDrawer"
-import { EditClassroomDrawer } from "@/components/classroom/EditClassroomDrawer"
+import { EditClassroomDrawer, EditClassroomFormData } from "@/components/classroom/EditClassroomDrawer"
 import { DeleteConfirmationDialog } from "@/components/DeleteConfirmationDialog"
 import { ProtectedComponent } from "@/components/ProtectedComponent"
 import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext"
@@ -15,12 +15,12 @@ import { useCreateClassroom } from "@/hooks/classroom/useCreateClassroom"
 import { useUpdateClassroom } from "@/hooks/classroom/useUpdateClassroom"
 import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext"
 import { Classroom } from "@/types/Classroom"
-import { EditClassroomFormData } from "@/components/classroom/EditClassroomDrawer"
 
 interface DeleteState {
     type: 'single' | 'bulk' | null;
     classroomId?: string;
     selectedIds?: string[];
+    relatedEventsCount?: number;
 }
 
 export default function ClassroomPage() {
@@ -61,48 +61,14 @@ export default function ClassroomPage() {
         }
     }, [error, t, triggerAlert])
 
-    // Función principal de eliminación
-    const performDelete = useCallback(async (classroomId: string) => {
-        const result = await deleteClassroom(classroomId, refetch);
-
-        if (result.success) {
-            triggerAlert({
-                title: t("alerts.classroom.success.delete.title"),
-                description: t("alerts.classroom.success.delete.description", {
-                    code: classrooms.find(c => c.id === classroomId)?.code
-                }),
-                variant: "success",
-            });
-        } else {
-            // Manejo específico de errores
-            let errorMessage = result.message;
-
-            switch (result.status) {
-                case 404:
-                    errorMessage = t("alerts.classroom.error.notFound");
-                    break;
-                case 409:
-                    errorMessage = t("alerts.classroom.error.hasEvents");
-                    break;
-                default:
-                    errorMessage = result.message || t("alerts.classroom.error.default");
-            }
-
-            triggerAlert({
-                title: t("alerts.classroom.error.title"),
-                description: errorMessage,
-                variant: "destructive",
-            });
-        }
-
-        return result.success;
-    }, [deleteClassroom, refetch, triggerAlert, t, classrooms]);
-
-    // Iniciar eliminación individual - solo abre el diálogo
+    // Iniciar eliminación individual - abrir diálogo directamente
     const handleDeleteClick = useCallback((classroomId: string) => {
+        // Abrir diálogo de confirmación sin relatedEventsCount
+        // El diálogo mostrará el mensaje simple
         setDeleteState({
             type: 'single',
-            classroomId
+            classroomId,
+            relatedEventsCount: undefined
         });
     }, []);
 
@@ -116,32 +82,33 @@ export default function ClassroomPage() {
         });
     }, [selectedIds]);
 
-    // Confirmar eliminación - aquí se ejecuta la eliminación real
+    // Confirmar eliminación
     const handleConfirmDelete = useCallback(async () => {
         if (deleteState.type === 'single' && deleteState.classroomId) {
-            await performDelete(deleteState.classroomId);
-            setDeleteState({ type: null });
+            // Siempre eliminar con force=true para borrar eventos relacionados
+            const result = await deleteClassroom(deleteState.classroomId, refetch, true);
 
-        } else if (deleteState.type === 'bulk' && deleteState.selectedIds) {
-            let deletedCount = 0;
-
-            for (const id of deleteState.selectedIds) {
-                const success = await performDelete(id);
-                if (success) deletedCount++;
-            }
-
-            if (deletedCount > 0) {
+            if (result.success) {
+                // Eliminación exitosa
                 triggerAlert({
-                    title: t("alerts.classroom.success.delete.multiple.title"),
-                    description: t("alerts.classroom.success.delete.multiple.description", { count: deletedCount }),
+                    title: t("alerts.classroom.success.delete.title"),
+                    description: t("alerts.classroom.success.delete.description", {
+                        code: classrooms.find(c => c.id === deleteState.classroomId)?.code
+                    }),
                     variant: "success",
+                });
+            } else {
+                // Error al eliminar
+                triggerAlert({
+                    title: t("alerts.classroom.error.title"),
+                    description: result.message || t("alerts.classroom.error.default"),
+                    variant: "destructive",
                 });
             }
 
-            setSelectedIds([]);
             setDeleteState({ type: null });
         }
-    }, [deleteState, performDelete, triggerAlert, t]);
+    }, [deleteState, deleteClassroom, refetch, triggerAlert, t, classrooms]);
 
     // Cerrar diálogo de eliminación
     const handleCloseDeleteDialog = useCallback(() => {
@@ -224,7 +191,7 @@ export default function ClassroomPage() {
 
     // Generar props para el diálogo de eliminación
     const getDeleteDialogProps = useCallback(() => {
-        if (!deleteState.type) {
+        if (!deleteState.type || deleteState.type === 'bulk') {
             return {
                 open: false,
                 onOpenChange: handleCloseDeleteDialog,
@@ -234,24 +201,19 @@ export default function ClassroomPage() {
             };
         }
 
-        const isSingle = deleteState.type === 'single';
+        // Solo para eliminación individual
+        const classroom = classrooms.find(c => c.id === deleteState.classroomId);
 
         return {
             open: true,
             onOpenChange: handleCloseDeleteDialog,
             onConfirm: handleConfirmDelete,
-            title: isSingle
-                ? t("dialog.classrooms.delete.single.title")
-                : t("dialog.classrooms.delete.multiple.title"),
-            description: isSingle
-                ? t("dialog.classrooms.delete.single.description", {
-                    code: classrooms.find(c => c.id === deleteState.classroomId)?.code
-                })
-                : t("dialog.classrooms.delete.multiple.description", {
-                    count: deleteState.selectedIds?.length || 0
-                }),
+            title: t("dialog.classrooms.delete.single.title"),
+            description: t("dialog.classrooms.delete.single.description", {
+                code: classroom?.code
+            }),
         };
-    }, [deleteState, handleCloseDeleteDialog, handleConfirmDelete, t, classrooms]);
+    }, [deleteState, handleCloseDeleteDialog, handleConfirmDelete, classrooms, t]);
 
     return (
         <>

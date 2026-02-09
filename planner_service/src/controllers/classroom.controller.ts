@@ -97,6 +97,7 @@ export const createClassroom = async (req: AuditedRequest, res: Response) => {
 export const deleteClassroom = async (req: AuditedRequest, res: Response) => {
     try {
         const { id } = req.params;
+        const force = req.query.force === 'true';
 
         const classroomRepo = AppDataSource.getRepository(Classroom);
         const puntualEventRepo = AppDataSource.getRepository(PuntualEvent);
@@ -129,13 +130,45 @@ export const deleteClassroom = async (req: AuditedRequest, res: Response) => {
 
         const totalRelatedEvents = relatedPunctualEvents + relatedPeriodicEvents;
 
-        if (totalRelatedEvents > 0) {
+        // Si hay eventos relacionados y no se fuerza la eliminación, retornar conflicto
+        if (totalRelatedEvents > 0 && !force) {
             res.status(409).json({
                 status: "error",
                 message: "No se puede eliminar el aula porque tiene eventos asociados",
                 data: { relatedEvents: totalRelatedEvents },
             });
             return;
+        }
+
+        // Si force=true y hay eventos, eliminarlos primero
+        if (force && totalRelatedEvents > 0) {
+            console.log(`Force delete: Eliminando ${totalRelatedEvents} eventos relacionados con el aula ${id}`);
+
+            // Obtener eventos puntuales relacionados
+            const puntualEvents = await puntualEventRepo
+                .createQueryBuilder("puntualEvent")
+                .innerJoin("puntualEvent.classrooms", "classroom")
+                .where("classroom.id = :id", { id })
+                .getMany();
+
+            // Obtener eventos periódicos relacionados
+            const periodicEvents = await periodicEventRepo
+                .createQueryBuilder("periodicEvent")
+                .innerJoin("periodicEvent.classrooms", "classroom")
+                .where("classroom.id = :id", { id })
+                .getMany();
+
+            // Eliminar eventos puntuales
+            if (puntualEvents.length > 0) {
+                await puntualEventRepo.remove(puntualEvents);
+                console.log(`Eliminados ${puntualEvents.length} eventos puntuales`);
+            }
+
+            // Eliminar eventos periódicos
+            if (periodicEvents.length > 0) {
+                await periodicEventRepo.remove(periodicEvents);
+                console.log(`Eliminados ${periodicEvents.length} eventos periódicos`);
+            }
         }
 
         await classroomRepo.delete(id);

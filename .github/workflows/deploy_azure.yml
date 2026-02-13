@@ -126,15 +126,14 @@ jobs:
 
       - name: 🚀 Levantar servicios en background
         run: |
-          cd gateway_service && npm start > ../gateway.log 2>&1 &
-          echo $! > ../gateway.pid
-          cd ../planner_service && npm start > ../planner.log 2>&1 &
-          echo $! > ../planner.pid
-          cd ../auth_service && npm start > ../auth.log 2>&1 &
-          echo $! > ../auth.pid
-          cd ../user_service && npm start > ../user.log 2>&1 &
-          echo $! > ../user.pid
-          cd ..
+          (cd gateway_service && npm start > ../gateway.log 2>&1) &
+          echo $! > gateway.pid
+          (cd planner_service && npm start > ../planner.log 2>&1) &
+          echo $! > planner.pid
+          (cd auth_service && npm start > ../auth.log 2>&1) &
+          echo $! > auth.pid
+          (cd user_service && npm start > ../user.log 2>&1) &
+          echo $! > user.pid
 
       - name: 🐛 Verificar que los servicios se iniciaron
         run: |

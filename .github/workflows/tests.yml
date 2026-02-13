@@ -2,8 +2,7 @@ name: Build & Test  # Nombre del workflow
 
 on:
   push:
-    branches:
-      - master  # Se ejecuta cuando se hace push a la rama master
+    branches:      
       - develop  # Se ejecuta cuando se hace push a la rama develop
   pull_request:
     types: [opened, synchronize, reopened]  # Se ejecuta cuando se abre, actualiza o reabre un PR
@@ -86,15 +85,33 @@ jobs:
 
       - name: 🚀 Levantar servicios en background
         run: |
-          cd gateway_service && npm start > gateway.log 2>&1 &
-          echo $! > gateway.pid
-          cd ../planner_service && npm start > planner.log 2>&1 &
-          echo $! > planner.pid
-          cd ../auth_service && npm start > auth.log 2>&1 &
-          echo $! > auth.pid
-          cd ../user_service && npm start > user.log 2>&1 &
-          echo $! > user.pid
+          cd gateway_service && npm start > ../gateway.log 2>&1 &
+          echo $! > ../gateway.pid
+          cd ../planner_service && npm start > ../planner.log 2>&1 &
+          echo $! > ../planner.pid
+          cd ../auth_service && npm start > ../auth.log 2>&1 &
+          echo $! > ../auth.pid
+          cd ../user_service && npm start > ../user.log 2>&1 &
+          echo $! > ../user.pid
           cd ..
+
+      - name: 🐛 Verificar que los servicios se iniciaron
+        run: |
+          echo "=== PIDs de los servicios ==="
+          cat gateway.pid planner.pid auth.pid user.pid || echo "Error: No se encontraron PIDs"
+          echo ""
+          echo "=== Procesos activos ==="
+          ps aux | grep -E "gateway|planner|auth|user" | grep -v grep || echo "No hay procesos activos"
+          echo ""
+          echo "=== Primeras líneas de logs ==="
+          echo "--- Gateway ---"
+          head -20 gateway.log || echo "No hay log de gateway"
+          echo "--- Planner ---"
+          head -20 planner.log || echo "No hay log de planner"
+          echo "--- Auth ---"
+          head -20 auth.log || echo "No hay log de auth"
+          echo "--- User ---"
+          head -20 user.log || echo "No hay log de user"
 
       - name: ⏳ Esperar a que servicios estén listos
         run: npx tsx scripts/wait-for-services.ts
@@ -133,21 +150,21 @@ jobs:
         if: failure()
         run: |
           echo "=== Gateway Service Logs ==="
-          cat gateway_service/gateway.log || true
+          cat gateway.log || true
           echo ""
           echo "=== Planner Service Logs ==="
-          cat planner_service/planner.log || true
+          cat planner.log || true
           echo ""
           echo "=== Auth Service Logs ==="
-          cat auth_service/auth.log || true
+          cat auth.log || true
           echo ""
           echo "=== User Service Logs ==="
-          cat user_service/user.log || true
+          cat user.log || true
 
       - name: 🧹 Cleanup - Matar procesos
         if: always()
         run: |
-          kill $(cat gateway_service/gateway.pid) 2>/dev/null || true
-          kill $(cat planner_service/planner.pid) 2>/dev/null || true
-          kill $(cat auth_service/auth.pid) 2>/dev/null || true
-          kill $(cat user_service/user.pid) 2>/dev/null || true
+          kill $(cat gateway.pid) 2>/dev/null || true
+          kill $(cat planner.pid) 2>/dev/null || true
+          kill $(cat auth.pid) 2>/dev/null || true
+          kill $(cat user.pid) 2>/dev/null || true

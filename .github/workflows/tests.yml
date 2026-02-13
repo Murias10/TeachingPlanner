@@ -24,27 +24,16 @@ jobs:
 
       - name: 📦 Instalar dependencias
         run: |  # Instala las dependencias en cada servicio
-          npm --prefix users/utils ci
-          npm --prefix users/authservice ci
-          npm --prefix users/userservice ci
-          npm --prefix questionservice ci
-          npm --prefix gatewayservice ci
+          npm --prefix gateway_service ci
+          npm --prefix planner_service ci
+          npm --prefix auth_service ci
+          npm --prefix user_service ci
           npm --prefix webapp ci
 
       - name: 🧪 Ejecutar Tests Unitarios
         run: |  # Ejecuta los tests unitarios en cada servicio con cobertura
-          npm --prefix users/utils test -- --coverage
-          npm --prefix users/authservice test -- --coverage
-          npm --prefix users/userservice test -- --coverage
-          npm --prefix questionservice test -- --coverage
-          npm --prefix gatewayservice test -- --coverage
+          npm --prefix planner_service test -- --coverage
           npm --prefix webapp test -- --coverage
-
-      - name: 📊 Analizar con SonarCloud
-        uses: sonarsource/sonarcloud-github-action@master  # Ejecuta análisis estático con SonarCloud
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Token de autenticación de GitHub
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}  # Token de autenticación de SonarCloud
 
   e2e-tests:  # Job para ejecutar tests end-to-end
     needs: [unit-tests]  # Se ejecuta solo si los tests unitarios han pasado

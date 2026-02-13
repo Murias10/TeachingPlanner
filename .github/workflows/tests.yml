@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master  # Se ejecuta cuando se hace push a la rama master
+      - develop  # Se ejecuta cuando se hace push a la rama develop
   pull_request:
     types: [opened, synchronize, reopened]  # Se ejecuta cuando se abre, actualiza o reabre un PR
 

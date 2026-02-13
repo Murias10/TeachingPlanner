@@ -17,6 +17,8 @@ export function EditDeleteTableButtons({ onDelete, onEdit }: EditDeleteTableButt
                         size="icon"
                         className="size-10"
                         onClick={onEdit}
+                        aria-label="Edit"
+                        data-testid="edit-button"
                     >
                         <Pencil />
                     </Button>
@@ -33,6 +35,8 @@ export function EditDeleteTableButtons({ onDelete, onEdit }: EditDeleteTableButt
                         size="icon"
                         className="size-10"
                         onClick={onDelete}
+                        aria-label="Delete"
+                        data-testid="delete-button"
                     >
                         <Trash2 />
                     </Button>

@@ -69,6 +69,8 @@ export function DegreeTableButtons({ degree, deleteDegree, editDegree }: Props) 
                             size="icon"
                             className="size-10"
                             onClick={() => editDegree?.(degree)}
+                            aria-label="Edit"
+                            data-testid="edit-button"
                         >
                             <Pencil />
                         </Button>
@@ -83,7 +85,14 @@ export function DegreeTableButtons({ degree, deleteDegree, editDegree }: Props) 
             <ProtectedComponent requiredRoles={["ADMIN"]}>
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <Button variant="destructive" size="icon" className="size-10" onClick={() => deleteDegree(degree.id)}>
+                        <Button
+                            variant="destructive"
+                            size="icon"
+                            className="size-10"
+                            onClick={() => deleteDegree(degree.id)}
+                            aria-label="Delete"
+                            data-testid="delete-button"
+                        >
                             <Trash2 />
                         </Button>
                     </TooltipTrigger>

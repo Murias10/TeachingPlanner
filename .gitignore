@@ -34,4 +34,12 @@ certs/
 .scannerwork/
 .sonar/
 
+# Playwright Test Results
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Process IDs (from CI background services)
+*.pid
+
 .claude

@@ -431,3 +431,13 @@ export const updateGroupPlanifiedHours = (req: Request, res: Response, next: Nex
         method: 'PATCH',
         body: req.body
     });
+
+//////////////////////////////////////////////
+// TEST ENDPOINTS
+//////////////////////////////////////////////
+
+export const resetTestDatabase = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/test/reset-database`,
+        method: 'POST'
+    });

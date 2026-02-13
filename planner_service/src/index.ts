@@ -8,6 +8,7 @@ import calendarRouter from '@/routes/calendar.routes';
 import eventRequestRouter from '@/routes/event-request.routes';
 import calendarSyncRouter from '@/routes/calendar-sync.routes';
 import groupRouter from '@/routes/group.routes';
+import testRouter from '@/routes/test.routes';
 
 const port = process.env.PLANNER_SERVICE_PORT;
 
@@ -22,6 +23,7 @@ const startServer = async () => {
     app.use(eventRequestRouter);
     app.use(calendarSyncRouter);
     app.use(groupRouter);
+    app.use(testRouter);
 
     app.listen(port, () => {
         console.log(`🚀 App listening on port ${port}`);

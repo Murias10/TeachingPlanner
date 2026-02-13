@@ -45,7 +45,7 @@ export function NavUser({
 
   const handleLogout = () => {
     logout()
-    navigate("/home")
+    navigate("/")
   }
 
   const handleSignIn = () => {

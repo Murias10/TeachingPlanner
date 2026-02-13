@@ -48,29 +48,118 @@ jobs:
   e2e-tests:  # Job para ejecutar tests end-to-end
     needs: [unit-tests]  # Se ejecuta solo si los tests unitarios han pasado
     runs-on: ubuntu-latest  # Usa la última versión de Ubuntu
+    timeout-minutes: 15  # Timeout de 15 minutos para todo el job
+
+    services:
+      mariadb:
+        image: mariadb:11
+        env:
+          MYSQL_ROOT_PASSWORD: testpassword
+          MYSQL_DATABASE: planner_db_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mariadb-admin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
     steps:
       - name: 📥 Clonar el repositorio
-        uses: actions/checkout@v4  # Descarga el código del repositorio
+        uses: actions/checkout@v4
 
       - name: ⚙️ Configurar Node.js
-        uses: actions/setup-node@v4  # Configura Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: 20  # Usa la versión 20 de Node.js
+          node-version: 20
+          cache: 'npm'
 
       - name: 📦 Instalar dependencias
-        run: |  # Instala las dependencias en cada servicio
-          npm --prefix users/utils install
-          npm --prefix users/authservice install
-          npm --prefix users/userservice install
-          npm --prefix questionservice install
-          npm --prefix gatewayservice install
-          npm --prefix webapp install
+        run: |
+          npm --prefix gateway_service ci
+          npm --prefix planner_service ci
+          npm --prefix auth_service ci
+          npm --prefix user_service ci
+          npm --prefix webapp ci
 
-      - name: 🚀 Construir la aplicación
-        run: npm --prefix webapp run build  # Genera los archivos de producción de la webapp
+      - name: 🗄️ Crear base de datos management_db_test
+        run: |
+          mysql -h 127.0.0.1 -u root -ptestpassword -e "CREATE DATABASE IF NOT EXISTS management_db_test;"
 
-      - name: ⚙️ Permisos de red para Node.js
-        run: sudo setcap 'cap_net_bind_service=+ep' `which node`  # Permite que Node.js use puertos restringidos
+      - name: 🔧 Copiar archivo de configuración CI
+        run: cp .env.ci .env
+
+      - name: 🏗️ Compilar servicios backend
+        run: |
+          npm --prefix gateway_service run build
+          npm --prefix planner_service run build
+          npm --prefix auth_service run build
+          npm --prefix user_service run build
+
+      - name: 🚀 Levantar servicios en background
+        run: |
+          cd gateway_service && npm start > gateway.log 2>&1 &
+          echo $! > gateway.pid
+          cd ../planner_service && npm start > planner.log 2>&1 &
+          echo $! > planner.pid
+          cd ../auth_service && npm start > auth.log 2>&1 &
+          echo $! > auth.pid
+          cd ../user_service && npm start > user.log 2>&1 &
+          echo $! > user.pid
+          cd ..
+
+      - name: ⏳ Esperar a que servicios estén listos
+        run: npx tsx scripts/wait-for-services.ts
+        working-directory: webapp
+
+      - name: 👤 Crear usuario de prueba
+        run: npm --prefix user_service run seed:ci
+
+      - name: 🎭 Instalar navegadores Playwright
+        run: npx playwright install chromium --with-deps
+        working-directory: webapp
 
       - name: 🏁 Ejecutar Tests E2E
-        run: npm --prefix webapp run test:e2eci  # Ejecuta los tests end-to-end en la webapp
+        run: npm run test:e2e:ci
+        working-directory: webapp
+        env:
+          CI: true
+
+      - name: 📊 Subir reporte de Playwright si falla
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: webapp/playwright-report/
+          retention-days: 7
+
+      - name: 📸 Subir screenshots y videos si falla
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: webapp/test-results/
+          retention-days: 7
+
+      - name: 🧹 Cleanup - Mostrar logs si falla
+        if: failure()
+        run: |
+          echo "=== Gateway Service Logs ==="
+          cat gateway_service/gateway.log || true
+          echo ""
+          echo "=== Planner Service Logs ==="
+          cat planner_service/planner.log || true
+          echo ""
+          echo "=== Auth Service Logs ==="
+          cat auth_service/auth.log || true
+          echo ""
+          echo "=== User Service Logs ==="
+          cat user_service/user.log || true
+
+      - name: 🧹 Cleanup - Matar procesos
+        if: always()
+        run: |
+          kill $(cat gateway_service/gateway.pid) 2>/dev/null || true
+          kill $(cat planner_service/planner.pid) 2>/dev/null || true
+          kill $(cat auth_service/auth.pid) 2>/dev/null || true
+          kill $(cat user_service/user.pid) 2>/dev/null || true

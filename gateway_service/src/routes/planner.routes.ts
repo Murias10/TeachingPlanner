@@ -1,6 +1,6 @@
 import express from 'express';
 import multer from 'multer';
-import { getDegrees, getActiveCalendars, getCourses, getCoursesByDegreeId, getCoursesByDegreeAcronym, getSubjects, getSubjectsByCalendarId, getSubjectsWithGroupsByCalendarId, getClassrooms, createClassroom, deleteClassroom, updateClassroom, createDegree, deleteDegree, deleteSubject, createSubject, updateSubject, deleteCourse, deleteCalendar, getDegreeByAcronym, createCourse, createCalendar, getCalendarById, getCalendarDays, duplicateCalendar, createCalendarWithImport, importExceptions, getCalendarEvents, getPendingRequestsAsEvents, exportCalendar, updateCourse, updateDegree, createPuntualEvent, updatePuntualEvent, createPeriodicEvent, createCustomPeriodicEvent, updatePeriodicEvent, updateCustomPeriodicEvent, replacePeriodicEvent, deletePuntualEvent, deletePeriodicEvent, createEventRequest, getEventRequests, getEventRequestById, approveEventRequest, rejectEventRequest, deleteEventRequest, createGroup, deleteGroup, updateGroupPlanifiedHours } from '@/controllers/planner.controller';
+import { getDegrees, getActiveCalendars, getCourses, getCoursesByDegreeId, getCoursesByDegreeAcronym, getSubjects, getSubjectsByCalendarId, getSubjectsWithGroupsByCalendarId, getClassrooms, createClassroom, deleteClassroom, updateClassroom, createDegree, deleteDegree, deleteSubject, createSubject, updateSubject, deleteCourse, deleteCalendar, getDegreeByAcronym, createCourse, createCalendar, getCalendarById, getCalendarDays, duplicateCalendar, createCalendarWithImport, importExceptions, getCalendarEvents, getPendingRequestsAsEvents, exportCalendar, updateCourse, updateDegree, createPuntualEvent, updatePuntualEvent, createPeriodicEvent, createCustomPeriodicEvent, updatePeriodicEvent, updateCustomPeriodicEvent, replacePeriodicEvent, deletePuntualEvent, deletePeriodicEvent, createEventRequest, getEventRequests, getEventRequestById, approveEventRequest, rejectEventRequest, deleteEventRequest, createGroup, deleteGroup, updateGroupPlanifiedHours, resetTestDatabase } from '@/controllers/planner.controller';
 
 // Configurar multer para el gateway
 const storage = multer.memoryStorage();
@@ -131,5 +131,11 @@ router.post('/group', createGroup);
 router.delete('/group/:id', deleteGroup);
 
 router.patch('/group/:id/planified-hours', updateGroupPlanifiedHours);
+
+//////////////////////////////////////////////
+// TEST ENDPOINTS
+//////////////////////////////////////////////
+
+router.post('/test/reset-database', resetTestDatabase);
 
 export default router;

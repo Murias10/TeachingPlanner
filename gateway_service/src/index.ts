@@ -11,6 +11,6 @@ app.use('/api', userRouter);
 app.use('/api', authRouter);
 app.use('/api', statusRouter);
 
-app.listen(port, () => {
+app.listen(port, '0.0.0.0', () => {
     console.log(`Servidor escuchando en http://localhost:${port}`);
 });

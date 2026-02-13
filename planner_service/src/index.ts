@@ -25,7 +25,7 @@ const startServer = async () => {
     app.use(groupRouter);
     app.use(testRouter);
 
-    app.listen(port, () => {
+    app.listen(port, '0.0.0.0', () => {
         console.log(`🚀 App listening on port ${port}`);
 
         // Automatic sync disabled - admin can manually sync from UI

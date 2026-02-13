@@ -1,7 +1,7 @@
 import { DataSource } from 'typeorm';
 import { setupTestDatabase, teardownTestDatabase, cleanDatabase } from '../setup/testDatabase';
 import { Degree } from '@/entities/degree.entity';
-import { Course } from '@/entities/course.entity';
+import { Course, CourseState } from '@/entities/course.entity';
 import { Calendar } from '@/entities/calendar.entity';
 import { Subject } from '@/entities/subject.entity';
 import { Group } from '@/entities/group.entity';
@@ -50,7 +50,7 @@ describe('Calendar Delete Integration Tests', () => {
       const course = courseRepo.create({
         startYear: 2024,
         endYear: 2025,
-        state: 'activo',
+        state: CourseState.ACTIVO,
         degree: degree
       });
       await courseRepo.save(course);
@@ -215,7 +215,7 @@ describe('Calendar Delete Integration Tests', () => {
       const course = courseRepo.create({
         startYear: 2024,
         endYear: 2025,
-        state: 'planificado',
+        state: CourseState.PLANIFICADO,
         degree: degree
       });
       await courseRepo.save(course);

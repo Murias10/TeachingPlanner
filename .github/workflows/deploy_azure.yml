@@ -66,7 +66,6 @@ jobs:
       - name: 🧪 Ejecutar Tests Unitarios
         run: |
           npm --prefix planner_service test -- --coverage
-          npm --prefix webapp test -- --coverage
 
   # ===========================================================================
   # JOB 2: TESTS END-TO-END

@@ -69,6 +69,6 @@ export class CalendarSync extends AuditedEntity {
     calendar!: Calendar;
 
     /** Calendar ID for easier queries */
-    @Column('varchar', { name: 'ID_CALENDAR', length: 36 })
+    @Column('varchar', { name: 'ID_CALENDAR' })
     calendarId!: string;
 }

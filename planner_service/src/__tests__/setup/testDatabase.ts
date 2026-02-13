@@ -24,7 +24,7 @@ export async function setupTestDatabase(): Promise<DataSource> {
   mariaDbContainer = await new MariaDbContainer('mariadb:11.2')
     .withDatabase('test_planner_db')
     .withUsername('test_user')
-    .withPassword('test_password')
+    .withRootPassword('test_password')
     .start();
 
   // Crear DataSource con la configuración del contenedor

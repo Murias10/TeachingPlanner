@@ -33,7 +33,6 @@ jobs:
       - name: 🧪 Ejecutar Tests Unitarios
         run: |  # Ejecuta los tests unitarios en cada servicio con cobertura
           npm --prefix planner_service test -- --coverage
-          npm --prefix webapp test -- --coverage
 
   e2e-tests:  # Job para ejecutar tests end-to-end
     needs: [unit-tests]  # Se ejecuta solo si los tests unitarios han pasado

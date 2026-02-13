@@ -16,8 +16,9 @@ export class EventRequest extends AuditedEntity {
 
     /**
      * Reference to the calendar where the event should be created
+     * Note: length is omitted because this column is also a foreign key
      */
-    @Column('varchar', { name: 'CALENDAR_ID', length: 36 })
+    @Column('varchar', { name: 'CALENDAR_ID' })
     calendarId!: string;
 
     /**

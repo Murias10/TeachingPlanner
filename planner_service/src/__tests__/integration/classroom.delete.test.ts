@@ -2,7 +2,7 @@ import { DataSource } from 'typeorm';
 import { setupTestDatabase, teardownTestDatabase, cleanDatabase } from '../setup/testDatabase';
 import { Classroom } from '@/entities/classroom.entity';
 import { Degree } from '@/entities/degree.entity';
-import { Course } from '@/entities/course.entity';
+import { Course, CourseState } from '@/entities/course.entity';
 import { Calendar } from '@/entities/calendar.entity';
 import { Subject } from '@/entities/subject.entity';
 import { Group } from '@/entities/group.entity';
@@ -55,7 +55,7 @@ describe('Classroom Delete Integration Tests', () => {
       const course = courseRepo.create({
         startYear: 2024,
         endYear: 2025,
-        state: 'activo',
+        state: CourseState.ACTIVO,
         degree: degree
       });
       await courseRepo.save(course);
@@ -196,6 +196,7 @@ describe('Classroom Delete Integration Tests', () => {
       const groupRepo = dataSource.getRepository(Group);
       const dayRepo = dataSource.getRepository(Day);
       const puntualEventRepo = dataSource.getRepository(PuntualEvent);
+      const periodicEventRepo = dataSource.getRepository(PeriodicEvent);
 
       const classroom = classroomRepo.create({
         code: 'TEST-101',
@@ -209,7 +210,7 @@ describe('Classroom Delete Integration Tests', () => {
       const course = courseRepo.create({
         startYear: 2024,
         endYear: 2025,
-        state: 'activo',
+        state: CourseState.ACTIVO,
         degree: degree
       });
       await courseRepo.save(course);

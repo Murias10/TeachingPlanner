@@ -37,6 +37,6 @@ export class GoogleClassroomCalendar extends AuditedEntity {
     classroom!: Classroom;
 
     /** Classroom ID for easier queries */
-    @Column('varchar', { name: 'ID_CLASSROOM', length: 36 })
+    @Column('varchar', { name: 'ID_CLASSROOM' })
     classroomId!: string;
 }

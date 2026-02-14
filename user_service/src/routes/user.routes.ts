@@ -7,6 +7,11 @@ import { createUserSchema, updateUserSchema, updatePasswordSchema } from '@/sche
 const router = Router();
 const userController = new UserController();
 
+// Health check endpoint
+router.get('/health', (_req, res) => {
+    res.status(200).json({ status: 'ok', service: 'user' });
+});
+
 // Configure multer for file upload (memory storage)
 const upload = multer({
     storage: multer.memoryStorage(),

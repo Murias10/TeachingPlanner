@@ -14,6 +14,11 @@ const router = Router();
 
 const authController = new AuthController();
 
+// Health check endpoint
+router.get('/health', (_req, res) => {
+    res.status(200).json({ status: 'ok', service: 'auth' });
+});
+
 // Rutas públicas
 router.post('/auth/login', validate(loginSchema), authController.login);
 router.post('/auth/validate', authController.validateToken);

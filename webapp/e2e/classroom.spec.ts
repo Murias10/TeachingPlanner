@@ -41,21 +41,21 @@ const DIALOG_TITLES = {
 async function filterAndFindRow(page: Page, code: string) {
   const filterInput = page.getByPlaceholder(/filtrar|filter.*código|code/i);
   await filterInput.fill(code);
-  await page.waitForTimeout(TIMEOUTS.FILTER_APPLY);
 
-  const row = page.locator(`tr:has-text("${code}")`);
+  const row = page.getByRole('row', { name: new RegExp(code) });
   await expect(row).toBeVisible({ timeout: TIMEOUTS.STANDARD });
   return row;
 }
 
 /**
- * Click en el botón de crear aula
+ * Click en el botón de crear aula y espera a que se abra el dialog
  */
 async function clickCreateButton(page: Page) {
   const createBtn = page.getByRole('button', { name: /create classroom/i });
-  await createBtn.waitFor({ state: 'visible', timeout: TIMEOUTS.STANDARD });
   await createBtn.click();
-  await page.waitForTimeout(TIMEOUTS.DRAWER_ANIMATION);
+
+  // Esperar a que se abra el dialog
+  await expect(page.getByRole('heading', { name: /crear aula|create classroom/i })).toBeVisible({ timeout: TIMEOUTS.SHORT });
 }
 
 /**
@@ -151,7 +151,7 @@ test.describe('Classroom Management', () => {
     await expectSuccessAlert(page, ALERT_MESSAGES.CREATED);
 
     // Esperar a que el drawer se cierre y la tabla se actualice
-    await page.waitForTimeout(TIMEOUTS.NETWORK_IDLE);
+    
 
     // Intentar crear otra con el mismo código
     await clickCreateButton(page);
@@ -247,7 +247,7 @@ test.describe('Classroom Management', () => {
     await page.waitForLoadState('networkidle');
     const filterInput = page.getByPlaceholder(/filtrar|filter.*código|code/i);
     await filterInput.fill(deleteCode);
-    await page.waitForTimeout(TIMEOUTS.FILTER_APPLY);
+    
 
     await expect(
       page.locator('table').getByText(deleteCode)
@@ -363,23 +363,22 @@ test.describe('Classroom Management', () => {
     // Buscar el input de filtro y filtrar por el código completo del primero
     const filterInput = page.getByPlaceholder(/filtrar|filter.*código|code/i);
     await filterInput.fill(code1);
-    await page.waitForTimeout(TIMEOUTS.FILTER_APPLY);
+    
 
     // Solo debe aparecer el primero
-    await expect(page.locator(`tr:has-text("${code1}")`)).toBeVisible({ timeout: TIMEOUTS.STANDARD });
-    await expect(page.locator(`tr:has-text("${code2}")`)).not.toBeVisible({ timeout: TIMEOUTS.SHORT });
+    await expect(page.getByRole('row', { name: new RegExp(code1) })).toBeVisible({ timeout: TIMEOUTS.STANDARD });
+    await expect(page.getByRole('row', { name: new RegExp(code2) })).not.toBeVisible({ timeout: TIMEOUTS.SHORT });
 
     // Cambiar filtro al segundo código
     await filterInput.clear();
     await filterInput.fill(code2);
-    await page.waitForTimeout(TIMEOUTS.FILTER_APPLY);
 
     // Solo debe aparecer el segundo
-    await expect(page.locator(`tr:has-text("${code2}")`)).toBeVisible({ timeout: TIMEOUTS.STANDARD });
-    await expect(page.locator(`tr:has-text("${code1}")`)).not.toBeVisible({ timeout: TIMEOUTS.SHORT });
+    await expect(page.getByRole('row', { name: new RegExp(code2) })).toBeVisible({ timeout: TIMEOUTS.STANDARD });
+    await expect(page.getByRole('row', { name: new RegExp(code1) })).not.toBeVisible({ timeout: TIMEOUTS.SHORT });
 
     // Limpiar filtro para terminar el test
     await filterInput.clear();
-    await page.waitForTimeout(TIMEOUTS.FILTER_APPLY);
+    
   });
 });

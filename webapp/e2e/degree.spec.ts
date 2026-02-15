@@ -48,21 +48,21 @@ function getUniqueId(): string {
 async function filterAndFindRow(page: Page, name: string) {
   const filterInput = page.getByPlaceholder(/filtrar|filter.*nombre|name/i);
   await filterInput.fill(name);
-  await page.waitForTimeout(TIMEOUTS.FILTER_APPLY);
 
-  const row = page.locator(`tr:has-text("${name}")`);
+  const row = page.getByRole('row', { name: new RegExp(name) });
   await expect(row).toBeVisible({ timeout: TIMEOUTS.STANDARD });
   return row;
 }
 
 /**
- * Click en el botón de crear titulación
+ * Click en el botón de crear titulación y espera a que se abra el dialog
  */
 async function clickCreateButton(page: Page) {
   const createBtn = page.getByRole('button', { name: /create degree/i });
-  await createBtn.waitFor({ state: 'visible', timeout: TIMEOUTS.STANDARD });
   await createBtn.click();
-  await page.waitForTimeout(TIMEOUTS.DRAWER_ANIMATION);
+
+  // Esperar a que se abra el dialog
+  await expect(page.getByRole('heading', { name: /crear.*titulación|create degree/i })).toBeVisible({ timeout: TIMEOUTS.SHORT });
 }
 
 /**
@@ -145,9 +145,9 @@ test.describe('Degree Management', () => {
     // Verificar que la titulación aparece en la tabla usando el filtro
     const filterInput = page.getByPlaceholder(/filtrar|filter.*nombre|name/i);
     await filterInput.fill(uniqueName);
-    await page.waitForTimeout(TIMEOUTS.FILTER_APPLY);
+    
 
-    const row = page.locator(`tr:has-text("${uniqueAcronym}")`);
+    const row = page.getByRole('row', { name: new RegExp(uniqueAcronym) });
     await expect(row).toBeVisible({ timeout: TIMEOUTS.STANDARD });
     await expect(row).toContainText(uniqueName);
   });
@@ -159,7 +159,7 @@ test.describe('Degree Management', () => {
     const duplicateAcronym = `FIS${uniqueId}`;
 
     await createDegree(page, firstName, duplicateAcronym);
-    await page.waitForTimeout(TIMEOUTS.NETWORK_IDLE);
+    
 
     // Intentar crear otra con el mismo acrónimo
     await clickCreateButton(page);
@@ -168,7 +168,7 @@ test.describe('Degree Management', () => {
     await page.getByRole('button', { name: /guardar|save.*degree/i }).click();
 
     // Esperar a que aparezca el error (la alerta debe tener el texto "Error creating degree")
-    await page.waitForTimeout(1000);
+    
 
     // Buscar cualquier texto de error
     const errorText = page.locator('text=/error.*degree|ya existe|already exists/i');
@@ -188,9 +188,9 @@ test.describe('Degree Management', () => {
     // Buscar la titulación en la tabla usando filtro
     const filterInput = page.getByPlaceholder(/filtrar|filter.*nombre|name/i);
     await filterInput.fill(originalName);
-    await page.waitForTimeout(TIMEOUTS.FILTER_APPLY);
+    
 
-    const tableRow = page.locator(`tr:has-text("${originalAcronym}")`);
+    const tableRow = page.getByRole('row', { name: new RegExp(originalAcronym) });
     await expect(tableRow).toBeVisible({ timeout: TIMEOUTS.STANDARD });
 
     // Click en botón de editar usando aria-label
@@ -221,9 +221,9 @@ test.describe('Degree Management', () => {
     await page.waitForLoadState('networkidle');
     await filterInput.clear();
     await filterInput.fill(newName);
-    await page.waitForTimeout(TIMEOUTS.FILTER_APPLY);
+    
 
-    const updatedRow = page.locator(`tr:has-text("${newAcronym}")`);
+    const updatedRow = page.getByRole('row', { name: new RegExp(newAcronym) });
     await expect(updatedRow).toBeVisible({ timeout: TIMEOUTS.STANDARD });
     await expect(updatedRow).toContainText(newName);
   });
@@ -239,9 +239,9 @@ test.describe('Degree Management', () => {
     // Buscar la titulación en la tabla usando filtro
     const filterInput = page.getByPlaceholder(/filtrar|filter.*nombre|name/i);
     await filterInput.fill(deleteName);
-    await page.waitForTimeout(TIMEOUTS.FILTER_APPLY);
+    
 
-    const row = page.locator(`tr:has-text("${deleteAcronym}")`);
+    const row = page.getByRole('row', { name: new RegExp(deleteAcronym) });
     await expect(row).toBeVisible({ timeout: TIMEOUTS.STANDARD });
 
     // Click en botón de eliminar usando aria-label
@@ -268,7 +268,7 @@ test.describe('Degree Management', () => {
     // Verificar que la titulación ya no aparece en la tabla
     await page.waitForLoadState('networkidle');
     await filterInput.fill(deleteName);
-    await page.waitForTimeout(TIMEOUTS.FILTER_APPLY);
+    
 
     await expect(
       page.locator('table').getByText(deleteAcronym)
@@ -286,10 +286,10 @@ test.describe('Degree Management', () => {
     // Buscar la titulación en la tabla (filtrar por nombre, luego buscar por acrónimo específico)
     const filterInput = page.getByPlaceholder(/filtrar|filter.*nombre|name/i);
     await filterInput.fill(cancelName);
-    await page.waitForTimeout(TIMEOUTS.FILTER_APPLY);
+    
 
     // Buscar la fila específica con este acrónimo único
-    const row = page.locator(`tr:has-text("${cancelAcronym}")`);
+    const row = page.getByRole('row', { name: new RegExp(cancelAcronym) });
     await expect(row).toBeVisible({ timeout: TIMEOUTS.STANDARD });
 
     // Click en botón de eliminar
@@ -306,7 +306,7 @@ test.describe('Degree Management', () => {
 
     // La titulación debe seguir en la tabla (verificar con el acrónimo)
     await expect(
-      page.locator(`tr:has-text("${cancelAcronym}")`)
+      page.getByRole('row', { name: new RegExp(cancelAcronym) })
     ).toBeVisible({ timeout: TIMEOUTS.SHORT });
   });
 
@@ -329,30 +329,28 @@ test.describe('Degree Management', () => {
 
     // Scroll hacia arriba para asegurar que el filtro esté visible
     await page.evaluate(() => window.scrollTo(0, 0));
-    await page.waitForTimeout(TIMEOUTS.FILTER_APPLY);
+    
 
     // Filtrar por el nombre de la primera
     const filterInput = page.getByPlaceholder(/filtrar|filter.*nombre|name/i);
     await filterInput.fill(name1);
-    await page.waitForTimeout(TIMEOUTS.FILTER_APPLY);
+    
 
     // Solo debe aparecer la primera (buscar por acrónimo único dentro de los resultados filtrados)
-    await expect(page.locator(`tr:has-text("${acronym1}")`)).toBeVisible({ timeout: TIMEOUTS.STANDARD });
-    await expect(page.locator(`tr:has-text("${acronym2}")`)).not.toBeVisible({ timeout: TIMEOUTS.SHORT });
+    await expect(page.getByRole('row', { name: new RegExp(acronym1) })).toBeVisible({ timeout: TIMEOUTS.STANDARD });
+    await expect(page.getByRole('row', { name: new RegExp(acronym2) })).not.toBeVisible({ timeout: TIMEOUTS.SHORT });
 
     // Cambiar filtro a la segunda
     await filterInput.clear();
-    await page.waitForTimeout(TIMEOUTS.FILTER_APPLY);
     await filterInput.fill(name2);
-    await page.waitForTimeout(TIMEOUTS.FILTER_APPLY);
 
     // Solo debe aparecer la segunda
-    await expect(page.locator(`tr:has-text("${acronym2}")`)).toBeVisible({ timeout: TIMEOUTS.STANDARD });
-    await expect(page.locator(`tr:has-text("${acronym1}")`)).not.toBeVisible({ timeout: TIMEOUTS.SHORT });
+    await expect(page.getByRole('row', { name: new RegExp(acronym2) })).toBeVisible({ timeout: TIMEOUTS.STANDARD });
+    await expect(page.getByRole('row', { name: new RegExp(acronym1) })).not.toBeVisible({ timeout: TIMEOUTS.SHORT });
 
     // Limpiar filtro
     await filterInput.clear();
-    await page.waitForTimeout(TIMEOUTS.FILTER_APPLY);
+    
   });
 
   test('should validate required fields in create form', async ({ page }) => {

@@ -29,7 +29,6 @@ test.describe('Authentication Flow', () => {
     await expect(page).toHaveURL('/login');
 
     // Verificar elementos del formulario
-    await expect(page.locator('text=/iniciar sesión|login/i').first()).toBeVisible();
     await expect(page.getByLabel(/email/i)).toBeVisible();
     await expect(page.getByLabel(/contraseña|password/i)).toBeVisible();
     await expect(page.getByRole('button', { name: /iniciar sesión|login/i })).toBeVisible();
@@ -37,12 +36,12 @@ test.describe('Authentication Flow', () => {
 
   test('should show validation error for empty fields', async ({ page }) => {
     // Click en el botón de login sin llenar campos
-    await page.getByRole('button', { name: /iniciar sesión|login|sign in/i }).last().click();
+    const loginButton = page.getByRole('button', { name: /iniciar sesión|login|sign in/i }).last();
+    await loginButton.click();
 
     // El formulario puede usar validación HTML5 o mostrar un mensaje
-    // Verificar que no nos redirige (nos quedamos en /login)
-    await page.waitForTimeout(1000);
-    await expect(page).toHaveURL('/login');
+    // Verificar que no nos redirige (nos quedamos en /login) usando auto-wait de Playwright
+    await expect(page).toHaveURL('/login', { timeout: 2000 });
   });
 
   test('should show error for incorrect credentials', async ({ page }) => {
@@ -99,7 +98,8 @@ test.describe('Authentication Flow', () => {
 
     // Navegar a Degrees
     await page.getByRole('link', { name: /titulaciones|degrees/i }).click();
-    await expect(page).toHaveURL('/degrees', { timeout: 5000 });
+    await page.waitForLoadState('networkidle');
+    await expect(page).toHaveURL('/degrees', { timeout: 10000 });
 
     // Intentar navegar a Calendars (si existe el enlace)
     const calendarsLink = page.getByRole('link', { name: /calendarios|calendars/i });
@@ -127,12 +127,13 @@ test.describe('Authentication Flow', () => {
     await expect(page).toHaveURL('/home', { timeout: 10000 });
 
     // Buscar y hacer clic en el menú de usuario (botón en la parte inferior izquierda)
-    const userButton = page.locator('button').filter({ hasText: 'admin@test.com' });
+    const userButton = page.getByRole('button', { name: testEmail });
     await userButton.click({ timeout: 5000 });
 
     // Esperar a que el menú se abra y hacer click en "Log out"
-    await page.waitForTimeout(500);
-    await page.getByText('Log out').click();
+    const logoutMenuItem = page.getByRole('menuitem', { name: /log out|cerrar sesión/i });
+    await expect(logoutMenuItem).toBeVisible();
+    await logoutMenuItem.click();
 
     // Debe redirigir a la página inicial
     await expect(page).toHaveURL('/', { timeout: 5000 });

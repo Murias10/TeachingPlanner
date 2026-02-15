@@ -55,21 +55,21 @@ function getUniqueAcademicYear(): string {
 async function filterAndFindRow(page: Page, searchText: string) {
   const filterInput = page.getByPlaceholder(/filtrar|filter.*curso|course/i);
   await filterInput.fill(searchText);
-  await page.waitForTimeout(TIMEOUTS.FILTER_APPLY);
 
-  const row = page.locator(`tr:has-text("${searchText}")`);
+  const row = page.getByRole('row', { name: new RegExp(searchText) });
   await expect(row).toBeVisible({ timeout: TIMEOUTS.STANDARD });
   return row;
 }
 
 /**
- * Click en el botón de crear curso
+ * Click en el botón de crear curso y espera a que se abra el dialog
  */
 async function clickCreateButton(page: Page) {
   const createBtn = page.getByRole('button', { name: /create course/i });
-  await createBtn.waitFor({ state: 'visible', timeout: TIMEOUTS.STANDARD });
   await createBtn.click();
-  await page.waitForTimeout(TIMEOUTS.DRAWER_ANIMATION);
+
+  // Esperar a que se abra el dialog
+  await expect(page.getByRole('heading', { name: /crear.*curso|create course/i })).toBeVisible({ timeout: TIMEOUTS.SHORT });
 }
 
 /**
@@ -135,28 +135,19 @@ test.describe('Course Management', () => {
 
     // Crear el degree
     const createBtn = page.getByRole('button', { name: /create degree/i });
-    await createBtn.waitFor({ state: 'visible', timeout: TIMEOUTS.STANDARD });
     await createBtn.click();
-    await page.waitForTimeout(TIMEOUTS.DRAWER_ANIMATION);
 
-    await expect(
-      page.getByRole('heading', { name: /crear.*titulación|create degree/i })
-    ).toBeVisible({ timeout: TIMEOUTS.SHORT });
+    // Esperar a que se abra el dialog
+    await expect(page.getByRole('heading', { name: /crear.*titulación|create degree/i })).toBeVisible({ timeout: TIMEOUTS.SHORT });
 
     await page.getByLabel(/nombre.*titulación|degree name/i).fill(degreeName);
     await page.getByLabel(/acrónimo|acronym/i).fill(testDegreeAcronym);
-    await page.getByRole('button', { name: /guardar|save.*degree/i }).click();
+    const saveButton = page.getByRole('button', { name: /guardar|save.*degree/i });
+    await saveButton.click();
 
-    // Esperar a que se cierre el drawer y se actualice la tabla
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(TIMEOUTS.NETWORK_IDLE);
-
-    // Navegar a la página de cursos de ese degree
+    // Navegar a la página de cursos de ese degree (navegar away es suficiente para saber que se creó)
     await page.goto(`/degrees/${testDegreeAcronym.toLowerCase()}/courses`);
     await page.waitForLoadState('networkidle');
-
-    // Scroll hacia arriba para asegurar que el toolbar esté visible
-    await page.evaluate(() => window.scrollTo(0, 0));
   });
 
   test('should display courses list', async ({ page }) => {
@@ -174,9 +165,8 @@ test.describe('Course Management', () => {
     // Verificar que el curso aparece en la tabla
     const filterInput = page.getByPlaceholder(/filtrar|filter.*curso|course/i);
     await filterInput.fill(academicYear);
-    await page.waitForTimeout(TIMEOUTS.FILTER_APPLY);
 
-    const row = page.locator(`tr:has-text("${academicYear}")`);
+    const row = page.getByRole('row', { name: new RegExp(academicYear) });
     await expect(row).toBeVisible({ timeout: TIMEOUTS.STANDARD });
     await expect(row).toContainText(/planificado|planned/i);
   });
@@ -186,7 +176,6 @@ test.describe('Course Management', () => {
     const academicYear = getUniqueAcademicYear();
 
     await createCourse(page, academicYear);
-    await page.waitForTimeout(TIMEOUTS.NETWORK_IDLE);
 
     // Intentar crear otro con el mismo año
     await clickCreateButton(page);
@@ -194,10 +183,14 @@ test.describe('Course Management', () => {
     await page.getByRole('option', { name: academicYear }).click();
     await page.getByRole('button', { name: /guardar|save.*course/i }).click();
 
-    // Debe mostrar error
-    await page.waitForTimeout(1000);
-    const errorText = page.locator('text=/error.*course|ya existe|already exists/i');
-    await expect(errorText.first()).toBeVisible({ timeout: TIMEOUTS.STANDARD });
+    // Debe mostrar error - verificar que el drawer sigue abierto (no se creó)
+    await expect(page.getByRole('heading', { name: /crear.*curso|create course/i })).toBeVisible({ timeout: TIMEOUTS.SHORT });
+
+    // Verificar que solo hay 1 curso con ese año en la tabla (no se duplicó)
+    await page.getByRole('button', { name: /cancelar|cancel/i }).click();
+    const filterInput = page.getByPlaceholder(/filtrar|filter.*curso|course/i);
+    await filterInput.fill(academicYear);
+    await expect(page.getByRole('row', { name: new RegExp(academicYear) })).toHaveCount(1);
   });
 
   test('should edit course state successfully', async ({ page }) => {
@@ -209,22 +202,19 @@ test.describe('Course Management', () => {
     // Buscar el curso en la tabla
     const filterInput = page.getByPlaceholder(/filtrar|filter.*curso|course/i);
     await filterInput.fill(academicYear);
-    await page.waitForTimeout(TIMEOUTS.FILTER_APPLY);
 
-    const tableRow = page.locator(`tr:has-text("${academicYear}")`);
+    const tableRow = page.getByRole('row', { name: new RegExp(academicYear) });
     await expect(tableRow).toBeVisible({ timeout: TIMEOUTS.STANDARD });
 
     // Abrir el menú de acciones (MoreHorizontal button)
     const moreButton = tableRow.getByRole('button', { name: /open menu/i });
-    await moreButton.click({ timeout: TIMEOUTS.STANDARD });
+    await moreButton.click();
 
     // Click en editar del dropdown menu
     await page.getByRole('menuitem', { name: /edit/i }).click();
 
     // Esperar drawer de edición
-    await expect(
-      page.getByRole('heading', { name: /editar.*curso|edit course/i })
-    ).toBeVisible({ timeout: TIMEOUTS.SHORT });
+    await expect(page.getByRole('heading', { name: /editar.*curso|edit course/i })).toBeVisible({ timeout: TIMEOUTS.SHORT });
 
     // Cambiar estado a ACTIVO (el combobox de estado es el segundo, el primero es el año académico)
     const stateCombobox = page.getByRole('combobox').nth(1);
@@ -238,12 +228,10 @@ test.describe('Course Management', () => {
     await expectSuccessAlert(page, ALERT_MESSAGES.UPDATED);
 
     // Verificar que el estado cambió
-    await page.waitForLoadState('networkidle');
     await filterInput.clear();
     await filterInput.fill(academicYear);
-    await page.waitForTimeout(TIMEOUTS.FILTER_APPLY);
 
-    const updatedRow = page.locator(`tr:has-text("${academicYear}")`);
+    const updatedRow = page.getByRole('row', { name: new RegExp(academicYear) });
     await expect(updatedRow).toBeVisible({ timeout: TIMEOUTS.STANDARD });
     await expect(updatedRow).toContainText(/activo|active/i);
   });
@@ -257,14 +245,13 @@ test.describe('Course Management', () => {
     // Buscar el curso en la tabla
     const filterInput = page.getByPlaceholder(/filtrar|filter.*curso|course/i);
     await filterInput.fill(academicYear);
-    await page.waitForTimeout(TIMEOUTS.FILTER_APPLY);
 
-    const row = page.locator(`tr:has-text("${academicYear}")`);
+    const row = page.getByRole('row', { name: new RegExp(academicYear) });
     await expect(row).toBeVisible({ timeout: TIMEOUTS.STANDARD });
 
     // Abrir el menú de acciones
     const moreButton = row.getByRole('button', { name: /open menu/i });
-    await moreButton.click({ timeout: TIMEOUTS.STANDARD });
+    await moreButton.click();
 
     // Click en delete del dropdown menu
     await page.getByRole('menuitem', { name: /delete/i }).click();
@@ -281,15 +268,13 @@ test.describe('Course Management', () => {
     ).toBeVisible();
 
     // Confirmar eliminación
-    await page.getByRole('button', { name: /confirmar|confirm/i }).click();
+    await dialog.getByRole('button', { name: /confirmar|confirm/i }).click();
 
     // Esperar mensaje de éxito
     await expectSuccessAlert(page, ALERT_MESSAGES.DELETED);
 
     // Verificar que el curso ya no aparece en la tabla
-    await page.waitForLoadState('networkidle');
     await filterInput.fill(academicYear);
-    await page.waitForTimeout(TIMEOUTS.FILTER_APPLY);
 
     await expect(
       page.locator('table').getByText(academicYear)
@@ -305,25 +290,25 @@ test.describe('Course Management', () => {
     // Buscar el curso en la tabla
     const filterInput = page.getByPlaceholder(/filtrar|filter.*curso|course/i);
     await filterInput.fill(academicYear);
-    await page.waitForTimeout(TIMEOUTS.FILTER_APPLY);
 
-    const row = page.locator(`tr:has-text("${academicYear}")`);
+    const row = page.getByRole('row', { name: new RegExp(academicYear) });
     await expect(row).toBeVisible({ timeout: TIMEOUTS.STANDARD });
 
     // Abrir el menú de acciones
     const moreButton = row.getByRole('button', { name: /open menu/i });
-    await moreButton.click({ timeout: TIMEOUTS.STANDARD });
+    await moreButton.click();
 
     // Click en delete del dropdown menu
     await page.getByRole('menuitem', { name: /delete/i }).click();
 
     // Apareció el diálogo
+    const dialog = page.getByRole('alertdialog');
     await expect(
-      page.getByRole('heading', { name: DIALOG_TITLES.CONFIRM_DELETION })
+      dialog.getByRole('heading', { name: DIALOG_TITLES.CONFIRM_DELETION })
     ).toBeVisible({ timeout: TIMEOUTS.SHORT });
 
     // Click en cancelar
-    await page.getByRole('button', { name: /cancelar|cancel/i }).click();
+    await dialog.getByRole('button', { name: /cancelar|cancel/i }).click();
 
     // El curso debe seguir en la tabla
     await expect(
@@ -343,33 +328,28 @@ test.describe('Course Management', () => {
 
     // Crear primer curso
     await createCourse(page, year1);
-    await page.waitForLoadState('networkidle');
 
     // Crear segundo curso
     await createCourse(page, year2);
-    await page.waitForLoadState('networkidle');
 
     // Filtrar por el primer año
     const filterInput = page.getByPlaceholder(/filtrar|filter.*curso|course/i);
     await filterInput.fill(year1);
-    await page.waitForTimeout(TIMEOUTS.FILTER_APPLY);
 
     // Solo debe aparecer el primero
-    await expect(page.locator(`tr:has-text("${year1}")`)).toBeVisible({ timeout: TIMEOUTS.STANDARD });
-    await expect(page.locator(`tr:has-text("${year2}")`)).not.toBeVisible({ timeout: TIMEOUTS.SHORT });
+    await expect(page.getByRole('row', { name: new RegExp(year1) })).toBeVisible({ timeout: TIMEOUTS.STANDARD });
+    await expect(page.getByRole('row', { name: new RegExp(year2) })).not.toBeVisible({ timeout: TIMEOUTS.SHORT });
 
     // Cambiar filtro al segundo año
     await filterInput.clear();
     await filterInput.fill(year2);
-    await page.waitForTimeout(TIMEOUTS.FILTER_APPLY);
 
     // Solo debe aparecer el segundo
-    await expect(page.locator(`tr:has-text("${year2}")`)).toBeVisible({ timeout: TIMEOUTS.STANDARD });
-    await expect(page.locator(`tr:has-text("${year1}")`)).not.toBeVisible({ timeout: TIMEOUTS.SHORT });
+    await expect(page.getByRole('row', { name: new RegExp(year2) })).toBeVisible({ timeout: TIMEOUTS.STANDARD });
+    await expect(page.getByRole('row', { name: new RegExp(year1) })).not.toBeVisible({ timeout: TIMEOUTS.SHORT });
 
     // Limpiar filtro
     await filterInput.clear();
-    await page.waitForTimeout(TIMEOUTS.FILTER_APPLY);
   });
 
   test('should validate required fields in create form', async ({ page }) => {

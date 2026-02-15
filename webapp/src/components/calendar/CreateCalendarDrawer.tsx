@@ -54,6 +54,47 @@ const REQUIRED_FILES = [
     { name: "ubicaciones.txt", description: "Información sobre aulas y laboratorios", required: true }
 ];
 
+/**
+ * Calcula el número de días lectivos por día de la semana
+ * entre dos fechas, excluyendo fines de semana y festivos
+ */
+const calculateLectiveDaysByWeekday = (
+    startDate: Date | undefined,
+    endDate: Date | undefined,
+    holidays: Date[]
+): { L: number; M: number; X: number; J: number; V: number } => {
+    if (!startDate || !endDate) {
+        return { L: 0, M: 0, X: 0, J: 0, V: 0 };
+    }
+
+    const holidaySet = new Set(holidays.map(d => d.toDateString()));
+    const counts = { L: 0, M: 0, X: 0, J: 0, V: 0 };
+
+    const current = new Date(startDate);
+    current.setHours(0, 0, 0, 0);
+    const end = new Date(endDate);
+    end.setHours(0, 0, 0, 0);
+
+    while (current <= end) {
+        const dayOfWeek = current.getDay();
+        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+        const isHoliday = holidaySet.has(current.toDateString());
+
+        // Solo contar si es día lectivo (no fin de semana y no festivo)
+        if (!isWeekend && !isHoliday) {
+            if (dayOfWeek === 1) counts.L++;
+            else if (dayOfWeek === 2) counts.M++;
+            else if (dayOfWeek === 3) counts.X++;
+            else if (dayOfWeek === 4) counts.J++;
+            else if (dayOfWeek === 5) counts.V++;
+        }
+
+        current.setDate(current.getDate() + 1);
+    }
+
+    return counts;
+};
+
 export const CreateCalendarDrawer = ({
     open,
     onOpenChange,
@@ -731,31 +772,34 @@ export const CreateCalendarDrawer = ({
                                                 />
                                             </div>
 
+                                            {/* Contador de días lectivos - siempre visible */}
+                                            <div className="flex gap-1.5 text-xs">
+                                                {(() => {
+                                                    const lectiveCounts = calculateLectiveDaysByWeekday(startDate, endDate, selectedHolidayDates);
+                                                    return ['L', 'M', 'X', 'J', 'V'].map((day) => (
+                                                        <Badge key={day} variant="secondary" className="text-xs px-1.5 py-0">
+                                                            {day}:{lectiveCounts[day as keyof typeof lectiveCounts]}
+                                                        </Badge>
+                                                    ));
+                                                })()}
+                                            </div>
+
+                                            {/* Lista de festivos - solo visible cuando hay festivos */}
                                             {selectedHolidayDates.length > 0 && (
-                                                <>
-                                                    <div className="flex gap-1.5 text-xs">
-                                                        {['L', 'M', 'X', 'J', 'V'].map((day, idx) => {
-                                                            const count = selectedHolidayDates.filter(d => d.getDay() === idx + 1).length;
-                                                            return count > 0 ? (
-                                                                <Badge key={day} variant="secondary" className="text-xs px-1.5 py-0">
-                                                                    {day}:{count}
-                                                                </Badge>
-                                                            ) : null;
-                                                        })}
-                                                    </div>
-                                                    <div className="space-y-1.5 overflow-y-auto">
-                                                        <p className="text-xs font-medium text-muted-foreground">
-                                                            {t("drawer.calendar.create.tabs.manual.selected.holidays")}
-                                                        </p>
-                                                        <div className="flex flex-wrap gap-1.5">
-                                                            {selectedHolidayDates.map((date) => (
+                                                <div className="space-y-1.5 overflow-y-auto">
+                                                    <p className="text-xs font-medium text-muted-foreground">
+                                                        {t("drawer.calendar.create.tabs.manual.selected.holidays")}
+                                                    </p>
+                                                    <div className="flex flex-wrap gap-1.5">
+                                                        {[...selectedHolidayDates]
+                                                            .sort((a, b) => a.getTime() - b.getTime())
+                                                            .map((date) => (
                                                                 <Badge key={date.toString()} variant="secondary" className="text-xs">
                                                                     {format(date, "dd/MM/yyyy")}
                                                                 </Badge>
                                                             ))}
-                                                        </div>
                                                     </div>
-                                                </>
+                                                </div>
                                             )}
                                         </div>
                                     </div>
@@ -1053,31 +1097,34 @@ export const CreateCalendarDrawer = ({
                                                 />
                                             </div>
 
+                                            {/* Contador de días lectivos - siempre visible */}
+                                            <div className="flex gap-1.5 text-xs">
+                                                {(() => {
+                                                    const lectiveCounts = calculateLectiveDaysByWeekday(duplicateStartDate, duplicateEndDate, duplicateHolidayDates);
+                                                    return ['L', 'M', 'X', 'J', 'V'].map((day) => (
+                                                        <Badge key={day} variant="secondary" className="text-xs px-1.5 py-0">
+                                                            {day}:{lectiveCounts[day as keyof typeof lectiveCounts]}
+                                                        </Badge>
+                                                    ));
+                                                })()}
+                                            </div>
+
+                                            {/* Lista de festivos - solo visible cuando hay festivos */}
                                             {duplicateHolidayDates.length > 0 && (
-                                                <>
-                                                    <div className="flex gap-1.5 text-xs">
-                                                        {['L', 'M', 'X', 'J', 'V'].map((day, idx) => {
-                                                            const count = duplicateHolidayDates.filter(d => d.getDay() === idx + 1).length;
-                                                            return count > 0 ? (
-                                                                <Badge key={day} variant="secondary" className="text-xs px-1.5 py-0">
-                                                                    {day}:{count}
-                                                                </Badge>
-                                                            ) : null;
-                                                        })}
-                                                    </div>
-                                                    <div className="space-y-1.5 overflow-y-auto">
-                                                        <p className="text-xs font-medium text-muted-foreground">
-                                                            Festivos seleccionados
-                                                        </p>
-                                                        <div className="flex flex-wrap gap-1.5">
-                                                            {duplicateHolidayDates.map((date) => (
+                                                <div className="space-y-1.5 overflow-y-auto">
+                                                    <p className="text-xs font-medium text-muted-foreground">
+                                                        Festivos seleccionados
+                                                    </p>
+                                                    <div className="flex flex-wrap gap-1.5">
+                                                        {[...duplicateHolidayDates]
+                                                            .sort((a, b) => a.getTime() - b.getTime())
+                                                            .map((date) => (
                                                                 <Badge key={date.toString()} variant="secondary" className="text-xs">
                                                                     {format(date, "dd/MM/yyyy")}
                                                                 </Badge>
                                                             ))}
-                                                        </div>
                                                     </div>
-                                                </>
+                                                </div>
                                             )}
                                         </div>
                                     </div>

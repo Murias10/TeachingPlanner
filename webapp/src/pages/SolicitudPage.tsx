@@ -109,7 +109,8 @@ const SolicitudPage = () => {
             { label: t("breadcrumb.courses"), href: `/degrees/${acronym}/courses` },
             // Miga intermedia con el año académico (sin enlace, solo informativo)
             ...(course ? [{ label: `${course.startYear}/${course.endYear}`, href: "" }] : []),
-            { label: t("breadcrumb.calendar"), href: "" },
+            // Miga intermedia con el semestre (sin enlace, solo informativo)
+            ...(semester ? [{ label: `${t("breadcrumb.semester")} ${semester}`, href: "" }] : []),
             { label: "Solicitudes", href: "" },
         ]);
         cargarSolicitudes();

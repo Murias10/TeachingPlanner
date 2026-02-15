@@ -3050,6 +3050,29 @@ export const duplicateCalendar = async (req: AuditedRequest, res: Response) => {
 
         await dayRepo.save(days);
 
+        // PASO 0: Duplicar asignaturas del calendario origen al calendario destino
+        const subjectRepo = AppDataSource.getRepository(Subject);
+        const sourceSubjects = await subjectRepo.find({
+            where: { calendar: { id: sourceCalendarId } }
+        });
+
+        const subjectMap = new Map<string, Subject>(); // oldSubjectId -> newSubject
+        for (const sourceSubject of sourceSubjects) {
+            const newSubject = subjectRepo.create({
+                calendar: savedCalendar, // Vinculado al nuevo calendario
+                acronym: sourceSubject.acronym,
+                semester: sourceSubject.semester,
+                year: sourceSubject.year,
+                name: sourceSubject.name,
+                siesCode: sourceSubject.siesCode,
+                createdBy: userEmail
+            });
+            const savedSubject = await subjectRepo.save(newSubject);
+            subjectMap.set(sourceSubject.id, savedSubject);
+        }
+
+        console.log(`[Calendar Duplication] Duplicated ${sourceSubjects.length} subjects from source to target calendar`);
+
         // PASO 1: Duplicar grupos del calendario origen al calendario destino
         // Los grupos ahora están relacionados con cada calendario específico
         const sourceGroups = await groupRepo.find({
@@ -3059,9 +3082,17 @@ export const duplicateCalendar = async (req: AuditedRequest, res: Response) => {
 
         const groupMap = new Map<string, Group>(); // oldGroupId -> newGroup
         for (const sourceGroup of sourceGroups) {
+            // Mapear el subject viejo al nuevo subject duplicado
+            const newSubject = subjectMap.get(sourceGroup.subject.id);
+
+            if (!newSubject) {
+                console.warn(`[Calendar Duplication] Subject ${sourceGroup.subject.id} not found in subject map for group ${sourceGroup.id}`);
+                continue;
+            }
+
             const newGroup = groupRepo.create({
                 calendar: savedCalendar, // Vinculado al nuevo calendario
-                subject: sourceGroup.subject,
+                subject: newSubject, // Usar el nuevo subject, no el viejo
                 number: sourceGroup.number,
                 type: sourceGroup.type,
                 language: sourceGroup.language,
@@ -3119,6 +3150,7 @@ export const duplicateCalendar = async (req: AuditedRequest, res: Response) => {
 
         console.log(`[Calendar Duplication] Duplicated calendar ${sourceCalendarId} to ${savedCalendar.id}`);
         console.log(`[Calendar Duplication] Created ${days.length} days`);
+        console.log(`[Calendar Duplication] Duplicated ${sourceSubjects.length} subjects`);
         console.log(`[Calendar Duplication] Duplicated ${sourceGroups.length} groups`);
         console.log(`[Calendar Duplication] Cloned ${clonedEvents.length} periodic events (N, I, P only)`);
         console.log(`[Calendar Duplication] Lective days: ${days.filter(d => d.lective).length}`);
@@ -3130,6 +3162,7 @@ export const duplicateCalendar = async (req: AuditedRequest, res: Response) => {
                 calendar: savedCalendar,
                 daysCreated: days.length,
                 lectiveDays: days.filter(d => d.lective).length,
+                subjectsDuplicated: sourceSubjects.length,
                 groupsDuplicated: sourceGroups.length,
                 eventsCloned: clonedEvents.length
             },

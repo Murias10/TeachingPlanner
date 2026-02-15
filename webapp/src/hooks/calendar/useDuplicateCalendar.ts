@@ -27,6 +27,8 @@ export interface DuplicateCalendarResponse {
         };
         daysCreated: number;
         lectiveDays: number;
+        subjectsDuplicated: number;
+        groupsDuplicated: number;
         eventsCloned: number;
     };
 }

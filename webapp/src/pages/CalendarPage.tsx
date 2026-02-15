@@ -650,13 +650,21 @@ export default function CalendarPage() {
             if (event.eventType === 'BLOCKER') {
                 const tooltip = `Blocker\n${classroomStr}\n${event.startTime} - ${event.endTime}`;
                 return {
-                    title: `${classroomStr} - ${timeStr}`,
+                    title: `${classroomStr} · ${timeStr}`,
                     start: startMoment.toDate(),
                     end: endMoment.toDate(),
                     resource: event,
                     tooltip: tooltip
                 };
             }
+
+            // Add prefix based on event type for special events
+            const eventPrefixMap: Record<string, string> = {
+                [EVENT_TYPES.EVALUACION]: 'EV · ',
+                [EVENT_TYPES.REVISION]: 'RE · ',
+                [EVENT_TYPES.OTRO]: 'OT · ',
+            };
+            const eventPrefix = eventPrefixMap[event.eventType] || '';
 
             // Formatear el nombre del grupo
             const groupName = `${event.subject?.acronym || 'Sin asignatura'}.${event.groups.map(g => {
@@ -667,7 +675,7 @@ export default function CalendarPage() {
             const tooltip = `${event.subject?.name || 'Sin asignatura'}\n${groupName}\n${event.startTime} - ${event.endTime}\n${classroomStr}`;
 
             return {
-                title: `${groupName} - ${timeStr}`,
+                title: `${eventPrefix}${groupName} · ${timeStr}`,
                 start: startMoment.toDate(),
                 end: endMoment.toDate(),
                 resource: event,

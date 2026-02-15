@@ -133,10 +133,11 @@ export function CalendarEventWrapper({
 
   // Renderizar contenido del evento sin menú contextual para non-admin o en solicitudes pendientes para professor
   const renderEventContent = () => {
-    // Extraer el grupo y la hora del título (formato esperado: "Grupo - HH:MM")
-    const titleParts = event.title.split(' - ');
-    const groupStr = titleParts[0]; // "AL.T.1"
-    const timeStr = titleParts.length > 1 ? titleParts[1] : '';
+    // Extraer el grupo y la hora del título (formato esperado: "EV · Grupo · HH:MM" o "Grupo · HH:MM")
+    const titleParts = event.title.split(' · ');
+    // La hora es siempre la última parte, el resto es el grupo (puede incluir prefijo como "EV")
+    const timeStr = titleParts.length > 1 ? titleParts[titleParts.length - 1] : '';
+    const groupStr = titleParts.length > 1 ? titleParts.slice(0, -1).join(' · ') : titleParts[0];
 
     return (
       <div className="h-full w-full px-1 py-1 flex flex-col gap-0.5">

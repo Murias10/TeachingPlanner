@@ -1,9 +1,6 @@
 name: Build & Test  # Nombre del workflow
 
-on:
-  push:
-    # branches:      
-    #   - develop  # Se ejecuta cuando se hace push a la rama develop
+on:  
   pull_request:
     types: [opened, synchronize, reopened]  # Se ejecuta cuando se abre, actualiza o reabre un PR
 

@@ -1012,7 +1012,9 @@
             "revert": {
                 "error": {
                     "title": "Error",
-                    "description": "Error reverting cancellation"
+                    "generic": "Error reverting cancellation",
+                    "groupConflict": "Cannot revert: group {{groups}} already has another event at that time",
+                    "classroomConflict": "Cannot revert: classroom {{classrooms}} is already occupied at that time"
                 }
             },
             "replace": {

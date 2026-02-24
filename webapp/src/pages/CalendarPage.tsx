@@ -1789,7 +1789,8 @@ export default function CalendarPage() {
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.message || 'Error al revertir la cancelación');
+                const errorInfo = { message: errorData.message, data: errorData.data };
+                throw errorInfo;
             }
 
             // Refetch calendar events
@@ -1797,11 +1798,13 @@ export default function CalendarPage() {
 
             setIsRevertConfirmationOpen(false);
             setEventToRevert(undefined);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error al revertir la cancelación:', error);
+            const errorMessage = error?.message || 'calendar.alerts.revert.error.generic';
+            const errorData = error?.data || {};
             triggerAlert({
                 title: t('calendar.alerts.revert.error.title'),
-                description: t('calendar.alerts.revert.error.description'),
+                description: String(t(errorMessage, errorData)),
                 variant: 'destructive'
             });
         } finally {

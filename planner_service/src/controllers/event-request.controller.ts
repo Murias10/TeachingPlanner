@@ -389,13 +389,20 @@ async function createPuntualEventFromRequest(eventRequest: EventRequest): Promis
         throw new Error('Day not found for the provided date or dayId');
     }
 
+    // Helper to normalize time format (HH:mm:ss -> HH:mm or HH:mm -> HH:mm)
+    const normalizeTime = (time: string) => time.substring(0, 5);
+
     // Validate conflicts: check if there are events at the same time with the same group or classroom
     const conflictingEvents = day.puntualEvents?.filter(event => {
         if (event.cancelled) return false;
 
-        const eventStart = event.startTime;
-        const eventEnd = event.endTime;
-        const hasTimeOverlap = startTime < eventEnd && endTime > eventStart;
+        // Normalize times to HH:mm format for proper comparison
+        const eventStart = normalizeTime(event.startTime);
+        const eventEnd = normalizeTime(event.endTime);
+        const newStart = normalizeTime(startTime);
+        const newEnd = normalizeTime(endTime);
+
+        const hasTimeOverlap = newStart < eventEnd && newEnd > eventStart;
 
         if (!hasTimeOverlap) return false;
 

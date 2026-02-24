@@ -1012,7 +1012,9 @@
             "revert": {
                 "error": {
                     "title": "Error",
-                    "description": "Error al revertir la cancelación"
+                    "generic": "Error al revertir la cancelación",
+                    "groupConflict": "No se puede revertir: el grupo {{groups}} ya tiene otro evento en ese horario",
+                    "classroomConflict": "No se puede revertir: el aula {{classrooms}} ya está ocupada en ese horario"
                 }
             },
             "replace": {

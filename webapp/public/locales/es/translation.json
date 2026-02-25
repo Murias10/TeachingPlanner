@@ -1017,6 +1017,41 @@
                     "classroomConflict": "No se puede revertir: el aula {{classrooms}} ya está ocupada en ese horario"
                 }
             },
+            "importExceptions": {
+                "title": "Importar excepciones",
+                "description": "Importa el archivo excepciones.txt para gestionar eventos puntuales del calendario",
+                "mode": {
+                    "label": "Modo de importación",
+                    "add": "Añadir al calendario",
+                    "addDescription": "Mantiene eventos existentes y añade nuevos",
+                    "replace": "Reemplazar eventos",
+                    "replaceDescription": "Elimina eventos existentes y crea nuevos"
+                },
+                "warning": {
+                    "title": "Advertencia",
+                    "replace": "Esta acción eliminará todos los eventos puntuales existentes y los reemplazará con los del archivo",
+                    "add": "Los eventos del archivo se añadirán o actualizarán sin eliminar eventos existentes"
+                },
+                "dropzone": {
+                    "title": "Arrastra excepciones.txt aquí",
+                    "subtitle": "o haz clic para seleccionar"
+                },
+                "cancel": "Cancelar",
+                "import": "Importar",
+                "success": {
+                    "title": "Excepciones importadas correctamente",
+                    "warningTitle": "Excepciones importadas con advertencias",
+                    "replace": "{{deleted}} eventos eliminados, {{created}} eventos creados.",
+                    "add": "{{created}} eventos añadidos/actualizados.",
+                    "replaceWithWarnings": "{{deleted}} eventos eliminados, {{created}} eventos creados. {{warnings}}",
+                    "addWithWarnings": "{{created}} eventos añadidos/actualizados. {{warnings}}",
+                    "groupsNotFound": "{{count}} grupos no encontrados.",
+                    "formatErrors": "{{count}} errores en el formato."
+                },
+                "error": {
+                    "title": "Error al importar excepciones"
+                }
+            },
             "replace": {
                 "error": {
                     "title": "Error",
@@ -1118,6 +1153,35 @@
             "success": {
                 "title": "Validación Completada",
                 "description": "Todos los grupos son válidos. Se crearon {{count}} eventos correctamente"
+            }
+        },
+        "exceptionValidation": {
+            "title": "Resultados de la Importación de Excepciones",
+            "subtitle": "Resumen del proceso de importación de excepciones",
+            "stats": {
+                "total": "Total de líneas",
+                "created": "Eventos creados",
+                "skipped": "Eventos omitidos",
+                "errors": "Grupos no encontrados"
+            },
+            "errors": {
+                "title": "Grupos no encontrados ({{count}})",
+                "description": "Los siguientes grupos no existen en el calendario y sus eventos fueron omitidos",
+                "row": "Línea",
+                "group": "Grupo",
+                "subject": "Asignatura",
+                "error": "Error"
+            },
+            "warnings": {
+                "title": "Grupos creados automáticamente ({{count}})",
+                "description": "Los siguientes grupos fueron creados automáticamente durante la importación",
+                "row": "Línea",
+                "group": "Grupo",
+                "message": "Mensaje"
+            },
+            "success": {
+                "title": "Importación Completada",
+                "description": "Todos los eventos se importaron correctamente. Se crearon {{count}} eventos"
             }
         }
     },

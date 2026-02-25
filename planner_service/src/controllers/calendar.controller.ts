@@ -3182,12 +3182,13 @@ export const replacePeriodicEvent = async (req: AuditedRequest, res: Response) =
 };
 
 /**
- * Import exceptions file only - replaces all puntual events for a calendar
+ * Import exceptions file only with support for ADD or REPLACE modes
  * Only accessible by ADMIN
  */
 export const importExceptions = async (req: AuditedRequest, res: Response) => {
     try {
         const { calendarId } = req.params;
+        const { mode } = req.body; // 'add' or 'replace'
         const file = req.file as Express.Multer.File;
 
         if (!calendarId) {
@@ -3217,8 +3218,19 @@ export const importExceptions = async (req: AuditedRequest, res: Response) => {
             return;
         }
 
+        // Validate mode parameter
+        if (mode && mode !== 'add' && mode !== 'replace') {
+            res.status(400).json({
+                status: 'error',
+                message: 'Invalid mode. Must be "add" or "replace"',
+                data: null
+            });
+            return;
+        }
+
         const userEmail = getUserEmailFromRequest(req);
-        const result = await CalendarImportService.importExceptionsOnly(file, calendarId, userEmail);
+        const importMode = mode as 'add' | 'replace' | undefined;
+        const result = await CalendarImportService.importExceptionsOnly(file, calendarId, userEmail, importMode);
 
         res.status(200).json(result);
     } catch (error) {

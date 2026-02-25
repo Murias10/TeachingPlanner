@@ -1275,9 +1275,35 @@ export class CalendarImportService {
   }
 
   /**
-   * Process excepciones.txt file
+   * Process excepciones.txt file with optional filtering by cancelled status.
+   *
+   * This method processes puntual events from the exceptions file. Each line can represent
+   * either a normal event (with specific time) or a cancelled event (startTime=-1).
+   *
+   * The onlyCancelled parameter enables selective processing:
+   * - undefined: processes all events (both cancelled and non-cancelled)
+   * - true: processes ONLY cancelled events, skipping non-cancelled ones
+   * - false: processes ONLY non-cancelled events, skipping cancelled ones
+   *
+   * This filtering capability is essential for the two-pass import strategy in replace mode,
+   * which ensures cancelled events can find their reference events (created in the first pass).
+   *
+   * @param content - Raw content of excepciones.txt file
+   * @param courseId - ID of the course
+   * @param semester - Semester number
+   * @param userEmail - Email of user performing the import (for audit)
+   * @param groupLimits - Map of maximum group numbers from asignaturas.txt for validation
+   * @param onlyCancelled - Filter: undefined=all, true=only cancelled, false=only non-cancelled
+   * @returns Processing result with statistics and validation info
    */
-  private static async processExcepcionesFile(content: string, courseId: string, semester: number, userEmail: string | null, groupLimits?: Map<string, number>) {
+  private static async processExcepcionesFileFiltered(
+    content: string,
+    courseId: string,
+    semester: number,
+    userEmail: string | null,
+    groupLimits?: Map<string, number>,
+    onlyCancelled?: boolean
+  ) {
     const puntualEventRepo = AppDataSource.getRepository(PuntualEvent);
     const groupRepo = AppDataSource.getRepository(Group);
     const subjectRepo = AppDataSource.getRepository(Subject);
@@ -1317,6 +1343,15 @@ export class CalendarImportService {
         if (parts.length !== 6) continue;
 
         const [dateStr, subjectGroupInfo, startTimeStr, endTimeStr, classroomCode, comment] = parts.map(p => p.trim());
+
+        // Determinar si es cancelado ANTES de cualquier procesamiento
+        const cancelled = startTimeStr === '-1';
+
+        // FILTRO: Si onlyCancelled está definido, filtrar por ese valor
+        if (onlyCancelled !== undefined && cancelled !== onlyCancelled) {
+          continue; // Saltar este evento, no coincide con el filtro
+        }
+
         const dateMatch = dateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
         if (!dateMatch) continue;
 
@@ -1341,12 +1376,52 @@ export class CalendarImportService {
           language = 'ES';
         }
 
-        // Obtener entidades necesarias ANTES de procesar cancelaciones
-        const dayEntity = await dayRepo.findOne({ where: { calendar: { id: calendar.id }, date } });
-        if (!dayEntity) continue;
+        // Format group key for error reporting
+        const groupKey = this.formatGroupKey(subjectAcronym, groupType, groupNumber, language);
 
-        const subject = await subjectRepo.findOne({ where: { acronym: subjectAcronym } });
-        if (!subject) continue;
+        // Validate subject first (before checking day existence)
+        const subject = await subjectRepo.findOne({ where: { acronym: subjectAcronym, calendar: { id: calendar.id } } });
+        if (!subject) {
+          console.warn(`[EXCEPCIONES] Línea ${i + 1}: Asignatura ${subjectAcronym} no encontrada`);
+          groupsNotFound.push({
+            row: i + 1,
+            groupKey,
+            subjectAcronym,
+            groupType,
+            groupNumber,
+            language,
+            maxAllowed: 0,
+            source: 'excepciones',
+            error: {
+              field: 'subject',
+              message: `La asignatura ${subjectAcronym} no existe en el calendario`
+            }
+          });
+          eventsSkipped++;
+          continue;
+        }
+
+        // Validate day existence (after subject validation)
+        const dayEntity = await dayRepo.findOne({ where: { calendar: { id: calendar.id }, date } });
+        if (!dayEntity) {
+          console.warn(`[EXCEPCIONES] Línea ${i + 1}: Día no encontrado para fecha ${dateStr}`);
+          groupsNotFound.push({
+            row: i + 1,
+            groupKey,
+            subjectAcronym,
+            groupType,
+            groupNumber,
+            language,
+            maxAllowed: 0,
+            source: 'excepciones',
+            error: {
+              field: 'date',
+              message: `El día ${dateStr} no existe en el calendario`
+            }
+          });
+          eventsSkipped++;
+          continue;
+        }
 
         let group = await groupRepo.findOne({
           where: {
@@ -1359,19 +1434,9 @@ export class CalendarImportService {
           relations: ['subject', 'calendar']
         });
 
-        const groupKey = this.formatGroupKey(subjectAcronym, groupType, groupNumber, language);
-
-        // ALWAYS validate group number against maximum defined in asignaturas.txt
-        // This validation runs whether the group exists or not
-        // Use groupLimits from asignaturas.txt instead of counting database groups
-        const limitKey = `${subjectAcronym}.${groupType}.${language}`;
-        const maxGroups = groupLimits?.get(limitKey) ?? 0;
-
-        // Validate: group number must not exceed maximum (no condition on maxGroups > 0)
-        // This ensures validation works even on first import with empty database
-        if (groupNumber > maxGroups) {
-          // Group exceeds maximum - record error and skip event creation
-          console.warn(`[GROUP VALIDATION ERROR - EXCEPCIONES] ${groupKey} excede el máximo permitido (${maxGroups}) definido en asignaturas.txt`);
+        // For exceptions import: groups MUST exist, do not create them automatically
+        if (!group) {
+          console.warn(`[EXCEPCIONES] Línea ${i + 1}: Grupo ${groupKey} no encontrado`);
           groupsNotFound.push({
             row: i + 1,
             groupKey,
@@ -1379,48 +1444,21 @@ export class CalendarImportService {
             groupType,
             groupNumber,
             language,
-            maxAllowed: maxGroups,
+            maxAllowed: 0,
             source: 'excepciones',
             error: {
               field: 'group',
-              message: `El grupo ${groupNumber} excede el máximo de ${maxGroups} grupos definidos en asignaturas.txt`
+              message: `El grupo no existe en el calendario`
             }
           });
           eventsSkipped++;
-          continue; // Skip event creation - don't create group or event
-        }
-
-        // If group doesn't exist, create it (only after validation passes)
-        if (!group) {
-          // Create new group
-          group = groupRepo.create({
-            calendar,
-            number: groupNumber,
-            type: groupType,
-            language,
-            subject,
-            createdBy: userEmail
-          });
-          await groupRepo.save(group);
-
-          // Track auto-created group as warning (only if maxGroups > 0, meaning this wasn't expected)
-          if (maxGroups > 0) {
-            groupsAutoCreated.push({
-              row: i + 1,
-              groupKey,
-              warning: {
-                field: 'group',
-                message: `Grupo creado automáticamente`
-              }
-            });
-          }
+          continue;
         }
 
         // Increment valid rows counter for ALL events that pass validation
         totalValidRows++;
 
         // Procesar hora de inicio y fin
-        const cancelled = startTimeStr === '-1';
         let startTime: string, endTime: string;
 
         if (cancelled) {
@@ -1614,6 +1652,15 @@ export class CalendarImportService {
   }
 
   /**
+   * Process excepciones.txt file
+   * This method maintains compatibility with the full import flow (all files together)
+   * It delegates to processExcepcionesFileFiltered without filtering (processes all events)
+   */
+  private static async processExcepcionesFile(content: string, courseId: string, semester: number, userEmail: string | null, groupLimits?: Map<string, number>) {
+    return this.processExcepcionesFileFiltered(content, courseId, semester, userEmail, groupLimits, undefined);
+  }
+
+  /**
    * Obtiene la letra del día de la semana (L, M, X, J, V) a partir de una fecha
    * @param date Fecha
    * @returns 'L' | 'M' | 'X' | 'J' | 'V' | '' (vacío para sábado/domingo)
@@ -1658,21 +1705,36 @@ export class CalendarImportService {
   }
 
   /**
-   * Import exceptions file only - replaces all puntual events for a calendar
+   * Import exceptions file only with support for ADD or REPLACE modes.
+   *
+   * MODE 'add' (merge):
+   * - Does NOT delete existing puntual events
+   * - Processes all events in a single pass
+   * - Updates existing events or creates new ones
+   * - Cancelled events can find references in existing events
+   *
+   * MODE 'replace' (full replacement):
+   * - Deletes all existing puntual events first
+   * - Processes in TWO passes to ensure cancelled events find references:
+   *   - PASS 1: Delete non-cancelled events, then create non-cancelled events
+   *   - PASS 2: Delete cancelled events, then create cancelled events (using Pass 1 as references)
+   * - Ensures consistent state with file content
+   *
    * @param file - The excepciones.txt file
    * @param calendarId - The calendar ID to import exceptions for
    * @param userEmail - User email for audit
+   * @param mode - 'add' to merge with existing events, 'replace' to replace all (default: 'replace')
    * @returns Import result with statistics
    */
   static async importExceptionsOnly(
     file: Express.Multer.File,
     calendarId: string,
-    userEmail: string | null
+    userEmail: string | null,
+    mode: 'add' | 'replace' = 'replace'
   ) {
     const puntualEventRepo = AppDataSource.getRepository(PuntualEvent);
     const calendarRepo = AppDataSource.getRepository(Calendar);
     const groupRepo = AppDataSource.getRepository(Group);
-    const subjectRepo = AppDataSource.getRepository(Subject);
 
     // Verify calendar exists
     const calendar = await calendarRepo.findOne({
@@ -1688,14 +1750,12 @@ export class CalendarImportService {
     const semester = calendar.semester;
 
     // Build groupLimits from existing groups in the calendar
-    // This is needed for validation in processExcepcionesFile
     const groupLimits = new Map<string, number>();
     const allGroups = await groupRepo.find({
       where: { calendar: { id: calendarId } },
       relations: ['subject']
     });
 
-    // Group by subject, type, and language to find max group number for each combination
     const groupsByKey = new Map<string, number[]>();
     for (const group of allGroups) {
       const limitKey = `${group.subject.acronym}.${group.type}.${group.language}`;
@@ -1705,104 +1765,159 @@ export class CalendarImportService {
       groupsByKey.get(limitKey)!.push(group.number);
     }
 
-    // Set the maximum group number for each combination
     for (const [limitKey, numbers] of groupsByKey) {
       const maxNumber = Math.max(...numbers);
       groupLimits.set(limitKey, maxNumber);
       console.log(`[GROUP LIMITS] Set limit for ${limitKey}: ${maxNumber}`);
     }
 
-    // Delete all existing puntual events for this calendar
-    const existingEvents = await puntualEventRepo
-      .createQueryBuilder('event')
-      .leftJoin('event.day', 'day')
-      .leftJoin('day.calendar', 'calendar')
-      .where('calendar.id = :calendarId', { calendarId })
-      .getMany();
-
-    const deletedCount = existingEvents.length;
-
-    if (deletedCount > 0) {
-      await puntualEventRepo.remove(existingEvents);
-      console.log(`[Import Exceptions] Deleted ${deletedCount} existing puntual events`);
-    }
-
-    // Process the exceptions file with groupLimits
     const content = this.decodeFileContent(file);
-    const result = await this.processExcepcionesFile(content, courseId, semester, userEmail, groupLimits);
+    let totalDeleted = 0;
+    let totalCreated = 0;
+    let combinedErrors: string[] = [];
+    let combinedGroupsNotFound: any[] = [];
+    let combinedGroupsAutoCreated: any[] = [];
+    let totalLines = 0;
+    let totalValidRows = 0;
 
-    // Count groups not found
-    const groupsNotFound: string[] = [];
+    if (mode === 'add') {
+      // ========== MODE: ADD (merge) ==========
+      // Process all events in a single pass without deleting
+      console.log('[Import Exceptions] MODE: ADD - Merging with existing events');
 
-    // Re-process to validate groups
-    const lines = content.split('\n');
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (!line) continue;
+      const result = await this.processExcepcionesFileFiltered(
+        content,
+        courseId,
+        semester,
+        userEmail,
+        groupLimits,
+        undefined // Process all events (no filter)
+      );
 
-      try {
-        const parts = line.split(':');
-        if (parts.length !== 6) continue;
+      totalCreated = result.processedCount;
+      combinedErrors = result.errors;
+      combinedGroupsNotFound = result.groupValidation?.groupsNotFound || [];
+      combinedGroupsAutoCreated = result.groupValidation?.groupsAutoCreated || [];
+      totalLines = result.totalLines;
+      totalValidRows = result.groupValidation?.statistics?.validRows || 0;
 
-        const [, subjectGroupInfo] = parts.map(p => p.trim());
-        const groupParts = subjectGroupInfo.split('.');
-        if (groupParts.length !== 3) continue;
+      console.log(`[Import Exceptions] ADD mode completed: ${totalCreated} events processed`);
 
-        const [subjectAcronym, groupType, groupInfo] = groupParts;
-        let language: string, groupNumber: number;
+    } else {
+      // ========== MODE: REPLACE (two-pass) ==========
+      // Pass 1: Non-cancelled events
+      // Pass 2: Cancelled events (can reference Pass 1 events)
+      console.log('[Import Exceptions] MODE: REPLACE - Two-pass processing');
 
-        if (groupInfo.includes('-')) {
-          const groupMatch = groupInfo.match(/^I-(\d+)$/);
-          if (!groupMatch) continue;
-          language = 'EN';
-          groupNumber = parseInt(groupMatch[1], 10);
-        } else {
-          groupNumber = parseInt(groupInfo, 10);
-          if (isNaN(groupNumber)) continue;
-          language = 'ES';
-        }
+      // PASS 1: Non-cancelled events
+      console.log('[Import Exceptions] PASS 1: Processing non-cancelled events...');
 
-        const subject = await subjectRepo.findOne({ where: { acronym: subjectAcronym } });
-        if (!subject) {
-          const groupKey = this.formatGroupKey(subjectAcronym, groupType, groupNumber, language);
-          if (!groupsNotFound.includes(groupKey)) {
-            groupsNotFound.push(groupKey);
-          }
-          continue;
-        }
+      const nonCancelledEvents = await puntualEventRepo
+        .createQueryBuilder('event')
+        .leftJoin('event.day', 'day')
+        .leftJoin('day.calendar', 'calendar')
+        .where('calendar.id = :calendarId', { calendarId })
+        .andWhere('event.cancelled = :cancelled', { cancelled: false })
+        .getMany();
 
-        const group = await groupRepo.findOne({
-          where: {
-            calendar: { id: calendarId },
-            number: groupNumber,
-            type: groupType,
-            language,
-            subject: { id: subject.id }
-          }
-        });
-
-        if (!group) {
-          const groupKey = this.formatGroupKey(subjectAcronym, groupType, groupNumber, language);
-          if (!groupsNotFound.includes(groupKey)) {
-            groupsNotFound.push(groupKey);
-          }
-        }
-      } catch (error) {
-        // Continue on error
+      const deletedNonCancelled = nonCancelledEvents.length;
+      if (deletedNonCancelled > 0) {
+        await puntualEventRepo.remove(nonCancelledEvents);
+        console.log(`[Import Exceptions] Deleted ${deletedNonCancelled} non-cancelled events`);
       }
+
+      const result1 = await this.processExcepcionesFileFiltered(
+        content,
+        courseId,
+        semester,
+        userEmail,
+        groupLimits,
+        false // Only non-cancelled
+      );
+
+      console.log(`[Import Exceptions] PASS 1 completed: ${result1.processedCount} events created`);
+
+      // PASS 2: Cancelled events
+      console.log('[Import Exceptions] PASS 2: Processing cancelled events...');
+
+      const cancelledEvents = await puntualEventRepo
+        .createQueryBuilder('event')
+        .leftJoin('event.day', 'day')
+        .leftJoin('day.calendar', 'calendar')
+        .where('calendar.id = :calendarId', { calendarId })
+        .andWhere('event.cancelled = :cancelled', { cancelled: true })
+        .getMany();
+
+      const deletedCancelled = cancelledEvents.length;
+      if (deletedCancelled > 0) {
+        await puntualEventRepo.remove(cancelledEvents);
+        console.log(`[Import Exceptions] Deleted ${deletedCancelled} cancelled events`);
+      }
+
+      const result2 = await this.processExcepcionesFileFiltered(
+        content,
+        courseId,
+        semester,
+        userEmail,
+        groupLimits,
+        true // Only cancelled
+      );
+
+      console.log(`[Import Exceptions] PASS 2 completed: ${result2.processedCount} events created`);
+
+      // Combine results
+      totalDeleted = deletedNonCancelled + deletedCancelled;
+      totalCreated = result1.processedCount + result2.processedCount;
+      combinedErrors = [...result1.errors, ...result2.errors];
+      combinedGroupsNotFound = [
+        ...(result1.groupValidation?.groupsNotFound || []),
+        ...(result2.groupValidation?.groupsNotFound || [])
+      ];
+      combinedGroupsAutoCreated = [
+        ...(result1.groupValidation?.groupsAutoCreated || []),
+        ...(result2.groupValidation?.groupsAutoCreated || [])
+      ];
+      totalLines = result1.totalLines;
+      totalValidRows = (result1.groupValidation?.statistics?.validRows || 0) + (result2.groupValidation?.statistics?.validRows || 0);
+
+      console.log(`[Import Exceptions] REPLACE mode completed: ${totalDeleted} deleted, ${totalCreated} created`);
     }
 
-    return {
+    // Build groupValidation object similar to calendar creation
+    const groupValidation = {
+      hasIssues: combinedGroupsNotFound.length > 0 || combinedGroupsAutoCreated.length > 0,
+      groupsNotFound: combinedGroupsNotFound,
+      groupsAutoCreated: combinedGroupsAutoCreated,
+      statistics: {
+        totalRows: totalLines,
+        validRows: totalValidRows,
+        groupsNotFoundCount: combinedGroupsNotFound.length,
+        groupsAutoCreatedCount: combinedGroupsAutoCreated.length,
+        eventsCreated: totalCreated,
+        eventsSkipped: totalLines - totalValidRows
+      }
+    };
+
+    console.log(`[Import Exceptions] groupValidation.hasIssues: ${groupValidation.hasIssues}`);
+    console.log(`[Import Exceptions] groupsNotFound count: ${combinedGroupsNotFound.length}`);
+    console.log(`[Import Exceptions] groupsAutoCreated count: ${combinedGroupsAutoCreated.length}`);
+
+    const result = {
       status: 'success',
       message: 'Exceptions imported successfully',
       data: {
-        deletedEvents: deletedCount,
-        createdEvents: result.processedCount,
-        errors: result.errors,
-        groupsNotFound,
-        totalLines: result.totalLines,
-        errorCount: result.errorCount
+        mode,
+        deletedEvents: totalDeleted,
+        createdEvents: totalCreated,
+        errors: combinedErrors,
+        totalLines,
+        errorCount: combinedErrors.length,
+        groupValidation
       }
     };
+
+    console.log(`[Import Exceptions] Returning result:`, JSON.stringify(result, null, 2));
+
+    return result;
   }
 }

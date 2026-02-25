@@ -18,6 +18,8 @@ import CreateEventDialog from "@/components/calendar/CreateEventDialog";
 import EditEventDialog from "@/components/calendar/EditEventDialog";
 import CreateSolicitudDialog from "@/components/calendar/CreateSolicitudDialog";
 import { ImportExceptionsDialog } from "@/components/calendar/ImportExceptionsDialog";
+import { ExceptionValidationDialog } from "@/components/calendar/ExceptionValidationDialog";
+import { GroupValidationResult } from "@/types/Calendar";
 import type { RecurrenceConfig } from "@/types/RecurrenceConfig";
 import { CalendarEventWrapper } from "@/components/calendar/CalendarEventWrapper";
 import VITE_GATEWAY_API_URL from "@/config/api";
@@ -290,7 +292,19 @@ export default function CalendarPage() {
 
     // Estado para importar excepciones
     const [isImportExceptionsDialogOpen, setIsImportExceptionsDialogOpen] = useState(false);
-    const { importExceptionsAsync, isImporting: isImportingExceptions } = useImportExceptions();
+    const [exceptionValidationData, setExceptionValidationData] = useState<GroupValidationResult | null>(null);
+    const [isExceptionValidationDialogOpen, setIsExceptionValidationDialogOpen] = useState(false);
+
+    const { importExceptionsAsync, isImporting: isImportingExceptions } = useImportExceptions({
+        onValidationIssues: (validationResult) => {
+            setExceptionValidationData(validationResult);
+            setIsExceptionValidationDialogOpen(true);
+            setIsImportExceptionsDialogOpen(false);
+        },
+        onSuccess: () => {
+            setIsImportExceptionsDialogOpen(false);
+        }
+    });
 
     // Estado para controlar la fecha actual del calendario
     const [currentDate, setCurrentDate] = useState<Date>(new Date());
@@ -784,7 +798,7 @@ export default function CalendarPage() {
         }
     };
 
-    const handleImportExceptions = async (file: File) => {
+    const handleImportExceptions = async (file: File, mode: 'add' | 'replace') => {
         if (!calendarId) {
             console.error('No calendar ID available for import');
             return;
@@ -793,11 +807,9 @@ export default function CalendarPage() {
         try {
             await importExceptionsAsync({
                 calendarId,
-                file
+                file,
+                mode
             });
-
-            // Close dialog on success
-            setIsImportExceptionsDialogOpen(false);
 
             // Refetch calendar events
             await refetch();
@@ -2400,6 +2412,15 @@ export default function CalendarPage() {
                     onOpenChange={setIsImportExceptionsDialogOpen}
                     onImport={handleImportExceptions}
                     isLoading={isImportingExceptions}
+                />
+            )}
+
+            {/* Exception Validation Dialog - Solo para ADMIN */}
+            {isAdmin && (
+                <ExceptionValidationDialog
+                    open={isExceptionValidationDialogOpen}
+                    onOpenChange={setIsExceptionValidationDialogOpen}
+                    validationResult={exceptionValidationData}
                 />
             )}
 

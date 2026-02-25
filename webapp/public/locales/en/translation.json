@@ -1017,6 +1017,41 @@
                     "classroomConflict": "Cannot revert: classroom {{classrooms}} is already occupied at that time"
                 }
             },
+            "importExceptions": {
+                "title": "Import Exceptions",
+                "description": "Import the excepciones.txt file to manage calendar puntual events",
+                "mode": {
+                    "label": "Import mode",
+                    "add": "Add to calendar",
+                    "addDescription": "Keep existing events and add new ones",
+                    "replace": "Replace events",
+                    "replaceDescription": "Delete existing events and create new ones"
+                },
+                "warning": {
+                    "title": "Warning",
+                    "replace": "This action will delete all existing puntual events and replace them with those from the file",
+                    "add": "Events from the file will be added or updated without deleting existing events"
+                },
+                "dropzone": {
+                    "title": "Drag excepciones.txt here",
+                    "subtitle": "or click to select"
+                },
+                "cancel": "Cancel",
+                "import": "Import",
+                "success": {
+                    "title": "Exceptions imported successfully",
+                    "warningTitle": "Exceptions imported with warnings",
+                    "replace": "{{deleted}} events deleted, {{created}} events created.",
+                    "add": "{{created}} events added/updated.",
+                    "replaceWithWarnings": "{{deleted}} events deleted, {{created}} events created. {{warnings}}",
+                    "addWithWarnings": "{{created}} events added/updated. {{warnings}}",
+                    "groupsNotFound": "{{count}} groups not found.",
+                    "formatErrors": "{{count}} format errors."
+                },
+                "error": {
+                    "title": "Error importing exceptions"
+                }
+            },
             "replace": {
                 "error": {
                     "title": "Error",
@@ -1118,6 +1153,35 @@
             "success": {
                 "title": "Validation completed",
                 "description": "All groups are valid. Successfully created {{count}} events"
+            }
+        },
+        "exceptionValidation": {
+            "title": "Exception Import Results",
+            "subtitle": "Summary of the exception import process",
+            "stats": {
+                "total": "Total lines",
+                "created": "Events created",
+                "skipped": "Events skipped",
+                "errors": "Groups not found"
+            },
+            "errors": {
+                "title": "Groups not found ({{count}})",
+                "description": "The following groups do not exist in the calendar and their events were skipped",
+                "row": "Line",
+                "group": "Group",
+                "subject": "Subject",
+                "error": "Error"
+            },
+            "warnings": {
+                "title": "Automatically created groups ({{count}})",
+                "description": "The following groups were automatically created during import",
+                "row": "Line",
+                "group": "Group",
+                "message": "Message"
+            },
+            "success": {
+                "title": "Import Completed",
+                "description": "All events were imported successfully. Created {{count}} events"
             }
         }
     },

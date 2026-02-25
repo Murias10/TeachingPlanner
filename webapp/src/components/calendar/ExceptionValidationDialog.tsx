@@ -35,6 +35,12 @@ export const ExceptionValidationDialog = ({
 
     const { statistics, groupsNotFound, groupsAutoCreated } = validationResult;
 
+    // Group errors by type
+    const subjectErrors = groupsNotFound.filter(e => e.error.field === 'subject');
+    const dateErrors = groupsNotFound.filter(e => e.error.field === 'date');
+    const groupErrors = groupsNotFound.filter(e => e.error.field === 'group');
+    const classroomErrors = groupsNotFound.filter(e => e.error.field === 'classroom');
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-[95vw] min-w-[1200px] w-fit max-h-[90vh] overflow-hidden flex flex-col">
@@ -84,18 +90,18 @@ export const ExceptionValidationDialog = ({
                         </div>
                     </div>
 
-                    {/* Errors Section */}
-                    {groupsNotFound.length > 0 && (
+                    {/* Subject Errors Section */}
+                    {subjectErrors.length > 0 && (
                         <div className="border rounded-lg overflow-hidden">
                             <div className="bg-red-50 dark:bg-red-950/20 border-b border-red-200 dark:border-red-800/40 p-3">
                                 <h4 className="text-sm font-semibold text-red-900 dark:text-red-100 flex items-center gap-2">
                                     <AlertCircle className="h-4 w-4" />
-                                    {t("calendar.exceptionValidation.errors.title", {
-                                        count: groupsNotFound.length,
+                                    {t("calendar.exceptionValidation.errors.subjectsNotFound", {
+                                        count: subjectErrors.length,
                                     })}
                                 </h4>
                                 <p className="text-xs text-red-700 dark:text-red-300 mt-1">
-                                    {t("calendar.exceptionValidation.errors.description")}
+                                    {t("calendar.exceptionValidation.errors.subjectsNotFoundDescription")}
                                 </p>
                             </div>
                             <div>
@@ -106,10 +112,10 @@ export const ExceptionValidationDialog = ({
                                                 {t("calendar.exceptionValidation.errors.row")}
                                             </TableHead>
                                             <TableHead className="whitespace-nowrap">
-                                                {t("calendar.exceptionValidation.errors.group")}
+                                                {t("calendar.exceptionValidation.errors.subject")}
                                             </TableHead>
                                             <TableHead className="whitespace-nowrap">
-                                                {t("calendar.exceptionValidation.errors.subject")}
+                                                {t("calendar.exceptionValidation.errors.group")}
                                             </TableHead>
                                             <TableHead className="whitespace-nowrap">
                                                 {t("calendar.exceptionValidation.errors.error")}
@@ -117,14 +123,187 @@ export const ExceptionValidationDialog = ({
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {groupsNotFound.map((error, idx) => (
+                                        {subjectErrors.map((error, idx) => (
                                             <TableRow key={idx}>
                                                 <TableCell className="font-medium whitespace-nowrap">{error.row}</TableCell>
+                                                <TableCell className="font-medium whitespace-nowrap">
+                                                    {error.subjectAcronym}
+                                                </TableCell>
                                                 <TableCell className="font-mono text-sm whitespace-nowrap">
                                                     {error.groupKey}
                                                 </TableCell>
+                                                <TableCell className="text-sm text-red-600 dark:text-red-400 whitespace-nowrap">
+                                                    {error.error.message}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Date Errors Section */}
+                    {dateErrors.length > 0 && (
+                        <div className="border rounded-lg overflow-hidden">
+                            <div className="bg-red-50 dark:bg-red-950/20 border-b border-red-200 dark:border-red-800/40 p-3">
+                                <h4 className="text-sm font-semibold text-red-900 dark:text-red-100 flex items-center gap-2">
+                                    <AlertCircle className="h-4 w-4" />
+                                    {t("calendar.exceptionValidation.errors.datesNotFound", {
+                                        count: dateErrors.length,
+                                    })}
+                                </h4>
+                                <p className="text-xs text-red-700 dark:text-red-300 mt-1">
+                                    {t("calendar.exceptionValidation.errors.datesNotFoundDescription")}
+                                </p>
+                            </div>
+                            <div>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead className="whitespace-nowrap">
+                                                {t("calendar.exceptionValidation.errors.row")}
+                                            </TableHead>
+                                            <TableHead className="whitespace-nowrap">
+                                                {t("calendar.exceptionValidation.errors.date")}
+                                            </TableHead>
+                                            <TableHead className="whitespace-nowrap">
+                                                {t("calendar.exceptionValidation.errors.subject")}
+                                            </TableHead>
+                                            <TableHead className="whitespace-nowrap">
+                                                {t("calendar.exceptionValidation.errors.group")}
+                                            </TableHead>
+                                            <TableHead className="whitespace-nowrap">
+                                                {t("calendar.exceptionValidation.errors.error")}
+                                            </TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {dateErrors.map((error, idx) => (
+                                            <TableRow key={idx}>
+                                                <TableCell className="font-medium whitespace-nowrap">{error.row}</TableCell>
+                                                <TableCell className="font-mono text-sm whitespace-nowrap">
+                                                    {/* Extract date from error message or use a date field if available */}
+                                                    {error.error.message.match(/\d{2}\/\d{2}\/\d{4}/)?.[0] || '-'}
+                                                </TableCell>
                                                 <TableCell className="font-medium whitespace-nowrap">
                                                     {error.subjectAcronym}
+                                                </TableCell>
+                                                <TableCell className="font-mono text-sm whitespace-nowrap">
+                                                    {error.groupKey}
+                                                </TableCell>
+                                                <TableCell className="text-sm text-red-600 dark:text-red-400 whitespace-nowrap">
+                                                    {error.error.message}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Group Errors Section */}
+                    {groupErrors.length > 0 && (
+                        <div className="border rounded-lg overflow-hidden">
+                            <div className="bg-red-50 dark:bg-red-950/20 border-b border-red-200 dark:border-red-800/40 p-3">
+                                <h4 className="text-sm font-semibold text-red-900 dark:text-red-100 flex items-center gap-2">
+                                    <AlertCircle className="h-4 w-4" />
+                                    {t("calendar.exceptionValidation.errors.groupsNotFound", {
+                                        count: groupErrors.length,
+                                    })}
+                                </h4>
+                                <p className="text-xs text-red-700 dark:text-red-300 mt-1">
+                                    {t("calendar.exceptionValidation.errors.groupsNotFoundDescription")}
+                                </p>
+                            </div>
+                            <div>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead className="whitespace-nowrap">
+                                                {t("calendar.exceptionValidation.errors.row")}
+                                            </TableHead>
+                                            <TableHead className="whitespace-nowrap">
+                                                {t("calendar.exceptionValidation.errors.subject")}
+                                            </TableHead>
+                                            <TableHead className="whitespace-nowrap">
+                                                {t("calendar.exceptionValidation.errors.group")}
+                                            </TableHead>
+                                            <TableHead className="whitespace-nowrap">
+                                                {t("calendar.exceptionValidation.errors.error")}
+                                            </TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {groupErrors.map((error, idx) => (
+                                            <TableRow key={idx}>
+                                                <TableCell className="font-medium whitespace-nowrap">{error.row}</TableCell>
+                                                <TableCell className="font-medium whitespace-nowrap">
+                                                    {error.subjectAcronym}
+                                                </TableCell>
+                                                <TableCell className="font-mono text-sm whitespace-nowrap">
+                                                    {error.groupKey}
+                                                </TableCell>
+                                                <TableCell className="text-sm text-red-600 dark:text-red-400 whitespace-nowrap">
+                                                    {error.error.message}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Classroom Errors Section */}
+                    {classroomErrors.length > 0 && (
+                        <div className="border rounded-lg overflow-hidden">
+                            <div className="bg-red-50 dark:bg-red-950/20 border-b border-red-200 dark:border-red-800/40 p-3">
+                                <h4 className="text-sm font-semibold text-red-900 dark:text-red-100 flex items-center gap-2">
+                                    <AlertCircle className="h-4 w-4" />
+                                    {t("calendar.exceptionValidation.errors.classroomsNotFound", {
+                                        count: classroomErrors.length,
+                                    })}
+                                </h4>
+                                <p className="text-xs text-red-700 dark:text-red-300 mt-1">
+                                    {t("calendar.exceptionValidation.errors.classroomsNotFoundDescription")}
+                                </p>
+                            </div>
+                            <div>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead className="whitespace-nowrap">
+                                                {t("calendar.exceptionValidation.errors.row")}
+                                            </TableHead>
+                                            <TableHead className="whitespace-nowrap">
+                                                {t("calendar.exceptionValidation.errors.classroom")}
+                                            </TableHead>
+                                            <TableHead className="whitespace-nowrap">
+                                                {t("calendar.exceptionValidation.errors.subject")}
+                                            </TableHead>
+                                            <TableHead className="whitespace-nowrap">
+                                                {t("calendar.exceptionValidation.errors.group")}
+                                            </TableHead>
+                                            <TableHead className="whitespace-nowrap">
+                                                {t("calendar.exceptionValidation.errors.error")}
+                                            </TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {classroomErrors.map((error, idx) => (
+                                            <TableRow key={idx}>
+                                                <TableCell className="font-medium whitespace-nowrap">{error.row}</TableCell>
+                                                <TableCell className="font-mono text-sm whitespace-nowrap">
+                                                    {/* Extract classroom code from error message */}
+                                                    {error.error.message.match(/aula (\S+)/)?.[1] || '-'}
+                                                </TableCell>
+                                                <TableCell className="font-medium whitespace-nowrap">
+                                                    {error.subjectAcronym}
+                                                </TableCell>
+                                                <TableCell className="font-mono text-sm whitespace-nowrap">
+                                                    {error.groupKey}
                                                 </TableCell>
                                                 <TableCell className="text-sm text-red-600 dark:text-red-400 whitespace-nowrap">
                                                     {error.error.message}

@@ -1277,23 +1277,15 @@ export class CalendarImportService {
   /**
    * Process excepciones.txt file with optional filtering by cancelled status.
    *
-   * This method processes puntual events from the exceptions file. Each line can represent
-   * either a normal event (with specific time) or a cancelled event (startTime=-1).
-   *
-   * The onlyCancelled parameter enables selective processing:
-   * - undefined: processes all events (both cancelled and non-cancelled)
-   * - true: processes ONLY cancelled events, skipping non-cancelled ones
-   * - false: processes ONLY non-cancelled events, skipping cancelled ones
-   *
-   * This filtering capability is essential for the two-pass import strategy in replace mode,
-   * which ensures cancelled events can find their reference events (created in the first pass).
-   *
    * @param content - Raw content of excepciones.txt file
    * @param courseId - ID of the course
    * @param semester - Semester number
    * @param userEmail - Email of user performing the import (for audit)
    * @param groupLimits - Map of maximum group numbers from asignaturas.txt for validation
-   * @param onlyCancelled - Filter: undefined=all, true=only cancelled, false=only non-cancelled
+   * @param onlyCancelled - Filter events by type: undefined=all events, true=only cancelled, false=only non-cancelled.
+   *                        Used in REPLACE mode for two-pass processing (non-cancelled first, then cancelled).
+   * @param validateClassrooms - When true (individual exception imports), validates that classrooms exist and reports errors.
+   *                             When false (full calendar imports), auto-creates missing classrooms.
    * @returns Processing result with statistics and validation info
    */
   private static async processExcepcionesFileFiltered(
@@ -1302,7 +1294,8 @@ export class CalendarImportService {
     semester: number,
     userEmail: string | null,
     groupLimits?: Map<string, number>,
-    onlyCancelled?: boolean
+    onlyCancelled?: boolean,
+    validateClassrooms?: boolean
   ) {
     const puntualEventRepo = AppDataSource.getRepository(PuntualEvent);
     const groupRepo = AppDataSource.getRepository(Group);
@@ -1379,7 +1372,35 @@ export class CalendarImportService {
         // Format group key for error reporting
         const groupKey = this.formatGroupKey(subjectAcronym, groupType, groupNumber, language);
 
-        // Validate subject first (before checking day existence)
+        // ========== PHASE 1: INDEPENDENT VALIDATIONS ==========
+        // These validations don't depend on each other and can be done in parallel
+        let hasErrors = false;
+
+        // Validate classroom (independent validation)
+        let classroom: any = null;
+        if (validateClassrooms) {
+          classroom = await classroomRepo.findOne({ where: { code: classroomCode } });
+          if (!classroom) {
+            console.warn(`[EXCEPCIONES] Línea ${i + 1}: Aula ${classroomCode} no encontrada`);
+            groupsNotFound.push({
+              row: i + 1,
+              groupKey,
+              subjectAcronym,
+              groupType,
+              groupNumber,
+              language,
+              maxAllowed: 0,
+              source: 'excepciones',
+              error: {
+                field: 'classroom',
+                message: `El aula ${classroomCode} no existe`
+              }
+            });
+            hasErrors = true;
+          }
+        }
+
+        // Validate subject (independent validation)
         const subject = await subjectRepo.findOne({ where: { acronym: subjectAcronym, calendar: { id: calendar.id } } });
         if (!subject) {
           console.warn(`[EXCEPCIONES] Línea ${i + 1}: Asignatura ${subjectAcronym} no encontrada`);
@@ -1397,11 +1418,19 @@ export class CalendarImportService {
               message: `La asignatura ${subjectAcronym} no existe en el calendario`
             }
           });
+          hasErrors = true;
+        }
+
+        // If subject doesn't exist, we can't validate date/group (they depend on subject)
+        if (!subject) {
           eventsSkipped++;
           continue;
         }
 
-        // Validate day existence (after subject validation)
+        // ========== PHASE 2: DEPENDENT VALIDATIONS ==========
+        // These validations depend on subject existing
+
+        // Validate day existence (depends on calendar)
         const dayEntity = await dayRepo.findOne({ where: { calendar: { id: calendar.id }, date } });
         if (!dayEntity) {
           console.warn(`[EXCEPCIONES] Línea ${i + 1}: Día no encontrado para fecha ${dateStr}`);
@@ -1419,10 +1448,10 @@ export class CalendarImportService {
               message: `El día ${dateStr} no existe en el calendario`
             }
           });
-          eventsSkipped++;
-          continue;
+          hasErrors = true;
         }
 
+        // Validate group (depends on subject.id)
         let group = await groupRepo.findOne({
           where: {
             calendar: { id: calendar.id },
@@ -1434,7 +1463,6 @@ export class CalendarImportService {
           relations: ['subject', 'calendar']
         });
 
-        // For exceptions import: groups MUST exist, do not create them automatically
         if (!group) {
           console.warn(`[EXCEPCIONES] Línea ${i + 1}: Grupo ${groupKey} no encontrado`);
           groupsNotFound.push({
@@ -1451,6 +1479,11 @@ export class CalendarImportService {
               message: `El grupo no existe en el calendario`
             }
           });
+          hasErrors = true;
+        }
+
+        // If any validation failed, skip this event
+        if (hasErrors || !dayEntity || !group || (validateClassrooms && !classroom)) {
           eventsSkipped++;
           continue;
         }
@@ -1574,10 +1607,14 @@ export class CalendarImportService {
           endTime = normalizeTime(endTimeStr);
         }
 
-        let classroom = await classroomRepo.findOne({ where: { code: classroomCode } });
-        if (!classroom) {
-          classroom = classroomRepo.create({ code: classroomCode, gisUrl: '' });
-          await classroomRepo.save(classroom);
+        // Handle classroom: already validated if validateClassrooms=true, need to fetch/create if false
+        if (!validateClassrooms && !classroom) {
+          // MODE: Full calendar import - AUTO-CREATE missing classrooms if not validated yet
+          classroom = await classroomRepo.findOne({ where: { code: classroomCode } });
+          if (!classroom) {
+            classroom = classroomRepo.create({ code: classroomCode, gisUrl: '', createdBy: userEmail });
+            await classroomRepo.save(classroom);
+          }
         }
 
         const existingEvent = await puntualEventRepo
@@ -1657,7 +1694,7 @@ export class CalendarImportService {
    * It delegates to processExcepcionesFileFiltered without filtering (processes all events)
    */
   private static async processExcepcionesFile(content: string, courseId: string, semester: number, userEmail: string | null, groupLimits?: Map<string, number>) {
-    return this.processExcepcionesFileFiltered(content, courseId, semester, userEmail, groupLimits, undefined);
+    return this.processExcepcionesFileFiltered(content, courseId, semester, userEmail, groupLimits, undefined, false);
   }
 
   /**
@@ -1791,7 +1828,8 @@ export class CalendarImportService {
         semester,
         userEmail,
         groupLimits,
-        undefined // Process all events (no filter)
+        undefined, // Process all events (no filter)
+        true // Validate classrooms (don't auto-create)
       );
 
       totalCreated = result.processedCount;
@@ -1832,7 +1870,8 @@ export class CalendarImportService {
         semester,
         userEmail,
         groupLimits,
-        false // Only non-cancelled
+        false, // Only non-cancelled
+        true // Validate classrooms (don't auto-create)
       );
 
       console.log(`[Import Exceptions] PASS 1 completed: ${result1.processedCount} events created`);
@@ -1860,7 +1899,8 @@ export class CalendarImportService {
         semester,
         userEmail,
         groupLimits,
-        true // Only cancelled
+        true, // Only cancelled
+        true // Validate classrooms (don't auto-create)
       );
 
       console.log(`[Import Exceptions] PASS 2 completed: ${result2.processedCount} events created`);

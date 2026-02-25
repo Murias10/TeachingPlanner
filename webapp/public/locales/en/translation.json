@@ -1162,14 +1162,22 @@
                 "total": "Total lines",
                 "created": "Events created",
                 "skipped": "Events skipped",
-                "errors": "Groups not found"
+                "errors": "Errors found"
             },
             "errors": {
-                "title": "Groups not found ({{count}})",
-                "description": "The following groups do not exist in the calendar and their events were skipped",
+                "subjectsNotFound": "Subjects not found ({{count}})",
+                "subjectsNotFoundDescription": "The following subjects do not exist in the calendar and their events were skipped",
+                "datesNotFound": "Dates not found ({{count}})",
+                "datesNotFoundDescription": "The following dates do not exist in the calendar and their events were skipped",
+                "groupsNotFound": "Groups not found ({{count}})",
+                "groupsNotFoundDescription": "The following groups do not exist in the calendar and their events were skipped",
+                "classroomsNotFound": "Classrooms not found ({{count}})",
+                "classroomsNotFoundDescription": "The following classrooms do not exist in the application and their events were skipped",
                 "row": "Line",
                 "group": "Group",
                 "subject": "Subject",
+                "date": "Date",
+                "classroom": "Classroom",
                 "error": "Error"
             },
             "warnings": {

@@ -1162,14 +1162,22 @@
                 "total": "Total de líneas",
                 "created": "Eventos creados",
                 "skipped": "Eventos omitidos",
-                "errors": "Grupos no encontrados"
+                "errors": "Errores encontrados"
             },
             "errors": {
-                "title": "Grupos no encontrados ({{count}})",
-                "description": "Los siguientes grupos no existen en el calendario y sus eventos fueron omitidos",
+                "subjectsNotFound": "Asignaturas no encontradas ({{count}})",
+                "subjectsNotFoundDescription": "Las siguientes asignaturas no existen en el calendario y sus eventos fueron omitidos",
+                "datesNotFound": "Fechas no encontradas ({{count}})",
+                "datesNotFoundDescription": "Las siguientes fechas no existen en el calendario y sus eventos fueron omitidos",
+                "groupsNotFound": "Grupos no encontrados ({{count}})",
+                "groupsNotFoundDescription": "Los siguientes grupos no existen en el calendario y sus eventos fueron omitidos",
+                "classroomsNotFound": "Aulas no encontradas ({{count}})",
+                "classroomsNotFoundDescription": "Las siguientes aulas no existen en la aplicación y sus eventos fueron omitidos",
                 "row": "Línea",
                 "group": "Grupo",
                 "subject": "Asignatura",
+                "date": "Fecha",
+                "classroom": "Aula",
                 "error": "Error"
             },
             "warnings": {

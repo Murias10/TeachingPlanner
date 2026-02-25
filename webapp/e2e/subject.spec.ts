@@ -312,9 +312,10 @@ test.describe('Subject Management', () => {
     await page.getByRole('button', { name: /cancel/i }).click();
     await page.waitForTimeout(500);
 
-    // Verificar que solo se creó 1 subject (no el duplicado)
-    // Use a more flexible locator that works in any language
-    await expect(page.locator('text=/Total: 1/')).toBeVisible();
+    // Verificar que el duplicado no fue creado
+    // Contar filas en la tabla - debe haber solo 1 (el primero creado)
+    const tableRows = page.locator('table tbody tr');
+    await expect(tableRows).toHaveCount(1);
   });
 
   test('should edit subject successfully', async ({ page }) => {

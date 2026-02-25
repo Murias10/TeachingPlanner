@@ -313,7 +313,8 @@ test.describe('Subject Management', () => {
     await page.waitForTimeout(500);
 
     // Verificar que solo se creó 1 subject (no el duplicado)
-    await expect(page.locator('text=Total: 1 subjects')).toBeVisible();
+    // Use a more flexible locator that works in any language
+    await expect(page.locator('text=/Total: 1/')).toBeVisible();
   });
 
   test('should edit subject successfully', async ({ page }) => {

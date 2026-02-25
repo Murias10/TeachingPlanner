@@ -630,7 +630,7 @@ export default function HomePage() {
                 {!hasAvailableCalendars && !isLoading && (
                     <div className="flex-1 p-4 overflow-auto relative">
                         {/* Calendario vacío de fondo */}
-                        <div className="absolute inset-0 opacity-30">
+                        <div className="absolute inset-0 opacity-30 pointer-events-none">
                             <Calendar
                                 localizer={localizer}
                                 events={[]}

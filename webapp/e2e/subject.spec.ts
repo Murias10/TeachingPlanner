@@ -194,7 +194,7 @@ async function createSubject(page: Page, data: { name: string; acronym: string; 
   await expect(saveButton).toBeEnabled({ timeout: 2000 });
   await saveButton.click();
 
-  // Esperar a que se cierre el drawer
+  // Esperar a que se cierre el drawer (solo se cierra si la creación fue exitosa)
   await expect(dialog).not.toBeVisible({ timeout: 5000 });
 }
 

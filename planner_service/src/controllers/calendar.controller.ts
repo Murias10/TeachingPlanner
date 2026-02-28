@@ -382,23 +382,52 @@ export const deleteCalendar = async (req: AuditedRequest, res: Response) => {
         }
         console.log(`[DELETE CALENDAR] Removed ${totalPuntualEvents} puntual events`);
 
-        // Paso 3: Eliminar subjects explícitamente (que eliminarán grupos en cascada)
-        // Esto es necesario porque algunos calendarios pueden no tener grupos directamente
-        // pero sí tener subjects, y la cascada automática de TypeORM puede fallar
-        console.log(`[DELETE CALENDAR] Step 3: Deleting subjects...`);
+        // Paso 3: Obtener todos los subjects y sus groups para limpiar junction tables
+        console.log(`[DELETE CALENDAR] Step 3: Getting subjects and groups...`);
         const subjectRepo = AppDataSource.getRepository(Subject);
         const subjects = await subjectRepo.find({
-            where: { calendar: { id: calendarId } }
+            where: { calendar: { id: calendarId } },
+            relations: ['groups'],
+            select: { id: true, groups: { id: true } }
         });
-        console.log(`[DELETE CALENDAR] Found ${subjects.length} subjects to remove`);
+        console.log(`[DELETE CALENDAR] Found ${subjects.length} subjects`);
+
+        const groupIds = subjects.flatMap(s => s.groups.map(g => g.id));
+        console.log(`[DELETE CALENDAR] Found ${groupIds.length} groups to clean`);
+
+        // Paso 4: Limpiar las tablas junction de los grupos (CRÍTICO)
+        // TypeORM no limpia automáticamente las junction tables cuando hay ON DELETE NO ACTION
+        // Debemos limpiarlas manualmente ANTES de eliminar los groups
+        if (groupIds.length > 0) {
+            console.log(`[DELETE CALENDAR] Step 4: Cleaning junction tables manually...`);
+
+            await AppDataSource
+                .createQueryBuilder()
+                .delete()
+                .from('PUNTUAL_EVENTS_GROUPS')
+                .where('ID_GROUP IN (:...groupIds)', { groupIds })
+                .execute();
+            console.log(`[DELETE CALENDAR] Cleaned PUNTUAL_EVENTS_GROUPS junction table`);
+
+            await AppDataSource
+                .createQueryBuilder()
+                .delete()
+                .from('PERIODIC_EVENTS_GROUPS')
+                .where('ID_GROUP IN (:...groupIds)', { groupIds })
+                .execute();
+            console.log(`[DELETE CALENDAR] Cleaned PERIODIC_EVENTS_GROUPS junction table`);
+        }
+
+        // Paso 5: Eliminar subjects (que eliminarán grupos en cascada)
+        console.log(`[DELETE CALENDAR] Step 5: Deleting subjects...`);
         if (subjects.length > 0) {
             await subjectRepo.remove(subjects);
             console.log(`[DELETE CALENDAR] Removed ${subjects.length} subjects (and their groups via cascade)`);
         }
 
-        // Paso 4: Eliminar el calendario
-        // La cascada automática eliminará: Day (ahora sin eventos), etc.
-        console.log(`[DELETE CALENDAR] Step 4: Deleting calendar...`);
+        // Paso 6: Eliminar el calendario
+        // La cascada automática eliminará: Day (ahora sin eventos), EventRequest, etc.
+        console.log(`[DELETE CALENDAR] Step 6: Deleting calendar...`);
         await calendarRepo.remove(calendar);
 
         console.log('[DELETE CALENDAR] Calendar deleted successfully');

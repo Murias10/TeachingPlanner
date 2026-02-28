@@ -194,8 +194,12 @@ async function createSubject(page: Page, data: { name: string; acronym: string; 
   await expect(saveButton).toBeEnabled({ timeout: 2000 });
   await saveButton.click();
 
-  // Esperar a que se cierre el drawer (solo se cierra si la creación fue exitosa)
-  await expect(dialog).not.toBeVisible({ timeout: 5000 });
+  // Esperar a que el subject aparezca en la tabla (confirma que se creó exitosamente)
+  // Esto es más robusto que solo esperar que el drawer se cierre
+  await expect(page.locator('table').getByText(data.acronym)).toBeVisible({ timeout: 10000 });
+
+  // Verificar que el drawer se cerró
+  await expect(dialog).not.toBeVisible({ timeout: 2000 });
 }
 
 test.describe('Subject Management', () => {

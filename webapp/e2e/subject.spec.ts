@@ -194,21 +194,20 @@ async function createSubject(page: Page, data: { name: string; acronym: string; 
   await expect(saveButton).toBeEnabled({ timeout: 2000 });
   await saveButton.click();
 
-  // Verificar que el drawer se cerró
-  await expect(dialog).not.toBeVisible({ timeout: 5000 });
-
-  // Usar el filtro de búsqueda para encontrar el subject (busca por nombre)
-  // Esto asegura que el subject esté visible sin importar la página
+  // Usar el filtro de búsqueda para verificar que el subject se creó
+  // Esto funciona sin importar la página y sin esperar a que el drawer se cierre
   const filterInput = page.getByPlaceholder(/buscar|filter|search/i);
   await filterInput.fill(data.name);
-  await page.waitForTimeout(500); // Dar tiempo al filtro
 
-  // Verificar que el subject aparece en la tabla filtrada
-  await expect(page.locator('table').getByText(data.acronym)).toBeVisible({ timeout: 5000 });
+  // Esperar a que el subject aparezca en la tabla filtrada
+  // Si esto falla, significa que la creación falló
+  await expect(page.locator('table').getByText(data.acronym)).toBeVisible({ timeout: 10000 });
 
   // Limpiar filtro
   await filterInput.clear();
-  await page.waitForTimeout(500);
+
+  // Verificar que el drawer se cerró (solo se cierra si la creación fue exitosa)
+  await expect(dialog).not.toBeVisible({ timeout: 2000 });
 }
 
 test.describe('Subject Management', () => {

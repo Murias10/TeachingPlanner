@@ -442,6 +442,82 @@
                                 "title": "Error de validación en horas planificadas",
                                 "noImport": "No se importó ningún dato debido a errores en las horas planificadas. Todos los eventos del mismo grupo deben tener el mismo número de horas planificadas."
                             }
+                        },
+                        "validation": {
+                            "title": "Resultados de la Importación Completa",
+                            "subtitle": "Resumen del proceso de importación de todos los archivos TXT"
+                        },
+                        "tabs": {
+                            "ubicaciones": "ubicaciones.txt",
+                            "calendario": "calendario.txt",
+                            "asignaturas": "asignaturas.txt",
+                            "horarios": "horarios.txt",
+                            "excepciones": "excepciones.txt"
+                        },
+                        "row": "Fila",
+                        "group": "Grupo",
+                        "error": "Error",
+                        "message": "Mensaje",
+                        "date": "Fecha",
+                        "maxAllowed": "Máximo Permitido",
+                        "eventsCreated": "Eventos Creados",
+                        "eventsSkipped": "Eventos Omitidos",
+                        "ubicaciones": {
+                            "code": "Código",
+                            "name": "Nombre",
+                            "building": "Edificio",
+                            "created": {
+                                "title_one": "{{count}} Aula Creada",
+                                "title_other": "{{count}} Aulas Creadas"
+                            },
+                            "updated": {
+                                "title_one": "{{count}} Aula Actualizada",
+                                "title_other": "{{count}} Aulas Actualizadas"
+                            }
+                        },
+                        "calendario": {
+                            "created": "Calendario Creado",
+                            "startDate": "Fecha de Inicio",
+                            "endDate": "Fecha de Fin",
+                            "totalDays": "Días Totales",
+                            "lectiveDays": "Días Lectivos",
+                            "charactersInUse": "Caracteres en Uso"
+                        },
+                        "asignaturas": {
+                            "acronym": "Acrónimo",
+                            "name": "Nombre",
+                            "totalGroups": "Total de Grupos",
+                            "created": {
+                                "title_one": "{{count}} Asignatura Creada",
+                                "title_other": "{{count}} Asignaturas Creadas"
+                            },
+                            "errors": {
+                                "title_one": "{{count}} Error de Asignatura",
+                                "title_other": "{{count}} Errores de Asignaturas"
+                            }
+                        },
+                        "horarios": {
+                            "groupsAutoCreated_one": "{{count}} Grupo Auto-Creado",
+                            "groupsAutoCreated_other": "{{count}} Grupos Auto-Creados",
+                            "subjectErrors_one": "{{count}} Error de Asignatura No Encontrada",
+                            "subjectErrors_other": "{{count}} Errores de Asignaturas No Encontradas",
+                            "classroomErrors_one": "{{count}} Error de Aula No Encontrada",
+                            "classroomErrors_other": "{{count}} Errores de Aulas No Encontradas",
+                            "groupErrors_one": "{{count}} Error de Validación de Grupo",
+                            "groupErrors_other": "{{count}} Errores de Validación de Grupos"
+                        },
+                        "excepciones": {
+                            "groupsAutoCreated_one": "{{count}} Grupo Auto-Creado",
+                            "groupsAutoCreated_other": "{{count}} Grupos Auto-Creados",
+                            "groupsAutoCreatedDescription": "Estos grupos fueron creados automáticamente porque no existían",
+                            "subjectErrors_one": "{{count}} Error de Asignatura No Encontrada",
+                            "subjectErrors_other": "{{count}} Errores de Asignaturas No Encontradas",
+                            "dateErrors_one": "{{count}} Error de Fecha No Encontrada",
+                            "dateErrors_other": "{{count}} Errores de Fechas No Encontradas",
+                            "groupErrors_one": "{{count}} Error de Validación de Grupo",
+                            "groupErrors_other": "{{count}} Errores de Validación de Grupos",
+                            "classroomErrors_one": "{{count}} Error de Aula No Encontrada",
+                            "classroomErrors_other": "{{count}} Errores de Aulas No Encontradas"
                         }
                     }
                 },
@@ -1190,6 +1266,96 @@
             "success": {
                 "title": "Importación Completada",
                 "description": "Todos los eventos se importaron correctamente. Se crearon {{count}} eventos"
+            }
+        },
+        "import": {
+            "errors": {
+                "dialog": {
+                    "title": "Error en la Importación",
+                    "subtitle": "Se encontraron {{count}} errores críticos que impidieron la importación"
+                },
+                "details": {
+                    "toggle": "Ver detalles",
+                    "count": "errores"
+                },
+                "suggestions": {
+                    "title": "Sugerencias",
+                    "checkDates": "Verifica que las fechas del archivo calendario.txt estén dentro del rango del curso académico",
+                    "verifyCourse": "Asegúrate de que el curso seleccionado coincida con las fechas que intentas importar",
+                    "reviewFormat": "Revisa que el formato de los archivos TXT sea correcto"
+                }
+            },
+            "validation": {
+                "title": "Resultados de la Importación Completa",
+                "subtitle": "Resumen del proceso de importación de todos los archivos TXT"
+            },
+            "tabs": {
+                "ubicaciones": "ubicaciones.txt",
+                "calendario": "calendario.txt",
+                "asignaturas": "asignaturas.txt",
+                "horarios": "horarios.txt",
+                "excepciones": "excepciones.txt"
+            },
+            "row": "Línea",
+            "group": "Grupo",
+            "error": "Error",
+            "message": "Mensaje",
+            "date": "Fecha",
+            "maxAllowed": "Máximo permitido",
+            "eventsCreated": "Eventos creados",
+            "eventsSkipped": "Eventos omitidos",
+            "showMore": "Mostrar todos ({{count}} más)",
+            "showLess": "Mostrar menos",
+            "ubicaciones": {
+                "created": {
+                    "title": "Aulas creadas ({{count}})"
+                },
+                "updated": {
+                    "title": "Aulas actualizadas ({{count}})"
+                },
+                "code": "Código",
+                "name": "Nombre",
+                "building": "Edificio"
+            },
+            "calendario": {
+                "created": "Calendario creado correctamente",
+                "startDate": "Fecha inicio",
+                "endDate": "Fecha fin",
+                "totalDays": "Días totales",
+                "lectiveDays": "Días lectivos",
+                "charactersInUse": "Caracteres en uso",
+                "warnings": {
+                    "daysIgnored": "Días ignorados fuera de rango",
+                    "daysAutoFilled": "Días auto-rellenados",
+                    "ignoredTitle": "Se ignoraron {{count}} días fuera del rango del curso",
+                    "autoFilledTitle": "Se auto-rellenaron {{count}} días faltantes"
+                }
+            },
+            "asignaturas": {
+                "created": {
+                    "title": "Asignaturas creadas ({{count}})"
+                },
+                "errors": {
+                    "title": "Errores ({{count}})"
+                },
+                "acronym": "Acrónimo",
+                "name": "Nombre",
+                "totalGroups": "Total de grupos"
+            },
+            "horarios": {
+                "groupsAutoCreated": "Grupos creados automáticamente ({{count}})",
+                "groupsAutoCreatedDescription": "Estos grupos fueron creados automáticamente",
+                "subjectErrors": "Errores de asignatura ({{count}})",
+                "classroomErrors": "Errores de aula ({{count}})",
+                "groupErrors": "Errores de grupo ({{count}})"
+            },
+            "excepciones": {
+                "groupsAutoCreated": "Grupos creados automáticamente ({{count}})",
+                "groupsAutoCreatedDescription": "Estos grupos fueron creados porque no tienen horario regular definido en horarios.txt",
+                "subjectErrors": "Errores de asignatura ({{count}})",
+                "dateErrors": "Errores de fecha ({{count}})",
+                "groupErrors": "Errores de grupo ({{count}})",
+                "classroomErrors": "Errores de aula ({{count}})"
             }
         }
     },

@@ -39,41 +39,152 @@ export interface CalendarDrawerData {
     degreeId: string;
 }
 
-export interface PIConflictDetection {
-    detected: boolean;
-    type: 'none' | 'P_only' | 'I_only' | 'both_PI' | 'irregular';
-    summary: string;
-    details: Array<{
-        character: 'P' | 'I';
-        expectedCharacter: 'P' | 'I' | 'F';
-        affectedDays: Array<{
-            date: Date;
-            actualCharacter: string;
-            expectedCharacter: string;
-            weekNumber: number;
-        }>;
+export interface ClassroomsValidationResult {
+    processed: boolean;
+    classroomsCreated: Array<{
+        code: string;
+        name: string;
+        building: string;
     }>;
-    statistics: {
-        totalDays: number;
-        lectiveDays: number;
-        daysWithP: number;
-        daysWithI: number;
-        expectedPDays: number;
-        expectedIDays: number;
-        conflictingDays: number;
-    };
+    classroomsUpdated: Array<{
+        code: string;
+        name: string;
+        building: string;
+    }>;
 }
 
-export interface PISubstitution {
+export interface CalendarValidationResult {
+    calendarCreated: boolean;
+    startDate: string;
+    endDate: string;
+    totalDays: number;
+    lectiveDays: number;
+    charactersInUse: string;
+    daysIgnoredOutOfRange?: number;
+    daysAutoFilled?: number;
+    ignoredDates?: string[];
+    autoFilledDates?: string[];
+}
+
+export interface SubjectsValidationResult {
+    subjectsCreated: Array<{
+        acronym: string;
+        name: string;
+        totalGroups: number;
+    }>;
+    errors: Array<{
+        row: number;
+        acronym: string;
+        error: {
+            field: string;
+            message: string;
+        };
+    }>;
+}
+
+export interface ScheduleValidationResult {
+    eventsCreated: number;
+    eventsSkipped: number;
+    groupsAutoCreated: Array<{
+        row: number;
+        groupKey: string;
+        warning: {
+            field: string;
+            message: string;
+        };
+    }>;
+    // Errors separated by field type
+    subjectErrors: Array<{
+        row: number;
+        groupKey: string;
+        subjectAcronym: string;
+        error: {
+            field: string;
+            message: string;
+        };
+    }>;
+    classroomErrors: Array<{
+        row: number;
+        groupKey: string;
+        classroomCode: string;
+        error: {
+            field: string;
+            message: string;
+        };
+    }>;
+    groupErrors: Array<{
+        row: number;
+        groupKey: string;
+        maxAllowed: number;
+        error: {
+            field: string;
+            message: string;
+        };
+    }>;
+}
+
+export interface ExceptionsValidationResult {
+    eventsCreated: number;
+    eventsSkipped: number;
+    groupsAutoCreated: Array<{
+        row: number;
+        groupKey: string;
+        warning: {
+            field: string;
+            message: string;
+        };
+    }>;
+    // Errors separated by field type
+    subjectErrors: Array<{
+        row: number;
+        groupKey: string;
+        subjectAcronym: string;
+        error: {
+            field: string;
+            message: string;
+        };
+    }>;
+    dateErrors: Array<{
+        row: number;
+        groupKey: string;
+        date: string;
+        error: {
+            field: string;
+            message: string;
+        };
+    }>;
+    groupErrors: Array<{
+        row: number;
+        groupKey: string;
+        error: {
+            field: string;
+            message: string;
+        };
+    }>;
+    classroomErrors: Array<{
+        row: number;
+        groupKey: string;
+        classroomCode: string;
+        error: {
+            field: string;
+            message: string;
+        };
+    }>;
+}
+
+export interface PINormalizationResult {
     performed: boolean;
+    eventsUsePI: boolean;
+    iValid: boolean;
+    pValid: boolean;
     substitutions: Array<{
         oldCharacter: string;
         newCharacter: string;
-        reason: string;
         daysUpdated: number;
-        eventsUpdated: number;
+        periodicEventsUpdated: number;
+        puntualEventsUpdated: number;
     }>;
-    updatedCharactersInUse: string;
+    piAdded: boolean;
     summary: string;
 }
 
@@ -128,9 +239,13 @@ export interface ImportResult {
             processedCount: number;
             errorCount: number;
             errors: string[];
-            piConflictDetection?: PIConflictDetection;
-            piSubstitution?: PISubstitution;
             groupValidation?: GroupValidationResult;
         };
+        ubicaciones?: ClassroomsValidationResult;
+        calendario?: CalendarValidationResult;
+        asignaturas?: SubjectsValidationResult;
+        horarios?: ScheduleValidationResult;
+        excepciones?: ExceptionsValidationResult;
+        piNormalization?: PINormalizationResult;
     };
 }

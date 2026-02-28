@@ -5,7 +5,7 @@ import {
     TooltipTrigger,
     TooltipProvider,
 } from "@/components/ui/tooltip"
-import { Plus } from "lucide-react";
+import { CirclePlus } from "lucide-react";
 
 interface GroupToolbarProps {
     onCreateGroup?: () => void;
@@ -24,7 +24,7 @@ export function GroupToolbar({ onCreateGroup }: GroupToolbarProps) {
                                 onClick={onCreateGroup}
                                 className="h-9 gap-2"
                             >
-                                <Plus className="w-4 h-4" />
+                                <CirclePlus className="w-4 h-4" />
                                 <span className="hidden sm:inline text-xs">Crear grupo</span>
                             </Button>
                         </TooltipTrigger>

@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Download, Plus, FileSpreadsheet, Upload } from 'lucide-react';
+import { Download, CirclePlus, FileSpreadsheet, Upload } from 'lucide-react';
 
 interface CalendarToolbarProps {
   onExport?: () => void;
@@ -30,7 +30,7 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
               onClick={onCreateEvent}
               className="h-9 gap-2"
             >
-              <Plus className="w-4 h-4" />
+              <CirclePlus className="w-4 h-4" />
               <span className="hidden sm:inline text-xs">Crear evento</span>
             </Button>
           </TooltipTrigger>

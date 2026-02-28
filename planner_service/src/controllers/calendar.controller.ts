@@ -382,20 +382,22 @@ export const deleteCalendar = async (req: AuditedRequest, res: Response) => {
         }
         console.log(`[DELETE CALENDAR] Removed ${totalPuntualEvents} puntual events`);
 
-        // Paso 3: Eliminar grupos (ahora que las junction tables están limpias)
-        console.log(`[DELETE CALENDAR] Step 3: Deleting groups...`);
-        const groupRepo = AppDataSource.getRepository(Group);
-        const groups = await groupRepo.find({
+        // Paso 3: Eliminar subjects explícitamente (que eliminarán grupos en cascada)
+        // Esto es necesario porque algunos calendarios pueden no tener grupos directamente
+        // pero sí tener subjects, y la cascada automática de TypeORM puede fallar
+        console.log(`[DELETE CALENDAR] Step 3: Deleting subjects...`);
+        const subjectRepo = AppDataSource.getRepository(Subject);
+        const subjects = await subjectRepo.find({
             where: { calendar: { id: calendarId } }
         });
-        console.log(`[DELETE CALENDAR] Found ${groups.length} groups to remove`);
-        if (groups.length > 0) {
-            await groupRepo.remove(groups);
-            console.log(`[DELETE CALENDAR] Removed ${groups.length} groups`);
+        console.log(`[DELETE CALENDAR] Found ${subjects.length} subjects to remove`);
+        if (subjects.length > 0) {
+            await subjectRepo.remove(subjects);
+            console.log(`[DELETE CALENDAR] Removed ${subjects.length} subjects (and their groups via cascade)`);
         }
 
         // Paso 4: Eliminar el calendario
-        // La cascada automática eliminará: Subject, Day (ahora sin eventos), etc.
+        // La cascada automática eliminará: Day (ahora sin eventos), etc.
         console.log(`[DELETE CALENDAR] Step 4: Deleting calendar...`);
         await calendarRepo.remove(calendar);
 

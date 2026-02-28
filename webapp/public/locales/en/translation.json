@@ -442,6 +442,82 @@
                                 "title": "Validation error in planned hours",
                                 "noImport": "No data was imported due to errors in planned hours. All events of the same group must have the same number of planned hours."
                             }
+                        },
+                        "validation": {
+                            "title": "Complete Import Results",
+                            "subtitle": "Summary of the import process for all TXT files"
+                        },
+                        "tabs": {
+                            "ubicaciones": "ubicaciones.txt",
+                            "calendario": "calendario.txt",
+                            "asignaturas": "asignaturas.txt",
+                            "horarios": "horarios.txt",
+                            "excepciones": "excepciones.txt"
+                        },
+                        "row": "Row",
+                        "group": "Group",
+                        "error": "Error",
+                        "message": "Message",
+                        "date": "Date",
+                        "maxAllowed": "Max Allowed",
+                        "eventsCreated": "Events Created",
+                        "eventsSkipped": "Events Skipped",
+                        "ubicaciones": {
+                            "code": "Code",
+                            "name": "Name",
+                            "building": "Building",
+                            "created": {
+                                "title_one": "{{count}} Classroom Created",
+                                "title_other": "{{count}} Classrooms Created"
+                            },
+                            "updated": {
+                                "title_one": "{{count}} Classroom Updated",
+                                "title_other": "{{count}} Classrooms Updated"
+                            }
+                        },
+                        "calendario": {
+                            "created": "Calendar Created",
+                            "startDate": "Start Date",
+                            "endDate": "End Date",
+                            "totalDays": "Total Days",
+                            "lectiveDays": "Lective Days",
+                            "charactersInUse": "Characters in Use"
+                        },
+                        "asignaturas": {
+                            "acronym": "Acronym",
+                            "name": "Name",
+                            "totalGroups": "Total Groups",
+                            "created": {
+                                "title_one": "{{count}} Subject Created",
+                                "title_other": "{{count}} Subjects Created"
+                            },
+                            "errors": {
+                                "title_one": "{{count}} Subject Error",
+                                "title_other": "{{count}} Subject Errors"
+                            }
+                        },
+                        "horarios": {
+                            "groupsAutoCreated_one": "{{count}} Group Auto-Created",
+                            "groupsAutoCreated_other": "{{count}} Groups Auto-Created",
+                            "subjectErrors_one": "{{count}} Subject Not Found Error",
+                            "subjectErrors_other": "{{count}} Subject Not Found Errors",
+                            "classroomErrors_one": "{{count}} Classroom Not Found Error",
+                            "classroomErrors_other": "{{count}} Classroom Not Found Errors",
+                            "groupErrors_one": "{{count}} Group Validation Error",
+                            "groupErrors_other": "{{count}} Group Validation Errors"
+                        },
+                        "excepciones": {
+                            "groupsAutoCreated_one": "{{count}} Group Auto-Created",
+                            "groupsAutoCreated_other": "{{count}} Groups Auto-Created",
+                            "groupsAutoCreatedDescription": "These groups were automatically created because they didn't exist",
+                            "subjectErrors_one": "{{count}} Subject Not Found Error",
+                            "subjectErrors_other": "{{count}} Subject Not Found Errors",
+                            "dateErrors_one": "{{count}} Date Not Found Error",
+                            "dateErrors_other": "{{count}} Date Not Found Errors",
+                            "groupErrors_one": "{{count}} Group Validation Error",
+                            "groupErrors_other": "{{count}} Group Validation Errors",
+                            "classroomErrors_one": "{{count}} Classroom Not Found Error",
+                            "classroomErrors_other": "{{count}} Classroom Not Found Errors"
                         }
                     }
                 },
@@ -1190,6 +1266,113 @@
             "success": {
                 "title": "Import Completed",
                 "description": "All events were imported successfully. Created {{count}} events"
+            }
+        },
+        "import": {
+            "errors": {
+                "dialog": {
+                    "title": "Import Error",
+                    "subtitle_one": "{{count}} critical error prevented the import",
+                    "subtitle_other": "{{count}} critical errors prevented the import"
+                },
+                "details": {
+                    "toggle": "View details",
+                    "count_one": "error",
+                    "count_other": "errors"
+                },
+                "suggestions": {
+                    "title": "Suggestions",
+                    "checkDates": "Verify that dates in calendario.txt are within the academic course range",
+                    "verifyCourse": "Make sure the selected course matches the dates you're trying to import",
+                    "reviewFormat": "Review that the TXT files format is correct"
+                }
+            },
+            "validation": {
+                "title": "Complete Import Results",
+                "subtitle": "Summary of the import process for all TXT files"
+            },
+            "tabs": {
+                "ubicaciones": "ubicaciones.txt",
+                "calendario": "calendario.txt",
+                "asignaturas": "asignaturas.txt",
+                "horarios": "horarios.txt",
+                "excepciones": "excepciones.txt"
+            },
+            "row": "Row",
+            "group": "Group",
+            "error": "Error",
+            "message": "Message",
+            "date": "Date",
+            "maxAllowed": "Max Allowed",
+            "eventsCreated": "Events Created",
+            "eventsSkipped": "Events Skipped",
+            "showMore": "Show all ({{count}} more)",
+            "showLess": "Show less",
+            "ubicaciones": {
+                "created": {
+                    "title_one": "{{count}} Classroom Created",
+                    "title_other": "{{count}} Classrooms Created"
+                },
+                "updated": {
+                    "title_one": "{{count}} Classroom Updated",
+                    "title_other": "{{count}} Classrooms Updated"
+                },
+                "code": "Code",
+                "name": "Name",
+                "building": "Building"
+            },
+            "calendario": {
+                "created": "Calendar successfully created",
+                "startDate": "Start Date",
+                "endDate": "End Date",
+                "totalDays": "Total Days",
+                "lectiveDays": "Lective Days",
+                "charactersInUse": "Characters in Use",
+                "warnings": {
+                    "daysIgnored": "Days ignored out of range",
+                    "daysAutoFilled": "Days auto-filled",
+                    "ignoredTitle_one": "{{count}} day ignored outside course date range",
+                    "ignoredTitle_other": "{{count}} days ignored outside course date range",
+                    "autoFilledTitle_one": "{{count}} missing day auto-filled",
+                    "autoFilledTitle_other": "{{count}} missing days auto-filled"
+                }
+            },
+            "asignaturas": {
+                "created": {
+                    "title_one": "{{count}} Subject Created",
+                    "title_other": "{{count}} Subjects Created"
+                },
+                "errors": {
+                    "title_one": "{{count}} Error",
+                    "title_other": "{{count}} Errors"
+                },
+                "acronym": "Acronym",
+                "name": "Name",
+                "totalGroups": "Total Groups"
+            },
+            "horarios": {
+                "groupsAutoCreated_one": "{{count}} Group Auto-Created",
+                "groupsAutoCreated_other": "{{count}} Groups Auto-Created",
+                "groupsAutoCreatedDescription": "These groups were automatically created",
+                "subjectErrors_one": "{{count}} Subject Error",
+                "subjectErrors_other": "{{count}} Subject Errors",
+                "classroomErrors_one": "{{count}} Classroom Error",
+                "classroomErrors_other": "{{count}} Classroom Errors",
+                "groupErrors_one": "{{count}} Group Error",
+                "groupErrors_other": "{{count}} Group Errors"
+            },
+            "excepciones": {
+                "groupsAutoCreated_one": "{{count}} Group Auto-Created",
+                "groupsAutoCreated_other": "{{count}} Groups Auto-Created",
+                "groupsAutoCreatedDescription": "These groups were created because they don't have a regular schedule defined in horarios.txt",
+                "subjectErrors_one": "{{count}} Subject Error",
+                "subjectErrors_other": "{{count}} Subject Errors",
+                "dateErrors_one": "{{count}} Date Error",
+                "dateErrors_other": "{{count}} Date Errors",
+                "groupErrors_one": "{{count}} Group Error",
+                "groupErrors_other": "{{count}} Group Errors",
+                "classroomErrors_one": "{{count}} Classroom Error",
+                "classroomErrors_other": "{{count}} Classroom Errors"
             }
         }
     },

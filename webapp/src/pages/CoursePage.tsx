@@ -20,10 +20,10 @@ import { useQueryClient } from "@tanstack/react-query"
 import { CreateCourseDrawer } from "@/components/course/CreateCourseDrawer"
 import { EditCourseDrawer, EditCourseFormData } from "@/components/course/EditCourseDrawer"
 import { CreateCalendarDrawer } from "@/components/calendar/CreateCalendarDrawer"
-import SubstitutionReportDialog from "@/components/calendar/SubstitutionReportDialog"
-import { GroupValidationDialog } from "@/components/calendar/GroupValidationDialog"
+import { CompleteImportValidationDialog } from "@/components/calendar/CompleteImportValidationDialog"
+import { ImportErrorDialog } from "@/components/calendar/ImportErrorDialog"
 import { CourseFormData, Course } from "@/types/Course"
-import { CalendarFormData, CalendarDrawerData, PIConflictDetection, PISubstitution, GroupValidationResult } from "@/types/Calendar"
+import { CalendarFormData, CalendarDrawerData, ImportResult } from "@/types/Calendar"
 import { useCoursesByDegreeId } from "@/hooks/course/useCoursesByDegreeId"
 import VITE_GATEWAY_API_URL from "@/config/api"
 import { getAuthHeaders } from "@/utils/authHeaders"
@@ -33,6 +33,13 @@ interface DeleteState {
     courseId?: string;
     calendarId?: string;
     selectedIds?: string[];
+}
+
+// Helper function to extract file name from error message
+function extractFileNameFromError(errorMessage: string): string {
+    const fileNames = ['calendario.txt', 'asignaturas.txt', 'horarios.txt', 'excepciones.txt', 'ubicaciones.txt'];
+    const foundFile = fileNames.find(fileName => errorMessage.includes(fileName));
+    return foundFile || 'Unknown file';
 }
 
 export default function CoursePage() {
@@ -87,13 +94,10 @@ export default function CoursePage() {
     const [openCalendarDrawer, setOpenCalendarDrawer] = useState(false)
     const [calendarDrawerData, setCalendarDrawerData] = useState<CalendarDrawerData | null>(null)
     const [deleteState, setDeleteState] = useState<DeleteState>({ type: null })
-    const [openSubstitutionDialog, setOpenSubstitutionDialog] = useState(false)
-    const [substitutionData, setSubstitutionData] = useState<{
-        conflictDetection?: PIConflictDetection;
-        substitution?: PISubstitution;
-    }>({});
-    const [openGroupValidationDialog, setOpenGroupValidationDialog] = useState(false)
-    const [groupValidationData, setGroupValidationData] = useState<GroupValidationResult | null>(null);
+    const [openCompleteImportDialog, setOpenCompleteImportDialog] = useState(false)
+    const [completeImportData, setCompleteImportData] = useState<ImportResult | null>(null);
+    const [openImportErrorDialog, setOpenImportErrorDialog] = useState(false);
+    const [importErrors, setImportErrors] = useState<Array<{ fileName: string; message: string; errors: string[] }>>([]);
 
     // Configurar breadcrumb
     useEffect(() => {
@@ -378,32 +382,20 @@ export default function CoursePage() {
                             handleCloseCalendarDrawer();
 
                             // Verificar si hay datos de sustitución para mostrar
-                            const hasConflictData = data?.importResult?.events?.piConflictDetection?.detected ||
-                                                   data?.importResult?.events?.piSubstitution?.performed;
-
-                            if (hasConflictData) {
-                                // Guardar los datos de sustitución y mostrar el diálogo
-                                setSubstitutionData({
-                                    conflictDetection: data?.importResult?.events?.piConflictDetection,
-                                    substitution: data?.importResult?.events?.piSubstitution
-                                });
-                                setOpenSubstitutionDialog(true);
-                            }
-
-                            // Verificar si hay datos de validación de grupos para mostrar
-                            const groupValidationResult = data?.importResult?.events?.groupValidation;
-                            console.log('[GROUP VALIDATION - FRONTEND] Received data:', groupValidationResult);
-
-                            if (groupValidationResult?.hasIssues) {
-                                console.log('[GROUP VALIDATION - FRONTEND] Opening dialog with issues:', {
-                                    errors: groupValidationResult.groupsNotFound?.length,
-                                    warnings: groupValidationResult.groupsAutoCreated?.length
-                                });
-                                // Guardar los datos de validación y mostrar el diálogo
-                                setGroupValidationData(groupValidationResult);
-                                setOpenGroupValidationDialog(true);
+                            // Check if there are validation results from complete import
+                            console.log('[Import] Import result:', data?.importResult);
+                            if (data?.importResult && (
+                                data.importResult.ubicaciones ||
+                                data.importResult.calendario ||
+                                data.importResult.asignaturas ||
+                                data.importResult.horarios ||
+                                data.importResult.excepciones
+                            )) {
+                                console.log('[Import] Opening validation dialog');
+                                setCompleteImportData(data);
+                                setOpenCompleteImportDialog(true);
                             } else {
-                                console.log('[GROUP VALIDATION - FRONTEND] No issues found or no validation data');
+                                console.log('[Import] No validation data found');
                             }
 
                             triggerAlert({
@@ -422,26 +414,44 @@ export default function CoursePage() {
                             refetch();
                             resolve();
                         },
-                        onError: (error) => {
+                        onError: (error: any) => {
                             console.error('Error importing calendar:', error);
+                            handleCloseCalendarDrawer();
 
-                            let errorMessage = t("alerts.calendar.error.create.description");
+                            // Check if error has detailed error data (from import failures)
+                            const hasDetailedErrors = error.errorData?.errors && Array.isArray(error.errorData.errors);
 
-                            if (error instanceof Error) {
-                                if (error.message.includes('already exists')) {
-                                    errorMessage = t("alerts.calendar.error.create.conflict.description");
-                                } else if (error.message.includes('Course not found')) {
-                                    errorMessage = t("alerts.calendar.error.create.course.description");
-                                } else {
-                                    errorMessage = error.message;
+                            if (hasDetailedErrors) {
+                                // Show detailed error dialog for import failures
+                                const fileName = extractFileNameFromError(error.message);
+
+                                setImportErrors([{
+                                    fileName,
+                                    message: error.message,
+                                    errors: error.errorData.errors
+                                }]);
+                                setOpenImportErrorDialog(true);
+                            } else {
+                                // Show simple alert for other errors
+                                let errorMessage = t("alerts.calendar.error.create.description");
+
+                                if (error instanceof Error) {
+                                    if (error.message.includes('already exists')) {
+                                        errorMessage = t("alerts.calendar.error.create.conflict.description");
+                                    } else if (error.message.includes('Course not found')) {
+                                        errorMessage = t("alerts.calendar.error.create.course.description");
+                                    } else {
+                                        errorMessage = error.message;
+                                    }
                                 }
+
+                                triggerAlert({
+                                    title: t("alerts.calendar.error.create.title"),
+                                    description: errorMessage,
+                                    variant: "destructive"
+                                });
                             }
 
-                            triggerAlert({
-                                title: t("alerts.calendar.error.create.title"),
-                                description: errorMessage,
-                                variant: "destructive"
-                            });
                             reject(error);
                         }
                     }
@@ -696,17 +706,16 @@ export default function CoursePage() {
 
             <DeleteConfirmationDialog {...getDeleteDialogProps()} />
 
-            <SubstitutionReportDialog
-                open={openSubstitutionDialog}
-                onOpenChange={setOpenSubstitutionDialog}
-                conflictDetection={substitutionData.conflictDetection}
-                substitution={substitutionData.substitution}
+            <CompleteImportValidationDialog
+                open={openCompleteImportDialog}
+                onOpenChange={setOpenCompleteImportDialog}
+                importResult={completeImportData}
             />
 
-            <GroupValidationDialog
-                open={openGroupValidationDialog}
-                onOpenChange={setOpenGroupValidationDialog}
-                validationResult={groupValidationData}
+            <ImportErrorDialog
+                open={openImportErrorDialog}
+                onOpenChange={setOpenImportErrorDialog}
+                fileErrors={importErrors}
             />
         </>
     )

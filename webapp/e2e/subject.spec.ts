@@ -313,9 +313,9 @@ test.describe('Subject Management', () => {
     await page.waitForTimeout(500);
 
     // Verificar que el duplicado no fue creado
-    // Contar filas en la tabla - debe haber solo 1 (el primero creado)
-    const tableRows = page.locator('table tbody tr');
-    await expect(tableRows).toHaveCount(1);
+    // Debe haber exactamente 1 fila con este acrónimo específico (el primero creado)
+    const subjectRows = page.locator(`table tbody tr:has-text("${uniqueAcronym}")`);
+    await expect(subjectRows).toHaveCount(1);
   });
 
   test('should edit subject successfully', async ({ page }) => {

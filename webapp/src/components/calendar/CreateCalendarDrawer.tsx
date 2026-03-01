@@ -1,7 +1,7 @@
 // components/calendar/CreateCalendarDrawer.tsx
 import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { format, addYears, isSaturday, isSunday, isValid } from "date-fns";
+import { format, addYears, isSaturday, isSunday, isValid, isBefore, isAfter, startOfDay } from "date-fns";
 import { es } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -1081,7 +1081,9 @@ export const CreateCalendarDrawer = ({
                                                     }}
                                                     disabled={(date) => {
                                                         if (!duplicateStartDate || !duplicateEndDate) return true;
-                                                        return date < duplicateStartDate || date > duplicateEndDate || isWeekend(date);
+                                                        return isBefore(startOfDay(date), startOfDay(duplicateStartDate)) ||
+                                                               isAfter(startOfDay(date), startOfDay(duplicateEndDate)) ||
+                                                               isWeekend(date);
                                                     }}
                                                     weekStartsOn={1}
                                                     locale={es}

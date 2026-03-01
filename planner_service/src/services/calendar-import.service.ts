@@ -1386,7 +1386,12 @@ export class CalendarImportService {
         // Build group key for tracking and logging
         const groupKey = this.formatGroupKey(event.subjectAcronym, event.groupType, event.groupNumber, event.language);
 
-        const subject = await subjectRepo.findOne({ where: { acronym: event.subjectAcronym } });
+        const subject = await subjectRepo.findOne({
+          where: {
+            acronym: event.subjectAcronym,
+            calendar: { id: calendar.id }
+          }
+        });
         if (!subject) {
           // Asignatura no existe - reportar error
           console.warn(`[HORARIOS] Línea ${event.lineNumber}: Asignatura ${event.subjectAcronym} no encontrada`);

@@ -146,45 +146,37 @@ export const CreateCalendarDrawer = ({
     const courseEndYear = courseYear ? Number(courseYear.split('-')[1]) : undefined;
 
     // Calculate semester date range
-    const getSemesterRange = () => {
-        if (!courseStartYear || !courseEndYear || !semester) return null;
+    const getCourseRange = () => {
+        if (!courseStartYear || !courseEndYear) return null;
 
-        let semesterStart: Date;
-        let semesterEnd: Date;
+        // Valid date range for the course: from 31/08/startYear to 31/08/endYear
+        // This matches the validation used in calendario.txt import
+        const courseStart = new Date(courseStartYear, 7, 31); // 31 de agosto del año inicial (month 7 = agosto)
+        const courseEnd = new Date(courseEndYear, 7, 31);     // 31 de agosto del año final
 
-        if (semester === 1) {
-            // Semester 1: September to end of December
-            semesterStart = new Date(courseStartYear, 8, 1);  // 1 septiembre
-            semesterEnd = new Date(courseStartYear, 11, 31); // 31 diciembre
-        } else {
-            // Semester 2: January to end of June
-            semesterStart = new Date(courseEndYear, 0, 1);    // 1 enero
-            semesterEnd = new Date(courseEndYear, 5, 30);     // 30 junio
-        }
-
-        return { semesterStart, semesterEnd };
+        return { courseStart, courseEnd };
     };
 
-    // Calculate date limits based on semester
+    // Calculate date limits based on course academic year
     const isDateInCourseRange = (date: Date) => {
-        const range = getSemesterRange();
+        const range = getCourseRange();
         if (!range) return true;
 
-        return date >= range.semesterStart && date <= range.semesterEnd;
+        return date >= range.courseStart && date <= range.courseEnd;
     };
 
     // Get default month to show in datepicker
     const getDefaultMonth = () => {
-        const range = getSemesterRange();
+        const range = getCourseRange();
         if (!range) return new Date();
 
         const today = new Date();
-        // If today is within semester range, show current month
-        if (today >= range.semesterStart && today <= range.semesterEnd) {
+        // If today is within course academic year range, show current month
+        if (today >= range.courseStart && today <= range.courseEnd) {
             return today;
         }
-        // Otherwise, show first month of semester
-        return range.semesterStart;
+        // Otherwise, show first month of course (September, first month after August 31)
+        return new Date(courseStartYear || new Date().getFullYear(), 8, 1); // 1 de septiembre
     };
 
     // Check if date is weekend (Saturday or Sunday)
@@ -680,7 +672,7 @@ export const CreateCalendarDrawer = ({
                                                                     setStartDateOpen(false);
                                                                 }
                                                             }}
-                                                            disabled={isDateDisabled}
+                                                            disabled={(date) => isDateDisabled(date) || (endDate ? date >= endDate : false)}
                                                             weekStartsOn={1}
                                                             locale={es}
                                                             defaultMonth={getDefaultMonth()}
@@ -1020,7 +1012,7 @@ export const CreateCalendarDrawer = ({
                                                                     setDuplicateStartDateOpen(false);
                                                                 }
                                                             }}
-                                                            disabled={isDateDisabled}
+                                                            disabled={(date) => isDateDisabled(date) || (duplicateEndDate ? date >= duplicateEndDate : false)}
                                                             weekStartsOn={1}
                                                             locale={es}
                                                             defaultMonth={getDefaultMonth()}

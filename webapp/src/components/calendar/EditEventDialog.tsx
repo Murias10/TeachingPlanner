@@ -21,7 +21,6 @@ import type { RecurrenceConfig, FrequencyType, WeekDay, EndsType, CustomFrequenc
 import type { CalendarEvent } from '@/types/CalendarEvent';
 import type { Group } from '@/types/Group';
 import { useClassrooms } from '@/hooks/classroom/useClassrooms';
-import { useSubjectsByCalendarId } from '@/hooks/subject/useSubjectsByCalendarId';
 import { useSubjectsWithGroupsByCalendarId } from '@/hooks/subject/useSubjectsWithGroupsByCalendarId';
 import { EVENT_CHARACTERS, EVENT_TYPES, isCustomEventCharacter, isSpecialEventType, isReviewOrEvalEventType, EVENT_TYPE_LABELS } from '@/constants/eventCharacters';
 import { getCharacterDescription } from '@/utils/eventCharacterUtils';
@@ -245,10 +244,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
   }, [config.subjectId, isInitializing]);
 
   const { data: classrooms = [] } = useClassrooms();
-  const { data: subjects = [], isLoading: isLoadingSubjects } = useSubjectsByCalendarId(calendarId || null);
-
-  // Get all subjects with their groups using the same hook as GroupPage
-  const { data: subjectsWithGroups = [] } = useSubjectsWithGroupsByCalendarId(calendarId || null);
+  const { data: subjectsWithGroups = [], isLoading: isLoadingSubjects } = useSubjectsWithGroupsByCalendarId(calendarId || null);
 
   // Ensure event classrooms are available in the list
   const availableClassrooms = useMemo(() => {
@@ -268,6 +264,21 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
     return mergedClassrooms;
   }, [classrooms, event]);
 
+  // Get current subject with fallback to event.subject
+  const currentSubject = useMemo(() => {
+    if (!config.subjectId) return null;
+
+    // First try to find in subjectsWithGroups
+    const found = subjectsWithGroups.find(s => s.id === config.subjectId);
+    if (found) return found;
+
+    // Fallback to event.subject if available
+    if (event?.subject?.id === config.subjectId) {
+      return event.subject;
+    }
+
+    return null;
+  }, [config.subjectId, subjectsWithGroups, event]);
 
   // Calculate monthly pattern labels based on customStartDate
   const monthlyPatternLabels = useMemo(() => {
@@ -448,7 +459,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex flex-col max-h-[90vh] p-0">
+      <DialogContent className="flex flex-col max-h-[90vh] p-0" key={event?.id}>
         <DialogHeader className="px-6 pt-6 pb-0">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-accent rounded-lg">
@@ -622,22 +633,44 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                 <div className="h-8 text-xs flex items-center text-muted-foreground">
                   Cargando asignaturas...
                 </div>
-              ) : subjects.length === 0 ? (
+              ) : subjectsWithGroups.length === 0 ? (
                 <div className="h-8 text-xs flex items-center text-muted-foreground">
                   No hay asignaturas disponibles
                 </div>
               ) : (
-                <SearchableSelect
-                  value={config.subjectId || ''}
-                  onValueChange={(value) => setConfig({ ...config, subjectId: value })}
-                  options={subjects.sort((a, b) => a.name.localeCompare(b.name)).map((subject) => ({
+                (() => {
+                  const subjectOptions = subjectsWithGroups.sort((a, b) => a.name.localeCompare(b.name)).map((subject) => ({
                     value: subject.id,
                     label: subject.name
-                  }))}
-                  placeholder="Seleccionar asignatura"
-                  searchPlaceholder="Buscar asignatura..."
-                  emptyMessage="No se encontraron asignaturas."
-                />
+                  }));
+
+                  console.log('=== DEBUG Subject Selection ===');
+                  console.log('config.subjectId:', config.subjectId);
+                  console.log('event.subject:', event?.subject);
+                  console.log('subjectsWithGroups (all):', subjectsWithGroups.map(s => ({ id: s.id, name: s.name })));
+                  console.log('subjectOptions (all):', subjectOptions);
+
+                  // Buscar el subject en las opciones
+                  const matchingOption = subjectOptions.find(opt => opt.value === config.subjectId);
+                  console.log('matchingOption:', matchingOption);
+
+                  // Verificar si el subject del evento está en subjectsWithGroups
+                  const eventSubjectInList = subjectsWithGroups.find(s => s.id === event?.subject?.id);
+                  console.log('Is event.subject in subjectsWithGroups?', eventSubjectInList);
+
+                  console.log('================================');
+
+                  return (
+                    <SearchableSelect
+                      value={config.subjectId || ''}
+                      onValueChange={(value) => setConfig({ ...config, subjectId: value })}
+                      options={subjectOptions}
+                      placeholder="Seleccionar asignatura"
+                      searchPlaceholder="Buscar asignatura..."
+                      emptyMessage="No se encontraron asignaturas."
+                    />
+                  );
+                })()
               )}
             </div>
 
@@ -698,15 +731,13 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                     values={config.groupIds || []}
                     onValuesChange={(values) => setConfig({ ...config, groupIds: values })}
                     options={availableGroups.sort((a, b) => {
-                      const subject = subjects.find(s => s.id === config.subjectId);
-                      const labelA = `${subject?.acronym}.${a.type}.${a.language === 'EN' ? 'I-' : ''}${a.number}`;
-                      const labelB = `${subject?.acronym}.${b.type}.${b.language === 'EN' ? 'I-' : ''}${b.number}`;
+                      const labelA = `${currentSubject?.acronym}.${a.type}.${a.language === 'EN' ? 'I-' : ''}${a.number}`;
+                      const labelB = `${currentSubject?.acronym}.${b.type}.${b.language === 'EN' ? 'I-' : ''}${b.number}`;
                       return labelA.localeCompare(labelB);
                     }).map((group) => {
-                      const subject = subjects.find(s => s.id === config.subjectId);
                       return {
                         value: group.id,
-                        label: `${subject?.acronym}.${group.type}.${group.language === 'EN' ? 'I-' : ''}${group.number}`
+                        label: `${currentSubject?.acronym}.${group.type}.${group.language === 'EN' ? 'I-' : ''}${group.number}`
                       };
                     })}
                     placeholder="Seleccionar grupos"
@@ -720,15 +751,13 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                       setConfig({ ...config, groupIds: value ? [value] : [] });
                     }}
                     options={availableGroups.sort((a, b) => {
-                      const subject = subjects.find(s => s.id === config.subjectId);
-                      const labelA = `${subject?.acronym}.${a.type}.${a.language === 'EN' ? 'I-' : ''}${a.number}`;
-                      const labelB = `${subject?.acronym}.${b.type}.${b.language === 'EN' ? 'I-' : ''}${b.number}`;
+                      const labelA = `${currentSubject?.acronym}.${a.type}.${a.language === 'EN' ? 'I-' : ''}${a.number}`;
+                      const labelB = `${currentSubject?.acronym}.${b.type}.${b.language === 'EN' ? 'I-' : ''}${b.number}`;
                       return labelA.localeCompare(labelB);
                     }).map((group) => {
-                      const subject = subjects.find(s => s.id === config.subjectId);
                       return {
                         value: group.id,
-                        label: `${subject?.acronym}.${group.type}.${group.language === 'EN' ? 'I-' : ''}${group.number}`
+                        label: `${currentSubject?.acronym}.${group.type}.${group.language === 'EN' ? 'I-' : ''}${group.number}`
                       };
                     })}
                     placeholder="Seleccionar grupo"
@@ -747,15 +776,13 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                     </SelectTrigger>
                     <SelectContent>
                       {availableGroups.sort((a, b) => {
-                        const subject = subjects.find(s => s.id === config.subjectId);
-                        const labelA = `${subject?.acronym}.${a.type}.${a.language === 'EN' ? 'I-' : ''}${a.number}`;
-                        const labelB = `${subject?.acronym}.${b.type}.${b.language === 'EN' ? 'I-' : ''}${b.number}`;
+                        const labelA = `${currentSubject?.acronym}.${a.type}.${a.language === 'EN' ? 'I-' : ''}${a.number}`;
+                        const labelB = `${currentSubject?.acronym}.${b.type}.${b.language === 'EN' ? 'I-' : ''}${b.number}`;
                         return labelA.localeCompare(labelB);
                       }).map((group) => {
-                        const subject = subjects.find(s => s.id === config.subjectId);
                         return (
                           <SelectItem key={group.id} value={group.id}>
-                            {`${subject?.acronym}.${group.type}.${group.language === 'EN' ? 'I-' : ''}${group.number}`}
+                            {`${currentSubject?.acronym}.${group.type}.${group.language === 'EN' ? 'I-' : ''}${group.number}`}
                           </SelectItem>
                         );
                       })}

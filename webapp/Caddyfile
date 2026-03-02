@@ -1,7 +1,7 @@
 # Configuración global
 {
-	# Certificado por defecto para conexiones sin SNI
-	default_sni {$DOMAIN:localhost}
+	# Deshabilitar HTTPS automático ya que el proxy de la universidad maneja SSL
+	auto_https off
 }
 
 # Snippet con la configuración común para servir archivos estáticos
@@ -23,6 +23,8 @@
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "SAMEORIGIN"
 		X-XSS-Protection "1; mode=block"
+		# Header para indicar que el proxy debe usar HTTPS
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 	}
 
 	# Cache para assets estáticos
@@ -31,18 +33,24 @@
 }
 
 # Configuración para el dominio y la IP
+# Solo HTTP - el proxy de la universidad maneja SSL/TLS
 {$DOMAIN:localhost}, {$SERVER_IP:} {
-	tls /etc/caddy/certs/cert.pem /etc/caddy/certs/key.pem
-
-	# Logs (debe estar fuera de handle)
+	# Logs
 	log {
 		output stdout
 		format console
+		level INFO
 	}
 
 	# Reverse proxy para la API
 	handle /api/* {
-		reverse_proxy {$GATEWAY_SERVICE_HOST:gateway_service}:{$GATEWAY_SERVICE_PORT:8080}
+		reverse_proxy {$GATEWAY_SERVICE_HOST:gateway_service}:{$GATEWAY_SERVICE_PORT:8080} {
+			# Headers para que los servicios backend sepan la URL real
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto {scheme}
+			header_up X-Forwarded-Host {host}
+		}
 	}
 
 	# Todo lo demás va a la webapp

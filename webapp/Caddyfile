@@ -1,9 +1,3 @@
-# Configuración global
-{
-	# Deshabilitar HTTPS automático ya que el proxy de la universidad maneja SSL
-	auto_https off
-}
-
 # Snippet con la configuración común para servir archivos estáticos
 (static_files) {
 	# Raíz donde está tu app React
@@ -23,8 +17,6 @@
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "SAMEORIGIN"
 		X-XSS-Protection "1; mode=block"
-		# Header para indicar que el proxy debe usar HTTPS
-		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 	}
 
 	# Cache para assets estáticos
@@ -32,9 +24,8 @@
 	header @static Cache-Control "public, max-age=31536000, immutable"
 }
 
-# Configuración para el dominio y la IP
-# Solo HTTP - el proxy de la universidad maneja SSL/TLS
-{$DOMAIN:localhost}, {$SERVER_IP:} {
+# Configuración para HTTP (puerto 80)
+http://{$DOMAIN:localhost}, http://{$SERVER_IP:} {
 	# Logs
 	log {
 		output stdout
@@ -48,7 +39,7 @@
 			# Headers para que los servicios backend sepan la URL real
 			header_up X-Real-IP {remote_host}
 			header_up X-Forwarded-For {remote_host}
-			header_up X-Forwarded-Proto {scheme}
+			header_up X-Forwarded-Proto https
 			header_up X-Forwarded-Host {host}
 		}
 	}

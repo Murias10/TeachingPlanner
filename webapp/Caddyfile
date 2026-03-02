@@ -24,8 +24,11 @@
 	header @static Cache-Control "public, max-age=31536000, immutable"
 }
 
-# Configuración HTTP - El proxy de la universidad maneja SSL
-http://{$DOMAIN:localhost}, http://{$SERVER_IP:} {
+# Configuración HTTPS con certificados oficiales de la universidad
+{$DOMAIN:localhost} {
+	# Usar certificados proporcionados por la universidad
+	tls /certs/cert.pem /certs/key.pem
+
 	# Logs
 	log {
 		output stdout
@@ -39,7 +42,7 @@ http://{$DOMAIN:localhost}, http://{$SERVER_IP:} {
 			# Headers para que los servicios backend sepan la URL real
 			header_up X-Real-IP {remote_host}
 			header_up X-Forwarded-For {remote_host}
-			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Proto {scheme}
 			header_up X-Forwarded-Host {host}
 		}
 	}

@@ -5,9 +5,14 @@
 - ✅ **HTTPS ya funciona**: `https://planificador.ingenieriainformatica.uniovi.es`
 - ✅ **Certificado oficial activo**: `*.ingenieriainformatica.uniovi.es` (GEANT TLS)
 - ✅ **Válido hasta**: 26 Noviembre 2026
-- ✅ **Arquitectura**: Reverse proxy de la universidad → Tu aplicación
+- ✅ **Arquitectura**: Reverse proxy de la universidad (SSL Termination) → Tu aplicación (HTTP)
 
-**Conclusión:** La infraestructura SSL está lista. Solo necesitas actualizar configuraciones.
+**Arquitectura SSL:**
+```
+Internet (HTTPS) → Proxy Universidad (SSL) → Tu aplicación (HTTP interno)
+```
+
+**Conclusión:** El proxy de la universidad maneja TODO el SSL. Tu aplicación solo necesita servir HTTP internamente.
 
 ---
 

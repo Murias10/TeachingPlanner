@@ -3,8 +3,9 @@ services:
     container_name: ${WEBAPP_HOST}
     image: ghcr.io/murias10/teachingplanner/webapp:latest
     ports:
-      # Solo HTTP - el proxy de la universidad maneja HTTPS
-      - "${WEBAPP_PORT}:80"
+      # Exponer ambos puertos - el proxy de la universidad puede conectar a cualquiera
+      - "${WEBAPP_PORT}:80"      # HTTP en puerto 80
+      - "443:80"                  # Puerto 443 también mapea al 80 interno (HTTP)
     env_file:
       - .env
     restart: unless-stopped

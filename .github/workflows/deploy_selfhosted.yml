@@ -49,31 +49,31 @@ jobs:
   # ===========================================================================
   # Ejecuta las pruebas unitarias de todos los servicios
   # ---------------------------------------------------------------------------
-  # unit-tests:
-  #   name: 🧪 Tests Unitarios
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: 📥 Clonar el repositorio
-  #       uses: actions/checkout@v4
-  #       with:
-  #         fetch-depth: 0
+  unit-tests:
+    name: 🧪 Tests Unitarios
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Clonar el repositorio
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-  #     - name: ⚙️ Configurar Node.js
-  #       uses: actions/setup-node@v4
-  #       with:
-  #         node-version: 20
+      - name: ⚙️ Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
-  #     - name: 📦 Instalar dependencias
-  #       run: |
-  #         npm --prefix gateway_service ci
-  #         npm --prefix planner_service ci
-  #         npm --prefix auth_service ci
-  #         npm --prefix user_service ci
-  #         npm --prefix webapp ci
+      - name: 📦 Instalar dependencias
+        run: |
+          npm --prefix gateway_service ci
+          npm --prefix planner_service ci
+          npm --prefix auth_service ci
+          npm --prefix user_service ci
+          npm --prefix webapp ci
 
-  #     - name: 🧪 Ejecutar Tests Unitarios
-  #       run: |
-  #         npm --prefix planner_service test -- --coverage
+      - name: 🧪 Ejecutar Tests Unitarios
+        run: |
+          npm --prefix planner_service test -- --coverage
 
   # ===========================================================================
   # JOB 2: TESTS END-TO-END
@@ -81,151 +81,151 @@ jobs:
   # Ejecuta las pruebas de integración/E2E
   # Requiere: unit-tests
   # ---------------------------------------------------------------------------
-  # e2e-tests:
-  #   name: 🔗 Tests E2E
-  #   needs: [unit-tests]
-  #   runs-on: ubuntu-latest
-  #   timeout-minutes: 15
+  e2e-tests:
+    name: 🔗 Tests E2E
+    needs: [unit-tests]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
 
-  #   services:
-  #     mariadb:
-  #       image: mariadb:11
-  #       env:
-  #         MYSQL_ROOT_PASSWORD: testpassword
-  #         MYSQL_DATABASE: planner_db_test
-  #       ports:
-  #         - 3306:3306
-  #       options: >-
-  #         --health-cmd="mariadb-admin ping"
-  #         --health-interval=10s
-  #         --health-timeout=5s
-  #         --health-retries=5
+    services:
+      mariadb:
+        image: mariadb:11
+        env:
+          MYSQL_ROOT_PASSWORD: testpassword
+          MYSQL_DATABASE: planner_db_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mariadb-admin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
 
-  #   steps:
-  #     - name: 📥 Clonar el repositorio
-  #       uses: actions/checkout@v4
+    steps:
+      - name: 📥 Clonar el repositorio
+        uses: actions/checkout@v4
 
-  #     - name: ⚙️ Configurar Node.js
-  #       uses: actions/setup-node@v4
-  #       with:
-  #         node-version: 20
+      - name: ⚙️ Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
-  #     - name: 📦 Instalar dependencias
-  #       run: |
-  #         npm --prefix gateway_service ci
-  #         npm --prefix planner_service ci
-  #         npm --prefix auth_service ci
-  #         npm --prefix user_service ci
-  #         npm --prefix webapp ci
+      - name: 📦 Instalar dependencias
+        run: |
+          npm --prefix gateway_service ci
+          npm --prefix planner_service ci
+          npm --prefix auth_service ci
+          npm --prefix user_service ci
+          npm --prefix webapp ci
 
-  #     - name: 🗄️ Crear base de datos management_db_test
-  #       run: |
-  #         mysql -h 127.0.0.1 -u root -ptestpassword -e "CREATE DATABASE IF NOT EXISTS management_db_test;"
+      - name: 🗄️ Crear base de datos management_db_test
+        run: |
+          mysql -h 127.0.0.1 -u root -ptestpassword -e "CREATE DATABASE IF NOT EXISTS management_db_test;"
 
-  #     - name: 🔧 Copiar archivo de configuración CI
-  #       run: cp .env.ci .env
+      - name: 🔧 Copiar archivo de configuración CI
+        run: cp .env.ci .env
 
-  #     - name: 🏗️ Compilar servicios backend
-  #       run: |
-  #         npm --prefix gateway_service run build
-  #         npm --prefix planner_service run build
-  #         npm --prefix auth_service run build
-  #         npm --prefix user_service run build
+      - name: 🏗️ Compilar servicios backend
+        run: |
+          npm --prefix gateway_service run build
+          npm --prefix planner_service run build
+          npm --prefix auth_service run build
+          npm --prefix user_service run build
 
-  #     - name: 🚀 Levantar servicios en background
-  #       run: |
-  #         (cd gateway_service && node --env-file=../.env dist/index.js > ../gateway.log 2>&1) &
-  #         echo $! > gateway.pid
-  #         (cd planner_service && node --env-file=../.env dist/index.js > ../planner.log 2>&1) &
-  #         echo $! > planner.pid
-  #         (cd auth_service && node --env-file=../.env dist/index.js > ../auth.log 2>&1) &
-  #         echo $! > auth.pid
-  #         (cd user_service && node --env-file=../.env dist/index.js > ../user.log 2>&1) &
-  #         echo $! > user.pid
+      - name: 🚀 Levantar servicios en background
+        run: |
+          (cd gateway_service && node --env-file=../.env dist/index.js > ../gateway.log 2>&1) &
+          echo $! > gateway.pid
+          (cd planner_service && node --env-file=../.env dist/index.js > ../planner.log 2>&1) &
+          echo $! > planner.pid
+          (cd auth_service && node --env-file=../.env dist/index.js > ../auth.log 2>&1) &
+          echo $! > auth.pid
+          (cd user_service && node --env-file=../.env dist/index.js > ../user.log 2>&1) &
+          echo $! > user.pid
 
-  #     - name: 🐛 Verificar que los servicios se iniciaron
-  #       run: |
-  #         echo "=== PIDs de los servicios ==="
-  #         cat gateway.pid planner.pid auth.pid user.pid || echo "Error: No se encontraron PIDs"
-  #         echo ""
-  #         echo "=== Procesos activos ==="
-  #         ps aux | grep -E "gateway|planner|auth|user" | grep -v grep || echo "No hay procesos activos"
-  #         echo ""
-  #         echo "=== Primeras líneas de logs ==="
-  #         echo "--- Gateway ---"
-  #         head -20 gateway.log || echo "No hay log de gateway"
-  #         echo "--- Planner ---"
-  #         head -20 planner.log || echo "No hay log de planner"
-  #         echo "--- Auth ---"
-  #         head -20 auth.log || echo "No hay log de auth"
-  #         echo "--- User ---"
-  #         head -20 user.log || echo "No hay log de user"
+      - name: 🐛 Verificar que los servicios se iniciaron
+        run: |
+          echo "=== PIDs de los servicios ==="
+          cat gateway.pid planner.pid auth.pid user.pid || echo "Error: No se encontraron PIDs"
+          echo ""
+          echo "=== Procesos activos ==="
+          ps aux | grep -E "gateway|planner|auth|user" | grep -v grep || echo "No hay procesos activos"
+          echo ""
+          echo "=== Primeras líneas de logs ==="
+          echo "--- Gateway ---"
+          head -20 gateway.log || echo "No hay log de gateway"
+          echo "--- Planner ---"
+          head -20 planner.log || echo "No hay log de planner"
+          echo "--- Auth ---"
+          head -20 auth.log || echo "No hay log de auth"
+          echo "--- User ---"
+          head -20 user.log || echo "No hay log de user"
 
-  #     - name: ⏳ Esperar a que servicios estén listos
-  #       run: npx tsx scripts/wait-for-services.ts
-  #       working-directory: webapp
+      - name: ⏳ Esperar a que servicios estén listos
+        run: npx tsx scripts/wait-for-services.ts
+        working-directory: webapp
 
-  #     - name: 👤 Crear usuario de prueba
-  #       run: npm --prefix user_service run seed:ci
+      - name: 👤 Crear usuario de prueba
+        run: npm --prefix user_service run seed:ci
 
-  #     - name: 🎭 Instalar navegadores Playwright
-  #       run: npx playwright install chromium --with-deps
-  #       working-directory: webapp
+      - name: 🎭 Instalar navegadores Playwright
+        run: npx playwright install chromium --with-deps
+        working-directory: webapp
 
-  #     - name: 🏁 Ejecutar Tests E2E
-  #       run: npm run test:e2e:ci
-  #       working-directory: webapp
-  #       env:
-  #         CI: true
+      - name: 🏁 Ejecutar Tests E2E
+        run: npm run test:e2e:ci
+        working-directory: webapp
+        env:
+          CI: true
 
-  #     - name: 📊 Subir reporte de Playwright si falla
-  #       if: failure()
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: playwright-report
-  #         path: webapp/playwright-report/
-  #         retention-days: 7
+      - name: 📊 Subir reporte de Playwright si falla
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: webapp/playwright-report/
+          retention-days: 7
 
-  #     - name: 📸 Subir screenshots y videos si falla
-  #       if: failure()
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: test-results
-  #         path: webapp/test-results/
-  #         retention-days: 7
+      - name: 📸 Subir screenshots y videos si falla
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: webapp/test-results/
+          retention-days: 7
 
-  #     - name: 🧹 Cleanup - Mostrar logs si falla
-  #       if: failure()
-  #       run: |
-  #         echo "=== Gateway Service Logs ==="
-  #         cat gateway.log || true
-  #         echo ""
-  #         echo "=== Planner Service Logs ==="
-  #         cat planner.log || true
-  #         echo ""
-  #         echo "=== Auth Service Logs ==="
-  #         cat auth.log || true
-  #         echo ""
-  #         echo "=== User Service Logs ==="
-  #         cat user.log || true
+      - name: 🧹 Cleanup - Mostrar logs si falla
+        if: failure()
+        run: |
+          echo "=== Gateway Service Logs ==="
+          cat gateway.log || true
+          echo ""
+          echo "=== Planner Service Logs ==="
+          cat planner.log || true
+          echo ""
+          echo "=== Auth Service Logs ==="
+          cat auth.log || true
+          echo ""
+          echo "=== User Service Logs ==="
+          cat user.log || true
 
-  #     - name: 🧹 Cleanup - Matar procesos
-  #       if: always()
-  #       run: |
-  #         kill $(cat gateway.pid) 2>/dev/null || true
-  #         kill $(cat planner.pid) 2>/dev/null || true
-  #         kill $(cat auth.pid) 2>/dev/null || true
-  #         kill $(cat user.pid) 2>/dev/null || true
+      - name: 🧹 Cleanup - Matar procesos
+        if: always()
+        run: |
+          kill $(cat gateway.pid) 2>/dev/null || true
+          kill $(cat planner.pid) 2>/dev/null || true
+          kill $(cat auth.pid) 2>/dev/null || true
+          kill $(cat user.pid) 2>/dev/null || true
 
   # ===========================================================================
   # JOB 3: BUILD & PUSH DOCKER IMAGES
   # ===========================================================================
   # Construye todas las imágenes Docker y las sube a GitHub Container Registry
-  # Requiere: e2e-tests (COMENTADO TEMPORALMENTE)
+  # Requiere: e2e-tests
   # ---------------------------------------------------------------------------
   build-and-push-images:
     name: 🐳 Build & Push Images
-    # needs: [e2e-tests]  # Comentado temporalmente para deployment rápido
+    needs: [e2e-tests]
     runs-on: ubuntu-latest
     permissions:
       contents: read    # Para clonar el repositorio

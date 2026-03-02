@@ -24,7 +24,7 @@
 	header @static Cache-Control "public, max-age=31536000, immutable"
 }
 
-# Configuración para HTTP (puerto 80)
+# Configuración HTTP - El proxy de la universidad maneja SSL
 http://{$DOMAIN:localhost}, http://{$SERVER_IP:} {
 	# Logs
 	log {

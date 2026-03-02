@@ -2,17 +2,17 @@
 
 ## ✅ Situación actual (VERIFICADA)
 
-- ✅ **HTTPS ya funciona**: `https://planificador.ingenieriainformatica.uniovi.es`
-- ✅ **Certificado oficial activo**: `*.ingenieriainformatica.uniovi.es` (GEANT TLS)
+- ✅ **Dominio asignado**: `planificador.ingenieriainformatica.uniovi.es`
+- ✅ **Certificado oficial instalado**: `*.ingenieriainformatica.uniovi.es` (GEANT TLS)
 - ✅ **Válido hasta**: 26 Noviembre 2026
-- ✅ **Arquitectura**: Reverse proxy de la universidad (SSL Termination) → Tu aplicación (HTTP)
+- ⚠️ **Certificados pendientes**: Necesitamos acceso a los archivos .pem/.key
 
 **Arquitectura SSL:**
 ```
-Internet (HTTPS) → Proxy Universidad (SSL) → Tu aplicación (HTTP interno)
+Internet (HTTPS) → Tu aplicación (HTTPS con certificados de la universidad)
 ```
 
-**Conclusión:** El proxy de la universidad maneja TODO el SSL. Tu aplicación solo necesita servir HTTP internamente.
+**Conclusión:** Los certificados están instalados en la VM. Caddy necesita acceso a ellos para servir HTTPS.
 
 ---
 

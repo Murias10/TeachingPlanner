@@ -121,7 +121,33 @@
 }
 
 /* Estilos personalizados para react-big-calendar */
+/* Forzar siempre modo claro independientemente del tema de la aplicación */
+.rbc-calendar {
+  color: #111827 !important;
+}
+
 .rbc-header {
   color: #000000 !important;
   font-weight: 500;
+}
+
+.rbc-toolbar .rbc-toolbar-label {
+  color: #111827 !important;
+}
+
+.rbc-toolbar button {
+  color: #374151 !important;
+}
+
+.rbc-time-gutter .rbc-label {
+  color: #374151 !important;
+}
+
+.rbc-date-cell,
+.rbc-button-link {
+  color: #374151 !important;
+}
+
+.rbc-show-more {
+  color: #2563eb !important;
 }

@@ -47,9 +47,9 @@ export const isReviewOrEvalEventType = (type: string): boolean =>
 
 /** Labels de cada eventType para mostrar en la UI */
 export const EVENT_TYPE_LABELS: Record<string, string> = {
-  [EVENT_TYPES.NORMAL]:      'Estándar',
-  [EVENT_TYPES.BLOCKER]:     'Evento Bloqueante',
+  [EVENT_TYPES.NORMAL]:      'Clase',
+  [EVENT_TYPES.BLOCKER]:     'Independiente',
   [EVENT_TYPES.REVISION]:    'Revisión',
   [EVENT_TYPES.EVALUACION]:  'Evaluación',
-  [EVENT_TYPES.OTRO]:        'Otro',
+  [EVENT_TYPES.OTRO]:        'Otros',
 };

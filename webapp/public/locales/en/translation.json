@@ -80,11 +80,11 @@
         "notAvailable": "Not available",
         "activeFilters": "Active filters",
         "eventTypes": {
-            "NORMAL": "Standard",
-            "BLOCKER": "Blocker",
+            "NORMAL": "Class",
+            "BLOCKER": "Independent",
             "REVISION": "Review",
             "EVALUACION": "Evaluation",
-            "OTRO": "Other",
+            "OTRO": "Others",
             "CANCELADO": "Cancelled"
         }
     },

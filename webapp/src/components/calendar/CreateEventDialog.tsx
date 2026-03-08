@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Repeat, ChevronDownIcon } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/ui/searchable-select';
@@ -62,6 +63,7 @@ const addMinutesToTime = (time: string, minutes: number): string => {
 };
 
 const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChange, onSave, calendarId, initialDate, initialStartTime, initialEndTime, lectiveDates = new Set(), calendarEndDate }) => {
+  const { t } = useTranslation();
   const [config, setConfig] = useState<RecurrenceConfig>({
     frequency: 'no-repeat',
     interval: 1,
@@ -551,8 +553,8 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {Object.entries(EVENT_TYPE_LABELS).filter(([value]) => value !== EVENT_TYPES.BLOCKER).map(([value, label]) => (
-                      <SelectItem key={value} value={value}>{label}</SelectItem>
+                    {Object.keys(EVENT_TYPE_LABELS).filter(value => value !== EVENT_TYPES.BLOCKER).map(value => (
+                      <SelectItem key={value} value={value}>{t(`filters.eventTypes.${value}`)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

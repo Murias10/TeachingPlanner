@@ -555,7 +555,7 @@ export default function CalendarPage() {
             {
                 category: 'tipoEvento' as const,
                 label: t('calendar.filters.eventType'),
-                options: [EVENT_TYPES.NORMAL, EVENT_TYPES.BLOCKER, EVENT_TYPES.REVISION, EVENT_TYPES.EVALUACION, EVENT_TYPES.OTRO, 'CANCELADO'],
+                options: [EVENT_TYPES.NORMAL, EVENT_TYPES.EVALUACION, 'CANCELADO', EVENT_TYPES.BLOCKER, EVENT_TYPES.REVISION, EVENT_TYPES.OTRO],
                 icon: Tag
             }
         ];

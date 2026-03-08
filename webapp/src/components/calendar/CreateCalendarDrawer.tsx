@@ -124,8 +124,8 @@ export const CreateCalendarDrawer = ({
     const [selectedSourceCalendarId, setSelectedSourceCalendarId] = useState<string>("");
     const [duplicateStartDate, setDuplicateStartDate] = useState<Date | undefined>();
     const [duplicateEndDate, setDuplicateEndDate] = useState<Date | undefined>();
-    const [duplicateHolidayDates, setDuplicateHolidayDates] = useState<Date[]>([]);
     const [duplicateHolidays, setDuplicateHolidays] = useState<Array<{ date: Date; comment: string }>>([]);
+    const [holidayPool, setHolidayPool] = useState<Array<{ date: Date; comment: string }>>([]);
     const [duplicateDateError, setDuplicateDateError] = useState("");
     const [duplicateStartDateOpen, setDuplicateStartDateOpen] = useState(false);
     const [duplicateEndDateOpen, setDuplicateEndDateOpen] = useState(false);
@@ -145,50 +145,29 @@ export const CreateCalendarDrawer = ({
     const courseStartYear = courseYear ? Number(courseYear.split('-')[0]) : undefined;
     const courseEndYear = courseYear ? Number(courseYear.split('-')[1]) : undefined;
 
-    // Calculate semester date range
-    const getCourseRange = () => {
+    // Memoized course date range: from 31/08/startYear to 31/08/endYear
+    const courseRange = useMemo(() => {
         if (!courseStartYear || !courseEndYear) return null;
+        return {
+            courseStart: new Date(courseStartYear, 7, 31),
+            courseEnd: new Date(courseEndYear, 7, 31),
+        };
+    }, [courseStartYear, courseEndYear]);
 
-        // Valid date range for the course: from 31/08/startYear to 31/08/endYear
-        // This matches the validation used in calendario.txt import
-        const courseStart = new Date(courseStartYear, 7, 31); // 31 de agosto del año inicial (month 7 = agosto)
-        const courseEnd = new Date(courseEndYear, 7, 31);     // 31 de agosto del año final
-
-        return { courseStart, courseEnd };
-    };
-
-    // Calculate date limits based on course academic year
-    const isDateInCourseRange = (date: Date) => {
-        const range = getCourseRange();
-        if (!range) return true;
-
-        return date >= range.courseStart && date <= range.courseEnd;
-    };
-
-    // Get default month to show in datepicker
     const getDefaultMonth = () => {
-        const range = getCourseRange();
-        if (!range) return new Date();
-
+        if (!courseRange) return new Date();
         const today = new Date();
-        // If today is within course academic year range, show current month
-        if (today >= range.courseStart && today <= range.courseEnd) {
-            return today;
-        }
-        // Otherwise, show first month of course (September, first month after August 31)
-        return new Date(courseStartYear || new Date().getFullYear(), 8, 1); // 1 de septiembre
+        if (today >= courseRange.courseStart && today <= courseRange.courseEnd) return today;
+        return new Date(courseStartYear!, 8, 1); // 1 de septiembre
     };
 
-    // Check if date is weekend (Saturday or Sunday)
-    const isWeekend = (date: Date) => {
-        const day = date.getDay();
-        return day === 0 || day === 6; // 0 = Sunday, 6 = Saturday
-    };
-
-    // Combined validation: must be in range AND not weekend
     const isDateDisabled = (date: Date) => {
-        return !isDateInCourseRange(date) || isWeekend(date);
+        if (!courseRange) return false;
+        return date < courseRange.courseStart || date > courseRange.courseEnd || isSaturday(date) || isSunday(date);
     };
+
+    // Derived: dates array from duplicateHolidays (already sorted by the pool effect)
+    const duplicateHolidayDates = useMemo(() => duplicateHolidays.map(h => h.date), [duplicateHolidays]);
 
     // Reset form when drawer closes
     useEffect(() => {
@@ -207,8 +186,8 @@ export const CreateCalendarDrawer = ({
             setSelectedSourceCalendarId("");
             setDuplicateStartDate(undefined);
             setDuplicateEndDate(undefined);
-            setDuplicateHolidayDates([]);
             setDuplicateHolidays([]);
+            setHolidayPool([]);
             setDuplicateDateError("");
         }
     }, [open]);
@@ -238,6 +217,20 @@ export const CreateCalendarDrawer = ({
             setDuplicateDateError("");
         }
     }, [duplicateStartDate, duplicateEndDate]);
+
+    // Recalculate visible holidays when date range changes (filter from pool, restore when range expands)
+    useEffect(() => {
+        if (holidayPool.length === 0) return;
+        const filtered = holidayPool
+            .filter(({ date }) => {
+                const d = startOfDay(date);
+                if (duplicateStartDate && isBefore(d, startOfDay(duplicateStartDate))) return false;
+                if (duplicateEndDate && isAfter(d, startOfDay(duplicateEndDate))) return false;
+                return true;
+            })
+            .sort((a, b) => a.date.getTime() - b.date.getTime());
+        setDuplicateHolidays(filtered);
+    }, [duplicateStartDate, duplicateEndDate, holidayPool]);
 
     // Extract calendars from courses and filter: same semester, different course year (memoized for performance)
     const availableSourceCalendars = useMemo(() => {
@@ -307,49 +300,23 @@ export const CreateCalendarDrawer = ({
 
     // Load and adjust festivos from source calendar when days are fetched
     useEffect(() => {
-        if (sourceDays.length > 0 && courseStartYear && courseEndYear) {
-            const sourceCalendar = availableSourceCalendars.find(cal => cal.id === selectedSourceCalendarId);
-            if (!sourceCalendar) return;
+        if (sourceDays.length === 0 || !courseStartYear || !courseEndYear) return;
+        const sourceCalendar = availableSourceCalendars.find(cal => cal.id === selectedSourceCalendarId);
+        if (!sourceCalendar) return;
 
-            // Calculate year difference for adjustment
-            const sourceYear = sourceCalendar.courseStartYear;
-            const targetYear = courseStartYear;
-            const yearDiff = targetYear - sourceYear;
+        const yearDiff = courseStartYear - sourceCalendar.courseStartYear;
 
-            // Filter festivos (non-lective days with 'F' character)
-            // IMPORTANT: We filter out weekends in the SOURCE year first
-            const sourceFestivos = sourceDays.filter(day => {
-                if (!day.lective && day.dayCharacter === 'F') {
-                    const originalDate = new Date(day.date);
-                    // Only include if it's NOT a weekend in the original calendar
-                    return !isSaturday(originalDate) && !isSunday(originalDate);
-                }
-                return false;
-            });
-
-            // Adjust festivos to the new year, preserving comments
-            const adjustedHolidays: Array<{ date: Date; comment: string }> = [];
-            const adjustedHolidayDates: Date[] = [];
-
-            sourceFestivos.forEach(festivo => {
-                const originalDate = new Date(festivo.date);
-                // Adjust year
-                const adjustedDate = addYears(originalDate, yearDiff);
-
-                // Now check if the adjusted date falls on weekend in the NEW year
-                // If it does, skip it as it's already a non-working day
+        const adjustedHolidays = sourceDays
+            .filter(day => !day.lective && day.dayCharacter === 'F' && !isSaturday(new Date(day.date)) && !isSunday(new Date(day.date)))
+            .reduce<Array<{ date: Date; comment: string }>>((acc, festivo) => {
+                const adjustedDate = addYears(new Date(festivo.date), yearDiff);
                 if (!isSaturday(adjustedDate) && !isSunday(adjustedDate)) {
-                    adjustedHolidayDates.push(adjustedDate);
-                    adjustedHolidays.push({
-                        date: adjustedDate,
-                        comment: festivo.comment || '' // Preserve original comment
-                    });
+                    acc.push({ date: adjustedDate, comment: festivo.comment || '' });
                 }
-            });
+                return acc;
+            }, []);
 
-            setDuplicateHolidayDates(adjustedHolidayDates);
-            setDuplicateHolidays(adjustedHolidays);
-        }
+        setHolidayPool(adjustedHolidays);
     }, [sourceDays, selectedSourceCalendarId, availableSourceCalendars, courseStartYear, courseEndYear]);
 
     // Step navigation helpers
@@ -367,11 +334,10 @@ export const CreateCalendarDrawer = ({
         if (currentStep === 1 && canGoNext()) {
             setCurrentStep(2);
         } else if (currentStep === 2) {
-            // Initialize holidays array from selected dates
-            const newHolidays = selectedHolidayDates.map(date => ({
-                date,
-                comment: ''
-            }));
+            // Initialize holidays array from selected dates, sorted chronologically
+            const newHolidays = [...selectedHolidayDates]
+                .sort((a, b) => a.getTime() - b.getTime())
+                .map(date => ({ date, comment: '' }));
             setHolidays(newHolidays);
 
             if (selectedHolidayDates.length > 0) {
@@ -412,12 +378,7 @@ export const CreateCalendarDrawer = ({
         if (duplicateStep === 1 && canDuplicateGoNext()) {
             setDuplicateStep(2);
         } else if (duplicateStep === 2 && canDuplicateGoNext()) {
-            // Initialize holidays array from selected dates
-            const newHolidays = duplicateHolidayDates.map(date => ({
-                date,
-                comment: ''
-            }));
-            setDuplicateHolidays(newHolidays);
+            // duplicateHolidays is already synced from holidayPool (with comments preserved and sorted)
 
             if (duplicateHolidayDates.length > 0) {
                 setDuplicateStep(3);
@@ -675,7 +636,7 @@ export const CreateCalendarDrawer = ({
                                                             disabled={(date) => isDateDisabled(date) || (endDate ? date >= endDate : false)}
                                                             weekStartsOn={1}
                                                             locale={es}
-                                                            defaultMonth={getDefaultMonth()}
+                                                            defaultMonth={startDate || getDefaultMonth()}
                                                         />
                                                     </PopoverContent>
                                                 </Popover>
@@ -710,7 +671,7 @@ export const CreateCalendarDrawer = ({
                                                             disabled={(date) => isDateDisabled(date) || (startDate ? date <= startDate : false)}
                                                             weekStartsOn={1}
                                                             locale={es}
-                                                            defaultMonth={getDefaultMonth()}
+                                                            defaultMonth={endDate || startDate || getDefaultMonth()}
                                                         />
                                                     </PopoverContent>
                                                 </Popover>
@@ -756,7 +717,7 @@ export const CreateCalendarDrawer = ({
                                                     }}
                                                     disabled={(date) => {
                                                         if (!startDate || !endDate) return true;
-                                                        return date < startDate || date > endDate || isWeekend(date);
+                                                        return date < startDate || date > endDate || isSaturday(date) || isSunday(date);
                                                     }}
                                                     weekStartsOn={1}
                                                     locale={es}
@@ -1015,7 +976,7 @@ export const CreateCalendarDrawer = ({
                                                             disabled={(date) => isDateDisabled(date) || (duplicateEndDate ? date >= duplicateEndDate : false)}
                                                             weekStartsOn={1}
                                                             locale={es}
-                                                            defaultMonth={getDefaultMonth()}
+                                                            defaultMonth={duplicateStartDate || getDefaultMonth()}
                                                         />
                                                     </PopoverContent>
                                                 </Popover>
@@ -1048,7 +1009,7 @@ export const CreateCalendarDrawer = ({
                                                             disabled={(date) => isDateDisabled(date) || (duplicateStartDate ? date <= duplicateStartDate : false)}
                                                             weekStartsOn={1}
                                                             locale={es}
-                                                            defaultMonth={getDefaultMonth()}
+                                                            defaultMonth={duplicateEndDate || duplicateStartDate || getDefaultMonth()}
                                                         />
                                                     </PopoverContent>
                                                 </Popover>
@@ -1077,13 +1038,21 @@ export const CreateCalendarDrawer = ({
                                                     mode="multiple"
                                                     selected={duplicateHolidayDates}
                                                     onSelect={(dates) => {
-                                                        setDuplicateHolidayDates(Array.isArray(dates) ? dates : []);
+                                                        const selected = Array.isArray(dates) ? dates : [];
+                                                        const selectedTimes = new Set(selected.map(d => startOfDay(d).getTime()));
+                                                        const visibleTimes = new Set(duplicateHolidayDates.map(d => startOfDay(d).getTime()));
+                                                        setHolidayPool(prev => [
+                                                            ...prev.filter(h => !visibleTimes.has(startOfDay(h.date).getTime()) || selectedTimes.has(startOfDay(h.date).getTime())),
+                                                            ...selected
+                                                                .filter(d => !prev.some(h => startOfDay(h.date).getTime() === startOfDay(d).getTime()))
+                                                                .map(date => ({ date, comment: '' }))
+                                                        ]);
                                                     }}
                                                     disabled={(date) => {
                                                         if (!duplicateStartDate || !duplicateEndDate) return true;
                                                         return isBefore(startOfDay(date), startOfDay(duplicateStartDate)) ||
                                                                isAfter(startOfDay(date), startOfDay(duplicateEndDate)) ||
-                                                               isWeekend(date);
+                                                               isSaturday(date) || isSunday(date);
                                                     }}
                                                     weekStartsOn={1}
                                                     locale={es}
@@ -1110,9 +1079,7 @@ export const CreateCalendarDrawer = ({
                                                         Festivos seleccionados
                                                     </p>
                                                     <div className="flex flex-wrap gap-1.5">
-                                                        {[...duplicateHolidayDates]
-                                                            .sort((a, b) => a.getTime() - b.getTime())
-                                                            .map((date) => (
+                                                        {duplicateHolidayDates.map((date) => (
                                                                 <Badge key={date.toString()} variant="secondary" className="text-xs">
                                                                     {format(date, "dd/MM/yyyy")}
                                                                 </Badge>

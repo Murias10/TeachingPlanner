@@ -1095,7 +1095,7 @@
             },
             "importExceptions": {
                 "title": "Importar excepciones",
-                "description": "Importa el archivo excepciones.txt para gestionar eventos puntuales del calendario",
+                "description": "Importa un archivo .txt con el formato de excepciones para gestionar eventos puntuales del calendario",
                 "mode": {
                     "label": "Modo de importación",
                     "add": "Añadir al calendario",
@@ -1109,8 +1109,8 @@
                     "add": "Los eventos del archivo se añadirán o actualizarán sin eliminar eventos existentes"
                 },
                 "dropzone": {
-                    "title": "Arrastra excepciones.txt aquí",
-                    "subtitle": "o haz clic para seleccionar"
+                    "title": "Arrastra tu archivo .txt aquí",
+                    "subtitle": "o haz clic para seleccionar (formato excepciones.txt)"
                 },
                 "cancel": "Cancelar",
                 "import": "Importar",
@@ -1254,7 +1254,18 @@
                 "subject": "Asignatura",
                 "date": "Fecha",
                 "classroom": "Aula",
-                "error": "Error"
+                "error": "Error",
+                "formatErrors": "Líneas con formato incorrecto ({{count}})",
+                "formatErrorsDescription": "Las siguientes líneas no respetan el formato esperado y fueron omitidas.",
+                "formatErrorsExpected": "DD/MM/YYYY:ASIG.TIPO.NUM:HH.MM:HH.MM:AULA:COMENTARIO",
+                "formatErrorReason": "Motivo",
+                "lineContent": "Contenido de la línea",
+                "reason": {
+                    "invalidParts": "Número de columnas incorrecto (se esperan 6 separadas por ':')",
+                    "invalidDate": "Formato de fecha incorrecto (se espera DD/MM/YYYY)",
+                    "invalidGroup": "Formato de grupo incorrecto (se espera ASIG.TIPO.NUM)",
+                    "invalidTime": "Formato de hora incorrecto (se espera HH.MM)"
+                }
             },
             "warnings": {
                 "title": "Grupos creados automáticamente ({{count}})",

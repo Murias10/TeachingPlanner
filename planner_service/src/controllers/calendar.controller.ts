@@ -3240,10 +3240,10 @@ export const importExceptions = async (req: AuditedRequest, res: Response) => {
             return;
         }
 
-        if (!file || file.originalname !== 'excepciones.txt') {
+        if (!file || !file.originalname.endsWith('.txt')) {
             res.status(400).json({
                 status: 'error',
-                message: 'excepciones.txt file is required',
+                message: 'A .txt file is required',
                 data: null
             });
             return;

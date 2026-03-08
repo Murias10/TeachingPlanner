@@ -1095,7 +1095,7 @@
             },
             "importExceptions": {
                 "title": "Import Exceptions",
-                "description": "Import the excepciones.txt file to manage calendar puntual events",
+                "description": "Import a .txt file with the exceptions format to manage calendar puntual events",
                 "mode": {
                     "label": "Import mode",
                     "add": "Add to calendar",
@@ -1109,8 +1109,8 @@
                     "add": "Events from the file will be added or updated without deleting existing events"
                 },
                 "dropzone": {
-                    "title": "Drag excepciones.txt here",
-                    "subtitle": "or click to select"
+                    "title": "Drag your .txt file here",
+                    "subtitle": "or click to select (excepciones.txt format)"
                 },
                 "cancel": "Cancel",
                 "import": "Import",
@@ -1254,7 +1254,18 @@
                 "subject": "Subject",
                 "date": "Date",
                 "classroom": "Classroom",
-                "error": "Error"
+                "error": "Error",
+                "formatErrors": "Lines with incorrect format ({{count}})",
+                "formatErrorsDescription": "The following lines do not follow the expected format and were skipped.",
+                "formatErrorsExpected": "DD/MM/YYYY:SUBJECT.TYPE.NUM:HH.MM:HH.MM:CLASSROOM:COMMENT",
+                "formatErrorReason": "Reason",
+                "lineContent": "Line content",
+                "reason": {
+                    "invalidParts": "Incorrect number of columns (expected 6 separated by ':')",
+                    "invalidDate": "Incorrect date format (expected DD/MM/YYYY)",
+                    "invalidGroup": "Incorrect group format (expected SUBJECT.TYPE.NUM)",
+                    "invalidTime": "Incorrect time format (expected HH.MM)"
+                }
             },
             "warnings": {
                 "title": "Automatically created groups ({{count}})",

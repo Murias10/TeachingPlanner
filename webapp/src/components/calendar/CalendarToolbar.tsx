@@ -51,7 +51,7 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
                 <span className="hidden sm:inline text-xs">Importar excepciones</span>
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Importar excepciones.txt para reemplazar eventos puntuales</TooltipContent>
+            <TooltipContent>Importar archivo .txt de excepciones</TooltipContent>
           </Tooltip>
         )}
 

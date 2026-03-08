@@ -190,6 +190,11 @@ export interface PINormalizationResult {
 
 export interface GroupValidationResult {
     hasIssues: boolean;
+    formatErrors?: Array<{
+        row: number;
+        line: string;
+        reason: 'invalidParts' | 'invalidDate' | 'invalidGroup' | 'invalidTime';
+    }>;
     groupsNotFound: Array<{
         row: number;
         groupKey: string;
@@ -217,6 +222,7 @@ export interface GroupValidationResult {
         validRows: number;
         groupsNotFoundCount: number;
         groupsAutoCreatedCount: number;
+        formatErrorsCount?: number;
         eventsCreated: number;
         eventsSkipped: number;
     };

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
     Dialog,
@@ -15,7 +16,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, CheckCircle } from "lucide-react";
+import { AlertCircle, CheckCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { GroupValidationResult } from "@/types/Calendar";
 
 interface ExceptionValidationDialogProps {
@@ -30,6 +31,12 @@ export const ExceptionValidationDialog = ({
     validationResult,
 }: ExceptionValidationDialogProps) => {
     const { t } = useTranslation();
+    const [expandedFormatErrors, setExpandedFormatErrors] = useState(false);
+    const [expandedSubjectErrors, setExpandedSubjectErrors] = useState(false);
+    const [expandedDateErrors, setExpandedDateErrors] = useState(false);
+    const [expandedGroupErrors, setExpandedGroupErrors] = useState(false);
+    const [expandedClassroomErrors, setExpandedClassroomErrors] = useState(false);
+    const [expandedWarnings, setExpandedWarnings] = useState(false);
 
     if (!validationResult) return null;
 
@@ -90,6 +97,69 @@ export const ExceptionValidationDialog = ({
                         </div>
                     </div>
 
+                    {/* Format Errors Section */}
+                    {validationResult.formatErrors && validationResult.formatErrors.length > 0 && (
+                        <div className="border rounded-lg overflow-hidden">
+                            <div className="bg-amber-50 dark:bg-amber-950/20 border-b border-amber-200 dark:border-amber-800/40 p-3">
+                                <h4 className="text-sm font-semibold text-amber-900 dark:text-amber-100 flex items-center gap-2">
+                                    <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-500" />
+                                    {t("calendar.exceptionValidation.errors.formatErrors", {
+                                        count: validationResult.formatErrors.length,
+                                    })}
+                                </h4>
+                                <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                                    {t("calendar.exceptionValidation.errors.formatErrorsDescription")}
+                                </p>
+                                <p className="text-xs font-mono text-amber-600 dark:text-amber-400 mt-1 bg-amber-100/60 dark:bg-amber-900/30 px-2 py-1 rounded inline-block">
+                                    {t("calendar.exceptionValidation.errors.formatErrorsExpected")}
+                                </p>
+                            </div>
+                            <div>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead className="whitespace-nowrap">
+                                                {t("calendar.exceptionValidation.errors.row")}
+                                            </TableHead>
+                                            <TableHead className="whitespace-nowrap">
+                                                {t("calendar.exceptionValidation.errors.formatErrorReason")}
+                                            </TableHead>
+                                            <TableHead className="whitespace-nowrap">
+                                                {t("calendar.exceptionValidation.errors.lineContent")}
+                                            </TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {(expandedFormatErrors ? validationResult.formatErrors : validationResult.formatErrors.slice(0, 5)).map((fe, idx) => (
+                                            <TableRow key={idx}>
+                                                <TableCell className="font-medium whitespace-nowrap">{fe.row}</TableCell>
+                                                <TableCell className="text-sm text-amber-700 dark:text-amber-400 whitespace-nowrap">
+                                                    {t(`calendar.exceptionValidation.errors.reason.${fe.reason}`)}
+                                                </TableCell>
+                                                <TableCell className="font-mono text-xs text-muted-foreground max-w-xs truncate">
+                                                    {fe.line}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                            {validationResult.formatErrors.length > 5 && (
+                                <Button
+                                    variant="ghost"
+                                    className="w-full border-t rounded-none bg-amber-50/50 dark:bg-amber-950/10 text-amber-700 dark:text-amber-400 hover:bg-amber-100/50 dark:hover:bg-amber-950/20 text-xs h-8"
+                                    onClick={() => setExpandedFormatErrors(prev => !prev)}
+                                >
+                                    {expandedFormatErrors ? (
+                                        <><ChevronUp className="h-4 w-4 mr-2" />{t("calendar.import.showLess")}</>
+                                    ) : (
+                                        <><ChevronDown className="h-4 w-4 mr-2" />{t("calendar.import.showMore", { count: validationResult.formatErrors.length - 5 })}</>
+                                    )}
+                                </Button>
+                            )}
+                        </div>
+                    )}
+
                     {/* Subject Errors Section */}
                     {subjectErrors.length > 0 && (
                         <div className="border rounded-lg overflow-hidden">
@@ -123,7 +193,7 @@ export const ExceptionValidationDialog = ({
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {subjectErrors.map((error, idx) => (
+                                        {(expandedSubjectErrors ? subjectErrors : subjectErrors.slice(0, 5)).map((error, idx) => (
                                             <TableRow key={idx}>
                                                 <TableCell className="font-medium whitespace-nowrap">{error.row}</TableCell>
                                                 <TableCell className="font-medium whitespace-nowrap">
@@ -140,6 +210,19 @@ export const ExceptionValidationDialog = ({
                                     </TableBody>
                                 </Table>
                             </div>
+                            {subjectErrors.length > 5 && (
+                                <Button
+                                    variant="ghost"
+                                    className="w-full border-t rounded-none bg-red-50/50 dark:bg-red-950/10 text-red-700 dark:text-red-400 hover:bg-red-100/50 dark:hover:bg-red-950/20 text-xs h-8"
+                                    onClick={() => setExpandedSubjectErrors(prev => !prev)}
+                                >
+                                    {expandedSubjectErrors ? (
+                                        <><ChevronUp className="h-4 w-4 mr-2" />{t("calendar.import.showLess")}</>
+                                    ) : (
+                                        <><ChevronDown className="h-4 w-4 mr-2" />{t("calendar.import.showMore", { count: subjectErrors.length - 5 })}</>
+                                    )}
+                                </Button>
+                            )}
                         </div>
                     )}
 
@@ -179,7 +262,7 @@ export const ExceptionValidationDialog = ({
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {dateErrors.map((error, idx) => (
+                                        {(expandedDateErrors ? dateErrors : dateErrors.slice(0, 5)).map((error, idx) => (
                                             <TableRow key={idx}>
                                                 <TableCell className="font-medium whitespace-nowrap">{error.row}</TableCell>
                                                 <TableCell className="font-mono text-sm whitespace-nowrap">
@@ -200,6 +283,19 @@ export const ExceptionValidationDialog = ({
                                     </TableBody>
                                 </Table>
                             </div>
+                            {dateErrors.length > 5 && (
+                                <Button
+                                    variant="ghost"
+                                    className="w-full border-t rounded-none bg-red-50/50 dark:bg-red-950/10 text-red-700 dark:text-red-400 hover:bg-red-100/50 dark:hover:bg-red-950/20 text-xs h-8"
+                                    onClick={() => setExpandedDateErrors(prev => !prev)}
+                                >
+                                    {expandedDateErrors ? (
+                                        <><ChevronUp className="h-4 w-4 mr-2" />{t("calendar.import.showLess")}</>
+                                    ) : (
+                                        <><ChevronDown className="h-4 w-4 mr-2" />{t("calendar.import.showMore", { count: dateErrors.length - 5 })}</>
+                                    )}
+                                </Button>
+                            )}
                         </div>
                     )}
 
@@ -236,7 +332,7 @@ export const ExceptionValidationDialog = ({
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {groupErrors.map((error, idx) => (
+                                        {(expandedGroupErrors ? groupErrors : groupErrors.slice(0, 5)).map((error, idx) => (
                                             <TableRow key={idx}>
                                                 <TableCell className="font-medium whitespace-nowrap">{error.row}</TableCell>
                                                 <TableCell className="font-medium whitespace-nowrap">
@@ -253,6 +349,19 @@ export const ExceptionValidationDialog = ({
                                     </TableBody>
                                 </Table>
                             </div>
+                            {groupErrors.length > 5 && (
+                                <Button
+                                    variant="ghost"
+                                    className="w-full border-t rounded-none bg-red-50/50 dark:bg-red-950/10 text-red-700 dark:text-red-400 hover:bg-red-100/50 dark:hover:bg-red-950/20 text-xs h-8"
+                                    onClick={() => setExpandedGroupErrors(prev => !prev)}
+                                >
+                                    {expandedGroupErrors ? (
+                                        <><ChevronUp className="h-4 w-4 mr-2" />{t("calendar.import.showLess")}</>
+                                    ) : (
+                                        <><ChevronDown className="h-4 w-4 mr-2" />{t("calendar.import.showMore", { count: groupErrors.length - 5 })}</>
+                                    )}
+                                </Button>
+                            )}
                         </div>
                     )}
 
@@ -292,7 +401,7 @@ export const ExceptionValidationDialog = ({
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {classroomErrors.map((error, idx) => (
+                                        {(expandedClassroomErrors ? classroomErrors : classroomErrors.slice(0, 5)).map((error, idx) => (
                                             <TableRow key={idx}>
                                                 <TableCell className="font-medium whitespace-nowrap">{error.row}</TableCell>
                                                 <TableCell className="font-mono text-sm whitespace-nowrap">
@@ -313,6 +422,19 @@ export const ExceptionValidationDialog = ({
                                     </TableBody>
                                 </Table>
                             </div>
+                            {classroomErrors.length > 5 && (
+                                <Button
+                                    variant="ghost"
+                                    className="w-full border-t rounded-none bg-red-50/50 dark:bg-red-950/10 text-red-700 dark:text-red-400 hover:bg-red-100/50 dark:hover:bg-red-950/20 text-xs h-8"
+                                    onClick={() => setExpandedClassroomErrors(prev => !prev)}
+                                >
+                                    {expandedClassroomErrors ? (
+                                        <><ChevronUp className="h-4 w-4 mr-2" />{t("calendar.import.showLess")}</>
+                                    ) : (
+                                        <><ChevronDown className="h-4 w-4 mr-2" />{t("calendar.import.showMore", { count: classroomErrors.length - 5 })}</>
+                                    )}
+                                </Button>
+                            )}
                         </div>
                     )}
 
@@ -346,7 +468,7 @@ export const ExceptionValidationDialog = ({
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {groupsAutoCreated.map((warning, idx) => (
+                                        {(expandedWarnings ? groupsAutoCreated : groupsAutoCreated.slice(0, 5)).map((warning, idx) => (
                                             <TableRow key={idx}>
                                                 <TableCell className="font-medium">{warning.row}</TableCell>
                                                 <TableCell className="font-mono text-sm">
@@ -365,6 +487,19 @@ export const ExceptionValidationDialog = ({
                                     </TableBody>
                                 </Table>
                             </div>
+                            {groupsAutoCreated.length > 5 && (
+                                <Button
+                                    variant="ghost"
+                                    className="w-full border-t rounded-none bg-blue-50/50 dark:bg-blue-950/10 text-blue-700 dark:text-blue-400 hover:bg-blue-100/50 dark:hover:bg-blue-950/20 text-xs h-8"
+                                    onClick={() => setExpandedWarnings(prev => !prev)}
+                                >
+                                    {expandedWarnings ? (
+                                        <><ChevronUp className="h-4 w-4 mr-2" />{t("calendar.import.showLess")}</>
+                                    ) : (
+                                        <><ChevronDown className="h-4 w-4 mr-2" />{t("calendar.import.showMore", { count: groupsAutoCreated.length - 5 })}</>
+                                    )}
+                                </Button>
+                            )}
                         </div>
                     )}
 

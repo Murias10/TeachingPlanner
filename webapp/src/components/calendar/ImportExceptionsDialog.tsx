@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -28,6 +28,7 @@ export const ImportExceptionsDialog = ({
     isLoading
 }: ImportExceptionsDialogProps) => {
     const { t } = useTranslation();
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const [uploadedFile, setUploadedFile] = useState<File | null>(null);
     const [isDragOver, setIsDragOver] = useState(false);
     const [mode, setMode] = useState<'add' | 'replace'>('replace');
@@ -48,7 +49,7 @@ export const ImportExceptionsDialog = ({
         setIsDragOver(false);
 
         const files = Array.from(e.dataTransfer.files).filter(
-            file => file.name === 'excepciones.txt'
+            file => file.name.endsWith('.txt')
         );
 
         if (files.length > 0) {
@@ -59,7 +60,7 @@ export const ImportExceptionsDialog = ({
     const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
             const file = e.target.files[0];
-            if (file.name === 'excepciones.txt') {
+            if (file.name.endsWith('.txt')) {
                 setUploadedFile(file);
             }
         }
@@ -67,6 +68,7 @@ export const ImportExceptionsDialog = ({
 
     const removeFile = () => {
         setUploadedFile(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
     const handleImport = async () => {
@@ -153,13 +155,16 @@ export const ImportExceptionsDialog = ({
                         }}
                         onDragLeave={() => setIsDragOver(false)}
                     >
-                        <input
-                            type="file"
-                            accept=".txt"
-                            onChange={handleFileInput}
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                            disabled={isLoading || !!uploadedFile}
-                        />
+                        {!uploadedFile && (
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept=".txt"
+                                onChange={handleFileInput}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                disabled={isLoading}
+                            />
+                        )}
 
                         {!uploadedFile ? (
                             <div className="space-y-2">
@@ -190,9 +195,9 @@ export const ImportExceptionsDialog = ({
                                     variant="ghost"
                                     onClick={removeFile}
                                     disabled={isLoading}
-                                    className="h-8 w-8 p-0 hover:bg-green-100"
+                                    className="h-6 w-6 p-0 hover:bg-green-100"
                                 >
-                                    <X className="h-4 w-4" />
+                                    <X className="h-3 w-3" />
                                 </Button>
                             </div>
                         )}

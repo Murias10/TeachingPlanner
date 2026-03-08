@@ -1662,6 +1662,7 @@ export class CalendarImportService {
     // Group validation tracking
     const groupsNotFound: any[] = [];
     const groupsAutoCreated: any[] = [];
+    const formatErrors: Array<{ row: number; line: string; reason: string }> = [];
     let totalValidRows = 0;
     let eventsCreated = 0;
     let eventsSkipped = 0;
@@ -1685,7 +1686,10 @@ export class CalendarImportService {
 
       try {
         const parts = line.split(':');
-        if (parts.length !== 6) continue;
+        if (parts.length !== 6) {
+          formatErrors.push({ row: i + 1, line, reason: 'invalidParts' });
+          continue;
+        }
 
         const [dateStr, subjectGroupInfo, startTimeStr, endTimeStr, classroomCode, comment] = parts.map(p => p.trim());
 
@@ -1698,27 +1702,53 @@ export class CalendarImportService {
         }
 
         const dateMatch = dateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-        if (!dateMatch) continue;
+        if (!dateMatch) {
+          formatErrors.push({ row: i + 1, line, reason: 'invalidDate' });
+          continue;
+        }
 
         const [, day, month, year] = dateMatch;
         const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-        if (isNaN(date.getTime())) continue;
+        if (isNaN(date.getTime())) {
+          formatErrors.push({ row: i + 1, line, reason: 'invalidDate' });
+          continue;
+        }
 
         const groupParts = subjectGroupInfo.split('.');
-        if (groupParts.length !== 3) continue;
+        if (groupParts.length !== 3) {
+          formatErrors.push({ row: i + 1, line, reason: 'invalidGroup' });
+          continue;
+        }
 
         const [subjectAcronym, groupType, groupInfo] = groupParts;
         let language: string, groupNumber: number;
 
         if (groupInfo.includes('-')) {
           const groupMatch = groupInfo.match(/^I-(\d+)$/);
-          if (!groupMatch) continue;
+          if (!groupMatch) {
+            formatErrors.push({ row: i + 1, line, reason: 'invalidGroup' });
+            continue;
+          }
           language = 'EN';
           groupNumber = parseInt(groupMatch[1], 10);
         } else {
           groupNumber = parseInt(groupInfo, 10);
-          if (isNaN(groupNumber)) continue;
+          if (isNaN(groupNumber)) {
+            formatErrors.push({ row: i + 1, line, reason: 'invalidGroup' });
+            continue;
+          }
           language = 'ES';
+        }
+
+        // Validate time format (HH.MM) for non-cancelled events
+        const timeRegex = /^\d{1,2}\.\d{2}$/;
+        if (!cancelled && !timeRegex.test(startTimeStr)) {
+          formatErrors.push({ row: i + 1, line, reason: 'invalidTime' });
+          continue;
+        }
+        if (endTimeStr !== '-1' && !timeRegex.test(endTimeStr)) {
+          formatErrors.push({ row: i + 1, line, reason: 'invalidTime' });
+          continue;
         }
 
         // Format group key for error reporting
@@ -2035,7 +2065,8 @@ export class CalendarImportService {
 
     // Prepare group validation result
     const groupValidation = {
-      hasIssues: groupsNotFound.length > 0 || groupsAutoCreated.length > 0,
+      hasIssues: groupsNotFound.length > 0 || groupsAutoCreated.length > 0 || formatErrors.length > 0,
+      formatErrors,
       groupsNotFound,
       groupsAutoCreated,
       statistics: {
@@ -2043,6 +2074,7 @@ export class CalendarImportService {
         validRows: totalValidRows,
         groupsNotFoundCount: groupsNotFound.length,
         groupsAutoCreatedCount: groupsAutoCreated.length,
+        formatErrorsCount: formatErrors.length,
         eventsCreated,
         eventsSkipped
       }
@@ -2191,6 +2223,7 @@ export class CalendarImportService {
     let combinedErrors: string[] = [];
     let combinedGroupsNotFound: any[] = [];
     let combinedGroupsAutoCreated: any[] = [];
+    let combinedFormatErrors: Array<{ row: number; line: string; reason: string }> = [];
     let totalLines = 0;
     let totalValidRows = 0;
 
@@ -2214,6 +2247,7 @@ export class CalendarImportService {
       combinedErrors = result.errors;
       combinedGroupsNotFound = result.groupValidation?.groupsNotFound || [];
       combinedGroupsAutoCreated = result.groupValidation?.groupsAutoCreated || [];
+      combinedFormatErrors = result.groupValidation?.formatErrors || [];
       totalLines = result.totalLines;
       totalValidRows = result.groupValidation?.statistics?.validRows || 0;
 
@@ -2297,6 +2331,10 @@ export class CalendarImportService {
         ...(result1.groupValidation?.groupsAutoCreated || []),
         ...(result2.groupValidation?.groupsAutoCreated || [])
       ];
+      combinedFormatErrors = [
+        ...(result1.groupValidation?.formatErrors || []),
+        ...(result2.groupValidation?.formatErrors || [])
+      ];
       totalLines = result1.totalLines;
       totalValidRows = (result1.groupValidation?.statistics?.validRows || 0) + (result2.groupValidation?.statistics?.validRows || 0);
 
@@ -2305,7 +2343,8 @@ export class CalendarImportService {
 
     // Build groupValidation object similar to calendar creation
     const groupValidation = {
-      hasIssues: combinedGroupsNotFound.length > 0 || combinedGroupsAutoCreated.length > 0,
+      hasIssues: combinedGroupsNotFound.length > 0 || combinedGroupsAutoCreated.length > 0 || combinedFormatErrors.length > 0,
+      formatErrors: combinedFormatErrors,
       groupsNotFound: combinedGroupsNotFound,
       groupsAutoCreated: combinedGroupsAutoCreated,
       statistics: {
@@ -2313,6 +2352,7 @@ export class CalendarImportService {
         validRows: totalValidRows,
         groupsNotFoundCount: combinedGroupsNotFound.length,
         groupsAutoCreatedCount: combinedGroupsAutoCreated.length,
+        formatErrorsCount: combinedFormatErrors.length,
         eventsCreated: totalCreated,
         eventsSkipped: totalLines - totalValidRows
       }

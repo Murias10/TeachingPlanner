@@ -1268,6 +1268,7 @@ export const exportCalendar = async (req: AuditedRequest, res: Response) => {
     }
 };
 
+
 /**
  * Helper function to build a cancellation index from cancelled puntual events
  * This follows the same logic as CalendarEventsService.construirIndiceCanceladosEventos
@@ -1329,73 +1330,38 @@ function isPeriodicEventCancelled(
 }
 
 /**
- * Helper function to get active (non-cancelled) periodic events that materialize on a specific day
- * @param calendarId - Calendar ID
- * @param dayId - Day ID to load cancelled events from
- * @param eventDate - The date to check
- * @param dayCharacter - The day character from the Day entity
- * @returns Array of active periodic events that would materialize on this day
+ * Returns the periodic events that actually materialize on a specific day,
+ * delegating entirely to CalendarEventsService.generateCalendarEvents which
+ * already handles N (round-robin), non-N (character matching), hour budgets,
+ * and cancellations correctly.
  */
 async function getActivePeriodicEventsForDay(
     calendarId: string,
-    dayId: string,
+    _dayId: string,
     eventDate: Date,
-    dayCharacter: string
+    _dayCharacter: string
 ): Promise<PeriodicEvent[]> {
-    // Get day of week (L, M, X, J, V)
-    const dayOfWeek = eventDate.getDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
-    const weekDayMap: Record<number, string> = {
-        1: 'L', // Lunes
-        2: 'M', // Martes
-        3: 'X', // Miércoles
-        4: 'J', // Jueves
-        5: 'V', // Viernes
-    };
-    const weekDay = weekDayMap[dayOfWeek];
+    // Generate the full calendar — this is the single source of truth for event materialization
+    const allEvents = await CalendarEventsService.generateCalendarEvents(calendarId);
 
-    if (!weekDay) {
-        // Weekend day, no periodic events
-        return [];
-    }
+    const targetDateStr = eventDate.toISOString().split('T')[0];
 
-    // Load all periodic events for this calendar and weekDay
-    const periodicEventRepo = AppDataSource.getRepository(PeriodicEvent);
-    const periodicEvents = await periodicEventRepo.find({
-        where: {
-            calendar: { id: calendarId },
-            weekDay: weekDay
-        },
-        relations: ['groups', 'classrooms']
-    });
-
-    // Filter by eventCharacter matching dayCharacter
-    const materializedEvents = periodicEvents.filter(event => {
-        const eventChar = event.eventCharacter.toUpperCase();
-        const dayChar = (dayCharacter || '').toUpperCase();
-
-        // Event materializes if dayCharacter includes eventCharacter
-        return dayChar.includes(eventChar);
-    });
-
-    // Load cancelled puntual events for this day
-    const puntualEventRepo = AppDataSource.getRepository(PuntualEvent);
-    const cancelledEvents = await puntualEventRepo.find({
-        where: {
-            day: { id: dayId },
-            cancelled: true
-        },
-        relations: ['groups', 'classrooms']
-    });
-
-    // Build cancellation index
-    const cancellationIndex = buildCancellationIndex(cancelledEvents, eventDate);
-
-    // Filter out cancelled periodic events
-    const activeEvents = materializedEvents.filter(event =>
-        !isPeriodicEventCancelled(event, cancellationIndex, eventDate)
+    // Keep only non-cancelled periodic events that fall on the target date
+    const periodicEventsOnDay = allEvents.filter(e =>
+        e.type === 'periodic' &&
+        !e.cancelled &&
+        e.date.startsWith(targetDateStr)
     );
 
-    return activeEvents;
+    if (periodicEventsOnDay.length === 0) return [];
+
+    // Load the corresponding PeriodicEvent entities (needed by findPeriodicEventConflicts)
+    const periodicEventRepo = AppDataSource.getRepository(PeriodicEvent);
+    const ids = [...new Set(periodicEventsOnDay.map((e: any) => e.periodicEventId as string))];
+    return periodicEventRepo.find({
+        where: { id: In(ids) },
+        relations: ['groups', 'classrooms']
+    });
 }
 
 /**

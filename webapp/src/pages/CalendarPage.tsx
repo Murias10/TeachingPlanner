@@ -978,10 +978,25 @@ export default function CalendarPage() {
                         setIsCreateEventDialogOpen(false);
                         refetch();
                     },
-                    onError: (error: Error & { statusCode?: number }) => {
+                    onError: (error: Error & { statusCode?: number; conflictData?: { groupNames: string[]; classroomNames: string[] }[] }) => {
+                        const first = error.conflictData?.[0];
+                        let description: string;
+                        if (first) {
+                            const groupNames = first.groupNames?.join(', ') || '';
+                            const classroomNames = first.classroomNames?.join(', ') || '';
+                            if (groupNames && classroomNames) {
+                                description = t('alerts.puntualEvent.error.shared_both_detail', { groupNames, classroomNames });
+                            } else if (groupNames) {
+                                description = t('alerts.puntualEvent.error.shared_group_detail', { names: groupNames });
+                            } else {
+                                description = t('alerts.puntualEvent.error.shared_classroom_detail', { names: classroomNames });
+                            }
+                        } else {
+                            description = t(error.message);
+                        }
                         triggerAlert({
                             title: t('alerts.puntualEvent.error.title'),
-                            description: t(error.message),
+                            description,
                             variant: 'destructive'
                         });
                     }
@@ -1055,16 +1070,31 @@ export default function CalendarPage() {
                             createdCount++;
                             createNextEvent(index + 1);
                         },
-                        onError: (error: Error & { statusCode?: number }) => {
+                        onError: (error: Error & { statusCode?: number; conflictData?: { groupNames: string[]; classroomNames: string[] }[] }) => {
                             errorCount++;
                             console.error(`Error creating event for day ${config.weekDays[index]}:`, error);
 
                             if (index === 0) {
                                 // Si falla el primero, mostrar error y no continuar
                                 const isConflict = error.statusCode === 409;
+                                let description: string;
+                                const first = error.conflictData?.[0];
+                                if (isConflict && first) {
+                                    const groupNames = first.groupNames?.join(', ') || '';
+                                    const classroomNames = first.classroomNames?.join(', ') || '';
+                                    if (groupNames && classroomNames) {
+                                        description = t('alerts.puntualEvent.error.shared_both_detail', { groupNames, classroomNames });
+                                    } else if (groupNames) {
+                                        description = t('alerts.puntualEvent.error.shared_group_detail', { names: groupNames });
+                                    } else {
+                                        description = t('alerts.puntualEvent.error.shared_classroom_detail', { names: classroomNames });
+                                    }
+                                } else {
+                                    description = t(error.message) || t('calendar.alerts.periodicEvent.error.description');
+                                }
                                 triggerAlert({
                                     title: t(isConflict ? 'alerts.puntualEvent.error.title' : 'calendar.alerts.periodicEvent.error.title'),
-                                    description: t(error.message) || t('calendar.alerts.periodicEvent.error.description'),
+                                    description,
                                     variant: 'destructive'
                                 });
                             } else {
@@ -1297,6 +1327,7 @@ export default function CalendarPage() {
                     endTime: config.endTime,
                     weekDay: config.weekDays && config.weekDays.length > 0 ? config.weekDays[0] : undefined,
                     classroomIds: config.classroomIds || [],
+                    groupIds: config.groupIds,
                     planifiedHours: config.planifiedHours,
                     eventType: config.eventType
                 },

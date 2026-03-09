@@ -21,8 +21,14 @@ export interface CreatePeriodicEventResponse {
     data: null;
 }
 
+export interface ConflictEntry {
+    groupNames: string[];
+    classroomNames: string[];
+}
+
 interface ApiError extends Error {
     statusCode?: number;
+    conflictData?: ConflictEntry[];
 }
 
 interface CreatePeriodicEventOptions {
@@ -45,6 +51,9 @@ export function useCreatePeriodicEvent() {
                 const errorData = await res.json();
                 const error = new Error(errorData.message || `Error ${res.status}`) as ApiError;
                 error.statusCode = res.status;
+                if (res.status === 409 && errorData.data?.conflicts) {
+                    error.conflictData = errorData.data.conflicts;
+                }
                 throw error;
             }
 

@@ -278,7 +278,10 @@
                 "title": "Schedule conflict",
                 "shared_group": "The same group already has an event at this time",
                 "shared_classroom": "The same classroom already has an event at this time",
-                "shared_both": "The same group and classroom already have an event at this time"
+                "shared_both": "The same group and classroom already have an event at this time",
+                "shared_group_detail": "Group {{names}} already has an event at this time",
+                "shared_classroom_detail": "Classroom {{names}} already has an event at this time",
+                "shared_both_detail": "Group {{groupNames}} and classroom {{classroomNames}} already have an event at this time"
             },
             "success": {
                 "title": "Event created",

@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import VITE_GATEWAY_API_URL from '@/config/api';
 import { useFloatingAlertContext } from '@/contexts/useFloatingAlertContext';
 import { getAuthHeaders } from '@/utils/authHeaders';
+import { useTranslation } from 'react-i18next';
 
 interface UpdateCustomPeriodicEventData {
     eventCharacter: string;
@@ -21,6 +22,7 @@ interface UpdateCustomPeriodicEventResult {
 export const useUpdateCustomPeriodicEvent = () => {
     const queryClient = useQueryClient();
     const { triggerAlert } = useFloatingAlertContext();
+    const { t } = useTranslation();
 
     const mutation = useMutation<UpdateCustomPeriodicEventResult, Error, UpdateCustomPeriodicEventData>({
         mutationFn: async (data: UpdateCustomPeriodicEventData): Promise<UpdateCustomPeriodicEventResult> => {
@@ -34,7 +36,13 @@ export const useUpdateCustomPeriodicEvent = () => {
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.message || 'Error actualizando eventos periódicos personalizados');
+                const error: Error & { statusCode?: number; conflictData?: { groupNames: string[]; classroomNames: string[] }[] } =
+                    new Error(errorData.message || 'Error actualizando eventos periódicos personalizados');
+                error.statusCode = response.status;
+                if (response.status === 409 && errorData.data?.conflicts) {
+                    error.conflictData = errorData.data.conflicts;
+                }
+                throw error;
             }
 
             const result = await response.json();
@@ -52,10 +60,25 @@ export const useUpdateCustomPeriodicEvent = () => {
                 variant: 'success'
             });
         },
-        onError: (error) => {
+        onError: (error: Error & { statusCode?: number; conflictData?: { groupNames: string[]; classroomNames: string[] }[] }) => {
+            const first = error.conflictData?.[0];
+            let description: string;
+            if (error.statusCode === 409 && first) {
+                const groupNames = first.groupNames?.join(', ') || '';
+                const classroomNames = first.classroomNames?.join(', ') || '';
+                if (groupNames && classroomNames) {
+                    description = t('alerts.puntualEvent.error.shared_both_detail', { groupNames, classroomNames });
+                } else if (groupNames) {
+                    description = t('alerts.puntualEvent.error.shared_group_detail', { names: groupNames });
+                } else {
+                    description = t('alerts.puntualEvent.error.shared_classroom_detail', { names: classroomNames });
+                }
+            } else {
+                description = error.message;
+            }
             triggerAlert({
                 title: 'Error al actualizar eventos',
-                description: error.message,
+                description,
                 variant: 'destructive'
             });
         }

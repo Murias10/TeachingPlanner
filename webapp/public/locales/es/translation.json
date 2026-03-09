@@ -278,7 +278,10 @@
                 "title": "Conflicto de horario",
                 "shared_group": "El mismo grupo ya tiene un evento en este horario",
                 "shared_classroom": "La misma aula ya tiene un evento en este horario",
-                "shared_both": "El mismo grupo y aula ya tienen un evento en este horario"
+                "shared_both": "El mismo grupo y aula ya tienen un evento en este horario",
+                "shared_group_detail": "El grupo {{names}} ya tiene un evento en este horario",
+                "shared_classroom_detail": "El aula {{names}} ya tiene un evento en este horario",
+                "shared_both_detail": "El grupo {{groupNames}} y el aula {{classroomNames}} ya tienen un evento en este horario"
             },
             "success": {
                 "title": "Evento creado",

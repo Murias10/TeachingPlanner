@@ -1575,13 +1575,17 @@ export const createPuntualEvent = async (req: AuditedRequest, res: Response) => 
                                 id: e.id,
                                 startTime: e.startTime,
                                 endTime: e.endTime,
-                                type: 'puntual'
+                                type: 'puntual',
+                                groupNames: e.groups?.filter(g => groupIds.includes(g.id)).map(g => `${g.type}${g.number}`) ?? [],
+                                classroomNames: e.classrooms?.filter(c => classroomIds.includes(c.id)).map(c => c.code) ?? []
                             })) || []),
                             ...conflictingPeriodicEvents.map(e => ({
                                 id: e.id,
                                 startTime: e.startTime,
                                 endTime: e.endTime,
-                                type: 'periodic'
+                                type: 'periodic',
+                                groupNames: e.groups?.filter((g: any) => groupIds.includes(g.id)).map((g: any) => `${g.type}${g.number}`) ?? [],
+                                classroomNames: e.classrooms?.filter((c: any) => classroomIds.includes(c.id)).map((c: any) => c.code) ?? []
                             }))
                         ]
                     }
@@ -2253,13 +2257,17 @@ export const updatePuntualEvent = async (req: AuditedRequest, res: Response) => 
                             id: e.id,
                             startTime: e.startTime,
                             endTime: e.endTime,
-                            type: 'puntual'
+                            type: 'puntual',
+                            groupNames: e.groups?.filter(g => groupIds.includes(g.id)).map(g => `${g.type}${g.number}`) ?? [],
+                            classroomNames: e.classrooms?.filter(c => classroomIds.includes(c.id)).map(c => c.code) ?? []
                         })) || []),
                         ...conflictingPeriodicEvents.map(e => ({
                             id: e.id,
                             startTime: e.startTime,
                             endTime: e.endTime,
-                            type: 'periodic'
+                            type: 'periodic',
+                            groupNames: e.groups?.filter((g: any) => groupIds.includes(g.id)).map((g: any) => `${g.type}${g.number}`) ?? [],
+                            classroomNames: e.classrooms?.filter((c: any) => classroomIds.includes(c.id)).map((c: any) => c.code) ?? []
                         }))
                     ]
                 }
@@ -2477,7 +2485,9 @@ export const createPeriodicEvent = async (req: AuditedRequest, res: Response) =>
                         date: e.date,
                         startTime: e.startTime,
                         endTime: e.endTime,
-                        type: e.type
+                        type: e.type,
+                        groupNames: e.groups?.filter((g: any) => groupIds.includes(g.id)).map((g: any) => `${g.type}${g.number}`) ?? [],
+                        classroomNames: e.classrooms?.filter((c: any) => classroomIds.includes(c.id)).map((c: any) => c.code) ?? []
                     }))
                 }
             });
@@ -2790,7 +2800,7 @@ export const createCustomPeriodicEvent = async (req: AuditedRequest, res: Respon
 export const updatePeriodicEvent = async (req: AuditedRequest, res: Response) => {
     try {
         const { eventId } = req.params;
-        const { startTime, endTime, classroomIds = [], planifiedHours, weekDay, eventType = EVENT_TYPES.NORMAL } = req.body;
+        const { startTime, endTime, classroomIds = [], planifiedHours, weekDay, eventType = EVENT_TYPES.NORMAL, groupIds: bodyGroupIds } = req.body;
 
         // Validaciones
         if (!eventId) {
@@ -2818,7 +2828,7 @@ export const updatePeriodicEvent = async (req: AuditedRequest, res: Response) =>
         // Buscar el evento periódico con sus relaciones
         const periodicEvent = await periodicEventRepo.findOne({
             where: { id: eventId },
-            relations: ['groups', 'classrooms']
+            relations: ['groups', 'classrooms', 'calendar']
         });
 
         if (!periodicEvent) {
@@ -2835,6 +2845,71 @@ export const updatePeriodicEvent = async (req: AuditedRequest, res: Response) =>
             ? await classroomRepo.find({ where: { id: In(classroomIds) } })
             : [];
 
+        // Validación de conflictos antes de actualizar
+        {
+            const calendarId = periodicEvent.calendar.id;
+            const newWeekDay = (weekDay !== undefined && weekDay !== null) ? weekDay : periodicEvent.weekDay;
+            const groupIds = bodyGroupIds !== undefined ? bodyGroupIds : periodicEvent.groups.map((g: any) => g.id);
+            const normalizeTimeStr = (t: string) => t.substring(0, 5);
+            const newStart = normalizeTimeStr(startTime);
+            const newEnd = normalizeTimeStr(endTime);
+            const dayNumToCode: Record<number, string> = { 1: 'L', 2: 'M', 3: 'X', 4: 'J', 5: 'V', 6: 'S', 0: 'D' };
+
+            const allGeneratedEvents = await CalendarEventsService.generateCalendarEvents(calendarId);
+
+            const conflictos = allGeneratedEvents.filter((event: any) => {
+                if (event.cancelled) return false;
+                // Excluir el propio evento
+                if (event.type === 'periodic' && event.periodicEventId === eventId) return false;
+
+                const eventWeekDay = event.weekDay ?? dayNumToCode[new Date(event.date).getDay()];
+                if (eventWeekDay !== newWeekDay) return false;
+
+                const eStart = normalizeTimeStr(event.startTime);
+                const eEnd = normalizeTimeStr(event.endTime);
+                if (newStart >= eEnd || newEnd <= eStart) return false;
+
+                const sharesGroup = eventType !== EVENT_TYPES.BLOCKER &&
+                    event.eventType !== EVENT_TYPES.BLOCKER &&
+                    event.groups?.some((g: any) => groupIds.includes(g.id));
+                const sharesClassroom = event.classrooms?.some((c: any) => classroomIds.includes(c.id));
+
+                return sharesGroup || sharesClassroom;
+            });
+
+            if (conflictos.length > 0) {
+                const first = conflictos[0];
+                const sharesGroup = eventType !== EVENT_TYPES.BLOCKER &&
+                    first.eventType !== EVENT_TYPES.BLOCKER &&
+                    first.groups?.some((g: any) => groupIds.includes(g.id));
+                const sharesClassroom = first.classrooms?.some((c: any) => classroomIds.includes(c.id));
+                const bothShare = sharesGroup && sharesClassroom;
+
+                const messageKey = bothShare
+                    ? 'alerts.puntualEvent.error.shared_both'
+                    : sharesGroup
+                        ? 'alerts.puntualEvent.error.shared_group'
+                        : 'alerts.puntualEvent.error.shared_classroom';
+
+                res.status(409).json({
+                    status: 'error',
+                    message: messageKey,
+                    data: {
+                        conflicts: conflictos.slice(0, 5).map((e: any) => ({
+                            id: e.id,
+                            date: e.date,
+                            startTime: e.startTime,
+                            endTime: e.endTime,
+                            type: e.type,
+                            groupNames: e.groups?.filter((g: any) => groupIds.includes(g.id)).map((g: any) => `${g.type}${g.number}`) ?? [],
+                            classroomNames: e.classrooms?.filter((c: any) => classroomIds.includes(c.id)).map((c: any) => c.code) ?? []
+                        }))
+                    }
+                });
+                return;
+            }
+        }
+
         // Obtener usuario autenticado
         const userEmail = getUserEmailFromRequest(req);
 
@@ -2845,6 +2920,11 @@ export const updatePeriodicEvent = async (req: AuditedRequest, res: Response) =>
         periodicEvent.eventType = eventType;
         if (weekDay !== undefined && weekDay !== null) {
             periodicEvent.weekDay = weekDay;
+        }
+        if (bodyGroupIds !== undefined) {
+            periodicEvent.groups = bodyGroupIds.length > 0
+                ? await groupRepo.find({ where: { id: In(bodyGroupIds) } })
+                : [];
         }
         periodicEvent.updatedBy = userEmail;
         periodicEvent.updatedAt = new Date();
@@ -2970,6 +3050,74 @@ export const updateCustomPeriodicEvent = async (req: AuditedRequest, res: Respon
         const classrooms = classroomIds.length > 0
             ? await classroomRepo.find({ where: { id: In(classroomIds) } })
             : [];
+
+        // Validación de conflictos antes de actualizar
+        {
+            const editingIds = new Set(periodicEvents.map((e: any) => e.id));
+            const normalizeTimeStr = (t: string) => t.substring(0, 5);
+            const newStart = normalizeTimeStr(startTime);
+            const newEnd = normalizeTimeStr(endTime);
+            const dayNumToCode: Record<number, string> = { 1: 'L', 2: 'M', 3: 'X', 4: 'J', 5: 'V', 6: 'S', 0: 'D' };
+
+            const allGeneratedEvents = await CalendarEventsService.generateCalendarEvents(calendarId);
+
+            for (const periodicEvent of periodicEvents) {
+                const eventWeekDay = periodicEvent.weekDay;
+                const groupIds = periodicEvent.groups.map((g: any) => g.id);
+
+                const conflictos = allGeneratedEvents.filter((event: any) => {
+                    if (event.cancelled) return false;
+                    // Excluir los eventos que se están editando
+                    if (event.type === 'periodic' && editingIds.has(event.periodicEventId)) return false;
+
+                    const evWeekDay = event.weekDay ?? dayNumToCode[new Date(event.date).getDay()];
+                    if (evWeekDay !== eventWeekDay) return false;
+
+                    const eStart = normalizeTimeStr(event.startTime);
+                    const eEnd = normalizeTimeStr(event.endTime);
+                    if (newStart >= eEnd || newEnd <= eStart) return false;
+
+                    const sharesGroup = eventType !== EVENT_TYPES.BLOCKER &&
+                        event.eventType !== EVENT_TYPES.BLOCKER &&
+                        event.groups?.some((g: any) => groupIds.includes(g.id));
+                    const sharesClassroom = event.classrooms?.some((c: any) => classroomIds.includes(c.id));
+
+                    return sharesGroup || sharesClassroom;
+                });
+
+                if (conflictos.length > 0) {
+                    const first = conflictos[0];
+                    const sharesGroup = eventType !== EVENT_TYPES.BLOCKER &&
+                        first.eventType !== EVENT_TYPES.BLOCKER &&
+                        first.groups?.some((g: any) => groupIds.includes(g.id));
+                    const sharesClassroom = first.classrooms?.some((c: any) => classroomIds.includes(c.id));
+                    const bothShare = sharesGroup && sharesClassroom;
+
+                    const messageKey = bothShare
+                        ? 'alerts.puntualEvent.error.shared_both'
+                        : sharesGroup
+                            ? 'alerts.puntualEvent.error.shared_group'
+                            : 'alerts.puntualEvent.error.shared_classroom';
+
+                    res.status(409).json({
+                        status: 'error',
+                        message: messageKey,
+                        data: {
+                            conflicts: conflictos.slice(0, 5).map((e: any) => ({
+                                id: e.id,
+                                date: e.date,
+                                startTime: e.startTime,
+                                endTime: e.endTime,
+                                type: e.type,
+                                groupNames: e.groups?.filter((g: any) => groupIds.includes(g.id)).map((g: any) => `${g.type}${g.number}`) ?? [],
+                                classroomNames: e.classrooms?.filter((c: any) => classroomIds.includes(c.id)).map((c: any) => c.code) ?? []
+                            }))
+                        }
+                    });
+                    return;
+                }
+            }
+        }
 
         // Get user email for audit
         const userEmail = getUserEmailFromRequest(req);

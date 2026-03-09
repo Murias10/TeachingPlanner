@@ -1061,10 +1061,10 @@ export default function CalendarPage() {
 
                             if (index === 0) {
                                 // Si falla el primero, mostrar error y no continuar
-                                const errorMessage = error.message || t('calendar.alerts.periodicEvent.error.description');
+                                const isConflict = error.statusCode === 409;
                                 triggerAlert({
-                                    title: t('calendar.alerts.periodicEvent.error.title'),
-                                    description: errorMessage,
+                                    title: t(isConflict ? 'alerts.puntualEvent.error.title' : 'calendar.alerts.periodicEvent.error.title'),
+                                    description: t(error.message) || t('calendar.alerts.periodicEvent.error.description'),
                                     variant: 'destructive'
                                 });
                             } else {

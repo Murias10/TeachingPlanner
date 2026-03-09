@@ -2422,6 +2422,68 @@ export const createPeriodicEvent = async (req: AuditedRequest, res: Response) =>
         // Obtener usuario autenticado
         const userEmail = getUserEmailFromRequest(req);
 
+        // Verificar conflictos: generar todos los eventos actuales del calendario y comprobar
+        // si el nuevo evento periódico colisionaría con alguno (puntual o periódico generado)
+        const allGeneratedEvents = await CalendarEventsService.generateCalendarEvents(calendarId);
+
+        const normalizeTimeStr = (t: string) => t.substring(0, 5);
+        const newStart = normalizeTimeStr(startTime);
+        const newEnd = normalizeTimeStr(endTime);
+        const dayNumToCode: Record<number, string> = { 1: 'L', 2: 'M', 3: 'X', 4: 'J', 5: 'V', 6: 'S', 0: 'D' };
+
+        const conflictos = allGeneratedEvents.filter((event: any) => {
+            if (event.cancelled) return false;
+
+            // Derivar el día de semana: los periódicos ya tienen weekDay, los puntuales no
+            const eventWeekDay = event.weekDay ?? dayNumToCode[new Date(event.date).getDay()];
+            if (eventWeekDay !== weekDay) return false;
+
+            // Solapamiento de tiempo
+            const eStart = normalizeTimeStr(event.startTime);
+            const eEnd = normalizeTimeStr(event.endTime);
+            if (newStart >= eEnd || newEnd <= eStart) return false;
+
+            // Conflicto de grupo
+            const sharesGroup = eventType !== EVENT_TYPES.BLOCKER &&
+                event.eventType !== EVENT_TYPES.BLOCKER &&
+                event.groups?.some((g: any) => groupIds.includes(g.id));
+
+            // Conflicto de aula
+            const sharesClassroom = event.classrooms?.some((c: any) => classroomIds.includes(c.id));
+
+            return sharesGroup || sharesClassroom;
+        });
+
+        if (conflictos.length > 0) {
+            const first = conflictos[0];
+            const sharesGroup = eventType !== EVENT_TYPES.BLOCKER &&
+                first.eventType !== EVENT_TYPES.BLOCKER &&
+                first.groups?.some((g: any) => groupIds.includes(g.id));
+            const sharesClassroom = first.classrooms?.some((c: any) => classroomIds.includes(c.id));
+            const bothShare = sharesGroup && sharesClassroom;
+
+            const messageKey = bothShare
+                ? 'alerts.puntualEvent.error.shared_both'
+                : sharesGroup
+                    ? 'alerts.puntualEvent.error.shared_group'
+                    : 'alerts.puntualEvent.error.shared_classroom';
+
+            res.status(409).json({
+                status: 'error',
+                message: messageKey,
+                data: {
+                    conflicts: conflictos.slice(0, 5).map((e: any) => ({
+                        id: e.id,
+                        date: e.date,
+                        startTime: e.startTime,
+                        endTime: e.endTime,
+                        type: e.type
+                    }))
+                }
+            });
+            return;
+        }
+
         // Obtener el año del primer grupo (ya que todos pertenecen a la misma asignatura/año)
         const groupYear = groups.length > 0 && groups[0].subject ? groups[0].subject.year : new Date(calendar.start).getFullYear();
 

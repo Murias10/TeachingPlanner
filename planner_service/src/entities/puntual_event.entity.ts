@@ -58,6 +58,14 @@ export class PuntualEvent extends AuditedEntity {
     @Column('uuid', { name: 'ID_REPLACEMENT_EVENT', nullable: true })
     replacementEventId?: string | null;
 
+    /**
+     * ID of the periodic event series this cancelled event was created from.
+     * Only set when this puntual event cancels a periodic occurrence.
+     * Used to scope cancellation checks so new periodic series don't inherit old cancellations.
+     */
+    @Column('uuid', { name: 'ID_PERIODIC_EVENT_SOURCE', nullable: true })
+    periodicEventSourceId?: string | null;
+
     /** Groups participating in this event */
     @ManyToMany(() => Group, (group) => group.puntualEvents)
     @JoinTable({

@@ -1898,6 +1898,7 @@ export class CalendarImportService {
 
         // Procesar hora de inicio y fin
         let startTime: string, endTime: string;
+        let matchedPeriodicEvent: any = null; // Tracks if a cancelled event matched a periodic event
 
         if (cancelled) {
           // Para eventos cancelados, endTimeStr puede contener hora de INICIO o FIN del evento original
@@ -1990,6 +1991,10 @@ export class CalendarImportService {
           if (eventoCoincidente) {
             startTime = normalizeTimeForComparison(eventoCoincidente.startTime);
             endTime = normalizeTimeForComparison(eventoCoincidente.endTime);
+            // Track if matched event is a periodic event (has weekDay field)
+            if ('weekDay' in eventoCoincidente) {
+              matchedPeriodicEvent = eventoCoincidente;
+            }
 
             console.log(`[CANCELADO] Evento encontrado por ${coincidioPor} para ${subjectAcronym}.${groupType}.${groupInfo} en ${dateStr}: ${startTime} - ${endTime}`);
           } else {
@@ -2033,6 +2038,9 @@ export class CalendarImportService {
           .andWhere('classroom.id = :classroomId', { classroomId: classroom.id })
           .getOne();
 
+        // Determine if the matched event (for cancelled events) was a periodic event
+        const periodicEventSourceId = matchedPeriodicEvent ? matchedPeriodicEvent.id : null;
+
         if (existingEvent) {
           let hasChanges = false;
           if (existingEvent.cancelled !== cancelled) {
@@ -2041,6 +2049,10 @@ export class CalendarImportService {
           }
           if (existingEvent.comment !== comment) {
             existingEvent.comment = comment;
+            hasChanges = true;
+          }
+          if (cancelled && periodicEventSourceId && !existingEvent.periodicEventSourceId) {
+            existingEvent.periodicEventSourceId = periodicEventSourceId;
             hasChanges = true;
           }
           if (hasChanges) {
@@ -2052,7 +2064,7 @@ export class CalendarImportService {
             eventsSkipped++;
           }
         } else {
-          const puntualEvent = puntualEventRepo.create({ day: dayEntity, startTime, endTime, cancelled, comment, groups: [group], classrooms: [classroom], createdBy: userEmail });
+          const puntualEvent = puntualEventRepo.create({ day: dayEntity, startTime, endTime, cancelled, comment, groups: [group], classrooms: [classroom], createdBy: userEmail, periodicEventSourceId });
           await puntualEventRepo.save(puntualEvent);
           processedEvents.push({ date: dateStr, subject: subjectAcronym, action: 'created', line: i + 1 });
           eventsCreated++;

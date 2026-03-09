@@ -369,7 +369,7 @@ export class CalendarEventsService {
           }
         } else {
           for (const grupo of eventoPuntual.groups) {
-            indice.add(this.crearClaveEventoCancelado(grupo.id, dia.date, eventoPuntual.startTime));
+            indice.add(this.crearClaveEventoCancelado(grupo.id, dia.date, eventoPuntual.startTime, eventoPuntual.periodicEventSourceId ?? null));
           }
         }
       }
@@ -398,7 +398,8 @@ export class CalendarEventsService {
         indiceCanceladosEventos,
         grupo.id,
         dia.date,
-        eventoPeriodico.startTime
+        eventoPeriodico.startTime,
+        eventoPeriodico.id
       )
     );
   }
@@ -689,8 +690,9 @@ export class CalendarEventsService {
   /**
    * Crea clave única para evento cancelado
    */
-  private static crearClaveEventoCancelado(idGrupo: string, fecha: Date, horaInicio: string): string {
-    return `${idGrupo}_${this.obtenerClaveFecha(fecha)}_${horaInicio}`;
+  private static crearClaveEventoCancelado(idGrupo: string, fecha: Date, horaInicio: string, periodicEventSourceId?: string | null): string {
+    const base = `${idGrupo}_${this.obtenerClaveFecha(fecha)}_${horaInicio}`;
+    return periodicEventSourceId ? `${base}_${periodicEventSourceId}` : base;
   }
 
   private static crearClaveEventoCanceladoAula(idAula: string, fecha: Date, horaInicio: string): string {
@@ -704,9 +706,15 @@ export class CalendarEventsService {
     indice: Set<string>,
     idGrupo: string,
     fecha: Date,
-    horaInicio: string
+    horaInicio: string,
+    periodicEventId?: string
   ): boolean {
-    return indice.has(this.crearClaveEventoCancelado(idGrupo, fecha, horaInicio));
+    // Check specific key first (new cancellations with periodicEventSourceId)
+    if (periodicEventId && indice.has(this.crearClaveEventoCancelado(idGrupo, fecha, horaInicio, periodicEventId))) {
+      return true;
+    }
+    // Fallback: generic key (legacy cancellations without periodicEventSourceId)
+    return indice.has(this.crearClaveEventoCancelado(idGrupo, fecha, horaInicio, null));
   }
 
   /**

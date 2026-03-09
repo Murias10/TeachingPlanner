@@ -1410,7 +1410,7 @@ function findPeriodicEventConflicts(
 
 export const createPuntualEvent = async (req: AuditedRequest, res: Response) => {
     try {
-        const { calendarId, eventDate, startTime, endTime, subjectId, groupIds = [], classroomIds = [], comment = '', cancelled = false, eventType = EVENT_TYPES.NORMAL } = req.body;
+        const { calendarId, eventDate, startTime, endTime, subjectId, groupIds = [], classroomIds = [], comment = '', cancelled = false, eventType = EVENT_TYPES.NORMAL, periodicEventSourceId = null } = req.body;
 
         // Validaciones
         if (!calendarId || !eventDate || !startTime || !endTime) {
@@ -1628,7 +1628,8 @@ export const createPuntualEvent = async (req: AuditedRequest, res: Response) => 
             eventType: eventType,
             groups: groups,
             classrooms: classrooms,
-            createdBy: userEmail
+            createdBy: userEmail,
+            periodicEventSourceId: cancelled ? (periodicEventSourceId ?? null) : null,
         });
 
         const savedEvent = await puntualEventRepo.save(puntualEvent);
@@ -1794,6 +1795,64 @@ export const deletePuntualEvent = async (req: AuditedRequest, res: Response) => 
                         status: 'error',
                         message: messageKey,
                         data: conflictData
+                    });
+                    return;
+                }
+
+                // Check conflicts with active periodic events on that day
+                const calendarId = puntualEvent.day.calendar.id;
+                const eventDateObj = new Date(day.date);
+                const cancelledGroupIds = puntualEvent.groups?.map(g => g.id) || [];
+                const cancelledClassroomIds = puntualEvent.classrooms?.map(c => c.id) || [];
+
+                console.log(`[Revert Cancellation] Checking conflicts with periodic events on ${day.date}...`);
+                const activePeriodicEvents = await getActivePeriodicEventsForDay(
+                    calendarId,
+                    day.id,
+                    eventDateObj,
+                    day.dayCharacter
+                );
+                console.log(`[Revert Cancellation] Found ${activePeriodicEvents.length} active periodic events on that day`);
+
+                const conflictingPeriodicEvents = findPeriodicEventConflicts(
+                    puntualEvent.startTime,
+                    puntualEvent.endTime,
+                    cancelledGroupIds,
+                    cancelledClassroomIds,
+                    activePeriodicEvents,
+                    puntualEvent.eventType
+                );
+
+                if (conflictingPeriodicEvents.length > 0) {
+                    console.log(`[Revert Cancellation] ❌ CONFLICT DETECTED with ${conflictingPeriodicEvents.length} periodic events`);
+
+                    const firstPeriodicConflict = conflictingPeriodicEvents[0];
+                    const conflictPeriodicGroups = puntualEvent.groups?.filter(cg =>
+                        firstPeriodicConflict.groups?.some(fg => fg.id === cg.id)
+                    ).map(g => `${g.subject.acronym}.${g.type}.${g.number}`) || [];
+
+                    const conflictPeriodicClassrooms = puntualEvent.classrooms?.filter(cc =>
+                        firstPeriodicConflict.classrooms?.some(fc => fc.id === cc.id)
+                    ).map(c => c.code) || [];
+
+                    let periodicMessageKey: string;
+                    let periodicConflictData: { groups?: string; classrooms?: string };
+
+                    if (conflictPeriodicGroups.length > 0) {
+                        periodicMessageKey = 'calendar.alerts.revert.error.groupConflict';
+                        periodicConflictData = { groups: conflictPeriodicGroups.join(', ') };
+                    } else {
+                        periodicMessageKey = 'calendar.alerts.revert.error.classroomConflict';
+                        periodicConflictData = { classrooms: conflictPeriodicClassrooms.join(', ') };
+                    }
+
+                    console.log(`[Revert Cancellation] Returning 409 error: ${periodicMessageKey} with data:`, periodicConflictData);
+                    console.log('==============================================');
+
+                    res.status(409).json({
+                        status: 'error',
+                        message: periodicMessageKey,
+                        data: periodicConflictData
                     });
                     return;
                 }
@@ -2940,7 +2999,8 @@ export const replacePeriodicEvent = async (req: AuditedRequest, res: Response) =
             newEndTime,
             groupIds = [],
             classroomIds = [],
-            comment = ''
+            comment = '',
+            periodicEventSourceId = null
         } = req.body;
 
         // Validaciones
@@ -3145,7 +3205,8 @@ export const replacePeriodicEvent = async (req: AuditedRequest, res: Response) =
                 groups: groups,
                 classrooms: classrooms,
                 createdBy: userEmail,
-                replacementEventId: replacementEvent.id  // Vincular con el evento de reemplazo
+                replacementEventId: replacementEvent.id,
+                periodicEventSourceId: periodicEventSourceId ?? null,
             });
 
             await queryRunner.manager.save(cancelledEvent);

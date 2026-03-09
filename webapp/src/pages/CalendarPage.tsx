@@ -1450,7 +1450,8 @@ export default function CalendarPage() {
                         groupIds: eventToDelete.groups.map(g => g.id),
                         classroomIds: eventToDelete.classrooms.map(c => c.id),
                         comment: eventToDelete.comment || '',
-                        cancelled: true
+                        cancelled: true,
+                        periodicEventSourceId: eventToDelete.periodicEventId || null
                     })
                 });
 
@@ -1851,7 +1852,8 @@ export default function CalendarPage() {
                 newEndTime: config.newEndTime,
                 groupIds: config.groupIds,
                 classroomIds: config.classroomIds,
-                comment: config.comment || ''
+                comment: config.comment || '',
+                periodicEventSourceId: config.originalEventId || null
             };
 
             const response = await fetch(`${VITE_GATEWAY_API_URL}/calendar/replace-event`, {

@@ -1490,99 +1490,104 @@ export const createPuntualEvent = async (req: AuditedRequest, res: Response) => 
             return;
         }
 
-        // Validación de conflictos: verificar si hay eventos en el mismo horario con el mismo grupo o aula
-        console.log('[Conflict Detection] Checking for conflicts');
-        console.log('[Conflict Detection] New event time:', startTime, '-', endTime);
-        console.log('[Conflict Detection] GroupIds:', groupIds);
-        console.log('[Conflict Detection] ClassroomIds:', classroomIds);
-        console.log('[Conflict Detection] Existing puntual events on this day:', day.puntualEvents?.length || 0);
+        // Skip conflict detection for cancelled puntual events.
+        // A cancelled puntual event is just a "blocker" for a periodic event on that day;
+        // it does not occupy any active slot, so it cannot conflict with anything.
+        if (!cancelled) {
+            // Validación de conflictos: verificar si hay eventos en el mismo horario con el mismo grupo o aula
+            console.log('[Conflict Detection] Checking for conflicts');
+            console.log('[Conflict Detection] New event time:', startTime, '-', endTime);
+            console.log('[Conflict Detection] GroupIds:', groupIds);
+            console.log('[Conflict Detection] ClassroomIds:', classroomIds);
+            console.log('[Conflict Detection] Existing puntual events on this day:', day.puntualEvents?.length || 0);
 
-        // Helper to normalize time format (HH:mm:ss -> HH:mm or HH:mm -> HH:mm)
-        const normalizeTime = (time: string) => time.substring(0, 5);
+            // Helper to normalize time format (HH:mm:ss -> HH:mm or HH:mm -> HH:mm)
+            const normalizeTime = (time: string) => time.substring(0, 5);
 
-        // Check conflicts with puntual events (excluding cancelled events)
-        const conflictingPuntualEvents = day.puntualEvents?.filter(event => {
-            // Skip cancelled events - they block periodic events but don't block new puntual events
-            if (event.cancelled) return false;
+            // Check conflicts with puntual events (excluding cancelled events)
+            const conflictingPuntualEvents = day.puntualEvents?.filter(event => {
+                // Skip cancelled events - they block periodic events but don't block new puntual events
+                if (event.cancelled) return false;
 
-            // Normalize times to HH:mm format for proper comparison
-            const eventStart = normalizeTime(event.startTime);
-            const eventEnd = normalizeTime(event.endTime);
-            const newStart = normalizeTime(startTime);
-            const newEnd = normalizeTime(endTime);
+                // Normalize times to HH:mm format for proper comparison
+                const eventStart = normalizeTime(event.startTime);
+                const eventEnd = normalizeTime(event.endTime);
+                const newStart = normalizeTime(startTime);
+                const newEnd = normalizeTime(endTime);
 
-            const hasTimeOverlap = newStart < eventEnd && newEnd > eventStart;
+                const hasTimeOverlap = newStart < eventEnd && newEnd > eventStart;
 
-            if (!hasTimeOverlap) return false;
+                if (!hasTimeOverlap) return false;
 
-            // Verificar si comparte grupo (solo si ambos lados tienen grupo; BLOCKER no tiene grupo)
-            const sharesGroup = eventType !== EVENT_TYPES.BLOCKER && event.eventType !== EVENT_TYPES.BLOCKER && event.groups?.some(g => groupIds.includes(g.id));
-            // Verificar si comparte aula
-            const sharesClassroom = event.classrooms?.some(c => classroomIds.includes(c.id));
+                // Verificar si comparte grupo (solo si ambos lados tienen grupo; BLOCKER no tiene grupo)
+                const sharesGroup = eventType !== EVENT_TYPES.BLOCKER && event.eventType !== EVENT_TYPES.BLOCKER && event.groups?.some(g => groupIds.includes(g.id));
+                // Verificar si comparte aula
+                const sharesClassroom = event.classrooms?.some(c => classroomIds.includes(c.id));
 
-            // Conflicto si comparte grupo O aula (no necesita compartir ambos)
-            return sharesGroup || sharesClassroom;
-        });
-
-        console.log('[Conflict Detection] Puntual conflicts found:', conflictingPuntualEvents?.length || 0);
-
-        // Check conflicts with active periodic events (excluding cancelled ones)
-        const periodicEvents = await getActivePeriodicEventsForDay(calendarId, day.id, eventDateObj, day.dayCharacter);
-        console.log('[Conflict Detection] Active periodic events on this day:', periodicEvents.length);
-
-        const conflictingPeriodicEvents = findPeriodicEventConflicts(
-            startTime,
-            endTime,
-            groupIds,
-            classroomIds,
-            periodicEvents,
-            eventType
-        );
-
-        console.log('[Conflict Detection] Periodic conflicts found:', conflictingPeriodicEvents.length);
-
-        // Combine all conflicts
-        const totalConflicts = (conflictingPuntualEvents?.length || 0) + conflictingPeriodicEvents.length;
-
-        if (totalConflicts > 0) {
-            // Determine the type of conflict from the first one found
-            const firstConflict = conflictingPuntualEvents && conflictingPuntualEvents.length > 0
-                ? conflictingPuntualEvents[0]
-                : conflictingPeriodicEvents[0];
-
-            const sharesGroup = eventType !== EVENT_TYPES.BLOCKER &&
-                               firstConflict.eventType !== EVENT_TYPES.BLOCKER &&
-                               firstConflict.groups?.some(g => groupIds.includes(g.id));
-            const sharesClassroom = firstConflict.classrooms?.some(c => classroomIds.includes(c.id));
-
-            let conflictMessage = 'alerts.puntualEvent.error.shared_both';
-            if (sharesGroup && !sharesClassroom) {
-                conflictMessage = 'alerts.puntualEvent.error.shared_group';
-            } else if (!sharesGroup && sharesClassroom) {
-                conflictMessage = 'alerts.puntualEvent.error.shared_classroom';
-            }
-
-            res.status(409).json({
-                status: 'error',
-                message: conflictMessage,
-                data: {
-                    conflicts: [
-                        ...(conflictingPuntualEvents?.map(e => ({
-                            id: e.id,
-                            startTime: e.startTime,
-                            endTime: e.endTime,
-                            type: 'puntual'
-                        })) || []),
-                        ...conflictingPeriodicEvents.map(e => ({
-                            id: e.id,
-                            startTime: e.startTime,
-                            endTime: e.endTime,
-                            type: 'periodic'
-                        }))
-                    ]
-                }
+                // Conflicto si comparte grupo O aula (no necesita compartir ambos)
+                return sharesGroup || sharesClassroom;
             });
-            return;
+
+            console.log('[Conflict Detection] Puntual conflicts found:', conflictingPuntualEvents?.length || 0);
+
+            // Check conflicts with active periodic events (excluding cancelled ones)
+            const periodicEvents = await getActivePeriodicEventsForDay(calendarId, day.id, eventDateObj, day.dayCharacter);
+            console.log('[Conflict Detection] Active periodic events on this day:', periodicEvents.length);
+
+            const conflictingPeriodicEvents = findPeriodicEventConflicts(
+                startTime,
+                endTime,
+                groupIds,
+                classroomIds,
+                periodicEvents,
+                eventType
+            );
+
+            console.log('[Conflict Detection] Periodic conflicts found:', conflictingPeriodicEvents.length);
+
+            // Combine all conflicts
+            const totalConflicts = (conflictingPuntualEvents?.length || 0) + conflictingPeriodicEvents.length;
+
+            if (totalConflicts > 0) {
+                // Determine the type of conflict from the first one found
+                const firstConflict = conflictingPuntualEvents && conflictingPuntualEvents.length > 0
+                    ? conflictingPuntualEvents[0]
+                    : conflictingPeriodicEvents[0];
+
+                const sharesGroup = eventType !== EVENT_TYPES.BLOCKER &&
+                                   firstConflict.eventType !== EVENT_TYPES.BLOCKER &&
+                                   firstConflict.groups?.some(g => groupIds.includes(g.id));
+                const sharesClassroom = firstConflict.classrooms?.some(c => classroomIds.includes(c.id));
+
+                let conflictMessage = 'alerts.puntualEvent.error.shared_both';
+                if (sharesGroup && !sharesClassroom) {
+                    conflictMessage = 'alerts.puntualEvent.error.shared_group';
+                } else if (!sharesGroup && sharesClassroom) {
+                    conflictMessage = 'alerts.puntualEvent.error.shared_classroom';
+                }
+
+                res.status(409).json({
+                    status: 'error',
+                    message: conflictMessage,
+                    data: {
+                        conflicts: [
+                            ...(conflictingPuntualEvents?.map(e => ({
+                                id: e.id,
+                                startTime: e.startTime,
+                                endTime: e.endTime,
+                                type: 'puntual'
+                            })) || []),
+                            ...conflictingPeriodicEvents.map(e => ({
+                                id: e.id,
+                                startTime: e.startTime,
+                                endTime: e.endTime,
+                                type: 'periodic'
+                            }))
+                        ]
+                    }
+                });
+                return;
+            }
         }
 
         // Obtener los grupos y validar que pertenezcan al calendario

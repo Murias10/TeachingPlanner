@@ -6,63 +6,55 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 interface TimePickerProps {
   value?: string
   onChange?: (value: string) => void
+  onComplete?: (value: string) => void
   className?: string
   minTime?: string
 }
 
+const MINUTES = ["00", "15", "30", "45"]
+const HOURS = Array.from({ length: 13 }, (_, i) => (i + 9).toString().padStart(2, "0"))
+
+const parseHM = (time: string) => {
+  const [h, m] = time.split(":")
+  return { h: Number.parseInt(h, 10), m: Number.parseInt(m, 10) }
+}
+
 const TimePicker = React.forwardRef<HTMLDivElement, TimePickerProps>(
-  ({ className, value = "00:00", onChange, minTime }, ref) => {
-    const [hours, setHours] = React.useState(value.split(":")[0] || "00")
+  ({ className, value = "09:00", onChange, onComplete, minTime }, ref) => {
+    const [hours, setHours] = React.useState(value.split(":")[0] || "09")
     const [minutes, setMinutes] = React.useState(value.split(":")[1] || "00")
 
-    const minHour = minTime ? Number.parseInt(minTime.split(":")[0], 10) : null
-    const minMinute = minTime ? Number.parseInt(minTime.split(":")[1], 10) : null
+    const min = minTime ? parseHM(minTime) : null
 
-    // Minutos de 15 en 15 (00, 15, 30, 45)
-    const minuteArray = ["00", "15", "30", "45"]
+    const hourArray = min
+      ? HOURS.filter((h) => Number.parseInt(h, 10) >= min.h)
+      : HOURS
+
+    const isMinuteDisabled = (minute: string): boolean => {
+      if (!min) return false
+      const h = Number.parseInt(hours, 10)
+      if (h > min.h) return false
+      if (h === min.h) return Number.parseInt(minute, 10) <= min.m
+      return false
+    }
 
     const handleHourChange = (hour: string) => {
       setHours(hour)
       const h = Number.parseInt(hour, 10)
       let effectiveMinute = minutes
-      if (minHour !== null && h === minHour) {
-        const currentMin = Number.parseInt(minutes, 10)
-        if (currentMin <= minMinute!) {
-          const nextValidMinute = minuteArray.find(
-            (m) => Number.parseInt(m, 10) > minMinute!
-          )
-          if (nextValidMinute) {
-            effectiveMinute = nextValidMinute
-            setMinutes(nextValidMinute)
-          }
-        }
+      if (min && h === min.h && Number.parseInt(minutes, 10) <= min.m) {
+        const next = MINUTES.find((m) => Number.parseInt(m, 10) > min.m)
+        effectiveMinute = next ?? effectiveMinute
+        if (next) setMinutes(next)
       }
-      const newValue = `${hour}:${effectiveMinute}`
-      onChange?.(newValue)
+      onChange?.(`${hour}:${effectiveMinute}`)
     }
 
     const handleMinuteChange = (minute: string) => {
       setMinutes(minute)
       const newValue = `${hours}:${minute}`
       onChange?.(newValue)
-    }
-
-    // Horas de 09:00 a 21:00, filtrando las anteriores a minHour
-    const hourArray = Array.from({ length: 13 }, (_, i) =>
-      (i + 9).toString().padStart(2, "0")
-    ).filter((hour) => {
-      if (minHour === null) return true
-      const h = Number.parseInt(hour, 10)
-      if (h < minHour) return false
-      return true
-    })
-
-    const isMinuteDisabled = (minute: string): boolean => {
-      if (minHour === null) return false
-      const h = Number.parseInt(hours, 10)
-      if (h > minHour) return false
-      if (h === minHour) return Number.parseInt(minute, 10) <= minMinute!
-      return false
+      onComplete?.(newValue)
     }
 
     return (
@@ -72,7 +64,7 @@ const TimePicker = React.forwardRef<HTMLDivElement, TimePickerProps>(
       >
         {/* Hours */}
         <div className="flex flex-col gap-2 flex-1">
-          <label className="text-xs font-semibold text-center text-muted-foreground">Hora</label>
+          <span className="text-xs font-semibold text-center text-muted-foreground">Hora</span>
           <ScrollArea className="h-[154px] border rounded-md">
             <div className="flex flex-col p-1">
               {hourArray.map((hour) => (
@@ -97,10 +89,10 @@ const TimePicker = React.forwardRef<HTMLDivElement, TimePickerProps>(
 
         {/* Minutes */}
         <div className="flex flex-col gap-2 flex-1">
-          <label className="text-xs font-semibold text-center text-muted-foreground">Minuto</label>
+          <span className="text-xs font-semibold text-center text-muted-foreground">Minuto</span>
           <div className="border rounded-md p-1">
             <div className="flex flex-col gap-0.5">
-              {minuteArray.map((minute) => (
+              {MINUTES.map((minute) => (
                 <Button
                   key={minute}
                   variant={minutes === minute ? "default" : "ghost"}

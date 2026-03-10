@@ -23,6 +23,7 @@ import { useSubjectsByCalendarId } from '@/hooks/subject/useSubjectsByCalendarId
 import { useSubjectsWithGroupsByCalendarId } from '@/hooks/subject/useSubjectsWithGroupsByCalendarId';
 import { getMonthlyPatternLabels } from '@/utils/customPatternCalculator';
 import { EVENT_TYPES, isSpecialEventType, isReviewOrEvalEventType, EVENT_TYPE_LABELS } from '@/constants/eventCharacters';
+import { calculateDurationInMinutes, calculateNewEndTime } from '@/utils/timeUtils';
 
 /**
  * Validates if a request has all required data to be approved directly
@@ -97,30 +98,6 @@ interface ApproveRequestDialogProps {
   calendarEndDate?: string;
 }
 
-// Helper functions for time calculations
-const calculateDurationInMinutes = (startTime: string, endTime: string): number => {
-  const [startH, startM] = startTime.split(':').map(Number);
-  const [endH, endM] = endTime.split(':').map(Number);
-  return (endH * 60 + endM) - (startH * 60 + startM);
-};
-
-const addMinutesToTime = (time: string, minutes: number): string => {
-  const [hours, mins] = time.split(':').map(Number);
-  let totalMinutes = hours * 60 + mins + minutes;
-
-  // Clamp to valid range: 09:00 (540 min) to 21:00 (1260 min)
-  totalMinutes = Math.max(540, Math.min(1260, totalMinutes));
-
-  const newHours = Math.floor(totalMinutes / 60);
-  const newMinutes = totalMinutes % 60;
-
-  // Round to nearest 15-minute interval
-  const roundedMinutes = Math.round(newMinutes / 15) * 15;
-  const finalMinutes = roundedMinutes === 60 ? 0 : roundedMinutes;
-  const finalHours = roundedMinutes === 60 ? newHours + 1 : newHours;
-
-  return `${finalHours.toString().padStart(2, '0')}:${finalMinutes.toString().padStart(2, '0')}`;
-};
 
 const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
   open,
@@ -504,7 +481,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                       value={config.startTime}
                       onChange={(value) => {
                         const duration = calculateDurationInMinutes(config.startTime, config.endTime);
-                        const newEndTime = addMinutesToTime(value, duration);
+                        const newEndTime = calculateNewEndTime(value, duration);
                         setConfig({ ...config, startTime: value, endTime: newEndTime });
                         setOpenStartTime(false);
                       }}

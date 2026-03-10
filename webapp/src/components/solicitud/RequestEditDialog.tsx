@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { es } from 'date-fns/locale';
 import { format } from 'date-fns';
 import { CalendarEvent } from '@/types/CalendarEvent';
+import { calculateDurationInMinutes, calculateNewEndTime } from '@/utils/timeUtils';
 
 interface RequestEditDialogProps {
   open: boolean;
@@ -33,23 +34,6 @@ export interface RequestEditConfig {
   comment: string;
 }
 
-const calculateDurationInMinutes = (startTime: string, endTime: string): number => {
-  const [startH, startM] = startTime.split(':').map(Number);
-  const [endH, endM] = endTime.split(':').map(Number);
-  return (endH * 60 + endM) - (startH * 60 + startM);
-};
-
-const addMinutesToTime = (time: string, minutes: number): string => {
-  const [hours, mins] = time.split(':').map(Number);
-  let totalMinutes = hours * 60 + mins + minutes;
-  totalMinutes = Math.max(540, Math.min(1260, totalMinutes));
-  const newHours = Math.floor(totalMinutes / 60);
-  const newMinutes = totalMinutes % 60;
-  const roundedMinutes = Math.round(newMinutes / 15) * 15;
-  const finalMinutes = roundedMinutes === 60 ? 0 : roundedMinutes;
-  const finalHours = roundedMinutes === 60 ? newHours + 1 : newHours;
-  return `${finalHours.toString().padStart(2, '0')}:${finalMinutes.toString().padStart(2, '0')}`;
-};
 
 const normalizeTime = (time: string): string => {
   const parts = time.split(':');
@@ -199,7 +183,7 @@ export default function RequestEditDialog({
                       value={startTime}
                       onChange={(value) => {
                         const duration = calculateDurationInMinutes(startTime, endTime);
-                        setEndTime(addMinutesToTime(value, duration));
+                        setEndTime(calculateNewEndTime(value, duration));
                         setStartTime(value);
                         setOpenStartTime(false);
                       }}

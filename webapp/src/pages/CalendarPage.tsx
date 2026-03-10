@@ -1517,7 +1517,11 @@ export default function CalendarPage() {
                 if (result.status === 'success') {
                     triggerAlert({
                         title: t('calendar.alerts.eventDelete.seriesDeleted.title'),
-                        description: t('calendar.alerts.eventDelete.seriesDeleted.description'),
+                        description: t('calendar.alerts.eventDelete.seriesDeleted.description', {
+                            weekDay: eventToDelete.weekDay || '',
+                            startTime: eventToDelete.startTime.substring(0, 5),
+                            endTime: eventToDelete.endTime.substring(0, 5)
+                        }),
                         variant: 'success'
                     });
                     setIsDeleteConfirmationOpen(false);
@@ -1566,9 +1570,17 @@ export default function CalendarPage() {
                 const result = await response.json();
 
                 if (result.status === 'success') {
+                    const cancelledDate = new Date(eventToDelete.date + 'T00:00:00').toLocaleDateString('es-ES', {
+                        day: 'numeric', month: 'long', year: 'numeric'
+                    });
                     triggerAlert({
                         title: t('calendar.alerts.eventDelete.cancelled.title'),
-                        description: t('calendar.alerts.eventDelete.cancelled.description'),
+                        description: t('calendar.alerts.eventDelete.cancelled.description', {
+                            date: cancelledDate,
+                            weekDay: eventToDelete.weekDay || '',
+                            startTime: eventToDelete.startTime.substring(0, 5),
+                            endTime: eventToDelete.endTime.substring(0, 5)
+                        }),
                         variant: 'success'
                     });
                     setIsDeleteConfirmationOpen(false);
@@ -1595,9 +1607,16 @@ export default function CalendarPage() {
             const result = await deletePuntualEvent(eventToDelete.puntualEventId, refetch);
 
             if (result.success) {
+                const deletedDate = new Date(eventToDelete.date + 'T00:00:00').toLocaleDateString('es-ES', {
+                    day: 'numeric', month: 'long', year: 'numeric'
+                });
                 triggerAlert({
                     title: t('calendar.alerts.eventDelete.deleted.title'),
-                    description: t('calendar.alerts.eventDelete.deleted.description'),
+                    description: t('calendar.alerts.eventDelete.deleted.description', {
+                        date: deletedDate,
+                        startTime: eventToDelete.startTime.substring(0, 5),
+                        endTime: eventToDelete.endTime.substring(0, 5)
+                    }),
                     variant: 'success'
                 });
                 setIsDeleteConfirmationOpen(false);
@@ -1916,6 +1935,19 @@ export default function CalendarPage() {
 
             // Refetch calendar events
             refetch();
+
+            const revertedDate = new Date(eventToRevert.date + 'T00:00:00').toLocaleDateString('es-ES', {
+                day: 'numeric', month: 'long', year: 'numeric'
+            });
+            triggerAlert({
+                title: t('calendar.alerts.revert.success.title'),
+                description: t('calendar.alerts.revert.success.description', {
+                    date: revertedDate,
+                    startTime: eventToRevert.startTime.substring(0, 5),
+                    endTime: eventToRevert.endTime.substring(0, 5)
+                }),
+                variant: 'success'
+            });
 
             setIsRevertConfirmationOpen(false);
             setEventToRevert(undefined);

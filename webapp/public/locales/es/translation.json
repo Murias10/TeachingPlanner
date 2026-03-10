@@ -998,7 +998,7 @@
             "eventDelete": {
                 "seriesDeleted": {
                     "title": "Serie eliminada",
-                    "description": "La serie de eventos ha sido eliminada correctamente"
+                    "description": "La serie de los {{weekDay}} de {{startTime}} a {{endTime}} ha sido eliminada correctamente."
                 },
                 "seriesError": {
                     "title": "Error",
@@ -1010,7 +1010,7 @@
                 },
                 "cancelled": {
                     "title": "Evento cancelado",
-                    "description": "El evento ha sido cancelado correctamente"
+                    "description": "El evento del {{date}} ({{weekDay}}) de {{startTime}} a {{endTime}} ha sido cancelado correctamente."
                 },
                 "cancelError": {
                     "title": "Error al cancelar",
@@ -1022,7 +1022,7 @@
                 },
                 "deleted": {
                     "title": "Evento eliminado",
-                    "description": "El evento ha sido eliminado correctamente"
+                    "description": "El evento puntual del {{date}} de {{startTime}} a {{endTime}} ha sido eliminado correctamente."
                 },
                 "deleteError": {
                     "title": "Error al eliminar",
@@ -1094,6 +1094,10 @@
                 }
             },
             "revert": {
+                "success": {
+                    "title": "Cancelación revertida",
+                    "description": "El evento del {{date}} de {{startTime}} a {{endTime}} ha vuelto a aparecer en el calendario."
+                },
                 "error": {
                     "title": "Error",
                     "generic": "Error al revertir la cancelación",

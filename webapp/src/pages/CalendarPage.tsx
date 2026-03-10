@@ -662,7 +662,7 @@ export default function CalendarPage() {
 
             // Blocker: label solo con aulas
             if (event.eventType === 'BLOCKER') {
-                const tooltip = `Blocker\n${classroomStr}\n${event.startTime} - ${event.endTime}`;
+                const tooltip = `Blocker\n${classroomStr}\n${event.startTime.substring(0, 5)} - ${event.endTime.substring(0, 5)}`;
                 return {
                     title: `${classroomStr} · ${timeStr}`,
                     start: startMoment.toDate(),
@@ -686,7 +686,7 @@ export default function CalendarPage() {
                 return `${g.type}.${lang}${g.number}`;
             }).join(', ')}`;
 
-            const tooltip = `${event.subject?.name || 'Sin asignatura'}\n${groupName}\n${event.startTime} - ${event.endTime}\n${classroomStr}`;
+            const tooltip = `${event.subject?.name || 'Sin asignatura'}\n${groupName}\n${event.startTime.substring(0, 5)} - ${event.endTime.substring(0, 5)}\n${classroomStr}`;
 
             return {
                 title: `${eventPrefix}${groupName} · ${timeStr}`,

@@ -1085,6 +1085,12 @@
                 "sendError": {
                     "title": "Error",
                     "description": "Error al enviar la solicitud"
+                },
+                "approveConflict": {
+                    "title": "Conflicto al aprobar solicitud",
+                    "shared_group_detail": "No se pudo aprobar la solicitud: el grupo {{names}} ya tiene un evento de {{startTime}} a {{endTime}} en ese horario.",
+                    "shared_classroom_detail": "No se pudo aprobar la solicitud: el aula {{names}} ya tiene un evento de {{startTime}} a {{endTime}} en ese horario.",
+                    "shared_both_detail": "No se pudo aprobar la solicitud: el grupo {{groupNames}} y el aula {{classroomNames}} ya tienen un evento de {{startTime}} a {{endTime}} en ese horario."
                 }
             },
             "revert": {

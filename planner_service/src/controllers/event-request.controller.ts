@@ -11,6 +11,9 @@ import { Classroom } from '@/entities/classroom.entity';
 import { AuditedRequest } from '@/types/audit.types';
 import { getUserEmailFromRequest } from '@/utils/audit.utils';
 import { EventRequestService } from '@/services/event-request.service';
+import { CalendarEventsService } from '@/services/calendar-events.service';
+import { EVENT_TYPES, isSpecialEventType } from '@/constants/event-characters.constants';
+import { ConflictEntry, ConflictError, getActivePeriodicEventsForDay, findPeriodicEventConflicts } from '@/utils/conflict-detection.utils';
 
 const eventRequestService = new EventRequestService();
 
@@ -260,6 +263,14 @@ export const approveEventRequest = async (req: AuditedRequest, res: Response) =>
                 },
             });
         } catch (eventError) {
+            if (eventError instanceof ConflictError) {
+                res.status(409).json({
+                    status: 'error',
+                    message: 'Conflict detected when approving request',
+                    data: { conflicts: eventError.conflicts },
+                });
+                return;
+            }
             console.error('Error creating event from request:', eventError);
             res.status(500).json({
                 status: 'error',
@@ -365,7 +376,7 @@ async function createPuntualEventFromRequest(eventRequest: EventRequest): Promis
         // If dayId is provided, use it directly
         day = await dayRepo.findOne({
             where: { id: dayId },
-            relations: ['puntualEvents', 'puntualEvents.groups', 'puntualEvents.classrooms'],
+            relations: ['puntualEvents', 'puntualEvents.groups', 'puntualEvents.classrooms', 'calendar'],
         });
     } else if (eventDate) {
         // If eventDate is provided, find the day by date and calendar
@@ -392,35 +403,57 @@ async function createPuntualEventFromRequest(eventRequest: EventRequest): Promis
     // Helper to normalize time format (HH:mm:ss -> HH:mm or HH:mm -> HH:mm)
     const normalizeTime = (time: string) => time.substring(0, 5);
 
-    // Validate conflicts: check if there are events at the same time with the same group or classroom
-    const conflictingEvents = day.puntualEvents?.filter(event => {
+    // Check conflicts with other puntual events
+    const conflictingPuntualEvents = day.puntualEvents?.filter(event => {
         if (event.cancelled) return false;
 
-        // Normalize times to HH:mm format for proper comparison
         const eventStart = normalizeTime(event.startTime);
         const eventEnd = normalizeTime(event.endTime);
         const newStart = normalizeTime(startTime);
         const newEnd = normalizeTime(endTime);
 
         const hasTimeOverlap = newStart < eventEnd && newEnd > eventStart;
-
         if (!hasTimeOverlap) return false;
 
-        // Check if shares group (only if both have groups)
-        const sharesGroup = groupIds.length > 0 && event.groups?.some(g => groupIds.includes(g.id));
-        // Check if shares classroom (only if both have classrooms)
+        const sharesGroup = requestedEventType !== EVENT_TYPES.BLOCKER &&
+            event.eventType !== EVENT_TYPES.BLOCKER &&
+            groupIds.length > 0 && event.groups?.some(g => groupIds.includes(g.id));
         const sharesClassroom = classroomIds.length > 0 && event.classrooms?.some(c => classroomIds.includes(c.id));
 
         return sharesGroup || sharesClassroom;
     });
 
-    if (conflictingEvents && conflictingEvents.length > 0) {
-        const conflictDetails = conflictingEvents.map(e => ({
+    // Check conflicts with active periodic events on this day
+    const eventDateObj = new Date(day.date);
+    eventDateObj.setHours(0, 0, 0, 0);
+    const activePeriodicEvents = await getActivePeriodicEventsForDay(
+        calendarId, day.id, eventDateObj, day.dayCharacter
+    );
+    const conflictingPeriodicEvents = findPeriodicEventConflicts(
+        startTime, endTime, groupIds, classroomIds, activePeriodicEvents, requestedEventType
+    );
+
+    const allConflicts: ConflictEntry[] = [
+        ...(conflictingPuntualEvents || []).map(e => ({
             id: e.id,
             startTime: e.startTime,
-            endTime: e.endTime
-        }));
-        throw new Error(`Time conflict: Same group/classroom already has an event at this time. Conflicts: ${JSON.stringify(conflictDetails)}`);
+            endTime: e.endTime,
+            type: 'puntual' as const,
+            groupNames: e.groups?.filter(g => groupIds.includes(g.id)).map(g => `${g.type}${g.number}`) ?? [],
+            classroomNames: e.classrooms?.filter(c => classroomIds.includes(c.id)).map(c => c.code) ?? [],
+        })),
+        ...conflictingPeriodicEvents.map(e => ({
+            id: e.id,
+            startTime: e.startTime,
+            endTime: e.endTime,
+            type: 'periodic' as const,
+            groupNames: e.groups?.filter((g: any) => groupIds.includes(g.id)).map((g: any) => `${g.type}${g.number}`) ?? [],
+            classroomNames: e.classrooms?.filter((c: any) => classroomIds.includes(c.id)).map((c: any) => c.code) ?? [],
+        })),
+    ];
+
+    if (allConflicts.length > 0) {
+        throw new ConflictError('Time conflict: Same group/classroom already has an event at this time', allConflicts);
     }
 
     // Get groups and validate they belong to the calendar
@@ -579,6 +612,44 @@ async function createPeriodicEventFromRequest(eventRequest: EventRequest): Promi
         throw new Error('Calendar not found');
     }
 
+    // Check for conflicts before making any changes
+    {
+        const dayNumToCode: Record<number, string> = { 1: 'L', 2: 'M', 3: 'X', 4: 'J', 5: 'V', 6: 'S', 0: 'D' };
+        const allGeneratedEvents = await CalendarEventsService.generateCalendarEvents(calendarId);
+        const allConflicts: ConflictEntry[] = [];
+
+        for (const wd of weekDays) {
+            const conflicts = allGeneratedEvents.filter((event: any) => {
+                if (event.cancelled) return false;
+                const evWD = event.weekDay ?? dayNumToCode[new Date(event.date).getDay()];
+                if (evWD !== wd) return false;
+                const newStart = startTime.substring(0, 5);
+                const newEnd = endTime.substring(0, 5);
+                const eStart = event.startTime.substring(0, 5);
+                const eEnd = event.endTime.substring(0, 5);
+                if (newStart >= eEnd || newEnd <= eStart) return false;
+                const sharesGroup = requestedEventType !== EVENT_TYPES.BLOCKER &&
+                    event.eventType !== EVENT_TYPES.BLOCKER &&
+                    event.groups?.some((g: any) => groupIds.includes(g.id));
+                const sharesClassroom = event.classrooms?.some((c: any) => classroomIds.includes(c.id));
+                return sharesGroup || sharesClassroom;
+            });
+            allConflicts.push(...conflicts.map((e: any) => ({
+                id: e.id,
+                startTime: e.startTime,
+                endTime: e.endTime,
+                type: e.type as 'puntual' | 'periodic',
+                date: e.date,
+                groupNames: e.groups?.filter((g: any) => groupIds.includes(g.id)).map((g: any) => `${g.type}${g.number}`) ?? [],
+                classroomNames: e.classrooms?.filter((c: any) => classroomIds.includes(c.id)).map((c: any) => c.code) ?? [],
+            })));
+        }
+
+        if (allConflicts.length > 0) {
+            throw new ConflictError('Periodic event conflicts detected', allConflicts);
+        }
+    }
+
     // Add character to charactersInUse if not already present
     if (!calendar.charactersInUse.includes(eventCharacter)) {
         calendar.charactersInUse += eventCharacter;
@@ -717,6 +788,44 @@ async function createCustomPeriodicEventFromRequest(eventRequest: EventRequest):
         throw new Error('Calendar not found');
     }
 
+    // Check for conflicts before making any changes
+    {
+        const allGeneratedEvents = await CalendarEventsService.generateCalendarEvents(calendarId);
+        const allConflicts: ConflictEntry[] = [];
+
+        for (const dateStr of affectedDates) {
+            const targetDateStr = new Date(dateStr).toISOString().split('T')[0];
+            const eventsOnDate = allGeneratedEvents.filter((e: any) =>
+                !e.cancelled && e.date.startsWith(targetDateStr)
+            );
+            const conflicts = eventsOnDate.filter((event: any) => {
+                const nS = startTime.substring(0, 5);
+                const nE = endTime.substring(0, 5);
+                const eS = event.startTime.substring(0, 5);
+                const eE = event.endTime.substring(0, 5);
+                if (nS >= eE || nE <= eS) return false;
+                const sharesGroup = !isSpecialEventType(requestedEventType) &&
+                    event.eventType !== EVENT_TYPES.BLOCKER &&
+                    event.groups?.some((g: any) => groupIds.includes(g.id));
+                const sharesClassroom = event.classrooms?.some((c: any) => classroomIds.includes(c.id));
+                return sharesGroup || sharesClassroom;
+            });
+            allConflicts.push(...conflicts.map((e: any) => ({
+                id: e.id,
+                startTime: e.startTime,
+                endTime: e.endTime,
+                type: e.type as 'puntual' | 'periodic',
+                date: e.date,
+                groupNames: e.groups?.filter((g: any) => groupIds.includes(g.id)).map((g: any) => `${g.type}${g.number}`) ?? [],
+                classroomNames: e.classrooms?.filter((c: any) => classroomIds.includes(c.id)).map((c: any) => c.code) ?? [],
+            })));
+        }
+
+        if (allConflicts.length > 0) {
+            throw new ConflictError('Custom periodic event conflicts detected', allConflicts);
+        }
+    }
+
     const eventCharacter = findAvailableCharacter(calendar.charactersInUse);
 
     // Add character to charactersInUse
@@ -822,7 +931,7 @@ async function createCustomPeriodicEventFromRequest(eventRequest: EventRequest):
  * Groups and classrooms are NOT changed.
  */
 async function editEventFromRequest(eventRequest: EventRequest): Promise<string> {
-    const { originalEventId, eventData } = eventRequest;
+    const { originalEventId, eventData, calendarId } = eventRequest;
     if (!originalEventId) {
         throw new Error('originalEventId is required for EDIT requests');
     }
@@ -831,13 +940,70 @@ async function editEventFromRequest(eventRequest: EventRequest): Promise<string>
 
     const puntualEventRepo = AppDataSource.getRepository(PuntualEvent);
     const periodicEventRepo = AppDataSource.getRepository(PeriodicEvent);
+    const dayRepo = AppDataSource.getRepository(Day);
+    const normalizeTime = (t: string) => t.substring(0, 5);
 
     if (eventRequest.eventType === 'PUNTUAL') {
         const event = await puntualEventRepo.findOne({
             where: { id: originalEventId },
-            relations: ['day', 'groups', 'classrooms'],
+            relations: ['day', 'day.calendar', 'groups', 'classrooms'],
         });
         if (!event) throw new Error('Original puntual event not found');
+
+        // Determine destination day and final startTime/endTime for conflict check
+        const newStartTime = startTime || event.startTime;
+        const newEndTime = endTime || event.endTime;
+
+        // Load destination day with puntual events for conflict detection
+        const destDayDate = eventDate ? new Date(eventDate) : new Date(event.day.date);
+        destDayDate.setHours(0, 0, 0, 0);
+
+        const destDay = await dayRepo.findOne({
+            where: { date: destDayDate, calendar: { id: calendarId } },
+            relations: ['puntualEvents', 'puntualEvents.groups', 'puntualEvents.classrooms'],
+        });
+        if (!destDay) throw new Error('Destination date does not exist in the calendar');
+
+        const groupIds = event.groups.map(g => g.id);
+        const classroomIds = event.classrooms.map(c => c.id);
+
+        // Conflicts with other puntual events (excluding self)
+        const conflictingPuntual = (destDay.puntualEvents || []).filter(e => {
+            if (e.id === originalEventId || e.cancelled) return false;
+            const hasOverlap = normalizeTime(newStartTime) < normalizeTime(e.endTime) &&
+                normalizeTime(newEndTime) > normalizeTime(e.startTime);
+            if (!hasOverlap) return false;
+            const sharesGroup = event.eventType !== EVENT_TYPES.BLOCKER &&
+                e.eventType !== EVENT_TYPES.BLOCKER &&
+                e.groups?.some(g => groupIds.includes(g.id));
+            const sharesClassroom = e.classrooms?.some(c => classroomIds.includes(c.id));
+            return sharesGroup || sharesClassroom;
+        });
+
+        // Conflicts with periodic events on that day
+        const activePeriodicEvents = await getActivePeriodicEventsForDay(
+            calendarId, destDay.id, destDayDate, destDay.dayCharacter
+        );
+        const conflictingPeriodic = findPeriodicEventConflicts(
+            newStartTime, newEndTime, groupIds, classroomIds, activePeriodicEvents, event.eventType
+        );
+
+        const allConflicts: ConflictEntry[] = [
+            ...conflictingPuntual.map(e => ({
+                id: e.id, startTime: e.startTime, endTime: e.endTime, type: 'puntual' as const,
+                groupNames: e.groups?.filter(g => groupIds.includes(g.id)).map(g => `${g.type}${g.number}`) ?? [],
+                classroomNames: e.classrooms?.filter(c => classroomIds.includes(c.id)).map(c => c.code) ?? [],
+            })),
+            ...conflictingPeriodic.map(e => ({
+                id: e.id, startTime: e.startTime, endTime: e.endTime, type: 'periodic' as const,
+                groupNames: e.groups?.filter((g: any) => groupIds.includes(g.id)).map((g: any) => `${g.type}${g.number}`) ?? [],
+                classroomNames: e.classrooms?.filter((c: any) => classroomIds.includes(c.id)).map((c: any) => c.code) ?? [],
+            })),
+        ];
+
+        if (allConflicts.length > 0) {
+            throw new ConflictError('Edit conflict: time slot already occupied', allConflicts);
+        }
 
         if (startTime) event.startTime = startTime;
         if (endTime) event.endTime = endTime;
@@ -845,25 +1011,52 @@ async function editEventFromRequest(eventRequest: EventRequest): Promise<string>
         event.updatedBy = eventRequest.professorId;
         event.updatedAt = new Date();
 
-        // If eventDate changed, move to new day
         if (eventDate) {
-            const dayRepo = AppDataSource.getRepository(Day);
-            const newDay = await dayRepo.findOne({
-                where: {
-                    date: new Date(eventDate),
-                    calendar: { id: eventRequest.calendarId }
-                }
-            });
-            if (!newDay) throw new Error('New date does not exist in the calendar');
-            event.day = newDay;
+            event.day = destDay;
         }
 
         await puntualEventRepo.save(event);
         return event.id;
     } else {
         // PERIODIC
-        const event = await periodicEventRepo.findOne({ where: { id: originalEventId } });
+        const event = await periodicEventRepo.findOne({
+            where: { id: originalEventId },
+            relations: ['groups', 'classrooms', 'calendar'],
+        });
         if (!event) throw new Error('Original periodic event not found');
+
+        const newStartTime = startTime || event.startTime;
+        const newEndTime = endTime || event.endTime;
+        const newWeekDay = weekDay ?? event.weekDay;
+        const groupIds = event.groups.map(g => g.id);
+        const classroomIds = event.classrooms.map(c => c.id);
+        const dayNumToCode: Record<number, string> = { 1: 'L', 2: 'M', 3: 'X', 4: 'J', 5: 'V', 6: 'S', 0: 'D' };
+
+        const allGeneratedEvents = await CalendarEventsService.generateCalendarEvents(calendarId);
+        const conflictos = allGeneratedEvents.filter((e: any) => {
+            if (e.cancelled) return false;
+            if (e.type === 'periodic' && e.periodicEventId === originalEventId) return false;
+            const evWD = e.weekDay ?? dayNumToCode[new Date(e.date).getDay()];
+            if (evWD !== newWeekDay) return false;
+            const nS = newStartTime.substring(0, 5), nE = newEndTime.substring(0, 5);
+            const eS = e.startTime.substring(0, 5), eE = e.endTime.substring(0, 5);
+            if (nS >= eE || nE <= eS) return false;
+            const sharesGroup = event.eventType !== EVENT_TYPES.BLOCKER &&
+                e.eventType !== EVENT_TYPES.BLOCKER &&
+                e.groups?.some((g: any) => groupIds.includes(g.id));
+            const sharesClassroom = e.classrooms?.some((c: any) => classroomIds.includes(c.id));
+            return sharesGroup || sharesClassroom;
+        });
+
+        if (conflictos.length > 0) {
+            const conflicts: ConflictEntry[] = conflictos.map((e: any) => ({
+                id: e.id, startTime: e.startTime, endTime: e.endTime,
+                type: e.type as 'puntual' | 'periodic', date: e.date,
+                groupNames: e.groups?.filter((g: any) => groupIds.includes(g.id)).map((g: any) => `${g.type}${g.number}`) ?? [],
+                classroomNames: e.classrooms?.filter((c: any) => classroomIds.includes(c.id)).map((c: any) => c.code) ?? [],
+            }));
+            throw new ConflictError('Edit conflict: time slot already occupied', conflicts);
+        }
 
         if (startTime) event.startTime = startTime;
         if (endTime) event.endTime = endTime;
@@ -938,7 +1131,7 @@ async function replaceEventFromRequest(eventRequest: EventRequest): Promise<stri
     const dayRepo = AppDataSource.getRepository(Day);
     const classroomRepo = AppDataSource.getRepository(Classroom);
 
-    // Find new day
+    // Find new day (with puntual events for conflict detection)
     const newEventDateObj = new Date(newEventDate);
     newEventDateObj.setHours(0, 0, 0, 0);
 
@@ -946,7 +1139,8 @@ async function replaceEventFromRequest(eventRequest: EventRequest): Promise<stri
         where: {
             date: newEventDateObj,
             calendar: { id: calendarId }
-        }
+        },
+        relations: ['puntualEvents', 'puntualEvents.groups', 'puntualEvents.classrooms'],
     });
     if (!newDay) throw new Error('The new event date does not exist in the calendar');
 
@@ -962,6 +1156,47 @@ async function replaceEventFromRequest(eventRequest: EventRequest): Promise<stri
         const classrooms = adminClassroomIds && adminClassroomIds.length > 0
             ? await classroomRepo.find({ where: { id: In(adminClassroomIds) } })
             : originalEvent.classrooms;
+
+        // Check for conflicts in the destination day
+        const replGroupIds = originalEvent.groups.map(g => g.id);
+        const replClassroomIds = classrooms.map(c => c.id);
+        const normalizeTime = (t: string) => t.substring(0, 5);
+
+        const conflictingPuntual = (newDay.puntualEvents || []).filter(e => {
+            if (e.cancelled) return false;
+            const hasOverlap = normalizeTime(startTime) < normalizeTime(e.endTime) &&
+                normalizeTime(endTime) > normalizeTime(e.startTime);
+            if (!hasOverlap) return false;
+            const sharesGroup = originalEvent.eventType !== EVENT_TYPES.BLOCKER &&
+                e.eventType !== EVENT_TYPES.BLOCKER &&
+                e.groups?.some(g => replGroupIds.includes(g.id));
+            const sharesClassroom = e.classrooms?.some(c => replClassroomIds.includes(c.id));
+            return sharesGroup || sharesClassroom;
+        });
+
+        const activePeriodicEvents = await getActivePeriodicEventsForDay(
+            calendarId, newDay.id, newEventDateObj, newDay.dayCharacter
+        );
+        const conflictingPeriodic = findPeriodicEventConflicts(
+            startTime, endTime, replGroupIds, replClassroomIds, activePeriodicEvents, originalEvent.eventType
+        );
+
+        const allConflicts: ConflictEntry[] = [
+            ...conflictingPuntual.map(e => ({
+                id: e.id, startTime: e.startTime, endTime: e.endTime, type: 'puntual' as const,
+                groupNames: e.groups?.filter(g => replGroupIds.includes(g.id)).map(g => `${g.type}${g.number}`) ?? [],
+                classroomNames: e.classrooms?.filter(c => replClassroomIds.includes(c.id)).map(c => c.code) ?? [],
+            })),
+            ...conflictingPeriodic.map(e => ({
+                id: e.id, startTime: e.startTime, endTime: e.endTime, type: 'periodic' as const,
+                groupNames: e.groups?.filter((g: any) => replGroupIds.includes(g.id)).map((g: any) => `${g.type}${g.number}`) ?? [],
+                classroomNames: e.classrooms?.filter((c: any) => replClassroomIds.includes(c.id)).map((c: any) => c.code) ?? [],
+            })),
+        ];
+
+        if (allConflicts.length > 0) {
+            throw new ConflictError('Replace conflict: destination slot already occupied', allConflicts);
+        }
 
         const queryRunner = AppDataSource.createQueryRunner();
         await queryRunner.connect();
@@ -1025,6 +1260,47 @@ async function replaceEventFromRequest(eventRequest: EventRequest): Promise<stri
         const classrooms = adminClassroomIds && adminClassroomIds.length > 0
             ? await classroomRepo.find({ where: { id: In(adminClassroomIds) } })
             : originalEvent.classrooms;
+
+        // Check for conflicts in the destination day
+        const replGroupIds = originalEvent.groups.map(g => g.id);
+        const replClassroomIds = classrooms.map(c => c.id);
+        const normalizeTimeP = (t: string) => t.substring(0, 5);
+
+        const conflictingPuntualP = (newDay.puntualEvents || []).filter(e => {
+            if (e.cancelled) return false;
+            const hasOverlap = normalizeTimeP(startTime) < normalizeTimeP(e.endTime) &&
+                normalizeTimeP(endTime) > normalizeTimeP(e.startTime);
+            if (!hasOverlap) return false;
+            const sharesGroup = originalEvent.eventType !== EVENT_TYPES.BLOCKER &&
+                e.eventType !== EVENT_TYPES.BLOCKER &&
+                e.groups?.some(g => replGroupIds.includes(g.id));
+            const sharesClassroom = e.classrooms?.some(c => replClassroomIds.includes(c.id));
+            return sharesGroup || sharesClassroom;
+        });
+
+        const activePeriodicEventsP = await getActivePeriodicEventsForDay(
+            calendarId, newDay.id, newEventDateObj, newDay.dayCharacter
+        );
+        const conflictingPeriodicP = findPeriodicEventConflicts(
+            startTime, endTime, replGroupIds, replClassroomIds, activePeriodicEventsP, originalEvent.eventType
+        );
+
+        const allConflictsP: ConflictEntry[] = [
+            ...conflictingPuntualP.map(e => ({
+                id: e.id, startTime: e.startTime, endTime: e.endTime, type: 'puntual' as const,
+                groupNames: e.groups?.filter(g => replGroupIds.includes(g.id)).map(g => `${g.type}${g.number}`) ?? [],
+                classroomNames: e.classrooms?.filter(c => replClassroomIds.includes(c.id)).map(c => c.code) ?? [],
+            })),
+            ...conflictingPeriodicP.map(e => ({
+                id: e.id, startTime: e.startTime, endTime: e.endTime, type: 'periodic' as const,
+                groupNames: e.groups?.filter((g: any) => replGroupIds.includes(g.id)).map((g: any) => `${g.type}${g.number}`) ?? [],
+                classroomNames: e.classrooms?.filter((c: any) => replClassroomIds.includes(c.id)).map((c: any) => c.code) ?? [],
+            })),
+        ];
+
+        if (allConflictsP.length > 0) {
+            throw new ConflictError('Replace conflict: destination slot already occupied', allConflictsP);
+        }
 
         const queryRunner = AppDataSource.createQueryRunner();
         await queryRunner.connect();

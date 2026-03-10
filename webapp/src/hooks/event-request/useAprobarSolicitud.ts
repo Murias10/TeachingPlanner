@@ -3,11 +3,22 @@ import VITE_GATEWAY_API_URL from '@/config/api';
 import { getAuthHeaders } from '@/utils/authHeaders';
 import type { RecurrenceConfig } from '@/types/RecurrenceConfig';
 
+interface ConflictEntry {
+    id: string;
+    startTime: string;
+    endTime: string;
+    type: 'puntual' | 'periodic';
+    groupNames: string[];
+    classroomNames: string[];
+    date?: string;
+}
+
 interface AprobarSolicitudResponse {
     success: boolean;
     status: number;
     message: string;
     data?: any;
+    conflictData?: ConflictEntry[];
 }
 
 export const useAprobarSolicitud = () => {
@@ -17,7 +28,6 @@ export const useAprobarSolicitud = () => {
         refetch?: () => void
     ): Promise<AprobarSolicitudResponse> => {
         try {
-            // Send the complete configuration to the backend
             const response = await fetch(`${VITE_GATEWAY_API_URL}/event-request/${id}/approve`, {
                 method: "PATCH",
                 headers: getAuthHeaders({ "Content-Type": "application/json" }),
@@ -52,6 +62,9 @@ export const useAprobarSolicitud = () => {
                     status: response.status,
                     message: json.message || "Error al aprobar la solicitud",
                     data: json.data,
+                    conflictData: response.status === 409 && json.data?.conflicts
+                        ? json.data.conflicts
+                        : undefined,
                 };
             }
         } catch (error) {

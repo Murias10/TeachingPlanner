@@ -23,6 +23,7 @@ import { CalendarImportService } from '@/services/calendar-import.service';
 import { CalendarEventsService } from '@/services/calendar-events.service';
 import { EVENT_CHARACTERS, DAY_CHARACTERS, AVAILABLE_CHARACTERS, MAX_EVENT_TYPES, isStandardCharacter, EVENT_TYPES, isSpecialEventType } from '@/constants/event-characters.constants';
 import { esSemanaPar } from '@/utils/calendar-week.utils';
+import { getActivePeriodicEventsForDay, findPeriodicEventConflicts } from '@/utils/conflict-detection.utils';
 
 export const getCalendars = async (_req: AuditedRequest, res: Response) => {
     try {
@@ -1335,78 +1336,6 @@ function isPeriodicEventCancelled(
  * already handles N (round-robin), non-N (character matching), hour budgets,
  * and cancellations correctly.
  */
-async function getActivePeriodicEventsForDay(
-    calendarId: string,
-    _dayId: string,
-    eventDate: Date,
-    _dayCharacter: string
-): Promise<PeriodicEvent[]> {
-    // Generate the full calendar — this is the single source of truth for event materialization
-    const allEvents = await CalendarEventsService.generateCalendarEvents(calendarId);
-
-    const targetDateStr = eventDate.toISOString().split('T')[0];
-
-    // Keep only non-cancelled periodic events that fall on the target date
-    const periodicEventsOnDay = allEvents.filter(e =>
-        e.type === 'periodic' &&
-        !e.cancelled &&
-        e.date.startsWith(targetDateStr)
-    );
-
-    if (periodicEventsOnDay.length === 0) return [];
-
-    // Load the corresponding PeriodicEvent entities (needed by findPeriodicEventConflicts)
-    const periodicEventRepo = AppDataSource.getRepository(PeriodicEvent);
-    const ids = [...new Set(periodicEventsOnDay.map((e: any) => e.periodicEventId as string))];
-    return periodicEventRepo.find({
-        where: { id: In(ids) },
-        relations: ['groups', 'classrooms']
-    });
-}
-
-/**
- * Helper function to check conflicts between a puntual event and periodic events
- * @param startTime - Start time of the puntual event
- * @param endTime - End time of the puntual event
- * @param groupIds - Group IDs of the puntual event
- * @param classroomIds - Classroom IDs of the puntual event
- * @param periodicEvents - Periodic events that materialize on the same day
- * @param eventType - Type of the event being created/updated
- * @returns Conflicting periodic events (if any)
- */
-function findPeriodicEventConflicts(
-    startTime: string,
-    endTime: string,
-    groupIds: string[],
-    classroomIds: string[],
-    periodicEvents: PeriodicEvent[],
-    eventType: string
-): PeriodicEvent[] {
-    // Helper to normalize time format (HH:mm:ss -> HH:mm or HH:mm -> HH:mm)
-    const normalizeTime = (time: string) => time.substring(0, 5);
-
-    return periodicEvents.filter(periodicEvent => {
-        // Check time overlap - normalize times for proper comparison
-        const newStart = normalizeTime(startTime);
-        const newEnd = normalizeTime(endTime);
-        const periodicStart = normalizeTime(periodicEvent.startTime);
-        const periodicEnd = normalizeTime(periodicEvent.endTime);
-
-        const hasTimeOverlap = newStart < periodicEnd && newEnd > periodicStart;
-        if (!hasTimeOverlap) return false;
-
-        // Check if shares group (only if both are not BLOCKER)
-        const sharesGroup = eventType !== EVENT_TYPES.BLOCKER &&
-                           periodicEvent.eventType !== EVENT_TYPES.BLOCKER &&
-                           periodicEvent.groups?.some(g => groupIds.includes(g.id));
-
-        // Check if shares classroom
-        const sharesClassroom = periodicEvent.classrooms?.some(c => classroomIds.includes(c.id));
-
-        // Conflict if shares group OR classroom
-        return sharesGroup || sharesClassroom;
-    });
-}
 
 export const createPuntualEvent = async (req: AuditedRequest, res: Response) => {
     try {

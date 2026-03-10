@@ -1086,6 +1086,12 @@
                 "sendError": {
                     "title": "Error",
                     "description": "Error sending request"
+                },
+                "approveConflict": {
+                    "title": "Conflict when approving request",
+                    "shared_group_detail": "Could not approve the request: group {{names}} already has an event from {{startTime}} to {{endTime}} at that time.",
+                    "shared_classroom_detail": "Could not approve the request: classroom {{names}} already has an event from {{startTime}} to {{endTime}} at that time.",
+                    "shared_both_detail": "Could not approve the request: group {{groupNames}} and classroom {{classroomNames}} already have an event from {{startTime}} to {{endTime}} at that time."
                 }
             },
             "revert": {

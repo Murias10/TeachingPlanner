@@ -119,23 +119,44 @@ const AllSolicitudesPage = () => {
 
             if (result.success) {
                 triggerAlert({
-                    title: 'Solicitud aprobada',
-                    description: 'El evento ha sido creado exitosamente',
+                    title: t("calendar.alerts.request.approvedShort.title"),
+                    description: t("calendar.alerts.request.approvedShort.description"),
                     variant: 'success'
                 });
                 setApproveDialogOpen(false);
                 cargarSolicitudes();
             } else {
-                triggerAlert({
-                    title: 'Error',
-                    description: result.message || 'Error al aprobar la solicitud',
-                    variant: 'destructive'
-                });
+                const first = result.conflictData?.[0];
+                let description: string;
+                if (result.status === 409 && first) {
+                    const groupNames = first.groupNames?.join(', ') || '';
+                    const classroomNames = first.classroomNames?.join(', ') || '';
+                    const startTimeShort = first.startTime?.substring(0, 5) || '';
+                    const endTimeShort = first.endTime?.substring(0, 5) || '';
+                    if (groupNames && classroomNames) {
+                        description = t('calendar.alerts.request.approveConflict.shared_both_detail', { startTime: startTimeShort, endTime: endTimeShort, groupNames, classroomNames });
+                    } else if (groupNames) {
+                        description = t('calendar.alerts.request.approveConflict.shared_group_detail', { startTime: startTimeShort, endTime: endTimeShort, names: groupNames });
+                    } else {
+                        description = t('calendar.alerts.request.approveConflict.shared_classroom_detail', { startTime: startTimeShort, endTime: endTimeShort, names: classroomNames });
+                    }
+                    triggerAlert({
+                        title: t('calendar.alerts.request.approveConflict.title'),
+                        description,
+                        variant: 'destructive'
+                    });
+                } else {
+                    triggerAlert({
+                        title: t("common.error"),
+                        description: result.message || t("calendar.alerts.request.approveErrorWithMessage.description"),
+                        variant: 'destructive'
+                    });
+                }
             }
         } catch {
             triggerAlert({
-                title: 'Error',
-                description: 'Ocurrió un error al aprobar la solicitud',
+                title: t("common.error"),
+                description: t("calendar.alerts.request.approveErrorGeneric.description"),
                 variant: 'destructive'
             });
         } finally {
@@ -160,23 +181,23 @@ const AllSolicitudesPage = () => {
 
             if (result.success) {
                 triggerAlert({
-                    title: 'Solicitud rechazada',
-                    description: 'La solicitud ha sido rechazada',
+                    title: t("calendar.alerts.request.rejected.title"),
+                    description: t("calendar.alerts.request.rejected.description"),
                     variant: 'success'
                 });
                 setRejectDialogOpen(false);
                 cargarSolicitudes();
             } else {
                 triggerAlert({
-                    title: 'Error',
-                    description: result.message || 'Error al rechazar la solicitud',
+                    title: t("common.error"),
+                    description: result.message || t("calendar.alerts.request.rejectError.description"),
                     variant: 'destructive'
                 });
             }
         } catch {
             triggerAlert({
-                title: 'Error',
-                description: 'Ocurrió un error al rechazar la solicitud',
+                title: t("common.error"),
+                description: t("calendar.alerts.request.rejectErrorGeneric.description"),
                 variant: 'destructive'
             });
         } finally {

@@ -1,4 +1,3 @@
-const MIN_MINUTES = 9 * 60  // 09:00
 const MAX_MINUTES = 21 * 60 // 21:00
 
 export const timeToMinutes = (time: string): number => {

@@ -15,9 +15,29 @@ const TimePicker = React.forwardRef<HTMLDivElement, TimePickerProps>(
     const [hours, setHours] = React.useState(value.split(":")[0] || "00")
     const [minutes, setMinutes] = React.useState(value.split(":")[1] || "00")
 
+    const minHour = minTime ? Number.parseInt(minTime.split(":")[0], 10) : null
+    const minMinute = minTime ? Number.parseInt(minTime.split(":")[1], 10) : null
+
+    // Minutos de 15 en 15 (00, 15, 30, 45)
+    const minuteArray = ["00", "15", "30", "45"]
+
     const handleHourChange = (hour: string) => {
       setHours(hour)
-      const newValue = `${hour}:${minutes}`
+      const h = Number.parseInt(hour, 10)
+      let effectiveMinute = minutes
+      if (minHour !== null && h === minHour) {
+        const currentMin = Number.parseInt(minutes, 10)
+        if (currentMin <= minMinute!) {
+          const nextValidMinute = minuteArray.find(
+            (m) => Number.parseInt(m, 10) > minMinute!
+          )
+          if (nextValidMinute) {
+            effectiveMinute = nextValidMinute
+            setMinutes(nextValidMinute)
+          }
+        }
+      }
+      const newValue = `${hour}:${effectiveMinute}`
       onChange?.(newValue)
     }
 
@@ -27,21 +47,15 @@ const TimePicker = React.forwardRef<HTMLDivElement, TimePickerProps>(
       onChange?.(newValue)
     }
 
-    const minHour = minTime ? Number.parseInt(minTime.split(":")[0], 10) : null
-    const minMinute = minTime ? Number.parseInt(minTime.split(":")[1], 10) : null
-
-    // Horas de 09:00 a 21:00, filtrando las que no tienen minutos válidos
+    // Horas de 09:00 a 21:00, filtrando las anteriores a minHour
     const hourArray = Array.from({ length: 13 }, (_, i) =>
       (i + 9).toString().padStart(2, "0")
     ).filter((hour) => {
       if (minHour === null) return true
       const h = Number.parseInt(hour, 10)
       if (h < minHour) return false
-      if (h === minHour) return minMinute! < 45
       return true
     })
-    // Minutos de 15 en 15 (00, 15, 30, 45)
-    const minuteArray = ["00", "15", "30", "45"]
 
     const isMinuteDisabled = (minute: string): boolean => {
       if (minHour === null) return false

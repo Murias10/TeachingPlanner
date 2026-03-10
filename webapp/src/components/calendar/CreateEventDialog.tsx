@@ -510,6 +510,7 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
                         setConfig({ ...config, endTime: value });
                         setOpenEndTime(false);
                       }}
+                      minTime={config.startTime}
                     />
                   </PopoverContent>
                 </Popover>

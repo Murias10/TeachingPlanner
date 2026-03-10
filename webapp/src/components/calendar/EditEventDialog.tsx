@@ -622,6 +622,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                         setConfig({ ...config, endTime: value });
                         setOpenEndTime(false);
                       }}
+                      minTime={config.startTime}
                     />
                   </PopoverContent>
                 </Popover>

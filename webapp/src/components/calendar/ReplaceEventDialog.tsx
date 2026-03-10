@@ -247,6 +247,7 @@ const ReplaceEventDialog: React.FC<ReplaceEventDialogProps> = ({
                         setNewEndTime(value);
                         setOpenEndTime(false);
                       }}
+                      minTime={newStartTime}
                     />
                   </PopoverContent>
                 </Popover>

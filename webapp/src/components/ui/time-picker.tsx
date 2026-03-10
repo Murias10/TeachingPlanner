@@ -7,10 +7,11 @@ interface TimePickerProps {
   value?: string
   onChange?: (value: string) => void
   className?: string
+  minTime?: string
 }
 
 const TimePicker = React.forwardRef<HTMLDivElement, TimePickerProps>(
-  ({ className, value = "00:00", onChange }, ref) => {
+  ({ className, value = "00:00", onChange, minTime }, ref) => {
     const [hours, setHours] = React.useState(value.split(":")[0] || "00")
     const [minutes, setMinutes] = React.useState(value.split(":")[1] || "00")
 
@@ -26,12 +27,29 @@ const TimePicker = React.forwardRef<HTMLDivElement, TimePickerProps>(
       onChange?.(newValue)
     }
 
-    // Horas de 09:00 a 21:00
+    const minHour = minTime ? Number.parseInt(minTime.split(":")[0], 10) : null
+    const minMinute = minTime ? Number.parseInt(minTime.split(":")[1], 10) : null
+
+    // Horas de 09:00 a 21:00, filtrando las que no tienen minutos válidos
     const hourArray = Array.from({ length: 13 }, (_, i) =>
       (i + 9).toString().padStart(2, "0")
-    )
+    ).filter((hour) => {
+      if (minHour === null) return true
+      const h = Number.parseInt(hour, 10)
+      if (h < minHour) return false
+      if (h === minHour) return minMinute! < 45
+      return true
+    })
     // Minutos de 15 en 15 (00, 15, 30, 45)
     const minuteArray = ["00", "15", "30", "45"]
+
+    const isMinuteDisabled = (minute: string): boolean => {
+      if (minHour === null) return false
+      const h = Number.parseInt(hours, 10)
+      if (h > minHour) return false
+      if (h === minHour) return Number.parseInt(minute, 10) <= minMinute!
+      return false
+    }
 
     return (
       <div
@@ -73,8 +91,12 @@ const TimePicker = React.forwardRef<HTMLDivElement, TimePickerProps>(
                   key={minute}
                   variant={minutes === minute ? "default" : "ghost"}
                   size="sm"
-                  className="rounded-sm justify-center text-sm h-9 font-medium"
+                  className={cn(
+                    "rounded-sm justify-center text-sm h-9 font-medium",
+                    isMinuteDisabled(minute) && "opacity-40 line-through cursor-not-allowed"
+                  )}
                   onClick={() => handleMinuteChange(minute)}
+                  disabled={isMinuteDisabled(minute)}
                 >
                   {minute}
                 </Button>

@@ -491,6 +491,7 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
                         setConfig({ ...config, endTime: value });
                         setOpenEndTime(false);
                       }}
+                      minTime={config.startTime}
                     />
                   </PopoverContent>
                 </Popover>

@@ -198,6 +198,7 @@ export function SolicitudEventoDrawer({
                             type="time"
                             value={endTime}
                             onChange={(e) => setEndTime(e.target.value)}
+                            min={startTime}
                         />
                     </div>
 

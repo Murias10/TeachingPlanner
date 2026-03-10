@@ -956,6 +956,12 @@ export default function CalendarPage() {
                 return;
             }
 
+            const formattedDate = new Date(config.eventDate + 'T00:00:00').toLocaleDateString('es-ES', {
+                day: 'numeric', month: 'long', year: 'numeric'
+            });
+            const startTimeShort = config.startTime.substring(0, 5);
+            const endTimeShort = config.endTime.substring(0, 5);
+
             createPuntualEvent(
                 {
                     calendarId,
@@ -972,7 +978,11 @@ export default function CalendarPage() {
                     onSuccess: () => {
                         triggerAlert({
                             title: t('alerts.puntualEvent.success.title'),
-                            description: t('alerts.puntualEvent.success.description'),
+                            description: t('alerts.puntualEvent.success.description', {
+                                date: formattedDate,
+                                startTime: startTimeShort,
+                                endTime: endTimeShort
+                            }),
                             variant: 'success'
                         });
                         setIsCreateEventDialogOpen(false);
@@ -985,14 +995,14 @@ export default function CalendarPage() {
                             const groupNames = first.groupNames?.join(', ') || '';
                             const classroomNames = first.classroomNames?.join(', ') || '';
                             if (groupNames && classroomNames) {
-                                description = t('alerts.puntualEvent.error.shared_both_detail', { groupNames, classroomNames });
+                                description = t('alerts.puntualEvent.error.shared_both_detail', { date: formattedDate, startTime: startTimeShort, endTime: endTimeShort, groupNames, classroomNames });
                             } else if (groupNames) {
-                                description = t('alerts.puntualEvent.error.shared_group_detail', { names: groupNames });
+                                description = t('alerts.puntualEvent.error.shared_group_detail', { date: formattedDate, startTime: startTimeShort, endTime: endTimeShort, names: groupNames });
                             } else {
-                                description = t('alerts.puntualEvent.error.shared_classroom_detail', { names: classroomNames });
+                                description = t('alerts.puntualEvent.error.shared_classroom_detail', { date: formattedDate, startTime: startTimeShort, endTime: endTimeShort, names: classroomNames });
                             }
                         } else {
-                            description = t(error.message);
+                            description = t('alerts.puntualEvent.error.shared_group_detail', { date: formattedDate, startTime: startTimeShort, endTime: endTimeShort, names: '' });
                         }
                         triggerAlert({
                             title: t('alerts.puntualEvent.error.title'),
@@ -1029,6 +1039,11 @@ export default function CalendarPage() {
             let createdCount = 0;
             let errorCount = 0;
             const totalDays = config.weekDays.length;
+            const weekDayNames: Record<string, string> = {
+                'L': 'lunes', 'M': 'martes', 'X': 'miércoles',
+                'J': 'jueves', 'V': 'viernes', 'S': 'sábado', 'D': 'domingo'
+            };
+            const weekDaysStr = config.weekDays.map((d: string) => weekDayNames[d] || d).join(', ');
 
             const createNextEvent = (index: number) => {
                 if (index >= totalDays) {
@@ -1036,16 +1051,13 @@ export default function CalendarPage() {
                     if (errorCount === 0) {
                         triggerAlert({
                             title: t('calendar.alerts.periodicEvent.success.title'),
-                            description: t('calendar.alerts.periodicEvent.success.description', { count: createdCount }),
+                            description: t('calendar.alerts.periodicEvent.success.description', {
+                                count: createdCount,
+                                weekDays: weekDaysStr,
+                                startTime: config.startTime.substring(0, 5),
+                                endTime: config.endTime.substring(0, 5)
+                            }),
                             variant: 'success'
-                        });
-                        setIsCreateEventDialogOpen(false);
-                        refetch();
-                    } else if (createdCount > 0) {
-                        triggerAlert({
-                            title: t('calendar.alerts.periodicEvent.partial.title'),
-                            description: t('calendar.alerts.periodicEvent.partial.description', { created: createdCount, errors: errorCount }),
-                            variant: 'default'
                         });
                         setIsCreateEventDialogOpen(false);
                         refetch();
@@ -1079,21 +1091,24 @@ export default function CalendarPage() {
                                 const isConflict = error.statusCode === 409;
                                 let description: string;
                                 const first = error.conflictData?.[0];
+                                const currentWeekDay = weekDayNames[config.weekDays[index]] || config.weekDays[index];
+                                const startTimeShortP = config.startTime.substring(0, 5);
+                                const endTimeShortP = config.endTime.substring(0, 5);
                                 if (isConflict && first) {
                                     const groupNames = first.groupNames?.join(', ') || '';
                                     const classroomNames = first.classroomNames?.join(', ') || '';
                                     if (groupNames && classroomNames) {
-                                        description = t('alerts.puntualEvent.error.shared_both_detail', { groupNames, classroomNames });
+                                        description = t('alerts.puntualEvent.error.shared_both_detail', { date: currentWeekDay, startTime: startTimeShortP, endTime: endTimeShortP, groupNames, classroomNames });
                                     } else if (groupNames) {
-                                        description = t('alerts.puntualEvent.error.shared_group_detail', { names: groupNames });
+                                        description = t('alerts.puntualEvent.error.shared_group_detail', { date: currentWeekDay, startTime: startTimeShortP, endTime: endTimeShortP, names: groupNames });
                                     } else {
-                                        description = t('alerts.puntualEvent.error.shared_classroom_detail', { names: classroomNames });
+                                        description = t('alerts.puntualEvent.error.shared_classroom_detail', { date: currentWeekDay, startTime: startTimeShortP, endTime: endTimeShortP, names: classroomNames });
                                     }
                                 } else {
-                                    description = t(error.message) || t('calendar.alerts.periodicEvent.error.description');
+                                    description = t('calendar.alerts.periodicEvent.error.description', { weekDay: currentWeekDay, startTime: startTimeShortP, endTime: endTimeShortP });
                                 }
                                 triggerAlert({
-                                    title: t(isConflict ? 'alerts.puntualEvent.error.title' : 'calendar.alerts.periodicEvent.error.title'),
+                                    title: t('calendar.alerts.periodicEvent.error.title'),
                                     description,
                                     variant: 'destructive'
                                 });
@@ -1264,15 +1279,22 @@ export default function CalendarPage() {
                         refetch();
                         triggerAlert({
                             title: t('calendar.alerts.customPeriodicEvent.created.title'),
-                            description: t('calendar.alerts.customPeriodicEvent.created.description', { count: data.data.events.length, dates: summary.totalDates }),
+                            description: t('calendar.alerts.customPeriodicEvent.created.description', {
+                                count: data.data.events.length,
+                                startTime: config.startTime.substring(0, 5),
+                                endTime: config.endTime.substring(0, 5),
+                                dates: summary.totalDates
+                            }),
                             variant: 'success'
                         });
                     },
-                    onError: (error) => {
-                        const errorMessage = error.message || t('calendar.alerts.customPeriodicEvent.error.description');
+                    onError: () => {
                         triggerAlert({
                             title: t('calendar.alerts.customPeriodicEvent.error.title'),
-                            description: errorMessage,
+                            description: t('calendar.alerts.customPeriodicEvent.error.description', {
+                                startTime: config.startTime.substring(0, 5),
+                                endTime: config.endTime.substring(0, 5)
+                            }),
                             variant: 'destructive'
                         });
                     }
@@ -1333,19 +1355,50 @@ export default function CalendarPage() {
                 },
                 {
                     onSuccess: () => {
+                        const weekDayNames: Record<string, string> = {
+                            'L': 'lunes', 'M': 'martes', 'X': 'miércoles',
+                            'J': 'jueves', 'V': 'viernes', 'S': 'sábado', 'D': 'domingo'
+                        };
+                        const weekDayStr = weekDayNames[config.weekDays?.[0]] || config.weekDays?.[0] || '';
                         setIsEditEventDialogOpen(false);
                         setEventToEdit(null);
                         refetch();
                         triggerAlert({
                             title: t('calendar.alerts.periodicEvent.updated.title'),
-                            description: t('calendar.alerts.periodicEvent.updated.description'),
+                            description: t('calendar.alerts.periodicEvent.updated.description', {
+                                weekDay: weekDayStr,
+                                startTime: config.startTime.substring(0, 5),
+                                endTime: config.endTime.substring(0, 5)
+                            }),
                             variant: 'success'
                         });
                     },
-                    onError: (error: Error & { statusCode?: number }) => {
+                    onError: (error: Error & { statusCode?: number; conflictData?: { groupNames: string[]; classroomNames: string[] }[] }) => {
+                        const weekDayNames: Record<string, string> = {
+                            'L': 'lunes', 'M': 'martes', 'X': 'miércoles',
+                            'J': 'jueves', 'V': 'viernes', 'S': 'sábado', 'D': 'domingo'
+                        };
+                        const weekDayStr = weekDayNames[config.weekDays?.[0]] || config.weekDays?.[0] || '';
+                        const startTimeShort = config.startTime.substring(0, 5);
+                        const endTimeShort = config.endTime.substring(0, 5);
+                        const first = error.conflictData?.[0];
+                        let description: string;
+                        if (first) {
+                            const groupNames = first.groupNames?.join(', ') || '';
+                            const classroomNames = first.classroomNames?.join(', ') || '';
+                            if (groupNames && classroomNames) {
+                                description = t('calendar.alerts.periodicEvent.updateError.conflictBoth', { weekDay: weekDayStr, startTime: startTimeShort, endTime: endTimeShort, groupNames, classroomNames });
+                            } else if (groupNames) {
+                                description = t('calendar.alerts.periodicEvent.updateError.conflictGroup', { weekDay: weekDayStr, startTime: startTimeShort, endTime: endTimeShort, names: groupNames });
+                            } else {
+                                description = t('calendar.alerts.periodicEvent.updateError.conflictClassroom', { weekDay: weekDayStr, startTime: startTimeShort, endTime: endTimeShort, names: classroomNames });
+                            }
+                        } else {
+                            description = t('calendar.alerts.periodicEvent.updateError.description', { weekDay: weekDayStr, startTime: startTimeShort, endTime: endTimeShort });
+                        }
                         triggerAlert({
                             title: t('calendar.alerts.periodicEvent.updateError.title'),
-                            description: t(error.message) || t('calendar.alerts.periodicEvent.updateError.description'),
+                            description,
                             variant: 'destructive'
                         });
                     }
@@ -1358,6 +1411,9 @@ export default function CalendarPage() {
         if (eventToEdit.type === 'puntual' && eventToEdit.puntualEventId && config.eventDate) {
             // Convertir la fecha ISO completa a formato YYYY-MM-DD
             const eventDateOnly = config.eventDate.split('T')[0];
+            const formattedDate = new Date(eventDateOnly + 'T00:00:00').toLocaleDateString('es-ES', {
+                day: 'numeric', month: 'long', year: 'numeric'
+            });
 
             updatePuntualEvent(
                 {
@@ -1378,14 +1434,35 @@ export default function CalendarPage() {
                         refetch();
                         triggerAlert({
                             title: t('calendar.alerts.eventUpdate.success.title'),
-                            description: t('calendar.alerts.eventUpdate.success.description'),
+                            description: t('calendar.alerts.eventUpdate.success.description', {
+                                date: formattedDate,
+                                startTime: config.startTime.substring(0, 5),
+                                endTime: config.endTime.substring(0, 5)
+                            }),
                             variant: 'success'
                         });
                     },
-                    onError: (error: Error & { statusCode?: number }) => {
+                    onError: (error: Error & { statusCode?: number; conflictData?: { groupNames: string[]; classroomNames: string[] }[] }) => {
+                        const startTimeShort = config.startTime.substring(0, 5);
+                        const endTimeShort = config.endTime.substring(0, 5);
+                        const first = error.conflictData?.[0];
+                        let description: string;
+                        if (first) {
+                            const groupNames = first.groupNames?.join(', ') || '';
+                            const classroomNames = first.classroomNames?.join(', ') || '';
+                            if (groupNames && classroomNames) {
+                                description = t('calendar.alerts.eventUpdate.error.conflictBoth', { date: formattedDate, startTime: startTimeShort, endTime: endTimeShort, groupNames, classroomNames });
+                            } else if (groupNames) {
+                                description = t('calendar.alerts.eventUpdate.error.conflictGroup', { date: formattedDate, startTime: startTimeShort, endTime: endTimeShort, names: groupNames });
+                            } else {
+                                description = t('calendar.alerts.eventUpdate.error.conflictClassroom', { date: formattedDate, startTime: startTimeShort, endTime: endTimeShort, names: classroomNames });
+                            }
+                        } else {
+                            description = t('calendar.alerts.eventUpdate.error.description', { date: formattedDate, startTime: startTimeShort, endTime: endTimeShort });
+                        }
                         triggerAlert({
                             title: t('calendar.alerts.eventUpdate.error.title'),
-                            description: t(error.message) || t('calendar.alerts.eventUpdate.error.description'),
+                            description,
                             variant: 'destructive'
                         });
                     }

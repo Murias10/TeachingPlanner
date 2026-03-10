@@ -275,17 +275,14 @@
         },
         "puntualEvent": {
             "error": {
-                "title": "Conflicto de horario",
-                "shared_group": "El mismo grupo ya tiene un evento en este horario",
-                "shared_classroom": "La misma aula ya tiene un evento en este horario",
-                "shared_both": "El mismo grupo y aula ya tienen un evento en este horario",
-                "shared_group_detail": "El grupo {{names}} ya tiene un evento en este horario",
-                "shared_classroom_detail": "El aula {{names}} ya tiene un evento en este horario",
-                "shared_both_detail": "El grupo {{groupNames}} y el aula {{classroomNames}} ya tienen un evento en este horario"
+                "title": "Error al crear",
+                "shared_group_detail": "El evento del {{date}} de {{startTime}} a {{endTime}} no se pudo crear: el grupo {{names}} ya tiene un evento en ese horario.",
+                "shared_classroom_detail": "El evento del {{date}} de {{startTime}} a {{endTime}} no se pudo crear: el aula {{names}} ya tiene un evento en ese horario.",
+                "shared_both_detail": "El evento del {{date}} de {{startTime}} a {{endTime}} no se pudo crear: el grupo {{groupNames}} y el aula {{classroomNames}} ya tienen un evento en ese horario."
             },
             "success": {
                 "title": "Evento creado",
-                "description": "El evento puntual fue creado correctamente."
+                "description": "Evento puntual creado el {{date}} de {{startTime}} a {{endTime}}."
             }
         }
     },
@@ -956,44 +953,46 @@
             },
             "periodicEvent": {
                 "success": {
-                    "title": "Éxito",
-                    "description": "{{count}} evento(s) periódico(s) creado(s) correctamente"
-                },
-                "partial": {
-                    "title": "Parcialmente completado",
-                    "description": "{{created}} evento(s) creado(s), {{errors}} error(es)"
+                    "title": "Evento periódico creado",
+                    "description": "{{count}} evento(s) periódico(s) creado(s) los {{weekDays}} de {{startTime}} a {{endTime}}."
                 },
                 "error": {
-                    "title": "Error",
-                    "description": "Error al crear el evento periódico"
+                    "title": "Error al crear",
+                    "description": "El evento de los {{weekDay}} de {{startTime}} a {{endTime}} no se pudo crear."
                 },
                 "updated": {
                     "title": "Evento periódico actualizado",
-                    "description": "El evento periódico ha sido actualizado correctamente"
+                    "description": "El evento de los {{weekDay}} de {{startTime}} a {{endTime}} fue actualizado correctamente."
                 },
                 "updateError": {
                     "title": "Error al actualizar",
-                    "description": "No se pudo actualizar el evento periódico"
+                    "description": "El evento de los {{weekDay}} de {{startTime}} a {{endTime}} no se pudo actualizar.",
+                    "conflictGroup": "El evento de los {{weekDay}} de {{startTime}} a {{endTime}} no se pudo actualizar: el grupo {{names}} ya tiene un evento en ese horario.",
+                    "conflictClassroom": "El evento de los {{weekDay}} de {{startTime}} a {{endTime}} no se pudo actualizar: el aula {{names}} ya tiene un evento en ese horario.",
+                    "conflictBoth": "El evento de los {{weekDay}} de {{startTime}} a {{endTime}} no se pudo actualizar: el grupo {{groupNames}} y el aula {{classroomNames}} ya tienen un evento en ese horario."
                 }
             },
             "customPeriodicEvent": {
                 "created": {
                     "title": "Evento personalizado creado",
-                    "description": "Se crearon {{count}} evento(s) periódico(s) con patrón personalizado ({{dates}} fechas afectadas)"
+                    "description": "{{count}} evento(s) periódico(s) creado(s) de {{startTime}} a {{endTime}} ({{dates}} fechas afectadas)."
                 },
                 "error": {
-                    "title": "Error",
-                    "description": "Error al crear el evento periódico personalizado"
+                    "title": "Error al crear",
+                    "description": "El evento de {{startTime}} a {{endTime}} no se pudo crear."
                 }
             },
             "eventUpdate": {
                 "success": {
                     "title": "Evento actualizado",
-                    "description": "El evento ha sido actualizado correctamente"
+                    "description": "El evento del {{date}} de {{startTime}} a {{endTime}} fue actualizado correctamente."
                 },
                 "error": {
                     "title": "Error al actualizar",
-                    "description": "No se pudo actualizar el evento"
+                    "description": "El evento del {{date}} de {{startTime}} a {{endTime}} no se pudo actualizar.",
+                    "conflictGroup": "El evento del {{date}} de {{startTime}} a {{endTime}} no se pudo actualizar: el grupo {{names}} ya tiene un evento en ese horario.",
+                    "conflictClassroom": "El evento del {{date}} de {{startTime}} a {{endTime}} no se pudo actualizar: el aula {{names}} ya tiene un evento en ese horario.",
+                    "conflictBoth": "El evento del {{date}} de {{startTime}} a {{endTime}} no se pudo actualizar: el grupo {{groupNames}} y el aula {{classroomNames}} ya tienen un evento en ese horario."
                 }
             },
             "eventDelete": {

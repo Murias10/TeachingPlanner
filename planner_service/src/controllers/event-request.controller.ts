@@ -376,7 +376,7 @@ async function createPuntualEventFromRequest(eventRequest: EventRequest): Promis
         // If dayId is provided, use it directly
         day = await dayRepo.findOne({
             where: { id: dayId },
-            relations: ['puntualEvents', 'puntualEvents.groups', 'puntualEvents.classrooms', 'calendar'],
+            relations: ['puntualEvents', 'puntualEvents.groups', 'puntualEvents.groups.subject', 'puntualEvents.classrooms', 'calendar'],
         });
     } else if (eventDate) {
         // If eventDate is provided, find the day by date and calendar
@@ -392,7 +392,7 @@ async function createPuntualEventFromRequest(eventRequest: EventRequest): Promis
                 date: eventDateTime,
                 calendar: { id: calendarId }
             },
-            relations: ['puntualEvents', 'puntualEvents.groups', 'puntualEvents.classrooms', 'calendar'],
+            relations: ['puntualEvents', 'puntualEvents.groups', 'puntualEvents.groups.subject', 'puntualEvents.classrooms', 'calendar'],
         });
     }
 
@@ -439,7 +439,7 @@ async function createPuntualEventFromRequest(eventRequest: EventRequest): Promis
             startTime: e.startTime,
             endTime: e.endTime,
             type: 'puntual' as const,
-            groupNames: e.groups?.filter(g => groupIds.includes(g.id)).map(g => `${g.type}${g.number}`) ?? [],
+            groupNames: e.groups?.filter(g => groupIds.includes(g.id)).map(g => `${g.subject?.acronym}.${g.type}.${g.number}`) ?? [],
             classroomNames: e.classrooms?.filter(c => classroomIds.includes(c.id)).map(c => c.code) ?? [],
         })),
         ...conflictingPeriodicEvents.map(e => ({
@@ -447,7 +447,7 @@ async function createPuntualEventFromRequest(eventRequest: EventRequest): Promis
             startTime: e.startTime,
             endTime: e.endTime,
             type: 'periodic' as const,
-            groupNames: e.groups?.filter((g: any) => groupIds.includes(g.id)).map((g: any) => `${g.type}${g.number}`) ?? [],
+            groupNames: e.groups?.filter((g: any) => groupIds.includes(g.id)).map((g: any) => `${g.subject?.acronym}.${g.type}.${g.number}`) ?? [],
             classroomNames: e.classrooms?.filter((c: any) => classroomIds.includes(c.id)).map((c: any) => c.code) ?? [],
         })),
     ];
@@ -640,7 +640,7 @@ async function createPeriodicEventFromRequest(eventRequest: EventRequest): Promi
                 endTime: e.endTime,
                 type: e.type as 'puntual' | 'periodic',
                 date: e.date,
-                groupNames: e.groups?.filter((g: any) => groupIds.includes(g.id)).map((g: any) => `${g.type}${g.number}`) ?? [],
+                groupNames: e.groups?.filter((g: any) => groupIds.includes(g.id)).map((g: any) => `${g.subject?.acronym}.${g.type}.${g.number}`) ?? [],
                 classroomNames: e.classrooms?.filter((c: any) => classroomIds.includes(c.id)).map((c: any) => c.code) ?? [],
             })));
         }
@@ -816,7 +816,7 @@ async function createCustomPeriodicEventFromRequest(eventRequest: EventRequest):
                 endTime: e.endTime,
                 type: e.type as 'puntual' | 'periodic',
                 date: e.date,
-                groupNames: e.groups?.filter((g: any) => groupIds.includes(g.id)).map((g: any) => `${g.type}${g.number}`) ?? [],
+                groupNames: e.groups?.filter((g: any) => groupIds.includes(g.id)).map((g: any) => `${g.subject?.acronym}.${g.type}.${g.number}`) ?? [],
                 classroomNames: e.classrooms?.filter((c: any) => classroomIds.includes(c.id)).map((c: any) => c.code) ?? [],
             })));
         }
@@ -960,7 +960,7 @@ async function editEventFromRequest(eventRequest: EventRequest): Promise<string>
 
         const destDay = await dayRepo.findOne({
             where: { date: destDayDate, calendar: { id: calendarId } },
-            relations: ['puntualEvents', 'puntualEvents.groups', 'puntualEvents.classrooms'],
+            relations: ['puntualEvents', 'puntualEvents.groups', 'puntualEvents.groups.subject', 'puntualEvents.classrooms'],
         });
         if (!destDay) throw new Error('Destination date does not exist in the calendar');
 
@@ -991,12 +991,12 @@ async function editEventFromRequest(eventRequest: EventRequest): Promise<string>
         const allConflicts: ConflictEntry[] = [
             ...conflictingPuntual.map(e => ({
                 id: e.id, startTime: e.startTime, endTime: e.endTime, type: 'puntual' as const,
-                groupNames: e.groups?.filter(g => groupIds.includes(g.id)).map(g => `${g.type}${g.number}`) ?? [],
+                groupNames: e.groups?.filter(g => groupIds.includes(g.id)).map(g => `${g.subject?.acronym}.${g.type}.${g.number}`) ?? [],
                 classroomNames: e.classrooms?.filter(c => classroomIds.includes(c.id)).map(c => c.code) ?? [],
             })),
             ...conflictingPeriodic.map(e => ({
                 id: e.id, startTime: e.startTime, endTime: e.endTime, type: 'periodic' as const,
-                groupNames: e.groups?.filter((g: any) => groupIds.includes(g.id)).map((g: any) => `${g.type}${g.number}`) ?? [],
+                groupNames: e.groups?.filter((g: any) => groupIds.includes(g.id)).map((g: any) => `${g.subject?.acronym}.${g.type}.${g.number}`) ?? [],
                 classroomNames: e.classrooms?.filter((c: any) => classroomIds.includes(c.id)).map((c: any) => c.code) ?? [],
             })),
         ];
@@ -1052,7 +1052,7 @@ async function editEventFromRequest(eventRequest: EventRequest): Promise<string>
             const conflicts: ConflictEntry[] = conflictos.map((e: any) => ({
                 id: e.id, startTime: e.startTime, endTime: e.endTime,
                 type: e.type as 'puntual' | 'periodic', date: e.date,
-                groupNames: e.groups?.filter((g: any) => groupIds.includes(g.id)).map((g: any) => `${g.type}${g.number}`) ?? [],
+                groupNames: e.groups?.filter((g: any) => groupIds.includes(g.id)).map((g: any) => `${g.subject?.acronym}.${g.type}.${g.number}`) ?? [],
                 classroomNames: e.classrooms?.filter((c: any) => classroomIds.includes(c.id)).map((c: any) => c.code) ?? [],
             }));
             throw new ConflictError('Edit conflict: time slot already occupied', conflicts);
@@ -1140,7 +1140,7 @@ async function replaceEventFromRequest(eventRequest: EventRequest): Promise<stri
             date: newEventDateObj,
             calendar: { id: calendarId }
         },
-        relations: ['puntualEvents', 'puntualEvents.groups', 'puntualEvents.classrooms'],
+        relations: ['puntualEvents', 'puntualEvents.groups', 'puntualEvents.groups.subject', 'puntualEvents.classrooms'],
     });
     if (!newDay) throw new Error('The new event date does not exist in the calendar');
 
@@ -1184,12 +1184,12 @@ async function replaceEventFromRequest(eventRequest: EventRequest): Promise<stri
         const allConflicts: ConflictEntry[] = [
             ...conflictingPuntual.map(e => ({
                 id: e.id, startTime: e.startTime, endTime: e.endTime, type: 'puntual' as const,
-                groupNames: e.groups?.filter(g => replGroupIds.includes(g.id)).map(g => `${g.type}${g.number}`) ?? [],
+                groupNames: e.groups?.filter(g => replGroupIds.includes(g.id)).map(g => `${g.subject?.acronym}.${g.type}.${g.number}`) ?? [],
                 classroomNames: e.classrooms?.filter(c => replClassroomIds.includes(c.id)).map(c => c.code) ?? [],
             })),
             ...conflictingPeriodic.map(e => ({
                 id: e.id, startTime: e.startTime, endTime: e.endTime, type: 'periodic' as const,
-                groupNames: e.groups?.filter((g: any) => replGroupIds.includes(g.id)).map((g: any) => `${g.type}${g.number}`) ?? [],
+                groupNames: e.groups?.filter((g: any) => replGroupIds.includes(g.id)).map((g: any) => `${g.subject?.acronym}.${g.type}.${g.number}`) ?? [],
                 classroomNames: e.classrooms?.filter((c: any) => replClassroomIds.includes(c.id)).map((c: any) => c.code) ?? [],
             })),
         ];
@@ -1288,12 +1288,12 @@ async function replaceEventFromRequest(eventRequest: EventRequest): Promise<stri
         const allConflictsP: ConflictEntry[] = [
             ...conflictingPuntualP.map(e => ({
                 id: e.id, startTime: e.startTime, endTime: e.endTime, type: 'puntual' as const,
-                groupNames: e.groups?.filter(g => replGroupIds.includes(g.id)).map(g => `${g.type}${g.number}`) ?? [],
+                groupNames: e.groups?.filter(g => replGroupIds.includes(g.id)).map(g => `${g.subject?.acronym}.${g.type}.${g.number}`) ?? [],
                 classroomNames: e.classrooms?.filter(c => replClassroomIds.includes(c.id)).map(c => c.code) ?? [],
             })),
             ...conflictingPeriodicP.map(e => ({
                 id: e.id, startTime: e.startTime, endTime: e.endTime, type: 'periodic' as const,
-                groupNames: e.groups?.filter((g: any) => replGroupIds.includes(g.id)).map((g: any) => `${g.type}${g.number}`) ?? [],
+                groupNames: e.groups?.filter((g: any) => replGroupIds.includes(g.id)).map((g: any) => `${g.subject?.acronym}.${g.type}.${g.number}`) ?? [],
                 classroomNames: e.classrooms?.filter((c: any) => replClassroomIds.includes(c.id)).map((c: any) => c.code) ?? [],
             })),
         ];

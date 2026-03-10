@@ -49,7 +49,7 @@ export async function getActivePeriodicEventsForDay(
     const ids = [...new Set(periodicEventsOnDay.map((e: any) => e.periodicEventId as string))];
     return periodicEventRepo.find({
         where: { id: In(ids) },
-        relations: ['groups', 'classrooms']
+        relations: ['groups', 'groups.subject', 'classrooms']
     });
 }
 

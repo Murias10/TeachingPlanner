@@ -1396,7 +1396,7 @@ export const createPuntualEvent = async (req: AuditedRequest, res: Response) => 
                 date: eventDateObj,
                 calendar: { id: calendarId }
             },
-            relations: ['puntualEvents', 'puntualEvents.groups', 'puntualEvents.classrooms']
+            relations: ['puntualEvents', 'puntualEvents.groups', 'puntualEvents.groups.subject', 'puntualEvents.classrooms']
         });
 
         // Si el día no existe, no se puede crear el evento
@@ -1505,7 +1505,7 @@ export const createPuntualEvent = async (req: AuditedRequest, res: Response) => 
                                 startTime: e.startTime,
                                 endTime: e.endTime,
                                 type: 'puntual',
-                                groupNames: e.groups?.filter(g => groupIds.includes(g.id)).map(g => `${g.type}${g.number}`) ?? [],
+                                groupNames: e.groups?.filter(g => groupIds.includes(g.id)).map(g => `${g.subject?.acronym}.${g.type}.${g.number}`) ?? [],
                                 classroomNames: e.classrooms?.filter(c => classroomIds.includes(c.id)).map(c => c.code) ?? []
                             })) || []),
                             ...conflictingPeriodicEvents.map(e => ({
@@ -1513,7 +1513,7 @@ export const createPuntualEvent = async (req: AuditedRequest, res: Response) => 
                                 startTime: e.startTime,
                                 endTime: e.endTime,
                                 type: 'periodic',
-                                groupNames: e.groups?.filter((g: any) => groupIds.includes(g.id)).map((g: any) => `${g.type}${g.number}`) ?? [],
+                                groupNames: e.groups?.filter((g: any) => groupIds.includes(g.id)).map((g: any) => `${g.subject?.acronym}.${g.type}.${g.number}`) ?? [],
                                 classroomNames: e.classrooms?.filter((c: any) => classroomIds.includes(c.id)).map((c: any) => c.code) ?? []
                             }))
                         ]
@@ -2085,7 +2085,7 @@ export const updatePuntualEvent = async (req: AuditedRequest, res: Response) => 
                 date: eventDateObj,
                 calendar: { id: calendar.id }
             },
-            relations: ['puntualEvents', 'puntualEvents.groups', 'puntualEvents.classrooms']
+            relations: ['puntualEvents', 'puntualEvents.groups', 'puntualEvents.groups.subject', 'puntualEvents.classrooms']
         });
 
         if (!newDay) {
@@ -2187,7 +2187,7 @@ export const updatePuntualEvent = async (req: AuditedRequest, res: Response) => 
                             startTime: e.startTime,
                             endTime: e.endTime,
                             type: 'puntual',
-                            groupNames: e.groups?.filter(g => groupIds.includes(g.id)).map(g => `${g.type}${g.number}`) ?? [],
+                            groupNames: e.groups?.filter(g => groupIds.includes(g.id)).map(g => `${g.subject?.acronym}.${g.type}.${g.number}`) ?? [],
                             classroomNames: e.classrooms?.filter(c => classroomIds.includes(c.id)).map(c => c.code) ?? []
                         })) || []),
                         ...conflictingPeriodicEvents.map(e => ({
@@ -2195,7 +2195,7 @@ export const updatePuntualEvent = async (req: AuditedRequest, res: Response) => 
                             startTime: e.startTime,
                             endTime: e.endTime,
                             type: 'periodic',
-                            groupNames: e.groups?.filter((g: any) => groupIds.includes(g.id)).map((g: any) => `${g.type}${g.number}`) ?? [],
+                            groupNames: e.groups?.filter((g: any) => groupIds.includes(g.id)).map((g: any) => `${g.subject?.acronym}.${g.type}.${g.number}`) ?? [],
                             classroomNames: e.classrooms?.filter((c: any) => classroomIds.includes(c.id)).map((c: any) => c.code) ?? []
                         }))
                     ]
@@ -2415,7 +2415,7 @@ export const createPeriodicEvent = async (req: AuditedRequest, res: Response) =>
                         startTime: e.startTime,
                         endTime: e.endTime,
                         type: e.type,
-                        groupNames: e.groups?.filter((g: any) => groupIds.includes(g.id)).map((g: any) => `${g.type}${g.number}`) ?? [],
+                        groupNames: e.groups?.filter((g: any) => groupIds.includes(g.id)).map((g: any) => `${g.subject?.acronym}.${g.type}.${g.number}`) ?? [],
                         classroomNames: e.classrooms?.filter((c: any) => classroomIds.includes(c.id)).map((c: any) => c.code) ?? []
                     }))
                 }
@@ -2830,7 +2830,7 @@ export const updatePeriodicEvent = async (req: AuditedRequest, res: Response) =>
                             startTime: e.startTime,
                             endTime: e.endTime,
                             type: e.type,
-                            groupNames: e.groups?.filter((g: any) => groupIds.includes(g.id)).map((g: any) => `${g.type}${g.number}`) ?? [],
+                            groupNames: e.groups?.filter((g: any) => groupIds.includes(g.id)).map((g: any) => `${g.subject?.acronym}.${g.type}.${g.number}`) ?? [],
                             classroomNames: e.classrooms?.filter((c: any) => classroomIds.includes(c.id)).map((c: any) => c.code) ?? []
                         }))
                     }
@@ -3038,7 +3038,7 @@ export const updateCustomPeriodicEvent = async (req: AuditedRequest, res: Respon
                                 startTime: e.startTime,
                                 endTime: e.endTime,
                                 type: e.type,
-                                groupNames: e.groups?.filter((g: any) => groupIds.includes(g.id)).map((g: any) => `${g.type}${g.number}`) ?? [],
+                                groupNames: e.groups?.filter((g: any) => groupIds.includes(g.id)).map((g: any) => `${g.subject?.acronym}.${g.type}.${g.number}`) ?? [],
                                 classroomNames: e.classrooms?.filter((c: any) => classroomIds.includes(c.id)).map((c: any) => c.code) ?? []
                             }))
                         }

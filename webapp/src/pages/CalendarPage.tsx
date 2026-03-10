@@ -1607,7 +1607,7 @@ export default function CalendarPage() {
             const result = await deletePuntualEvent(eventToDelete.puntualEventId, refetch);
 
             if (result.success) {
-                const deletedDate = new Date(eventToDelete.date + 'T00:00:00').toLocaleDateString('es-ES', {
+                const deletedDate = new Date(eventToDelete.date.substring(0, 10) + 'T00:00:00').toLocaleDateString('es-ES', {
                     day: 'numeric', month: 'long', year: 'numeric'
                 });
                 triggerAlert({

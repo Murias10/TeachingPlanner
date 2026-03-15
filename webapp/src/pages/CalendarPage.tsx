@@ -12,7 +12,7 @@ import { CalendarEvent } from "@/types/CalendarEvent";
 import ClassFilter, { FilterValues } from "@/components/ClassFilter";
 import { FileText, BookOpen, DoorOpen, Languages, Users, GraduationCap, Tag } from "lucide-react";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import CalendarToolbar from "@/components/calendar/CalendarToolbar";
 import CreateEventDialog from "@/components/calendar/CreateEventDialog";
 import EditEventDialog from "@/components/calendar/EditEventDialog";
@@ -142,7 +142,8 @@ export default function CalendarPage() {
 
     const { t, i18n } = useTranslation()
     const { triggerAlert } = useFloatingAlertContext();
-    const { user } = useAuth();
+    const { user, isAuthenticated } = useAuth();
+    const navigate = useNavigate();
     const [localeLoaded, setLocaleLoaded] = useState(false);
 
     // Configurar el locale de moment basándose en el idioma actual de i18next
@@ -184,6 +185,13 @@ export default function CalendarPage() {
         endYear || null,
         semester || null
     );
+
+    // Redirigir a invitados si el curso no está activo
+    useEffect(() => {
+        if (!isLoading && course && !isAuthenticated && course.state !== 'ACTIVO') {
+            navigate(`/degrees/${acronym}/courses`, { replace: true });
+        }
+    }, [isLoading, course, isAuthenticated, acronym, navigate]);
 
     // Hooks que dependen de calendarId
     const { mutate: createPuntualEvent } = useCreatePuntualEvent();

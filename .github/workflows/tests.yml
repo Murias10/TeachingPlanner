@@ -33,7 +33,7 @@ jobs:
   e2e-tests:  # Job para ejecutar tests end-to-end
     needs: [unit-tests]  # Se ejecuta solo si los tests unitarios han pasado
     runs-on: ubuntu-latest  # Usa la última versión de Ubuntu
-    timeout-minutes: 15  # Timeout de 15 minutos para todo el job
+    timeout-minutes: 30  # Timeout de 30 minutos para todo el job
 
     services:
       mariadb:

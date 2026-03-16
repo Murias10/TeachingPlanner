@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label"
 import { Link, useNavigate, useLocation } from "react-router-dom"
 import { useAuth } from "@/contexts/AuthContext"
 import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext"
+import { useTranslation } from "react-i18next"
 
 export function LoginForm({
   className,
@@ -23,6 +24,7 @@ export function LoginForm({
   const location = useLocation();
   const { login } = useAuth();
   const { triggerAlert } = useFloatingAlertContext();
+  const { t } = useTranslation();
 
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
@@ -36,8 +38,8 @@ export function LoginForm({
       // Validación básica
       if (!email || !password) {
         triggerAlert({
-          title: 'Error de validación',
-          description: 'Por favor, completa todos los campos',
+          title: t('login.validation.title'),
+          description: t('login.validation.description'),
           variant: 'warning'
         });
         return;
@@ -47,8 +49,8 @@ export function LoginForm({
 
       if (success) {
         triggerAlert({
-          title: '¡Bienvenido!',
-          description: 'Inicio de sesión exitoso. Redirigiendo...',
+          title: t('login.success.title'),
+          description: t('login.success.description'),
           variant: 'success'
         });
 
@@ -58,15 +60,15 @@ export function LoginForm({
         }, 800);
       } else {
         triggerAlert({
-          title: 'Credenciales incorrectas',
-          description: 'El email o la contraseña que ingresaste no son correctos. Por favor, verifica e intenta de nuevo.',
+          title: t('login.invalidCredentials.title'),
+          description: t('login.invalidCredentials.description'),
           variant: 'destructive'
         });
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'No se pudo conectar con el servidor';
+      const errorMessage = error instanceof Error ? error.message : t('login.connectionError.description');
       triggerAlert({
-        title: 'Error de conexión',
+        title: t('login.connectionError.title'),
         description: errorMessage,
         variant: 'destructive'
       });
@@ -79,21 +81,21 @@ export function LoginForm({
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
         <CardHeader>
-          <CardTitle>Iniciar Sesión</CardTitle>
+          <CardTitle>{t('login.title')}</CardTitle>
           <CardDescription>
-            Ingresa tu email y contraseña para acceder
+            {t('login.description')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit}>
             <div className="flex flex-col gap-6">
               <div className="grid gap-3">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t('login.emailLabel')}</Label>
                 <Input
                   id="email"
                   name="email"
                   type="email"
-                  placeholder="correo@ejemplo.com"
+                  placeholder={t('login.emailPlaceholder')}
                   value={email}
                   onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                   disabled={isLoading}
@@ -103,12 +105,12 @@ export function LoginForm({
 
               <div className="grid gap-3">
                 <div className="flex items-center">
-                  <Label htmlFor="password">Contraseña</Label>
+                  <Label htmlFor="password">{t('login.passwordLabel')}</Label>
                   <Link
                     to="/forgot-password"
                     className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
                   >
-                    ¿Olvidaste tu contraseña?
+                    {t('login.forgotPassword')}
                   </Link>
                 </div>
                 <Input
@@ -128,7 +130,7 @@ export function LoginForm({
                 className="w-full"
                 disabled={isLoading}
               >
-                {isLoading ? 'Iniciando sesión...' : 'Iniciar sesión'}
+                {isLoading ? t('login.submitting') : t('login.submit')}
               </Button>
             </div>
           </form>

@@ -4,10 +4,12 @@ import { Link } from "react-router-dom"
 import { useAuth } from "@/contexts/AuthContext"
 import { useEffect } from "react"
 import { useNavigate } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 
 const Start = () => {
     const { isAuthenticated } = useAuth()
     const navigate = useNavigate()
+    const { t } = useTranslation()
 
     useEffect(() => {
         if (isAuthenticated) {
@@ -23,19 +25,19 @@ const Start = () => {
                         Teaching Planner
                     </CardTitle>
                     <CardDescription className="text-base">
-                        Planificación académica simplificada
+                        {t('start.subtitle')}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <Link to="/home" className="block">
                         <Button variant="outline" className="w-full" size="lg">
-                            Continuar como invitado
+                            {t('start.continueAsGuest')}
                         </Button>
                     </Link>
 
                     <Link to="/login" className="block">
                         <Button className="w-full" size="lg">
-                            Iniciar sesión
+                            {t('start.login')}
                         </Button>
                     </Link>
                 </CardContent>

@@ -1737,5 +1737,36 @@
         "manageRequests": "Gestionar solicitudes",
         "manageRequestsTooltip": "Gestionar solicitudes",
         "requiresCalendar": "Requiere calendario"
+    },
+    "start": {
+        "subtitle": "Planificación académica simplificada",
+        "continueAsGuest": "Continuar como invitado",
+        "login": "Iniciar sesión"
+    },
+    "login": {
+        "title": "Iniciar Sesión",
+        "description": "Ingresa tu email y contraseña para acceder",
+        "emailLabel": "Email",
+        "emailPlaceholder": "correo@ejemplo.com",
+        "passwordLabel": "Contraseña",
+        "forgotPassword": "¿Olvidaste tu contraseña?",
+        "submit": "Iniciar sesión",
+        "submitting": "Iniciando sesión...",
+        "validation": {
+            "title": "Error de validación",
+            "description": "Por favor, completa todos los campos"
+        },
+        "success": {
+            "title": "¡Bienvenido!",
+            "description": "Inicio de sesión exitoso. Redirigiendo..."
+        },
+        "invalidCredentials": {
+            "title": "Credenciales incorrectas",
+            "description": "El email o la contraseña que ingresaste no son correctos. Por favor, verifica e intenta de nuevo."
+        },
+        "connectionError": {
+            "title": "Error de conexión",
+            "description": "No se pudo conectar con el servidor"
+        }
     }
 }

@@ -1748,5 +1748,36 @@
         "manageRequests": "Manage requests",
         "manageRequestsTooltip": "Manage requests",
         "requiresCalendar": "Requires calendar"
+    },
+    "start": {
+        "subtitle": "Simplified academic planning",
+        "continueAsGuest": "Continue as guest",
+        "login": "Sign in"
+    },
+    "login": {
+        "title": "Sign In",
+        "description": "Enter your email and password to access",
+        "emailLabel": "Email",
+        "emailPlaceholder": "email@example.com",
+        "passwordLabel": "Password",
+        "forgotPassword": "Forgot your password?",
+        "submit": "Sign in",
+        "submitting": "Signing in...",
+        "validation": {
+            "title": "Validation error",
+            "description": "Please fill in all fields"
+        },
+        "success": {
+            "title": "Welcome!",
+            "description": "Login successful. Redirecting..."
+        },
+        "invalidCredentials": {
+            "title": "Invalid credentials",
+            "description": "The email or password you entered is incorrect. Please verify and try again."
+        },
+        "connectionError": {
+            "title": "Connection error",
+            "description": "Could not connect to the server"
+        }
     }
 }

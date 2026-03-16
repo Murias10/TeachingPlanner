@@ -2,6 +2,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Subject } from "@/types/Subject"
 import { ChevronsRight, Trash2, Users, Check, X, Plus } from "lucide-react"
+import { useAuth } from "@/contexts/AuthContext"
 import {
     Tooltip,
     TooltipContent,
@@ -38,6 +39,8 @@ export function GroupTableButtons({ subject, onDeleteGroup, onCreateGroup }: Rea
 
     const { t } = useTranslation()
     const { triggerAlert } = useFloatingAlertContext()
+    const { user } = useAuth()
+    const isAdmin = user?.role === "ADMIN"
 
     const [open, setOpen] = useState(false)
     const [selectedGroups, setSelectedGroups] = useState<string[]>([])
@@ -146,6 +149,26 @@ export function GroupTableButtons({ subject, onDeleteGroup, onCreateGroup }: Rea
 
     const getGroupHours = (group: Group): number => {
         return groupHours[group.id] ?? group.planifiedHours ?? 0
+    }
+
+    const renderHoursDisplay = (group: Group) => {
+        if (isAdmin) {
+            return (
+                <button
+                    type="button"
+                    onClick={(e) => startEditingHours(group, e)}
+                    className="text-[10px] text-muted-foreground hover:text-foreground cursor-pointer px-1.5 py-0.5 rounded hover:bg-accent transition-colors"
+                    title="Click para editar horas planificadas"
+                >
+                    {getGroupHours(group)}h
+                </button>
+            )
+        }
+        return (
+            <span className="text-[10px] text-muted-foreground px-1.5 py-0.5">
+                {getGroupHours(group)}h
+            </span>
+        )
     }
 
     const hasGroups = subject.groups && subject.groups.length > 0;
@@ -293,14 +316,7 @@ export function GroupTableButtons({ subject, onDeleteGroup, onCreateGroup }: Rea
                                                                         </Button>
                                                                     </>
                                                                 ) : (
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={(e) => startEditingHours(group, e)}
-                                                                        className="text-[10px] text-muted-foreground hover:text-foreground cursor-pointer px-1.5 py-0.5 rounded hover:bg-accent transition-colors"
-                                                                        title="Click para editar horas planificadas"
-                                                                    >
-                                                                        {getGroupHours(group)}h
-                                                                    </button>
+                                                                    renderHoursDisplay(group)
                                                                 )}
 
                                                                 {onDeleteGroup && (
@@ -399,14 +415,7 @@ export function GroupTableButtons({ subject, onDeleteGroup, onCreateGroup }: Rea
                                                                         </Button>
                                                                     </>
                                                                 ) : (
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={(e) => startEditingHours(group, e)}
-                                                                        className="text-[10px] text-muted-foreground hover:text-foreground cursor-pointer px-1.5 py-0.5 rounded hover:bg-accent transition-colors"
-                                                                        title="Click para editar horas planificadas"
-                                                                    >
-                                                                        {getGroupHours(group)}h
-                                                                    </button>
+                                                                    renderHoursDisplay(group)
                                                                 )}
 
                                                                 {onDeleteGroup && (
@@ -439,16 +448,18 @@ export function GroupTableButtons({ subject, onDeleteGroup, onCreateGroup }: Rea
                                 {t("common.close")}
                             </Button>
                         </SheetClose>
-                        <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={handleDeleteSelected}
-                            disabled={selectedGroups.length === 0}
-                            className="flex-1 h-8 text-xs"
-                        >
-                            <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-                            {t("common.delete")} {selectedGroups.length > 0 && `(${selectedGroups.length})`}
-                        </Button>
+                        <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
+                            <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={handleDeleteSelected}
+                                disabled={selectedGroups.length === 0}
+                                className="flex-1 h-8 text-xs"
+                            >
+                                <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                                {t("common.delete")} {selectedGroups.length > 0 && `(${selectedGroups.length})`}
+                            </Button>
+                        </ProtectedComponent>
                     </SheetFooter>
                 </SheetContent>
             </Sheet>

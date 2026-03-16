@@ -13,10 +13,14 @@ import CreateGroupDialog from "@/components/group/CreateGroupDialog"
 import { useCreateGroup } from "@/hooks/group/useCreateGroup"
 import { useDeleteGroup } from "@/hooks/group/useDeleteGroup"
 import { useCalendarByCourseAndSemester } from "@/hooks/calendar/useCalendarByCourseAndSemester"
+import { useAuth } from "@/contexts/AuthContext"
+import { ProtectedComponent } from "@/components/ProtectedComponent"
 
 export default function GroupPage() {
 
     const { t } = useTranslation()
+    const { user } = useAuth()
+    const isAdmin = user?.role === "ADMIN"
 
     const { triggerAlert } = useFloatingAlertContext()
 
@@ -154,7 +158,9 @@ export default function GroupPage() {
             <section className="h-full bg-background overflow-hidden flex flex-col">
                 {/* Toolbar */}
                 <div className="px-4 py-3 border-b bg-background flex justify-end items-center">
-                    <GroupToolbar onCreateGroup={handleCreateGroupGlobal} />
+                    <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
+                        <GroupToolbar onCreateGroup={handleCreateGroupGlobal} />
+                    </ProtectedComponent>
                 </div>
 
                 {/* Table */}
@@ -164,7 +170,7 @@ export default function GroupPage() {
                             <LoadingSpinner />
                         </div>
                     ) : (
-                        <GroupTable subjects={subjects} onDeleteGroup={handleDeleteGroup} onCreateGroup={handleCreateGroupForSubject} />
+                        <GroupTable subjects={subjects} onDeleteGroup={isAdmin ? handleDeleteGroup : undefined} onCreateGroup={isAdmin ? handleCreateGroupForSubject : undefined} />
                     )}
                 </div>
             </section>

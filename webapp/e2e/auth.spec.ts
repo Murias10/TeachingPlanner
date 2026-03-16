@@ -18,7 +18,7 @@ test.describe('Authentication Flow', () => {
     await page.goto('/');
 
     // Click en "Iniciar sesión" para ir al formulario de login
-    await page.getByRole('button', { name: /iniciar sesión/i }).click();
+    await page.getByRole('button', { name: /iniciar sesión|sign in/i }).click();
 
     // Esperar a que aparezca el formulario de login
     await page.waitForLoadState('networkidle');
@@ -31,12 +31,12 @@ test.describe('Authentication Flow', () => {
     // Verificar elementos del formulario
     await expect(page.getByLabel(/email/i)).toBeVisible();
     await expect(page.getByLabel(/contraseña|password/i)).toBeVisible();
-    await expect(page.getByRole('button', { name: /iniciar sesión|login/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /iniciar sesión|sign in/i })).toBeVisible();
   });
 
   test('should show validation error for empty fields', async ({ page }) => {
     // Click en el botón de login sin llenar campos
-    const loginButton = page.getByRole('button', { name: /iniciar sesión|login|sign in/i }).last();
+    const loginButton = page.getByRole('button', { name: /iniciar sesión|sign in/i }).last();
     await loginButton.click();
 
     // El formulario puede usar validación HTML5 o mostrar un mensaje
@@ -50,7 +50,7 @@ test.describe('Authentication Flow', () => {
     await page.getByLabel(/contraseña|password/i).fill('wrongpassword');
 
     // Click en login (usar last() para evitar conflictos con el botón de la página inicial)
-    await page.getByRole('button', { name: /iniciar sesión|login|sign in/i }).last().click();
+    await page.getByRole('button', { name: /iniciar sesión|sign in/i }).last().click();
 
     // Debe mostrar error de credenciales (español o inglés)
     await expect(
@@ -69,7 +69,7 @@ test.describe('Authentication Flow', () => {
     await page.getByLabel(/contraseña|password/i).fill(testPassword);
 
     // Click en login
-    await page.getByRole('button', { name: /iniciar sesión|login|sign in/i }).last().click();
+    await page.getByRole('button', { name: /iniciar sesión|sign in/i }).last().click();
 
     // Esperar redirección a /home (puede tomar un momento)
     await expect(page).toHaveURL('/home', { timeout: 10000 });
@@ -87,7 +87,7 @@ test.describe('Authentication Flow', () => {
     // Login
     await page.getByLabel(/email/i).fill(testEmail);
     await page.getByLabel(/contraseña|password/i).fill(testPassword);
-    await page.getByRole('button', { name: /iniciar sesión|login|sign in/i }).last().click();
+    await page.getByRole('button', { name: /iniciar sesión|sign in/i }).last().click();
 
     // Esperar redirección
     await expect(page).toHaveURL('/home', { timeout: 10000 });
@@ -125,7 +125,7 @@ test.describe('Authentication Flow', () => {
     // Login
     await page.getByLabel(/email/i).fill(testEmail);
     await page.getByLabel(/contraseña|password/i).fill(testPassword);
-    await page.getByRole('button', { name: /iniciar sesión|login|sign in/i }).last().click();
+    await page.getByRole('button', { name: /iniciar sesión|sign in/i }).last().click();
     await expect(page).toHaveURL('/home', { timeout: 10000 });
 
     // Buscar y hacer clic en el menú de usuario (botón en la parte inferior izquierda)

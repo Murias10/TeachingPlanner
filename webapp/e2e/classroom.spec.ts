@@ -77,13 +77,13 @@ test.describe('Classroom Management', () => {
     await page.goto('/');
 
     // Click en "Iniciar sesión"
-    await page.getByRole('button', { name: /iniciar sesión|login/i }).click();
+    await page.getByRole('button', { name: /iniciar sesión|sign in/i }).click();
     await page.waitForLoadState('networkidle');
 
     // Login
     await page.getByLabel(/email/i).fill(testEmail);
     await page.getByLabel(/contraseña|password/i).fill(testPassword);
-    await page.getByRole('button', { name: /iniciar sesión|login|sign in/i }).last().click();
+    await page.getByRole('button', { name: /iniciar sesión|sign in/i }).last().click();
 
     // Esperar redirección a home
     await expect(page).toHaveURL('/home', { timeout: TIMEOUTS.STANDARD });

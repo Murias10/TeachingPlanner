@@ -143,12 +143,12 @@ function generateUniqueAcronym(prefix: string = 'TST'): string {
  */
 async function login(page: Page) {
   await page.goto('/');
-  await page.getByRole('button', { name: /iniciar sesión/i }).click();
+  await page.getByRole('button', { name: /iniciar sesión|sign in/i }).click();
   await page.waitForLoadState('networkidle');
 
   await page.getByLabel(/email/i).fill(TEST_EMAIL);
   await page.getByLabel(/contraseña|password/i).fill(TEST_PASSWORD);
-  await page.getByRole('button', { name: /iniciar sesión|login|sign in/i }).last().click();
+  await page.getByRole('button', { name: /iniciar sesión|sign in/i }).last().click();
 
   await expect(page).toHaveURL('/home', { timeout: 10000 });
 }

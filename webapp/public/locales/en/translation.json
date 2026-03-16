@@ -1749,6 +1749,50 @@
         "manageRequestsTooltip": "Manage requests",
         "requiresCalendar": "Requires calendar"
     },
+    "forgotPassword": {
+        "title": "Recover Password",
+        "stepEmail": {
+            "description": "Enter your email to receive a recovery code",
+            "emailLabel": "Email",
+            "emailPlaceholder": "your@email.com",
+            "submit": "Request Code",
+            "submitting": "Sending...",
+            "backToLogin": "Back to Login",
+            "emailRequired": "Please enter your email",
+            "codeSent": "Code sent to your email. Check your inbox.",
+            "sendError": "Could not send the code. Verify your email and try again."
+        },
+        "stepOtp": {
+            "description": "Enter the code you received in your email",
+            "otpLabel": "6-digit code",
+            "submit": "Verify Code",
+            "submitting": "Verifying...",
+            "resend": "Resend Code",
+            "resendCooldown": "Resend in {{seconds}}s",
+            "changeEmail": "Change Email",
+            "otpLengthError": "Please enter a 6-digit code",
+            "otpSuccess": "Code verified. You can now create your new password.",
+            "otpError": "Incorrect or expired code. Verify and try again."
+        },
+        "stepPassword": {
+            "description": "Create a new password",
+            "newPasswordLabel": "New Password",
+            "newPasswordPlaceholder": "Minimum 8 characters",
+            "confirmPasswordLabel": "Confirm Password",
+            "confirmPasswordPlaceholder": "Confirm your password",
+            "submit": "Update Password",
+            "submitting": "Updating...",
+            "backToLogin": "Back to Login",
+            "fieldsRequired": "Please fill in all fields",
+            "passwordRequirementsError": "Password does not meet minimum requirements",
+            "passwordMismatch": "Passwords do not match",
+            "success": {
+                "title": "Password updated!",
+                "description": "Your password has been updated successfully. Redirecting to login..."
+            },
+            "error": "Could not update the password. The link may have expired."
+        }
+    },
     "start": {
         "subtitle": "Simplified academic planning",
         "continueAsGuest": "Continue as guest",

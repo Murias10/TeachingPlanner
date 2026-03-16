@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { validatePassword } from '@/utils/passwordValidation';
 import { PasswordRequirements } from '@/components/ui/password-requirements';
+import { useTranslation } from 'react-i18next';
 
 type Step = 'email' | 'otp' | 'password';
 
@@ -23,6 +24,7 @@ export default function ForgotPasswordPage() {
     const [otpCooldown, setOtpCooldown] = useState(0);
     const { triggerAlert } = useFloatingAlertContext();
     const navigate = useNavigate();
+    const { t } = useTranslation();
 
     const apiClient = axios.create({
         baseURL: import.meta.env.VITE_GATEWAY_API_URL || 'http://localhost:8080'
@@ -46,8 +48,8 @@ export default function ForgotPasswordPage() {
 
         if (!email) {
             triggerAlert({
-                title: 'Error',
-                description: 'Por favor ingresa tu email',
+                title: t('common.error'),
+                description: t('forgotPassword.stepEmail.emailRequired'),
                 variant: 'destructive'
             });
             return;
@@ -59,8 +61,8 @@ export default function ForgotPasswordPage() {
 
             if (response.data.success) {
                 triggerAlert({
-                    title: 'Éxito',
-                    description: 'Código enviado a tu email. Revisa tu bandeja de entrada.',
+                    title: t('common.success'),
+                    description: t('forgotPassword.stepEmail.codeSent'),
                     variant: 'success'
                 });
                 setCurrentStep('otp');
@@ -68,8 +70,8 @@ export default function ForgotPasswordPage() {
             }
         } catch {
             triggerAlert({
-                title: 'Error',
-                description: 'No se pudo enviar el código. Verifica tu email e intenta de nuevo.',
+                title: t('common.error'),
+                description: t('forgotPassword.stepEmail.sendError'),
                 variant: 'destructive'
             });
         } finally {
@@ -82,8 +84,8 @@ export default function ForgotPasswordPage() {
 
         if (otp.length !== 6) {
             triggerAlert({
-                title: 'Error',
-                description: 'Por favor ingresa un código de 6 dígitos',
+                title: t('common.error'),
+                description: t('forgotPassword.stepOtp.otpLengthError'),
                 variant: 'destructive'
             });
             return;
@@ -97,15 +99,15 @@ export default function ForgotPasswordPage() {
                 setResetToken(response.data.data.resetToken);
                 setCurrentStep('password');
                 triggerAlert({
-                    title: 'Éxito',
-                    description: 'Código verificado. Ahora puedes crear tu nueva contraseña.',
+                    title: t('common.success'),
+                    description: t('forgotPassword.stepOtp.otpSuccess'),
                     variant: 'success'
                 });
             }
         } catch {
             triggerAlert({
-                title: 'Error',
-                description: 'Código incorrecto o expirado. Verifica e intenta de nuevo.',
+                title: t('common.error'),
+                description: t('forgotPassword.stepOtp.otpError'),
                 variant: 'destructive'
             });
         } finally {
@@ -118,8 +120,8 @@ export default function ForgotPasswordPage() {
 
         if (!newPassword || !confirmPassword) {
             triggerAlert({
-                title: 'Error',
-                description: 'Por favor completa todos los campos',
+                title: t('common.error'),
+                description: t('forgotPassword.stepPassword.fieldsRequired'),
                 variant: 'destructive'
             });
             return;
@@ -129,8 +131,8 @@ export default function ForgotPasswordPage() {
         const passwordValidation = validatePassword(newPassword);
         if (!passwordValidation.isValid) {
             triggerAlert({
-                title: 'Error de validación',
-                description: 'La contraseña no cumple con los requisitos mínimos',
+                title: t('login.validation.title'),
+                description: t('forgotPassword.stepPassword.passwordRequirementsError'),
                 variant: 'destructive'
             });
             return;
@@ -138,8 +140,8 @@ export default function ForgotPasswordPage() {
 
         if (newPassword !== confirmPassword) {
             triggerAlert({
-                title: 'Error',
-                description: 'Las contraseñas no coinciden',
+                title: t('common.error'),
+                description: t('forgotPassword.stepPassword.passwordMismatch'),
                 variant: 'destructive'
             });
             return;
@@ -154,8 +156,8 @@ export default function ForgotPasswordPage() {
 
             if (response.data.success) {
                 triggerAlert({
-                    title: '¡Contraseña actualizada!',
-                    description: 'Tu contraseña ha sido actualizada exitosamente. Redirigiendo al login...',
+                    title: t('forgotPassword.stepPassword.success.title'),
+                    description: t('forgotPassword.stepPassword.success.description'),
                     variant: 'success'
                 });
                 setTimeout(() => {
@@ -164,8 +166,8 @@ export default function ForgotPasswordPage() {
             }
         } catch {
             triggerAlert({
-                title: 'Error',
-                description: 'No se pudo actualizar la contraseña. El enlace puede haber expirado.',
+                title: t('common.error'),
+                description: t('forgotPassword.stepPassword.error'),
                 variant: 'destructive'
             });
         } finally {
@@ -177,11 +179,11 @@ export default function ForgotPasswordPage() {
         <div className="min-h-screen bg-background flex items-center justify-center p-4">
             <Card className="w-full max-w-md">
                 <CardHeader>
-                    <CardTitle>Recuperar Contraseña</CardTitle>
+                    <CardTitle>{t('forgotPassword.title')}</CardTitle>
                     <CardDescription>
-                        {currentStep === 'email' && 'Ingresa tu email para recibir un código de recuperación'}
-                        {currentStep === 'otp' && 'Ingresa el código que recibiste en tu email'}
-                        {currentStep === 'password' && 'Crea una nueva contraseña'}
+                        {currentStep === 'email' && t('forgotPassword.stepEmail.description')}
+                        {currentStep === 'otp' && t('forgotPassword.stepOtp.description')}
+                        {currentStep === 'password' && t('forgotPassword.stepPassword.description')}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -189,11 +191,11 @@ export default function ForgotPasswordPage() {
                     {currentStep === 'email' && (
                         <form onSubmit={handleRequestOTP} className="space-y-4">
                             <div className="space-y-2">
-                                <Label htmlFor="email">Email</Label>
+                                <Label htmlFor="email">{t('forgotPassword.stepEmail.emailLabel')}</Label>
                                 <Input
                                     id="email"
                                     type="email"
-                                    placeholder="tu@email.com"
+                                    placeholder={t('forgotPassword.stepEmail.emailPlaceholder')}
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     disabled={isLoading}
@@ -204,7 +206,7 @@ export default function ForgotPasswordPage() {
                                 className="w-full"
                                 disabled={isLoading}
                             >
-                                {isLoading ? 'Enviando...' : 'Solicitar Código'}
+                                {isLoading ? t('forgotPassword.stepEmail.submitting') : t('forgotPassword.stepEmail.submit')}
                             </Button>
                             <Button
                                 type="button"
@@ -212,7 +214,7 @@ export default function ForgotPasswordPage() {
                                 className="w-full"
                                 onClick={() => navigate('/login')}
                             >
-                                Volver al Login
+                                {t('forgotPassword.stepEmail.backToLogin')}
                             </Button>
                         </form>
                     )}
@@ -221,7 +223,7 @@ export default function ForgotPasswordPage() {
                     {currentStep === 'otp' && (
                         <form onSubmit={handleVerifyOTP} className="space-y-4">
                             <div className="space-y-2">
-                                <Label>Código de 6 dígitos</Label>
+                                <Label>{t('forgotPassword.stepOtp.otpLabel')}</Label>
                                 <div className="flex justify-center">
                                     <InputOTP
                                         maxLength={6}
@@ -245,7 +247,7 @@ export default function ForgotPasswordPage() {
                                 className="w-full"
                                 disabled={isLoading || otp.length !== 6}
                             >
-                                {isLoading ? 'Verificando...' : 'Verificar Código'}
+                                {isLoading ? t('forgotPassword.stepOtp.submitting') : t('forgotPassword.stepOtp.submit')}
                             </Button>
                             <Button
                                 type="button"
@@ -257,7 +259,7 @@ export default function ForgotPasswordPage() {
                                     handleRequestOTP(new Event('submit') as unknown as React.FormEvent);
                                 }}
                             >
-                                {otpCooldown > 0 ? `Reenviar en ${otpCooldown}s` : 'Reenviar Código'}
+                                {otpCooldown > 0 ? t('forgotPassword.stepOtp.resendCooldown', { seconds: otpCooldown }) : t('forgotPassword.stepOtp.resend')}
                             </Button>
                             <Button
                                 type="button"
@@ -270,7 +272,7 @@ export default function ForgotPasswordPage() {
                                     setOtpCooldown(0);
                                 }}
                             >
-                                Cambiar Email
+                                {t('forgotPassword.stepOtp.changeEmail')}
                             </Button>
                         </form>
                     )}
@@ -279,11 +281,11 @@ export default function ForgotPasswordPage() {
                     {currentStep === 'password' && (
                         <form onSubmit={handleResetPassword} className="space-y-4">
                             <div className="space-y-2">
-                                <Label htmlFor="newPassword">Nueva Contraseña</Label>
+                                <Label htmlFor="newPassword">{t('forgotPassword.stepPassword.newPasswordLabel')}</Label>
                                 <Input
                                     id="newPassword"
                                     type="password"
-                                    placeholder="Mínimo 8 caracteres"
+                                    placeholder={t('forgotPassword.stepPassword.newPasswordPlaceholder')}
                                     value={newPassword}
                                     onChange={(e) => setNewPassword(e.target.value)}
                                     disabled={isLoading}
@@ -296,11 +298,11 @@ export default function ForgotPasswordPage() {
                             />
 
                             <div className="space-y-2">
-                                <Label htmlFor="confirmPassword">Confirmar Contraseña</Label>
+                                <Label htmlFor="confirmPassword">{t('forgotPassword.stepPassword.confirmPasswordLabel')}</Label>
                                 <Input
                                     id="confirmPassword"
                                     type="password"
-                                    placeholder="Confirma tu contraseña"
+                                    placeholder={t('forgotPassword.stepPassword.confirmPasswordPlaceholder')}
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
                                     disabled={isLoading}
@@ -311,7 +313,7 @@ export default function ForgotPasswordPage() {
                                 className="w-full"
                                 disabled={isLoading}
                             >
-                                {isLoading ? 'Actualizando...' : 'Actualizar Contraseña'}
+                                {isLoading ? t('forgotPassword.stepPassword.submitting') : t('forgotPassword.stepPassword.submit')}
                             </Button>
                             <Button
                                 type="button"
@@ -319,7 +321,7 @@ export default function ForgotPasswordPage() {
                                 className="w-full"
                                 onClick={() => navigate('/login')}
                             >
-                                Volver al Login
+                                {t('forgotPassword.stepPassword.backToLogin')}
                             </Button>
                         </form>
                     )}

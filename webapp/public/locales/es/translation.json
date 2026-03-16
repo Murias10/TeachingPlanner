@@ -1738,6 +1738,50 @@
         "manageRequestsTooltip": "Gestionar solicitudes",
         "requiresCalendar": "Requiere calendario"
     },
+    "forgotPassword": {
+        "title": "Recuperar Contraseña",
+        "stepEmail": {
+            "description": "Ingresa tu email para recibir un código de recuperación",
+            "emailLabel": "Email",
+            "emailPlaceholder": "tu@email.com",
+            "submit": "Solicitar Código",
+            "submitting": "Enviando...",
+            "backToLogin": "Volver al Login",
+            "emailRequired": "Por favor ingresa tu email",
+            "codeSent": "Código enviado a tu email. Revisa tu bandeja de entrada.",
+            "sendError": "No se pudo enviar el código. Verifica tu email e intenta de nuevo."
+        },
+        "stepOtp": {
+            "description": "Ingresa el código que recibiste en tu email",
+            "otpLabel": "Código de 6 dígitos",
+            "submit": "Verificar Código",
+            "submitting": "Verificando...",
+            "resend": "Reenviar Código",
+            "resendCooldown": "Reenviar en {{seconds}}s",
+            "changeEmail": "Cambiar Email",
+            "otpLengthError": "Por favor ingresa un código de 6 dígitos",
+            "otpSuccess": "Código verificado. Ahora puedes crear tu nueva contraseña.",
+            "otpError": "Código incorrecto o expirado. Verifica e intenta de nuevo."
+        },
+        "stepPassword": {
+            "description": "Crea una nueva contraseña",
+            "newPasswordLabel": "Nueva Contraseña",
+            "newPasswordPlaceholder": "Mínimo 8 caracteres",
+            "confirmPasswordLabel": "Confirmar Contraseña",
+            "confirmPasswordPlaceholder": "Confirma tu contraseña",
+            "submit": "Actualizar Contraseña",
+            "submitting": "Actualizando...",
+            "backToLogin": "Volver al Login",
+            "fieldsRequired": "Por favor completa todos los campos",
+            "passwordRequirementsError": "La contraseña no cumple con los requisitos mínimos",
+            "passwordMismatch": "Las contraseñas no coinciden",
+            "success": {
+                "title": "¡Contraseña actualizada!",
+                "description": "Tu contraseña ha sido actualizada exitosamente. Redirigiendo al login..."
+            },
+            "error": "No se pudo actualizar la contraseña. El enlace puede haber expirado."
+        }
+    },
     "start": {
         "subtitle": "Planificación académica simplificada",
         "continueAsGuest": "Continuar como invitado",

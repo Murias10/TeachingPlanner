@@ -7,7 +7,6 @@ import {
     DrawerDescription
 } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CalendarEvent } from "@/types/CalendarEvent";
 import moment from "moment";
@@ -96,56 +95,43 @@ export function EventDetailsDrawer({ open, onOpenChange, event }: EventDetailsDr
                     {/* Fecha y Horario en una fila */}
                     <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto w-full">
                         <div className="space-y-2">
-                            <Label htmlFor="event-date">{t('calendar.eventDetails.fields.date')}</Label>
-                            <Input
-                                id="event-date"
-                                value={moment(event.date).format('DD/MM/YYYY')}
-                                disabled={true}
-                                className="bg-muted"
-                            />
+                            <Label>{t('calendar.eventDetails.fields.date')}</Label>
+                            <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 py-1 text-sm">
+                                <span className="truncate">{moment(event.date).format('DD/MM/YYYY')}</span>
+                            </div>
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="event-time">{t('calendar.eventDetails.fields.time')}</Label>
-                            <Input
-                                id="event-time"
-                                value={`${event.startTime} - ${event.endTime}`}
-                                disabled={true}
-                                className="bg-muted"
-                            />
+                            <Label>{t('calendar.eventDetails.fields.time')}</Label>
+                            <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 py-1 text-sm">
+                                <span className="truncate">{event.startTime.slice(0, 5)} - {event.endTime.slice(0, 5)} ({event.duration}h)</span>
+                            </div>
                         </div>
                     </div>
 
                     {/* Tipo, Frecuencia y Estado en una fila */}
                     <div className="grid grid-cols-3 gap-4 max-w-sm mx-auto w-full">
                         <div className="space-y-2">
-                            <Label htmlFor="event-type">{t('calendar.eventDetails.fields.type')}</Label>
-                            <Input
-                                id="event-type"
-                                value={eventTypeLabel}
-                                disabled={true}
-                                className="bg-muted"
-                            />
+                            <Label>{t('calendar.eventDetails.fields.type')}</Label>
+                            <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 py-1 text-sm">
+                                <span className="truncate">{eventTypeLabel}</span>
+                            </div>
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="event-frequency">{t('calendar.eventDetails.fields.frequency')}</Label>
-                            <Input
-                                id="event-frequency"
-                                value={getFrequencyLabel()}
-                                disabled={true}
-                                className="bg-muted"
-                            />
+                            <Label>{t('calendar.eventDetails.fields.frequency')}</Label>
+                            <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 py-1 text-sm">
+                                <span className="truncate">{getFrequencyLabel()}</span>
+                            </div>
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="event-status">{t('calendar.eventDetails.fields.status')}</Label>
-                            <Input
-                                id="event-status"
-                                value={event.cancelled
-                                    ? t('calendar.eventDetails.status.cancelled')
-                                    : t('calendar.eventDetails.status.active')
-                                }
-                                disabled={true}
-                                className="bg-muted"
-                            />
+                            <Label>{t('calendar.eventDetails.fields.status')}</Label>
+                            <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 py-1 text-sm">
+                                <span className="truncate">
+                                    {event.cancelled
+                                        ? t('calendar.eventDetails.status.cancelled')
+                                        : t('calendar.eventDetails.status.active')
+                                    }
+                                </span>
+                            </div>
                         </div>
                     </div>
 
@@ -153,29 +139,27 @@ export function EventDetailsDrawer({ open, onOpenChange, event }: EventDetailsDr
                     {event.groups.length > 0 && (
                         <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto w-full">
                             <div className="space-y-2">
-                                <Label htmlFor="event-group">{t('calendar.eventDetails.fields.group')}</Label>
-                                <Input
-                                    id="event-group"
-                                    value={event.groups.map(group => {
-                                        const lang = group.language === 'EN' ? 'I-' : '';
-                                        return `${group.type}.${lang}${group.number}`;
-                                    }).join(', ')}
-                                    disabled={true}
-                                    className="bg-muted"
-                                />
+                                <Label>{t('calendar.eventDetails.fields.group')}</Label>
+                                <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 py-1 text-sm">
+                                    <span className="truncate">
+                                        {event.groups.map(group => {
+                                            const lang = group.language === 'EN' ? 'I-' : '';
+                                            return `${group.type}.${lang}${group.number}`;
+                                        }).join(', ')}
+                                    </span>
+                                </div>
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="event-language">{t('calendar.eventDetails.fields.language')}</Label>
-                                <Input
-                                    id="event-language"
-                                    value={Array.from(new Set(event.groups.map(g => g.language))).map(lang =>
-                                        lang === 'ES'
-                                            ? t('calendar.eventDetails.languages.spanish')
-                                            : t('calendar.eventDetails.languages.english')
-                                    ).join(', ')}
-                                    disabled={true}
-                                    className="bg-muted"
-                                />
+                                <Label>{t('calendar.eventDetails.fields.language')}</Label>
+                                <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 py-1 text-sm">
+                                    <span className="truncate">
+                                        {Array.from(new Set(event.groups.map(g => g.language))).map(lang =>
+                                            lang === 'ES'
+                                                ? t('calendar.eventDetails.languages.spanish')
+                                                : t('calendar.eventDetails.languages.english')
+                                        ).join(', ')}
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     )}
@@ -209,52 +193,40 @@ export function EventDetailsDrawer({ open, onOpenChange, event }: EventDetailsDr
                     {/* Carácter del día */}
                     {event.dayCharacter && (
                         <div className="space-y-2 max-w-sm mx-auto w-full">
-                            <Label htmlFor="event-day-character">{t('calendar.eventDetails.fields.dayCharacter')}</Label>
-                            <Input
-                                id="event-day-character"
-                                value={event.dayCharacter}
-                                disabled={true}
-                                className="bg-muted"
-                            />
+                            <Label>{t('calendar.eventDetails.fields.dayCharacter')}</Label>
+                            <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 py-1 text-sm">
+                                <span className="truncate">{event.dayCharacter}</span>
+                            </div>
                         </div>
                     )}
 
                     {/* Carácter del evento (solo para eventos periódicos) */}
                     {event.type === 'periodic' && event.eventCharacter && (
                         <div className="space-y-2 max-w-sm mx-auto w-full">
-                            <Label htmlFor="event-character">{t('calendar.eventDetails.fields.eventCharacter')}</Label>
-                            <Input
-                                id="event-character"
-                                value={event.eventCharacter}
-                                disabled={true}
-                                className="bg-muted"
-                            />
+                            <Label>{t('calendar.eventDetails.fields.eventCharacter')}</Label>
+                            <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 py-1 text-sm">
+                                <span className="truncate">{event.eventCharacter}</span>
+                            </div>
                         </div>
                     )}
 
                     {/* Comentario del día */}
                     {event.dayComment && (
                         <div className="space-y-2 max-w-sm mx-auto w-full">
-                            <Label htmlFor="event-day-comment">{t('calendar.eventDetails.fields.dayComment')}</Label>
-                            <Input
-                                id="event-day-comment"
-                                value={event.dayComment}
-                                disabled={true}
-                                className="bg-muted"
-                            />
+                            <Label>{t('calendar.eventDetails.fields.dayComment')}</Label>
+                            <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 py-1 text-sm">
+                                <span className="truncate">{event.dayComment}</span>
+                            </div>
                         </div>
                     )}
 
                     {/* Comentario del evento */}
                     {event.comment && (
                         <div className="space-y-2 max-w-sm mx-auto w-full">
-                            <Label htmlFor="event-comment">{t('calendar.eventDetails.fields.eventComment')}</Label>
-                            <Input
-                                id="event-comment"
-                                value={event.comment}
-                                disabled={true}
-                                className="bg-muted"
-                            />
+                            <Label>{t('calendar.eventDetails.fields.eventComment')}</Label>
+                            <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 py-1 text-sm">
+                                <span className="truncate">{event.comment}</span>
+                            </div>
                         </div>
                     )}
                 </div>

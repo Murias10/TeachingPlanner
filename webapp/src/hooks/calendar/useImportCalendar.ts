@@ -4,6 +4,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ImportCalendarData, ImportResult } from '@/types/Calendar';
 import VITE_GATEWAY_API_URL from '@/config/api';
+import { getAuthHeaders } from '@/utils/authHeaders';
 
 export const useImportCalendar = () => {
     const queryClient = useQueryClient();
@@ -37,7 +38,7 @@ export const useImportCalendar = () => {
 
             const response = await fetch(`${VITE_GATEWAY_API_URL}/calendar/import`, {
                 method: 'POST',
-                // ❌ NO incluir headers aquí
+                headers: getAuthHeaders(),
                 body: formData
             });
 

@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import VITE_GATEWAY_API_URL from '@/config/api';
+import { getAuthHeaders } from '@/utils/authHeaders';
 import { useFloatingAlertContext } from '@/contexts/useFloatingAlertContext';
 import { GroupValidationResult } from '@/types/Calendar';
 
@@ -37,6 +38,7 @@ export const useImportExceptions = (options?: UseImportExceptionsOptions) => {
 
             const response = await fetch(`${VITE_GATEWAY_API_URL}/calendar/${data.calendarId}/import-exceptions`, {
                 method: 'POST',
+                headers: getAuthHeaders(),
                 body: formData
             });
 

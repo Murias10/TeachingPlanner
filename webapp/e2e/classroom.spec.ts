@@ -1,4 +1,6 @@
 import { test, expect, Page } from '@playwright/test';
+import { loginUI, getAuthToken } from './helpers/auth';
+import { TIMEOUTS, API_BASE_URL } from './helpers/constants';
 
 /**
  * Tests E2E de Gestión de Aulas (Classrooms)
@@ -8,20 +10,6 @@ import { test, expect, Page } from '@playwright/test';
  * - Usuario de prueba autenticado con permisos de admin
  * - Base de datos de prueba limpia o con datos conocidos
  */
-
-// ===== CONSTANTES =====
-const TIMEOUTS = {
-  STANDARD: 10000,
-  SHORT: 5000,
-  FILTER_APPLY: 500,
-  DRAWER_ANIMATION: 500,
-  NETWORK_IDLE: 1000,
-} as const;
-
-const TEST_CREDENTIALS = {
-  email: process.env.TEST_USER_EMAIL || 'admin@test.com',
-  password: process.env.TEST_USER_PASSWORD || 'Admin123!',
-} as const;
 
 const ALERT_MESSAGES = {
   CREATED: 'Classroom created',
@@ -34,6 +22,9 @@ const DIALOG_TITLES = {
 } as const;
 
 // ===== HELPERS =====
+
+// IDs de aulas creadas durante la suite — se limpian en afterAll
+const createdIds: string[] = [];
 
 /**
  * Filtra la tabla y busca una fila específica por código
@@ -68,25 +59,23 @@ async function expectSuccessAlert(page: Page, message: string) {
 }
 
 test.describe('Classroom Management', () => {
+  // Limpieza: eliminar via API todas las aulas creadas durante la suite
+  test.afterAll(async ({ browser }) => {
+    const page = await browser.newPage();
+    const token = await getAuthToken(page);
+
+    for (const id of createdIds) {
+      await page.request.delete(`${API_BASE_URL}/classroom/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    }
+
+    await page.close();
+  });
+
   // Setup: Login antes de cada test
   test.beforeEach(async ({ page }) => {
-    const testEmail = TEST_CREDENTIALS.email;
-    const testPassword = TEST_CREDENTIALS.password;
-
-    // Navegar a página inicial
-    await page.goto('/');
-
-    // Click en "Iniciar sesión"
-    await page.getByRole('button', { name: /iniciar sesión|sign in/i }).click();
-    await page.waitForLoadState('networkidle');
-
-    // Login
-    await page.getByLabel(/email/i).fill(testEmail);
-    await page.getByLabel(/contraseña|password/i).fill(testPassword);
-    await page.getByRole('button', { name: /iniciar sesión|sign in/i }).last().click();
-
-    // Esperar redirección a home
-    await expect(page).toHaveURL('/home', { timeout: TIMEOUTS.STANDARD });
+    await loginUI(page);
 
     // Navegar directamente a classrooms
     await page.goto('/classrooms');
@@ -125,8 +114,17 @@ test.describe('Classroom Management', () => {
     await page.getByLabel(/código|code/i).fill(uniqueCode);
     await page.getByLabel(/gis.*url/i).fill(testGisUrl);
 
-    // Click en guardar
-    await page.getByRole('button', { name: /guardar|save/i }).click();
+    // Interceptar la respuesta para capturar el ID del aula creada
+    const [createResponse] = await Promise.all([
+      page.waitForResponse(r =>
+        r.url().includes('/classroom') &&
+        r.request().method() === 'POST' &&
+        r.status() === 201
+      ),
+      page.getByRole('button', { name: /guardar|save/i }).click(),
+    ]);
+    const createData = await createResponse.json();
+    createdIds.push(createData.data.classroom.id);
 
     // Esperar mensaje de éxito
     await expectSuccessAlert(page, ALERT_MESSAGES.CREATED);
@@ -145,13 +143,20 @@ test.describe('Classroom Management', () => {
     await clickCreateButton(page);
     await page.getByLabel(/código|code/i).fill(duplicateCode);
     await page.getByLabel(/gis.*url/i).fill('http://example.com/1');
-    await page.getByRole('button', { name: /guardar|save/i }).click();
+
+    const [dupResponse] = await Promise.all([
+      page.waitForResponse(r =>
+        r.url().includes('/classroom') &&
+        r.request().method() === 'POST' &&
+        r.status() === 201
+      ),
+      page.getByRole('button', { name: /guardar|save/i }).click(),
+    ]);
+    const dupData = await dupResponse.json();
+    createdIds.push(dupData.data.classroom.id);
 
     // Esperar mensaje de éxito
     await expectSuccessAlert(page, ALERT_MESSAGES.CREATED);
-
-    // Esperar a que el drawer se cierre y la tabla se actualice
-    
 
     // Intentar crear otra con el mismo código
     await clickCreateButton(page);
@@ -159,10 +164,10 @@ test.describe('Classroom Management', () => {
     await page.getByLabel(/gis.*url/i).fill('http://example.com/2');
     await page.getByRole('button', { name: /guardar|save/i }).click();
 
-    // Debe mostrar error de duplicado
+    // Debe mostrar error de duplicado (selector CSS directo para evitar problemas con animación)
     await expect(
-      page.locator('text=/ya existe|already exists|código/i')
-    ).toBeVisible({ timeout: TIMEOUTS.STANDARD });
+      page.locator('[role="alert"]').filter({ hasText: /ya existe|already exists|error.*classroom/i })
+    ).toBeAttached({ timeout: TIMEOUTS.STANDARD });
   });
 
   test('should edit classroom successfully', async ({ page }) => {
@@ -174,7 +179,18 @@ test.describe('Classroom Management', () => {
     await clickCreateButton(page);
     await page.getByLabel(/código|code/i).fill(originalCode);
     await page.getByLabel(/gis.*url/i).fill('http://original.com');
-    await page.getByRole('button', { name: /guardar|save/i }).click();
+
+    const [editResponse] = await Promise.all([
+      page.waitForResponse(r =>
+        r.url().includes('/classroom') &&
+        r.request().method() === 'POST' &&
+        r.status() === 201
+      ),
+      page.getByRole('button', { name: /guardar|save/i }).click(),
+    ]);
+    const editData = await editResponse.json();
+    createdIds.push(editData.data.classroom.id);
+
     await expectSuccessAlert(page, ALERT_MESSAGES.CREATED);
 
     // Esperar a que el drawer se cierre y la tabla se actualice
@@ -214,7 +230,18 @@ test.describe('Classroom Management', () => {
     await clickCreateButton(page);
     await page.getByLabel(/código|code/i).fill(deleteCode);
     await page.getByLabel(/gis.*url/i).fill('http://delete-me.com');
-    await page.getByRole('button', { name: /guardar|save/i }).click();
+
+    const [delResponse] = await Promise.all([
+      page.waitForResponse(r =>
+        r.url().includes('/classroom') &&
+        r.request().method() === 'POST' &&
+        r.status() === 201
+      ),
+      page.getByRole('button', { name: /guardar|save/i }).click(),
+    ]);
+    const delData = await delResponse.json();
+    createdIds.push(delData.data.classroom.id);
+
     await expectSuccessAlert(page, ALERT_MESSAGES.CREATED);
 
     // Esperar a que el drawer se cierre y la tabla se actualice
@@ -271,7 +298,18 @@ test.describe('Classroom Management', () => {
     await clickCreateButton(page);
     await page.getByLabel(/código|code/i).fill(classroomCode);
     await page.getByLabel(/gis.*url/i).fill('http://with-events.com');
-    await page.getByRole('button', { name: /guardar|save/i }).click();
+
+    const [eventsResponse] = await Promise.all([
+      page.waitForResponse(r =>
+        r.url().includes('/classroom') &&
+        r.request().method() === 'POST' &&
+        r.status() === 201
+      ),
+      page.getByRole('button', { name: /guardar|save/i }).click(),
+    ]);
+    const eventsData = await eventsResponse.json();
+    createdIds.push(eventsData.data.classroom.id);
+
     await expectSuccessAlert(page, ALERT_MESSAGES.CREATED);
 
     // Esperar a que el drawer se cierre y la tabla se actualice
@@ -308,7 +346,18 @@ test.describe('Classroom Management', () => {
     await clickCreateButton(page);
     await page.getByLabel(/código|code/i).fill(cancelCode);
     await page.getByLabel(/gis.*url/i).fill('http://cancel.com');
-    await page.getByRole('button', { name: /guardar|save/i }).click();
+
+    const [cancelResponse] = await Promise.all([
+      page.waitForResponse(r =>
+        r.url().includes('/classroom') &&
+        r.request().method() === 'POST' &&
+        r.status() === 201
+      ),
+      page.getByRole('button', { name: /guardar|save/i }).click(),
+    ]);
+    const cancelData = await cancelResponse.json();
+    createdIds.push(cancelData.data.classroom.id);
+
     await expectSuccessAlert(page, ALERT_MESSAGES.CREATED);
 
     // Esperar a que el drawer se cierre y la tabla se actualice
@@ -344,7 +393,18 @@ test.describe('Classroom Management', () => {
     await clickCreateButton(page);
     await page.getByLabel(/código|code/i).fill(code1);
     await page.getByLabel(/gis.*url/i).fill('http://a.com');
-    await page.getByRole('button', { name: /guardar|save/i }).click();
+
+    const [filter1Response] = await Promise.all([
+      page.waitForResponse(r =>
+        r.url().includes('/classroom') &&
+        r.request().method() === 'POST' &&
+        r.status() === 201
+      ),
+      page.getByRole('button', { name: /guardar|save/i }).click(),
+    ]);
+    const filter1Data = await filter1Response.json();
+    createdIds.push(filter1Data.data.classroom.id);
+
     await expectSuccessAlert(page, ALERT_MESSAGES.CREATED);
 
     // Esperar a que el drawer se cierre y la tabla se actualice
@@ -354,7 +414,18 @@ test.describe('Classroom Management', () => {
     await clickCreateButton(page);
     await page.getByLabel(/código|code/i).fill(code2);
     await page.getByLabel(/gis.*url/i).fill('http://b.com');
-    await page.getByRole('button', { name: /guardar|save/i }).click();
+
+    const [filter2Response] = await Promise.all([
+      page.waitForResponse(r =>
+        r.url().includes('/classroom') &&
+        r.request().method() === 'POST' &&
+        r.status() === 201
+      ),
+      page.getByRole('button', { name: /guardar|save/i }).click(),
+    ]);
+    const filter2Data = await filter2Response.json();
+    createdIds.push(filter2Data.data.classroom.id);
+
     await expectSuccessAlert(page, ALERT_MESSAGES.CREATED);
 
     // Esperar a que el drawer se cierre y la tabla se actualice

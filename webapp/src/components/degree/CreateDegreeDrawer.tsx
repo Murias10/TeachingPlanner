@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface CreateDegreeDrawerProps {
     open: boolean;
@@ -24,10 +24,15 @@ export function CreateDegreeDrawer({ open, onOpenChange, onSave }: CreateDegreeD
     const [name, setName] = useState("");
     const [acronym, setAcronym] = useState("");
 
+    useEffect(() => {
+        if (!open) {
+            setName("");
+            setAcronym("");
+        }
+    }, [open]);
+
     const handleSave = async () => {
         await onSave(name, acronym);
-        setName("");
-        setAcronym("");
     };
 
     const handleCancel = () => {

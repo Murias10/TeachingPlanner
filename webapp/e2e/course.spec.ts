@@ -1,4 +1,6 @@
 import { test, expect, Page } from '@playwright/test';
+import { loginUI, getAuthToken } from './helpers/auth';
+import { TIMEOUTS, API_BASE_URL } from './helpers/constants';
 
 /**
  * Tests E2E de Gestión de Cursos (Courses)
@@ -6,26 +8,10 @@ import { test, expect, Page } from '@playwright/test';
  * REQUISITOS:
  * - Backend services running (gateway_service, planner_service)
  * - Usuario de prueba autenticado con permisos de admin
- * - Base de datos de prueba limpia o con datos conocidos
- * - Al menos una titulación (Degree) creada en la base de datos
  *
- * NOTA: Los cursos dependen de Degrees, por lo que necesitan tener
- * al menos una titulación asociada en la base de datos.
+ * NOTA: El degree de prueba se crea una sola vez vía API en beforeAll.
+ * Los tests individuales operan sobre ese degree via UI.
  */
-
-// ===== CONSTANTES =====
-const TIMEOUTS = {
-  STANDARD: 10000,
-  SHORT: 5000,
-  FILTER_APPLY: 500,
-  DRAWER_ANIMATION: 500,
-  NETWORK_IDLE: 1000,
-} as const;
-
-const TEST_CREDENTIALS = {
-  email: process.env.TEST_USER_EMAIL || 'admin@test.com',
-  password: process.env.TEST_USER_PASSWORD || 'Admin123!',
-} as const;
 
 const ALERT_MESSAGES = {
   CREATED: 'successfully created',
@@ -104,49 +90,53 @@ async function createCourse(page: Page, academicYear: string) {
 
 // ===== TESTS =====
 
+let testDegreeData: { degreeId: string; degreeAcronym: string };
+
 test.describe('Course Management', () => {
-  let testDegreeAcronym: string;
 
-  // Setup: Login y navegación antes de cada test
+  // Crea el degree de prueba UNA sola vez vía API por worker
+  test.beforeAll(async ({ browser }) => {
+    const page = await browser.newPage();
+    const token = await getAuthToken(page);
+
+    const timestamp = Date.now().toString().slice(-6);
+    const degreeAcronym = `TST${timestamp}`;
+
+    const response = await page.request.post(`${API_BASE_URL}/degree`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+      data: {
+        name: 'INGENIERÍA DE PRUEBA',
+        acronym: degreeAcronym,
+      },
+    });
+
+    if (!response.ok()) {
+      throw new Error(`Failed to create test degree: ${response.status()} ${await response.text()}`);
+    }
+
+    const data = await response.json();
+    testDegreeData = {
+      degreeId: data.data.degree.id,
+      degreeAcronym,
+    };
+
+    await page.close();
+  });
+
+  test.afterAll(async ({ browser }) => {
+    const page = await browser.newPage();
+    const token = await getAuthToken(page);
+    await page.request.delete(`${API_BASE_URL}/degree/${testDegreeData.degreeId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    await page.close();
+  });
+
+  // Login UI + navegación antes de cada test
   test.beforeEach(async ({ page }) => {
-    // Navegar a página inicial
-    await page.goto('/');
+    await loginUI(page);
 
-    // Click en "Iniciar sesión"
-    await page.getByRole('button', { name: /iniciar sesión|sign in/i }).click();
-    await page.waitForLoadState('networkidle');
-
-    // Login
-    await page.getByLabel(/email/i).fill(TEST_CREDENTIALS.email);
-    await page.getByLabel(/contraseña|password/i).fill(TEST_CREDENTIALS.password);
-    await page.getByRole('button', { name: /iniciar sesión|sign in/i }).last().click();
-
-    // Esperar redirección a home
-    await expect(page).toHaveURL('/home', { timeout: TIMEOUTS.STANDARD });
-
-    // Crear un Degree de prueba para los cursos
-    await page.goto('/degrees');
-    await page.waitForLoadState('networkidle');
-
-    // Generar datos únicos para el degree
-    const uniqueId = Date.now().toString().slice(-6);
-    const degreeName = `INGENIERÍA DE PRUEBA`;
-    testDegreeAcronym = `TEST${uniqueId}`;
-
-    // Crear el degree
-    const createBtn = page.getByRole('button', { name: /create degree/i });
-    await createBtn.click();
-
-    // Esperar a que se abra el dialog
-    await expect(page.getByRole('heading', { name: /crear.*titulación|create degree/i })).toBeVisible({ timeout: TIMEOUTS.SHORT });
-
-    await page.getByLabel(/nombre.*titulación|degree name/i).fill(degreeName);
-    await page.getByLabel(/acrónimo|acronym/i).fill(testDegreeAcronym);
-    const saveButton = page.getByRole('button', { name: /guardar|save.*degree/i });
-    await saveButton.click();
-
-    // Navegar a la página de cursos de ese degree (navegar away es suficiente para saber que se creó)
-    await page.goto(`/degrees/${testDegreeAcronym.toLowerCase()}/courses`);
+    await page.goto(`/degrees/${testDegreeData.degreeAcronym.toLowerCase()}/courses`);
     await page.waitForLoadState('networkidle');
   });
 

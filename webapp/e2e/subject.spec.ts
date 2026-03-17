@@ -1,4 +1,6 @@
 import { test, expect, Page } from '@playwright/test';
+import { loginUI, getAuthToken } from './helpers/auth';
+import { API_BASE_URL } from './helpers/constants';
 
 /**
  * Tests E2E de Gestión de Asignaturas (Subjects)
@@ -6,10 +8,6 @@ import { test, expect, Page } from '@playwright/test';
  * Estos tests usan API helpers para crear datos de prueba (degree, course, calendar)
  * en lugar de hacerlo manualmente a través de la UI, haciéndolos más robustos y rápidos.
  */
-
-const TEST_EMAIL = process.env.TEST_USER_EMAIL || 'admin@test.com';
-const TEST_PASSWORD = process.env.TEST_USER_PASSWORD || 'Admin123!';
-const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:8080/api';
 
 /**
  * Helper: Generar datos únicos de degree
@@ -32,20 +30,6 @@ const SUBJECT_DATA = {
   semester: 1
 };
 
-/**
- * Helper: Login y obtener token
- */
-async function getAuthToken(page: Page): Promise<string> {
-  const response = await page.request.post(`${API_BASE_URL}/auth/login`, {
-    data: {
-      email: TEST_EMAIL,
-      password: TEST_PASSWORD
-    }
-  });
-
-  const data = await response.json();
-  return data.token;
-}
 
 /**
  * Helper: Crear degree, course y calendar vía API
@@ -138,20 +122,6 @@ function generateUniqueAcronym(prefix: string = 'TST'): string {
   return `${prefix}${randomLetters}`;
 }
 
-/**
- * Helper: Login via UI
- */
-async function login(page: Page) {
-  await page.goto('/');
-  await page.getByRole('button', { name: /iniciar sesión|sign in/i }).click();
-  await page.waitForLoadState('networkidle');
-
-  await page.getByLabel(/email/i).fill(TEST_EMAIL);
-  await page.getByLabel(/contraseña|password/i).fill(TEST_PASSWORD);
-  await page.getByRole('button', { name: /iniciar sesión|sign in/i }).last().click();
-
-  await expect(page).toHaveURL('/home', { timeout: 10000 });
-}
 
 /**
  * Helper: Crear subject via UI
@@ -166,11 +136,11 @@ async function createSubject(page: Page, data: { name: string; acronym: string; 
   await expect(dialog).toBeVisible({ timeout: 3000 });
 
   // Llenar nombre
-  const nameField = page.getByLabel('Subject name');
+  const nameField = page.getByLabel(/subject name|nombre/i);
   await nameField.fill(data.name);
 
   // Llenar acrónimo (usar pressSequentially para evitar problemas con la validación)
-  const acronymField = page.getByLabel('Subject acronym');
+  const acronymField = page.getByLabel(/subject acronym|acrónimo/i);
   await acronymField.click();
   await acronymField.clear();
   await acronymField.pressSequentially(data.acronym, { delay: 50 });
@@ -186,7 +156,7 @@ async function createSubject(page: Page, data: { name: string; acronym: string; 
   await page.getByRole('option', { name: new RegExp(`${data.semester}`, 'i') }).first().click();
 
   // Llenar código SIES
-  const siesField = page.getByLabel('Subject SIES code');
+  const siesField = page.getByLabel(/sies code|código sies/i);
   await siesField.fill(data.siesCode);
 
   // Verificar que el botón save esté habilitado y hacer click
@@ -228,8 +198,17 @@ test.describe('Subject Management', () => {
     await page.close();
   });
 
+  test.afterAll(async ({ browser }) => {
+    const page = await browser.newPage();
+    const token = await getAuthToken(page);
+    await page.request.delete(`${API_BASE_URL}/degree/${testData.degreeId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    await page.close();
+  });
+
   test.beforeEach(async ({ page }) => {
-    await login(page);
+    await loginUI(page);
 
     // Navegar directamente a la página de subjects
     const subjectsUrl = `/degrees/${testData.degreeAcronym}/courses/${testData.startYear}/${testData.endYear}/semester/${testData.semester}/subjects`;
@@ -289,44 +268,36 @@ test.describe('Subject Management', () => {
 
     // Asegurar que el drawer anterior se cerró completamente
     await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 3000 });
-    await page.waitForTimeout(500);
 
     // Intentar crear otro subject con el mismo acrónimo
     await page.getByRole('button', { name: /crear|create/i }).first().click();
     await expect(page.getByRole('dialog')).toBeVisible({ timeout: 3000 });
-    await page.waitForTimeout(300);
 
-    await page.getByLabel('Subject name').fill('SEGUNDA ASIGNATURA');
-    const acronymField = page.getByLabel('Subject acronym');
+    await page.getByLabel(/subject name|nombre/i).fill('SEGUNDA ASIGNATURA');
+    const acronymField = page.getByLabel(/subject acronym|acrónimo/i);
     await acronymField.click();
     await acronymField.clear();
     await acronymField.pressSequentially(uniqueAcronym, { delay: 50 });
-    await page.locator('#subjects-year').click();
+    await page.getByLabel(/año|year/i).click();
     await page.getByRole('option', { name: /1/i }).first().click();
-    await page.locator('#subject-semester').click();
+    await page.getByLabel(/semestre|semester/i).click();
     await page.getByRole('option', { name: /1/i }).first().click();
-    await page.waitForTimeout(200);
-    await page.getByLabel('Subject SIES code').fill(`IPRB01-1-${Date.now().toString().slice(-3)}`);
-    await page.waitForTimeout(200);
+    await page.getByLabel(/sies code|código sies/i).fill(`IPRB01-1-${Date.now().toString().slice(-3)}`);
 
     const saveButton = page.getByRole('button', { name: /guardar|save/i }).last();
-    await expect(saveButton).not.toBeDisabled({ timeout: 2000 });
+    await expect(saveButton).toBeEnabled({ timeout: 2000 });
     await saveButton.click();
 
-    // Esperar a que se intente crear y falle
-    await page.waitForTimeout(2000);
-
-    // Debe mostrar un error o el drawer debe seguir abierto
-    // Verificar que el drawer NO se cerró (porque hubo error)
-    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 2000 });
+    // El drawer debe seguir abierto (la petición falló por duplicado)
+    await expect(saveButton).toBeDisabled({ timeout: 5000 });
+    await expect(page.getByRole('dialog')).toBeVisible();
 
     // Cerrar el drawer manualmente
     await page.getByRole('button', { name: /cancel/i }).click();
-    await page.waitForTimeout(500);
 
     // Verificar que el duplicado no fue creado
     // Debe haber exactamente 1 fila con este acrónimo específico (el primero creado)
-    const subjectRows = page.locator(`table tbody tr:has-text("${uniqueAcronym}")`);
+    const subjectRows = page.getByRole('row', { name: new RegExp(uniqueAcronym) });
     await expect(subjectRows).toHaveCount(1);
   });
 
@@ -425,10 +396,10 @@ test.describe('Subject Management', () => {
     await expect(saveButton).toBeDisabled();
 
     // Llenar campos uno por uno y verificar que sigue deshabilitado
-    await page.getByLabel('Subject name').fill(SUBJECT_DATA.name);
+    await page.getByLabel(/subject name|nombre/i).fill(SUBJECT_DATA.name);
     await expect(saveButton).toBeDisabled();
 
-    await page.getByLabel('Subject acronym').fill(SUBJECT_DATA.acronym);
+    await page.getByLabel(/subject acronym|acrónimo/i).fill(SUBJECT_DATA.acronym);
     await expect(saveButton).toBeDisabled();
 
     const yearSelect = page.getByLabel(/año|year/i);
@@ -442,7 +413,7 @@ test.describe('Subject Management', () => {
     await expect(saveButton).toBeDisabled();
 
     // Llenar SIES code - ahora debe habilitarse
-    await page.getByLabel('Subject SIES code').fill(SUBJECT_DATA.siesCode);
+    await page.getByLabel(/sies code|código sies/i).fill(SUBJECT_DATA.siesCode);
     await expect(saveButton).toBeEnabled();
   });
 
@@ -466,8 +437,7 @@ test.describe('Subject Management', () => {
     await nameInput.fill('');
     await nameInput.pressSequentially('BASES123');
 
-    const value = await nameInput.inputValue();
-    expect(value).toMatch(/^[A-ZÁÉÍÓÚÑ\s]*$/);
+    await expect(nameInput).toHaveValue(/^[A-ZÁÉÍÓÚÑ\s]*$/);
   });
 
   test('should display correct year options (0-4)', async ({ page }) => {

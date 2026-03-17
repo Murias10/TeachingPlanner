@@ -1,4 +1,6 @@
 import { test, expect, Page } from '@playwright/test';
+import { loginUI, getAuthToken } from './helpers/auth';
+import { TIMEOUTS, API_BASE_URL } from './helpers/constants';
 
 /**
  * Tests E2E de Gestión de Titulaciones (Degrees)
@@ -8,20 +10,6 @@ import { test, expect, Page } from '@playwright/test';
  * - Usuario de prueba autenticado con permisos de admin
  * - Base de datos de prueba limpia o con datos conocidos
  */
-
-// ===== CONSTANTES =====
-const TIMEOUTS = {
-  STANDARD: 10000,
-  SHORT: 5000,
-  FILTER_APPLY: 500,
-  DRAWER_ANIMATION: 500,
-  NETWORK_IDLE: 1000,
-} as const;
-
-const TEST_CREDENTIALS = {
-  email: process.env.TEST_USER_EMAIL || 'admin@test.com',
-  password: process.env.TEST_USER_PASSWORD || 'Admin123!',
-} as const;
 
 const ALERT_MESSAGES = {
   CREATED: 'Degree created',
@@ -34,6 +22,9 @@ const DIALOG_TITLES = {
 } as const;
 
 // ===== HELPERS =====
+
+// IDs de degrees creados durante la suite — se limpian en afterAll
+const createdIds: string[] = [];
 
 /**
  * Genera un timestamp único de 4 dígitos
@@ -87,7 +78,18 @@ async function createDegree(page: Page, name: string, acronym: string) {
   await page.getByLabel(/nombre.*titulación|degree name/i).fill(name);
   await page.getByLabel(/acrónimo|acronym/i).fill(acronym);
 
-  await page.getByRole('button', { name: /guardar|save.*degree/i }).click();
+  // Interceptar la respuesta para capturar el ID del degree creado
+  const [response] = await Promise.all([
+    page.waitForResponse(r =>
+      r.url().includes('/degree') &&
+      r.request().method() === 'POST' &&
+      r.status() === 201
+    ),
+    page.getByRole('button', { name: /guardar|save.*degree/i }).click(),
+  ]);
+
+  const data = await response.json();
+  createdIds.push(data.data.degree.id);
 
   await expectSuccessAlert(page, ALERT_MESSAGES.CREATED);
   await page.waitForLoadState('networkidle');
@@ -96,22 +98,23 @@ async function createDegree(page: Page, name: string, acronym: string) {
 // ===== TESTS =====
 
 test.describe('Degree Management', () => {
+  // Limpieza: eliminar via API todos los degrees creados durante la suite
+  test.afterAll(async ({ browser }) => {
+    const page = await browser.newPage();
+    const token = await getAuthToken(page);
+
+    for (const id of createdIds) {
+      await page.request.delete(`${API_BASE_URL}/degree/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    }
+
+    await page.close();
+  });
+
   // Setup: Login antes de cada test
   test.beforeEach(async ({ page }) => {
-    // Navegar a página inicial
-    await page.goto('/');
-
-    // Click en "Iniciar sesión"
-    await page.getByRole('button', { name: /iniciar sesión|sign in/i }).click();
-    await page.waitForLoadState('networkidle');
-
-    // Login
-    await page.getByLabel(/email/i).fill(TEST_CREDENTIALS.email);
-    await page.getByLabel(/contraseña|password/i).fill(TEST_CREDENTIALS.password);
-    await page.getByRole('button', { name: /iniciar sesión|sign in/i }).last().click();
-
-    // Esperar redirección a home
-    await expect(page).toHaveURL('/home', { timeout: TIMEOUTS.STANDARD });
+    await loginUI(page);
 
     // Navegar directamente a degrees
     await page.goto('/degrees');
@@ -159,7 +162,6 @@ test.describe('Degree Management', () => {
     const duplicateAcronym = `FIS${uniqueId}`;
 
     await createDegree(page, firstName, duplicateAcronym);
-    
 
     // Intentar crear otra con el mismo acrónimo
     await clickCreateButton(page);
@@ -167,12 +169,13 @@ test.describe('Degree Management', () => {
     await page.getByLabel(/acrónimo|acronym/i).fill(duplicateAcronym);
     await page.getByRole('button', { name: /guardar|save.*degree/i }).click();
 
-    // Esperar a que aparezca el error (la alerta debe tener el texto "Error creating degree")
-    
+    // Verificar que aparece el error (selector CSS directo para evitar problemas con animación)
+    await expect(
+      page.locator('[role="alert"]').filter({ hasText: /error.*degree|ya existe|already exists/i })
+    ).toBeAttached({ timeout: TIMEOUTS.SHORT });
 
-    // Buscar cualquier texto de error
-    const errorText = page.locator('text=/error.*degree|ya existe|already exists/i');
-    await expect(errorText.first()).toBeVisible({ timeout: TIMEOUTS.STANDARD });
+    // Verificar también que el drawer sigue abierto (no se creó el duplicado)
+    await expect(page.getByRole('heading', { name: /crear.*titulación|create degree/i })).toBeVisible();
   });
 
   test('should edit degree successfully', async ({ page }) => {
@@ -311,12 +314,13 @@ test.describe('Degree Management', () => {
   });
 
   test('should filter degrees by name', async ({ page }) => {
-    // Crear dos titulaciones con nombres diferentes
+    // Crear dos titulaciones con acrónimos únicos
+    // Los nombres son fijos para testear el filtro por nombre, los acrónimos son únicos
     const uniqueId1 = getUniqueId();
     const uniqueId2 = getUniqueId();
-    const name1 = `ARQUEOLOGÍA MEDIEVAL`;  // Nombre más específico y menos común
+    const name1 = `ARQUEOLOGÍA MEDIEVAL`;
     const acronym1 = `AMV${uniqueId1}`;
-    const name2 = `BIOTECNOLOGÍA MARINA`;  // Nombre más específico y menos común
+    const name2 = `BIOTECNOLOGÍA MARINA`;
     const acronym2 = `BTM${uniqueId2}`;
 
     // Crear primera titulación
@@ -331,12 +335,11 @@ test.describe('Degree Management', () => {
     await page.evaluate(() => window.scrollTo(0, 0));
     
 
-    // Filtrar por el nombre de la primera
+    // Filtrar por nombre único (incluye ID único → exactamente 1 resultado)
     const filterInput = page.getByPlaceholder(/filtrar|filter.*nombre|name/i);
     await filterInput.fill(name1);
-    
 
-    // Solo debe aparecer la primera (buscar por acrónimo único dentro de los resultados filtrados)
+    // Solo debe aparecer la primera
     await expect(page.getByRole('row', { name: new RegExp(acronym1) })).toBeVisible({ timeout: TIMEOUTS.STANDARD });
     await expect(page.getByRole('row', { name: new RegExp(acronym2) })).not.toBeVisible({ timeout: TIMEOUTS.SHORT });
 

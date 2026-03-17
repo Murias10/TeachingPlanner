@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface CreateClassroomDrawerProps {
     open: boolean;
@@ -24,10 +24,15 @@ export function CreateClassroomDrawer({ open, onOpenChange, onSave }: CreateClas
     const [code, setCode] = useState("");
     const [gisUrl, setGisUrl] = useState("");
 
+    useEffect(() => {
+        if (!open) {
+            setCode("");
+            setGisUrl("");
+        }
+    }, [open]);
+
     const handleSave = async () => {
         await onSave(code, gisUrl);
-        setCode("");
-        setGisUrl("");
     };
 
     const handleCancel = () => {

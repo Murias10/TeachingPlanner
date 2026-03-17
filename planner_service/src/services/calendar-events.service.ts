@@ -417,7 +417,8 @@ export class CalendarEventsService {
       subject: eventoPuntual.groups[0]?.subject ? {
         id: eventoPuntual.groups[0].subject.id,
         acronym: eventoPuntual.groups[0].subject.acronym,
-        name: eventoPuntual.groups[0].subject.name
+        name: eventoPuntual.groups[0].subject.name,
+        siesCode: eventoPuntual.groups[0].subject.siesCode
       } : null,
       groups: eventoPuntual.groups.map((grupo: any) => ({
         id: grupo.id,
@@ -655,7 +656,8 @@ export class CalendarEventsService {
       subject: eventoPeriodico.groups[0]?.subject ? {
         id: eventoPeriodico.groups[0].subject.id,
         acronym: eventoPeriodico.groups[0].subject.acronym,
-        name: eventoPeriodico.groups[0].subject.name
+        name: eventoPeriodico.groups[0].subject.name,
+        siesCode: eventoPeriodico.groups[0].subject.siesCode
       } : null,
       groups: eventoPeriodico.groups.map((grupo: any) => ({
         id: grupo.id,

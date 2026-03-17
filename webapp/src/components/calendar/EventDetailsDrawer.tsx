@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { CalendarEvent } from "@/types/CalendarEvent";
 import moment from "moment";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
 
 interface EventDetailsDrawerProps {
     open: boolean;
@@ -73,13 +74,22 @@ export function EventDetailsDrawer({ open, onOpenChange, event }: EventDetailsDr
                     {/* Asignatura */}
                     {event.subject && (
                         <div className="space-y-2 max-w-sm mx-auto w-full">
-                            <Label htmlFor="event-subject">{t('calendar.eventDetails.fields.subject')}</Label>
-                            <Input
-                                id="event-subject"
-                                value={`${event.subject.name} (${event.subject.acronym})`}
-                                disabled={true}
-                                className="bg-muted"
-                            />
+                            <Label>{t('calendar.eventDetails.fields.subject')}</Label>
+                            <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 py-1 text-sm">
+                                {event.subject.siesCode ? (
+                                    <Link
+                                        to={`https://www.uniovi.es/ast/estudia/grados/ingenieria/informaticasoftware/-/fof/asignatura/${event.subject.siesCode}`}
+                                        target="_blank"
+                                        className="text-blue-600 hover:underline truncate"
+                                    >
+                                        {event.subject.name} ({event.subject.acronym})
+                                    </Link>
+                                ) : (
+                                    <span className="truncate">
+                                        {event.subject.name} ({event.subject.acronym})
+                                    </span>
+                                )}
+                            </div>
                         </div>
                     )}
 
@@ -172,16 +182,28 @@ export function EventDetailsDrawer({ open, onOpenChange, event }: EventDetailsDr
 
                     {/* Aula */}
                     <div className="space-y-2 max-w-sm mx-auto w-full">
-                        <Label htmlFor="event-classroom">{t('calendar.eventDetails.fields.classroom')}</Label>
-                        <Input
-                            id="event-classroom"
-                            value={event.classrooms.length > 0
-                                ? event.classrooms.map(c => c.code).join(', ')
-                                : t('calendar.eventDetails.fields.noClassroom')
-                            }
-                            disabled={true}
-                            className="bg-muted"
-                        />
+                        <Label>{t('calendar.eventDetails.fields.classroom')}</Label>
+                        <div className="flex min-h-9 w-full items-center rounded-md border border-input bg-muted px-3 py-1 text-sm gap-1 flex-wrap">
+                            {event.classrooms.length > 0 ? (
+                                event.classrooms.map((classroom, index) => (
+                                    <span key={classroom.id} className="flex items-center gap-1">
+                                        {index > 0 && <span className="text-muted-foreground select-none">,</span>}
+                                        {classroom.gisUrl ? (
+                                            <Link to={classroom.gisUrl} target="_blank"
+                                                className="text-blue-600 hover:underline">
+                                                {classroom.code}
+                                            </Link>
+                                        ) : (
+                                            <span>{classroom.code}</span>
+                                        )}
+                                    </span>
+                                ))
+                            ) : (
+                                <span className="text-muted-foreground">
+                                    {t('calendar.eventDetails.fields.noClassroom')}
+                                </span>
+                            )}
+                        </div>
                     </div>
 
                     {/* Carácter del día */}

@@ -217,7 +217,11 @@ export class AuthController {
 
             res.json({
                 success: true,
-                message: result.message
+                message: result.message,
+                data: {
+                    user: result.user,
+                    token: result.token,
+                },
             });
         } catch (error: any) {
             res.status(500).json({

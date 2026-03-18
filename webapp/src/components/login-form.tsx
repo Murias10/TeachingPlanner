@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Link, useNavigate, useLocation } from "react-router-dom"
 import { useAuth } from "@/contexts/AuthContext"
 import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext"
@@ -28,6 +29,7 @@ export function LoginForm({
 
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
+  const [rememberMe, setRememberMe] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -45,7 +47,7 @@ export function LoginForm({
         return;
       }
 
-      const success = await login({ email, password });
+      const success = await login({ email, password, rememberMe });
 
       if (success) {
         triggerAlert({
@@ -123,6 +125,18 @@ export function LoginForm({
                   disabled={isLoading}
                   required
                 />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="rememberMe"
+                  checked={rememberMe}
+                  onCheckedChange={(checked) => setRememberMe(checked === true)}
+                  disabled={isLoading}
+                />
+                <Label htmlFor="rememberMe" className="text-sm font-normal cursor-pointer">
+                  {t('login.rememberMe')}
+                </Label>
               </div>
 
               <Button

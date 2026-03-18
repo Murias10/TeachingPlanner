@@ -2,6 +2,25 @@ import React, { createContext, useContext, useReducer, useEffect, ReactNode } fr
 import { User, LoginCredentials, RegisterData } from '@/types/auth.types';
 import { authService } from '@/services/auth.services'
 
+const TOKEN_KEY = 'auth_token';
+
+function persistToken(token: string): void {
+    localStorage.setItem(TOKEN_KEY, token);
+}
+
+function saveSessionToken(token: string): void {
+    sessionStorage.setItem(TOKEN_KEY, token);
+}
+
+function getStoredToken(): string | null {
+    return localStorage.getItem(TOKEN_KEY) ?? sessionStorage.getItem(TOKEN_KEY);
+}
+
+function clearStoredToken(): void {
+    localStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem(TOKEN_KEY);
+}
+
 interface AuthState {
     user: User | null;
     token: string | null;
@@ -18,10 +37,11 @@ type AuthAction =
     | { type: 'UPDATE_USER'; payload: User };
 
 interface AuthContextType extends AuthState {
-    login: (credentials: LoginCredentials) => Promise<boolean>;
+    login: (credentials: LoginCredentials & { rememberMe?: boolean }) => Promise<boolean>;
     register: (data: RegisterData) => Promise<boolean>;
     logout: () => void;
     updateUser: (user: User) => void;
+    setSession: (user: User, token: string) => void;
 }
 
 const initialState: AuthState = {
@@ -47,13 +67,6 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
                 isLoading: false,
             };
         case 'LOGIN_FAILURE':
-            return {
-                ...state,
-                user: null,
-                token: null,
-                isAuthenticated: false,
-                isLoading: false,
-            };
         case 'LOGOUT':
             return {
                 ...state,
@@ -90,26 +103,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     useEffect(() => {
         const initializeAuth = async () => {
             try {
-                const token = localStorage.getItem('token');
+                const token = getStoredToken();
                 if (token) {
-                    // Validar token con el backend
                     const isValid = await authService.validateToken(token);
                     if (isValid) {
-                        // Obtener datos del usuario
                         const userData = await authService.getProfile();
                         dispatch({
                             type: 'LOGIN_SUCCESS',
                             payload: { user: userData, token },
                         });
                     } else {
-                        localStorage.removeItem('token');
+                        clearStoredToken();
                         dispatch({ type: 'LOGIN_FAILURE' });
                     }
                 } else {
                     dispatch({ type: 'SET_LOADING', payload: false });
                 }
             } catch {
-                localStorage.removeItem('token');
+                clearStoredToken();
                 dispatch({ type: 'LOGIN_FAILURE' });
             }
         };
@@ -117,14 +128,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         initializeAuth();
     }, []);
 
-    const login = async (credentials: LoginCredentials): Promise<boolean> => {
+    const login = async (credentials: LoginCredentials & { rememberMe?: boolean }): Promise<boolean> => {
         dispatch({ type: 'LOGIN_START' });
 
-        try {
-            const response = await authService.login(credentials);
+        const { rememberMe = false, ...loginCredentials } = credentials;
 
-            // Guardar token en localStorage
-            localStorage.setItem('token', response.token);
+        try {
+            const response = await authService.login(loginCredentials);
+
+            if (rememberMe) {
+                persistToken(response.token);
+            } else {
+                saveSessionToken(response.token);
+            }
 
             dispatch({
                 type: 'LOGIN_SUCCESS',
@@ -147,8 +163,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         try {
             const response = await authService.register(data);
 
-            // Guardar token en localStorage
-            localStorage.setItem('token', response.token);
+            saveSessionToken(response.token);
 
             dispatch({
                 type: 'LOGIN_SUCCESS',
@@ -165,8 +180,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
     };
 
+    // Establece la sesión directamente con user+token ya obtenidos (ej: tras activación de cuenta)
+    const setSession = (user: User, token: string): void => {
+        saveSessionToken(token);
+        dispatch({
+            type: 'LOGIN_SUCCESS',
+            payload: { user, token },
+        });
+    };
+
     const logout = () => {
-        localStorage.removeItem('token');
+        clearStoredToken();
         authService.logout();
         dispatch({ type: 'LOGOUT' });
     };
@@ -183,6 +207,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 register,
                 logout,
                 updateUser,
+                setSession,
             }}
         >
             {children}

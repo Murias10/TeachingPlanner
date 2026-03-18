@@ -50,7 +50,7 @@ export class AuthService {
         };
     }
 
-    async activateAccount(token: string, newPassword: string): Promise<{ success: boolean; message: string }> {
+    async activateAccount(token: string, newPassword: string): Promise<{ success: boolean; message: string; user?: ReturnType<AuthService['mapToUserResponse']>; token?: string }> {
         try {
             // Find user by activation token
             const user = await this.userRepository.findOne({
@@ -83,7 +83,14 @@ export class AuthService {
 
             await this.userRepository.save(user);
 
-            return { success: true, message: 'account.activated.successfully' };
+            const jwtToken = this.generateToken(user);
+
+            return {
+                success: true,
+                message: 'account.activated.successfully',
+                user: this.mapToUserResponse(user),
+                token: jwtToken,
+            };
         } catch (error) {
             console.error('Error activating account:', error);
             throw new Error('Failed to activate account');

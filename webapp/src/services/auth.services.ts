@@ -1,9 +1,11 @@
 import { LoginCredentials, RegisterData, AuthResponse, ApiResponse, User } from '@/types/auth.types';
 import VITE_GATEWAY_API_URL from '@/config/api';
 
+const TOKEN_KEY = 'auth_token';
+
 class AuthService {
     private getToken(): string | null {
-        return localStorage.getItem('token');
+        return localStorage.getItem(TOKEN_KEY) ?? sessionStorage.getItem(TOKEN_KEY);
     }
 
     private getAuthHeaders() {
@@ -83,6 +85,24 @@ class AuthService {
 
         return data.data!;
 
+    }
+
+    async activate(activationToken: string, password: string): Promise<AuthResponse> {
+        const response = await fetch(`${VITE_GATEWAY_API_URL}/auth/activate`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ token: activationToken, password }),
+        });
+
+        const data: ApiResponse<AuthResponse> = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.message || 'Account activation failed');
+        }
+
+        return data.data!;
     }
 
     logout(): void {

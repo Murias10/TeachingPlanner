@@ -5,14 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
-import { CheckCircle, XCircle, Eye, EyeOff } from 'lucide-react';
+import { XCircle, Eye, EyeOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import axios, { AxiosError } from 'axios';
 import { validatePassword as validatePasswordUtil } from '@/utils/passwordValidation';
 import { PasswordRequirements } from '@/components/ui/password-requirements';
 import { useFloatingAlertContext } from '@/contexts/useFloatingAlertContext';
-
-const API_URL = import.meta.env.VITE_GATEWAY_API_URL || 'http://localhost:8080';
+import { useAuth } from '@/contexts/AuthContext';
+import { authService } from '@/services/auth.services';
 
 export default function ActivatePage() {
     const { t } = useTranslation();
@@ -20,17 +19,16 @@ export default function ActivatePage() {
     const [searchParams] = useSearchParams();
     const token = searchParams.get('token');
     const { triggerAlert } = useFloatingAlertContext();
+    const { setSession } = useAuth();
 
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [success, setSuccess] = useState(false);
 
     const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const newPassword = e.target.value;
-        setPassword(newPassword);
+        setPassword(e.target.value);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -67,42 +65,18 @@ export default function ActivatePage() {
         setIsLoading(true);
 
         try {
-            const response = await axios.post(`${API_URL}/auth/activate`, {
-                token,
-                password
+            const { user, token: authToken } = await authService.activate(token, password);
+
+            triggerAlert({
+                title: t('activation.success.title'),
+                description: t('activation.success.description'),
+                variant: 'success'
             });
 
-            if (response.data.success) {
-                setSuccess(true);
-                triggerAlert({
-                    title: t('activation.success.title'),
-                    description: t('activation.success.description'),
-                    variant: 'success'
-                });
-                setTimeout(() => {
-                    navigate('/login');
-                }, 2000);
-            } else {
-                triggerAlert({
-                    title: t('error'),
-                    description: response.data.message || t('error.activation.failed'),
-                    variant: 'destructive'
-                });
-            }
+            setSession(user, authToken);
+            navigate('/home', { replace: true });
         } catch (err) {
-            const error = err as AxiosError<{ message?: string; errors?: string[]; status?: string }>;
-            let errorMessage = t('error.activation.failed');
-
-            if (error.response?.data?.message) {
-                errorMessage = error.response.data.message;
-            } else if (error.response?.data?.errors) {
-                errorMessage = error.response.data.errors.map((e: string) => t(e)).join(', ');
-            } else if (error.response?.status) {
-                errorMessage = `Error ${error.response.status}: ${error.response.statusText || 'Error en la activación'}`;
-            } else if (error.message) {
-                errorMessage = `Error de conexión: ${error.message}`;
-            }
-
+            const errorMessage = err instanceof Error ? err.message : t('error.activation.failed');
             triggerAlert({
                 title: 'Error de activación',
                 description: errorMessage,
@@ -130,29 +104,6 @@ export default function ActivatePage() {
                         <Button onClick={() => navigate('/login')} className="w-full">
                             {t('go.to.login')}
                         </Button>
-                    </CardContent>
-                </Card>
-            </div>
-        );
-    }
-
-    if (success) {
-        return (
-            <div className="flex min-h-svh w-full items-center justify-center p-6">
-                <Card className="w-full max-w-md">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <CheckCircle className="h-6 w-6 text-green-600" />
-                            {t('activation.success.title')}
-                        </CardTitle>
-                        <CardDescription>
-                            {t('activation.success.description')}
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-sm text-muted-foreground">
-                            {t('activation.redirecting')}
-                        </p>
                     </CardContent>
                 </Card>
             </div>

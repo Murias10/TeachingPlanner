@@ -1799,6 +1799,7 @@
         "forgotPassword": "¿Olvidaste tu contraseña?",
         "submit": "Iniciar sesión",
         "submitting": "Iniciando sesión...",
+        "rememberMe": "Recordar sesión",
         "validation": {
             "title": "Error de validación",
             "description": "Por favor, completa todos los campos"

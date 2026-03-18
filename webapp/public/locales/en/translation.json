@@ -731,6 +731,7 @@
             "no.results": "No groups found.",
             "actions": {
                 "manage.groups": "Manage groups",
+                "show.groups": "Show groups",
                 "create.group": "Create group",
                 "select.groups": "Select groups",
                 "select.groups.tooltip": "Select groups to display in calendar",

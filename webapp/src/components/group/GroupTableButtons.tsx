@@ -182,7 +182,10 @@ export function GroupTableButtons({ subject, onDeleteGroup, onCreateGroup }: Rea
                 onClick={() => setOpen(true)}
                 disabled={!hasGroups}
             >
-                {t("table.groups.actions.manage.groups")} {hasGroups && `(${totalGroups})`}<ChevronsRight />
+                {isAdmin
+                    ? t("table.groups.actions.manage.groups")
+                    : t("table.groups.actions.show.groups")
+                } {hasGroups && `(${totalGroups})`}<ChevronsRight />
             </Button>
 
             <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
@@ -249,18 +252,20 @@ export function GroupTableButtons({ subject, onDeleteGroup, onCreateGroup }: Rea
                                                             key={group.id}
                                                             className="relative flex items-center justify-between py-1.5 px-2 rounded border hover:bg-accent/50 transition-colors group"
                                                         >
-                                                            <label
-                                                                className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer"
+                                                            <div
+                                                                className={`flex items-center gap-2 flex-1 min-w-0 ${isAdmin ? "cursor-pointer" : ""}`}
                                                             >
-                                                                <Checkbox
-                                                                    checked={selectedGroups.includes(group.id)}
-                                                                    onCheckedChange={() => toggleGroupSelection(group.id)}
-                                                                    className="h-3.5 w-3.5 shrink-0"
-                                                                />
+                                                                {isAdmin && (
+                                                                    <Checkbox
+                                                                        checked={selectedGroups.includes(group.id)}
+                                                                        onCheckedChange={() => toggleGroupSelection(group.id)}
+                                                                        className="h-3.5 w-3.5 shrink-0"
+                                                                    />
+                                                                )}
                                                                 <span className="text-xs font-medium truncate">
                                                                     {group.type}.{group.number}
                                                                 </span>
-                                                            </label>
+                                                            </div>
 
                                                             <div className="flex items-center gap-1">
                                                                 {editingGroupId === group.id ? (
@@ -348,18 +353,20 @@ export function GroupTableButtons({ subject, onDeleteGroup, onCreateGroup }: Rea
                                                             key={group.id}
                                                             className="relative flex items-center justify-between py-1.5 px-2 rounded border hover:bg-accent/50 transition-colors group"
                                                         >
-                                                            <label
-                                                                className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer"
+                                                            <div
+                                                                className={`flex items-center gap-2 flex-1 min-w-0 ${isAdmin ? "cursor-pointer" : ""}`}
                                                             >
-                                                                <Checkbox
-                                                                    checked={selectedGroups.includes(group.id)}
-                                                                    onCheckedChange={() => toggleGroupSelection(group.id)}
-                                                                    className="h-3.5 w-3.5 shrink-0"
-                                                                />
+                                                                {isAdmin && (
+                                                                    <Checkbox
+                                                                        checked={selectedGroups.includes(group.id)}
+                                                                        onCheckedChange={() => toggleGroupSelection(group.id)}
+                                                                        className="h-3.5 w-3.5 shrink-0"
+                                                                    />
+                                                                )}
                                                                 <span className="text-xs font-medium truncate">
                                                                     {group.type}.I-{group.number}
                                                                 </span>
-                                                            </label>
+                                                            </div>
 
                                                             <div className="flex items-center gap-1">
                                                                 {editingGroupId === group.id ? (

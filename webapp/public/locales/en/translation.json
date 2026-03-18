@@ -1747,6 +1747,8 @@
         "manageGroups": "Manage groups",
         "manageRequests": "Manage requests",
         "manageRequestsTooltip": "Manage requests",
+        "showSubjects": "Show subjects",
+        "showGroups": "Show groups",
         "requiresCalendar": "Requires calendar"
     },
     "forgotPassword": {

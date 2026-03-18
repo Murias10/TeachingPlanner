@@ -75,37 +75,37 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
                             <p> {t("table.courses.actions.show.semester.1")}</p>
                         </TooltipContent>
                     </Tooltip>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="size-10"
+                                onClick={() => goToManageSubjects(1)}
+                            >
+                                <BookOpen />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>{t("courseButtons.showSubjects")}</p>
+                        </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="size-10"
+                                onClick={() => goToManageGroups(1)}
+                            >
+                                <Users />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>{t("courseButtons.showGroups")}</p>
+                        </TooltipContent>
+                    </Tooltip>
                     <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    className="size-10"
-                                    onClick={() => goToManageSubjects(1)}
-                                >
-                                    <BookOpen />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>{t("courseButtons.manageSubjects")}</p>
-                            </TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    className="size-10"
-                                    onClick={() => goToManageGroups(1)}
-                                >
-                                    <Users />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>{t("courseButtons.manageGroups")}</p>
-                            </TooltipContent>
-                        </Tooltip>
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button
@@ -150,45 +150,30 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
                             <p>{t("table.courses.actions.show.semester.1")}</p>
                         </TooltipContent>
                     </Tooltip>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button variant="outline" size="icon" className="size-10" disabled>
+                                <BookOpen />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>{t("courseButtons.showSubjects")} ({t("courseButtons.requiresCalendar")})</p>
+                        </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button variant="outline" size="icon" className="size-10" disabled>
+                                <Users />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>{t("courseButtons.showGroups")} ({t("courseButtons.requiresCalendar")})</p>
+                        </TooltipContent>
+                    </Tooltip>
                     <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    className="size-10"
-                                    disabled
-                                >
-                                    <BookOpen />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>{t("courseButtons.manageSubjects")} ({t("courseButtons.requiresCalendar")})</p>
-                            </TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    className="size-10"
-                                    disabled
-                                >
-                                    <Users />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>{t("courseButtons.manageGroups")} ({t("courseButtons.requiresCalendar")})</p>
-                            </TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    className="size-10"
-                                    disabled
-                                >
+                                <Button variant="outline" size="icon" className="size-10" disabled>
                                     <FileText />
                                 </Button>
                             </TooltipTrigger>
@@ -222,37 +207,37 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
                             <p> {t("table.courses.actions.show.semester.2")}</p>
                         </TooltipContent>
                     </Tooltip>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="size-10"
+                                onClick={() => goToManageSubjects(2)}
+                            >
+                                <BookOpen />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>{t("courseButtons.showSubjects")}</p>
+                        </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="size-10"
+                                onClick={() => goToManageGroups(2)}
+                            >
+                                <Users />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>{t("courseButtons.showGroups")}</p>
+                        </TooltipContent>
+                    </Tooltip>
                     <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    className="size-10"
-                                    onClick={() => goToManageSubjects(2)}
-                                >
-                                    <BookOpen />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>{t("courseButtons.manageSubjects")}</p>
-                            </TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    className="size-10"
-                                    onClick={() => goToManageGroups(2)}
-                                >
-                                    <Users />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>{t("courseButtons.manageGroups")}</p>
-                            </TooltipContent>
-                        </Tooltip>
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button
@@ -297,45 +282,30 @@ export function CourseTableButtons({ course, deleteCourse, deleteCalendar, creat
                             <p>{t("table.courses.actions.show.semester.2")}</p>
                         </TooltipContent>
                     </Tooltip>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button variant="outline" size="icon" className="size-10" disabled>
+                                <BookOpen />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>{t("courseButtons.showSubjects")} ({t("courseButtons.requiresCalendar")})</p>
+                        </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button variant="outline" size="icon" className="size-10" disabled>
+                                <Users />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>{t("courseButtons.showGroups")} ({t("courseButtons.requiresCalendar")})</p>
+                        </TooltipContent>
+                    </Tooltip>
                     <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    className="size-10"
-                                    disabled
-                                >
-                                    <BookOpen />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>{t("courseButtons.manageSubjects")} ({t("courseButtons.requiresCalendar")})</p>
-                            </TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    className="size-10"
-                                    disabled
-                                >
-                                    <Users />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>{t("courseButtons.manageGroups")} ({t("courseButtons.requiresCalendar")})</p>
-                            </TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    className="size-10"
-                                    disabled
-                                >
+                                <Button variant="outline" size="icon" className="size-10" disabled>
                                     <FileText />
                                 </Button>
                             </TooltipTrigger>

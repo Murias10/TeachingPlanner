@@ -157,11 +157,11 @@ export default function GroupPage() {
         <>
             <section className="h-full bg-background overflow-hidden flex flex-col">
                 {/* Toolbar */}
-                <div className="px-4 py-3 border-b bg-background flex justify-end items-center">
-                    <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
+                <ProtectedComponent requiredRoles={["ADMIN"]} hideIfNoAccess={true}>
+                    <div className="px-4 py-3 border-b bg-background flex justify-end items-center">
                         <GroupToolbar onCreateGroup={handleCreateGroupGlobal} />
-                    </ProtectedComponent>
-                </div>
+                    </div>
+                </ProtectedComponent>
 
                 {/* Table */}
                 <div className="flex-1 overflow-auto px-4 py-0 flex items-center justify-center">

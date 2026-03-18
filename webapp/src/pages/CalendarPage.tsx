@@ -206,6 +206,7 @@ export default function CalendarPage() {
     const aprobarSolicitud = useAprobarSolicitud();
     const rechazarSolicitud = useRechazarSolicitud();
     const isAdmin = user?.role === 'ADMIN';
+    const isProfessor = user?.role === 'PROFESSOR';
 
     // Estado para revisión de solicitudes desde el calendario
     const [reviewRequestId, setReviewRequestId] = useState<string | null>(null);
@@ -905,7 +906,7 @@ export default function CalendarPage() {
         // Si es PROFESSOR, abrir el diálogo de crear solicitud
         if (isAdmin) {
             setIsCreateEventDialogOpen(true);
-        } else if (user?.role === 'PROFESSOR') {
+        } else if (isProfessor) {
             setIsSolicitudDrawerOpen(true);
         }
     };
@@ -2261,39 +2262,41 @@ export default function CalendarPage() {
         <>
             <section className="h-full bg-muted/50 overflow-hidden flex flex-col">
                 {/* Toolbar */}
-                <div className="px-4 py-3 border-b bg-card flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                        {isAdmin && (
-                            <CalendarToolbar
-                                onExport={handleExportCalendar}
-                                onExportCSV={handleExportToCSV}
-                                onCreateEvent={handleCreateEvent}
-                                onImportExceptions={() => setIsImportExceptionsDialogOpen(true)}
-                                isAdmin={isAdmin}
-                            />
+                {(isAdmin || isProfessor) && (
+                    <div className="px-4 py-3 border-b bg-card flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                            {isAdmin && (
+                                <CalendarToolbar
+                                    onExport={handleExportCalendar}
+                                    onExportCSV={handleExportToCSV}
+                                    onCreateEvent={handleCreateEvent}
+                                    onImportExceptions={() => setIsImportExceptionsDialogOpen(true)}
+                                    isAdmin={isAdmin}
+                                />
+                            )}
+                        </div>
+
+                        <div className="flex-1" />
+                        {isProfessor && (
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setIsSolicitudDrawerOpen(true)}
+                                            className="h-9 gap-2"
+                                        >
+                                            <FileText className="w-4 h-4" />
+                                            <span className="hidden sm:inline text-xs">{t('calendar.toolbar.requestEvent')}</span>
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>{t('calendar.toolbar.requestEventTooltip')}</TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
                         )}
                     </div>
-
-                    <div className="flex-1" />
-                    {user?.role === 'PROFESSOR' && (
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => setIsSolicitudDrawerOpen(true)}
-                                        className="h-9 gap-2"
-                                    >
-                                        <FileText className="w-4 h-4" />
-                                        <span className="hidden sm:inline text-xs">{t('calendar.toolbar.requestEvent')}</span>
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>{t('calendar.toolbar.requestEventTooltip')}</TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                    )}
-                </div>
+                )}
 
                 {/* Main content */}
                 <div className="flex-1 overflow-hidden flex">
@@ -2342,7 +2345,7 @@ export default function CalendarPage() {
                                 style={{ height: '100%', width: '100%' }}
                                 components={calendarComponents}
                                 onSelectSlot={handleSelectSlot}
-                                selectable={isAdmin || user?.role === 'PROFESSOR'}
+                                selectable={isAdmin || isProfessor}
                                 onDoubleClickEvent={(event) => {
                                     const calendarEvent = (event as MyEvent).resource;
                                     if (calendarEvent) {

@@ -1736,6 +1736,8 @@
         "manageGroups": "Gestionar grupos",
         "manageRequests": "Gestionar solicitudes",
         "manageRequestsTooltip": "Gestionar solicitudes",
+        "showSubjects": "Ver asignaturas",
+        "showGroups": "Ver grupos",
         "requiresCalendar": "Requiere calendario"
     },
     "forgotPassword": {

@@ -12,6 +12,7 @@ import { CalendarEvent } from "@/types/CalendarEvent";
 import moment from "moment";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface EventDetailsDrawerProps {
     open: boolean;
@@ -21,6 +22,8 @@ interface EventDetailsDrawerProps {
 
 export function EventDetailsDrawer({ open, onOpenChange, event }: EventDetailsDrawerProps) {
     const { t } = useTranslation();
+    const { user } = useAuth();
+    const isAdmin = user?.role === 'ADMIN';
 
     if (!event) return null;
 
@@ -200,11 +203,21 @@ export function EventDetailsDrawer({ open, onOpenChange, event }: EventDetailsDr
                         </div>
                     )}
 
-                    {/* Carácter del día y Carácter del evento en la misma fila */}
-                    {(event.dayCharacter || (event.type === 'periodic' && event.eventCharacter)) && (
+                    {/* Comentario del evento */}
+                    {event.comment && (
+                        <div className="space-y-2 max-w-sm mx-auto w-full">
+                            <Label>{t('calendar.eventDetails.fields.eventComment')}</Label>
+                            <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 py-1 text-sm">
+                                <span className="truncate">{event.comment}</span>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Carácter del día y Carácter del evento — solo ADMIN */}
+                    {isAdmin && (event.dayCharacter || (event.type === 'periodic' && event.eventCharacter)) && (
                         <div className="flex gap-2 max-w-sm mx-auto w-full">
                             {event.dayCharacter && (
-                                <div className="space-y-2 w-1/2">
+                                <div className={`space-y-2 ${event.type === 'periodic' && event.eventCharacter ? 'w-1/2' : 'w-full'}`}>
                                     <Label>{t('calendar.eventDetails.fields.dayCharacter')}</Label>
                                     <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 py-1 text-sm">
                                         <span className="truncate">{event.dayCharacter}</span>
@@ -219,16 +232,6 @@ export function EventDetailsDrawer({ open, onOpenChange, event }: EventDetailsDr
                                     </div>
                                 </div>
                             )}
-                        </div>
-                    )}
-
-                    {/* Comentario del evento */}
-                    {event.comment && (
-                        <div className="space-y-2 max-w-sm mx-auto w-full">
-                            <Label>{t('calendar.eventDetails.fields.eventComment')}</Label>
-                            <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 py-1 text-sm">
-                                <span className="truncate">{event.comment}</span>
-                            </div>
                         </div>
                     )}
                 </div>

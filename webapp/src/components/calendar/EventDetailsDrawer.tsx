@@ -190,26 +190,6 @@ export function EventDetailsDrawer({ open, onOpenChange, event }: EventDetailsDr
                         </div>
                     </div>
 
-                    {/* Carácter del día */}
-                    {event.dayCharacter && (
-                        <div className="space-y-2 max-w-sm mx-auto w-full">
-                            <Label>{t('calendar.eventDetails.fields.dayCharacter')}</Label>
-                            <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 py-1 text-sm">
-                                <span className="truncate">{event.dayCharacter}</span>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Carácter del evento (solo para eventos periódicos) */}
-                    {event.type === 'periodic' && event.eventCharacter && (
-                        <div className="space-y-2 max-w-sm mx-auto w-full">
-                            <Label>{t('calendar.eventDetails.fields.eventCharacter')}</Label>
-                            <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 py-1 text-sm">
-                                <span className="truncate">{event.eventCharacter}</span>
-                            </div>
-                        </div>
-                    )}
-
                     {/* Comentario del día */}
                     {event.dayComment && (
                         <div className="space-y-2 max-w-sm mx-auto w-full">
@@ -217,6 +197,28 @@ export function EventDetailsDrawer({ open, onOpenChange, event }: EventDetailsDr
                             <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 py-1 text-sm">
                                 <span className="truncate">{event.dayComment}</span>
                             </div>
+                        </div>
+                    )}
+
+                    {/* Carácter del día y Carácter del evento en la misma fila */}
+                    {(event.dayCharacter || (event.type === 'periodic' && event.eventCharacter)) && (
+                        <div className="flex gap-2 max-w-sm mx-auto w-full">
+                            {event.dayCharacter && (
+                                <div className="space-y-2 w-1/2">
+                                    <Label>{t('calendar.eventDetails.fields.dayCharacter')}</Label>
+                                    <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 py-1 text-sm">
+                                        <span className="truncate">{event.dayCharacter}</span>
+                                    </div>
+                                </div>
+                            )}
+                            {event.type === 'periodic' && event.eventCharacter && (
+                                <div className="space-y-2 w-1/2">
+                                    <Label>{t('calendar.eventDetails.fields.eventCharacter')}</Label>
+                                    <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 py-1 text-sm">
+                                        <span className="truncate">{event.eventCharacter}</span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
 

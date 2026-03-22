@@ -12,7 +12,7 @@ import { useCalendarByCourseAndSemester } from "@/hooks/calendar/useCalendarByCo
 import { usePendingRequestsAsEvents } from "@/hooks/calendar/usePendingRequestsAsEvents";
 import { useSubjectsWithGroupsByCalendarId } from "@/hooks/subject/useSubjectsWithGroupsByCalendarId";
 import { CalendarEvent } from "@/types/CalendarEvent";
-import ClassFilter, { FilterValues } from "@/components/ClassFilter";
+import ClassFilter from "@/components/ClassFilter";
 import { FileText, BookOpen, DoorOpen, Languages, Users, GraduationCap, Tag } from "lucide-react";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { useParams, useNavigate } from "react-router-dom";
@@ -361,14 +361,12 @@ export default function CalendarPage() {
         ]);
     }, [setItems, acronym, t, course, semester]);
 
-    // Wrapper de getYearLabel para pasar a applyFilters (captura t del closure)
-    const yearLabelFn = (year: number) => getYearLabel(year, t);
-
     // Extraer opciones únicas de los eventos con crossfilter:
     // cada categoría calcula sus opciones excluyéndose a sí misma del filtrado
     const filterOptions = useMemo(() => {
         if (allEvents.length === 0) return [];
 
+        const yearLabelFn = (year: number) => getYearLabel(year, t);
         const forCurso      = applyFilters(allEvents, filters, subjectYearMap, yearLabelFn, ['curso']);
         const forAsignatura = applyFilters(allEvents, filters, subjectYearMap, yearLabelFn, ['asignatura']);
         const forTipoGrupo  = applyFilters(allEvents, filters, subjectYearMap, yearLabelFn, ['tipoGrupo']);

@@ -64,6 +64,22 @@ export function useFilterCascade(
             changed = true;
         }
 
+        // limpiar aulas que ya no están disponibles
+        const validAulas = getValidSet('aula');
+        const newAula = next.aula.filter(v => validAulas.has(v));
+        if (newAula.length !== next.aula.length) {
+            next = { ...next, aula: newAula };
+            changed = true;
+        }
+
+        // limpiar tipos de evento que ya no están disponibles
+        const validTipoEvento = getValidSet('tipoEvento');
+        const newTipoEvento = next.tipoEvento.filter(v => validTipoEvento.has(v));
+        if (newTipoEvento.length !== next.tipoEvento.length) {
+            next = { ...next, tipoEvento: newTipoEvento };
+            changed = true;
+        }
+
         if (changed) setFilters(next);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [filterOptions]);

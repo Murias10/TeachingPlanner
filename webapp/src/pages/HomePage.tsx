@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { usePersistedFilters } from "@/hooks/usePersistedFilters";
 import { useFilterCascade } from "@/hooks/useFilterCascade";
-import { getActiveValues } from "@/utils/filterUtils";
+import { getActiveValues, applyFilters } from "@/utils/filterUtils";
 import { Calendar, momentLocalizer, Components } from "react-big-calendar";
 import moment from "@/utils/momentLocales"; // Usar moment con locales pre-cargados
 import { format } from "date-fns";
@@ -12,7 +12,6 @@ import { useCalendarDays } from "@/hooks/calendar/useCalendarDays";
 import { CalendarEvent } from "@/types/CalendarEvent";
 import ClassFilter from "@/components/ClassFilter";
 import { FileText, BookOpen, DoorOpen, Languages, Users, GraduationCap, Tag, CalendarDays } from "lucide-react";
-import { EVENT_TYPES } from "@/constants/eventCharacters";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { useTranslation } from "react-i18next";
 import { EventDetailsDrawer } from "@/components/calendar/EventDetailsDrawer";
@@ -236,90 +235,66 @@ export default function HomePage() {
         return mappedEvents;
     }, [data]);
 
-    // Construir opciones para los filtros (usando eventos filtrados por año)
+    // Construir opciones para los filtros con crossfilter:
+    // cada categoría calcula sus opciones excluyéndose a sí misma del filtrado
     const filterOptions = useMemo(() => {
         if (!data?.events || !Array.isArray(data.events)) return [];
 
-        // Jerarquía: Curso > Asignatura > TipoGrupo > Grupos/Idioma (igual que CalendarPage)
+        const allEvents: CalendarEvent[] = data.events;
+        const forCurso      = applyFilters(allEvents, filters, subjectYearMap, getYearLabel, ['curso']);
+        const forAsignatura = applyFilters(allEvents, filters, subjectYearMap, getYearLabel, ['asignatura']);
+        const forTipoGrupo  = applyFilters(allEvents, filters, subjectYearMap, getYearLabel, ['tipoGrupo']);
+        const forGrupos     = applyFilters(allEvents, filters, subjectYearMap, getYearLabel, ['grupos']);
+        const forAula       = applyFilters(allEvents, filters, subjectYearMap, getYearLabel, ['aula']);
+        const forIdioma     = applyFilters(allEvents, filters, subjectYearMap, getYearLabel, ['idioma']);
+        const forTipoEvento = applyFilters(allEvents, filters, subjectYearMap, getYearLabel, ['tipoEvento']);
 
-        // Obtener años seleccionados
-        const selectedYears = filters.curso.map(label => {
-            const entry = Object.entries(ACADEMIC_YEAR_LABELS).find(([_, val]) => val === label);
-            return entry ? parseInt(entry[0], 10) : null;
-        }).filter((y): y is number => y !== null);
-
-        // Nivel 1: filtrar por curso
-        const filteredByYear: CalendarEvent[] = selectedYears.length === 0
-            ? data.events
-            : data.events.filter((event: CalendarEvent) => {
-                const eventYear = subjectYearMap.get(event.subject?.acronym || '');
-                return eventYear !== undefined && selectedYears.includes(eventYear);
-            });
-
-        // Nivel 2: filtrar por asignatura (para restringir tipoGrupo, grupos, idioma)
-        const filteredBySubject = filters.asignatura.length === 0
-            ? filteredByYear
-            : filteredByYear.filter((event: CalendarEvent) =>
-                event.subject?.acronym ? filters.asignatura.includes(event.subject.acronym) : false
-            );
-
-        // Nivel 3: filtrar por tipoGrupo (para restringir grupos e idioma)
-        const filteredByType = filters.tipoGrupo.length === 0
-            ? filteredBySubject
-            : filteredBySubject.filter((event: CalendarEvent) =>
-                event.groups.some(group => filters.tipoGrupo.includes(group.type))
-            );
-
+        const cursoSet = new Set<number>();
         const asignaturaSet = new Set<string>();
         const asignaturaTooltipMap = new Map<string, string>();
-        const cursoSet = new Set<number>();
         const tipoGrupoSet = new Set<string>();
         const gruposSet = new Set<string>();
         const aulaSet = new Set<string>();
         const idiomaSet = new Set<string>();
+        const tipoEventoSet = new Set<string>();
 
-        // Curso: de todos los eventos (sin restricción)
-        data.events.forEach((event: CalendarEvent) => {
+        forCurso.forEach(event => {
             if (event.subject?.acronym) {
                 const year = subjectYearMap.get(event.subject.acronym);
                 if (year !== undefined) cursoSet.add(year);
             }
         });
 
-        // Asignatura: restringida por curso
-        filteredByYear.forEach((event: CalendarEvent) => {
+        forAsignatura.forEach(event => {
             if (event.subject?.acronym) {
                 asignaturaSet.add(event.subject.acronym);
-                if (event.subject.name) {
-                    asignaturaTooltipMap.set(event.subject.acronym, event.subject.name);
-                }
+                if (event.subject.name) asignaturaTooltipMap.set(event.subject.acronym, event.subject.name);
             }
         });
 
-        // TipoGrupo: restringido por curso + asignatura
-        filteredBySubject.forEach((event: CalendarEvent) => {
+        forTipoGrupo.forEach(event => {
+            event.groups.forEach(group => { if (group.type) tipoGrupoSet.add(group.type); });
+        });
+
+        forGrupos.forEach(event => {
+            if (!event.subject?.acronym) return;
             event.groups.forEach(group => {
-                if (group.type) tipoGrupoSet.add(group.type);
+                const groupId = generateGroupId(event.subject!.acronym, group.number, group.type, group.language === 'EN');
+                gruposSet.add(groupId);
             });
         });
 
-        // Grupos, Aulas, Idioma: restringidos por curso + asignatura + tipoGrupo
-        filteredByType.forEach((event: CalendarEvent) => {
-            event.groups.forEach(group => {
-                if (event.subject?.acronym) {
-                    const groupId = generateGroupId(
-                        event.subject.acronym,
-                        group.number,
-                        group.type,
-                        group.language === 'EN'
-                    );
-                    gruposSet.add(groupId);
-                }
-                if (group.language) idiomaSet.add(group.language);
-            });
-            event.classrooms.forEach(classroom => {
-                if (classroom.code) aulaSet.add(classroom.code);
-            });
+        forAula.forEach(event => {
+            event.classrooms.forEach(classroom => { if (classroom.code) aulaSet.add(classroom.code); });
+        });
+
+        forIdioma.forEach(event => {
+            event.groups.forEach(group => { if (group.language) idiomaSet.add(group.language); });
+        });
+
+        forTipoEvento.forEach(event => {
+            if (event.cancelled) tipoEventoSet.add('CANCELADO');
+            else if (event.eventType) tipoEventoSet.add(event.eventType);
         });
 
         return [
@@ -363,11 +338,12 @@ export default function HomePage() {
             {
                 category: 'tipoEvento' as const,
                 label: t('calendar.filters.eventType'),
-                options: [EVENT_TYPES.NORMAL, EVENT_TYPES.BLOCKER, EVENT_TYPES.REVISION, EVENT_TYPES.EVALUACION, EVENT_TYPES.OTRO, 'CANCELADO'],
+                options: Array.from(tipoEventoSet),
                 icon: Tag
             }
         ].filter(option => option.options.length > 0);
-    }, [data, filters.curso, filters.asignatura, filters.tipoGrupo, subjectYearMap, t]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [data, filters, subjectYearMap, t]);
 
     // Deselección automática de filtros hijos al cambiar un filtro padre (cascada + idioma)
     useFilterCascade(filters, filterOptions, setFilters);

@@ -152,3 +152,9 @@
   color: #2563eb !important;
 }
 
+/* Deshabilitar interacción en la zona all-day del calendario */
+.rbc-allday-cell {
+  pointer-events: none;
+  cursor: default;
+}
+

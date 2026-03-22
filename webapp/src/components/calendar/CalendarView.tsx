@@ -541,6 +541,9 @@ export default function CalendarView({ calendarId, headerSlot, isQuickAccess }: 
     const handleSelectSlot = (slotInfo: { start: Date; end: Date }) => {
         if (!isAdmin && user?.role !== 'PROFESSOR') return;
 
+        // Bloquear zona all-day (slots fuera del rango horario válido tienen hora 00:00)
+        if (slotInfo.start.getHours() < minHour) return;
+
         const selectedDate = moment(slotInfo.start).format('YYYY-MM-DD');
         if (!lectiveDates.has(selectedDate)) {
             triggerAlert({

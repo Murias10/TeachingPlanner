@@ -15,7 +15,7 @@ import { columns as defaultColumns } from "@/components/solicitud/SolicitudTable
 import { useTranslation } from "react-i18next"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { ChevronDown } from "lucide-react"
+import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react"
 import {
     DropdownMenu,
     DropdownMenuTrigger,
@@ -181,6 +181,7 @@ export function SolicitudTable({ solicitudes, onApprove, onReject, onReview }: S
                         onClick={() => table.previousPage()}
                         disabled={!table.getCanPreviousPage()}
                     >
+                        <ChevronLeft className="h-4 w-4 mr-1" />
                         Anterior
                     </Button>
                     <Button
@@ -190,6 +191,7 @@ export function SolicitudTable({ solicitudes, onApprove, onReject, onReview }: S
                         disabled={!table.getCanNextPage()}
                     >
                         Siguiente
+                        <ChevronRight className="h-4 w-4 ml-1" />
                     </Button>
                 </div>
             </div>

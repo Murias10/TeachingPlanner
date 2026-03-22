@@ -14,7 +14,7 @@ import {
 import { columns as defaultColumns } from "@/components/subject/SubjectTable.config"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { ChevronDown } from "lucide-react"
+import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react"
 import {
     DropdownMenu,
     DropdownMenuTrigger,
@@ -166,6 +166,7 @@ export function SubjectTable({ subjects, deleteSubject, setSelectedIds, isAdmin,
                         onClick={() => table.previousPage()}
                         disabled={!table.getCanPreviousPage()}
                     >
+                        <ChevronLeft className="h-4 w-4 mr-1" />
                         {t("table.pagination.previous")}
                     </Button>
                     <Button
@@ -175,6 +176,7 @@ export function SubjectTable({ subjects, deleteSubject, setSelectedIds, isAdmin,
                         disabled={!table.getCanNextPage()}
                     >
                         {t("table.pagination.next")}
+                        <ChevronRight className="h-4 w-4 ml-1" />
                     </Button>
                 </div>
             </div>

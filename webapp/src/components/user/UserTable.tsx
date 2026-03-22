@@ -14,7 +14,7 @@ import {
 import { columns as defaultColumns } from "@/components/user/UserTable.config"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { ChevronDown } from "lucide-react"
+import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react"
 import {
     DropdownMenu,
     DropdownMenuTrigger,
@@ -167,6 +167,7 @@ export function UserTable({ users, deleteUser, editUser, sendActivationEmail, se
                         onClick={() => table.previousPage()}
                         disabled={!table.getCanPreviousPage()}
                     >
+                        <ChevronLeft className="h-4 w-4 mr-1" />
                         Anterior
                     </Button>
                     <Button
@@ -176,6 +177,7 @@ export function UserTable({ users, deleteUser, editUser, sendActivationEmail, se
                         disabled={!table.getCanNextPage()}
                     >
                         Siguiente
+                        <ChevronRight className="h-4 w-4 ml-1" />
                     </Button>
                 </div>
             </div>

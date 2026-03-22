@@ -51,6 +51,7 @@ export default function RequestReplaceDialog({
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('10:00');
   const [comment, setComment] = useState('');
+  const [openNewEventDate, setOpenNewEventDate] = useState(false);
   const [openStartTime, setOpenStartTime] = useState(false);
   const [openEndTime, setOpenEndTime] = useState(false);
 
@@ -123,7 +124,7 @@ export default function RequestReplaceDialog({
             {/* Nueva fecha */}
             <div className="space-y-1">
               <Label className="text-xs font-semibold">Nueva fecha</Label>
-              <Popover modal={true}>
+              <Popover modal={true} open={openNewEventDate} onOpenChange={setOpenNewEventDate}>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="h-8 px-3 text-xs justify-between font-normal w-full">
                     {newEventDate && !isNaN(new Date(newEventDate).getTime())
@@ -136,7 +137,7 @@ export default function RequestReplaceDialog({
                   <Calendar
                     mode="single"
                     selected={newEventDate && !isNaN(new Date(newEventDate).getTime()) ? new Date(newEventDate) : new Date()}
-                    onSelect={(date) => { if (date) setNewEventDate(format(date, 'yyyy-MM-dd')); }}
+                    onSelect={(date) => { if (date) { setNewEventDate(format(date, 'yyyy-MM-dd')); setOpenNewEventDate(false); } }}
                     locale={es}
                     disabled={(date) => !lectiveDates.has(format(date, 'yyyy-MM-dd'))}
                   />

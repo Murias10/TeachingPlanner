@@ -53,6 +53,7 @@ export default function RequestEditDialog({
   const [eventDate, setEventDate] = useState('');
   const [weekDay, setWeekDay] = useState('');
   const [comment, setComment] = useState('');
+  const [openEventDate, setOpenEventDate] = useState(false);
   const [openStartTime, setOpenStartTime] = useState(false);
   const [openEndTime, setOpenEndTime] = useState(false);
 
@@ -126,7 +127,7 @@ export default function RequestEditDialog({
             {isPuntual && (
               <div className="space-y-1">
                 <Label className="text-xs font-semibold">Fecha</Label>
-                <Popover modal={true}>
+                <Popover modal={true} open={openEventDate} onOpenChange={setOpenEventDate}>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="h-8 px-3 text-xs justify-between font-normal w-full">
                       {eventDate && !isNaN(new Date(eventDate).getTime())
@@ -139,7 +140,7 @@ export default function RequestEditDialog({
                     <Calendar
                       mode="single"
                       selected={eventDate && !isNaN(new Date(eventDate).getTime()) ? new Date(eventDate) : new Date()}
-                      onSelect={(date) => { if (date) setEventDate(format(date, 'yyyy-MM-dd')); }}
+                      onSelect={(date) => { if (date) { setEventDate(format(date, 'yyyy-MM-dd')); setOpenEventDate(false); } }}
                       locale={es}
                       disabled={(date) => !lectiveDates.has(format(date, 'yyyy-MM-dd'))}
                     />

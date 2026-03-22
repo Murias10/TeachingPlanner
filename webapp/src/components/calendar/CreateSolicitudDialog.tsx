@@ -85,6 +85,9 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
 
   const [groupType, setGroupType] = useState<string>('T');
   const [selectedEventType, setSelectedEventType] = useState<string>(EVENT_TYPES.NORMAL);
+  const [openEventDate, setOpenEventDate] = useState(false);
+  const [openCustomStartDate, setOpenCustomStartDate] = useState(false);
+  const [openEndsOnDate, setOpenEndsOnDate] = useState(false);
   const [openStartTime, setOpenStartTime] = useState(false);
   const [openEndTime, setOpenEndTime] = useState(false);
 
@@ -349,7 +352,7 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
               <div className="flex gap-2">
                 {/* Date Selection - for no-repeat */}
                 {config.frequency === 'no-repeat' && (
-                  <Popover modal={true}>
+                  <Popover modal={true} open={openEventDate} onOpenChange={setOpenEventDate}>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
@@ -366,6 +369,7 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
                         onSelect={(date) => {
                           if (date) {
                             setConfig({ ...config, eventDate: format(date, 'yyyy-MM-dd') });
+                            setOpenEventDate(false);
                           }
                         }}
                         locale={es}
@@ -396,7 +400,7 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
 
                 {/* Date Selection - for custom */}
                 {config.frequency === 'custom' && (
-                  <Popover modal={true}>
+                  <Popover modal={true} open={openCustomStartDate} onOpenChange={setOpenCustomStartDate}>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
@@ -413,6 +417,7 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
                         onSelect={(date) => {
                           if (date) {
                             setConfig({ ...config, customStartDate: format(date, 'yyyy-MM-dd') });
+                            setOpenCustomStartDate(false);
                           }
                         }}
                         locale={es}
@@ -799,7 +804,7 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
                       <Label htmlFor="on" className="text-xs cursor-pointer m-0">
                         El
                       </Label>
-                      <Popover>
+                      <Popover open={openEndsOnDate} onOpenChange={setOpenEndsOnDate}>
                         <PopoverTrigger asChild disabled={config.endsType !== 'on'}>
                           <Button
                             variant="ghost"
@@ -816,6 +821,7 @@ const CreateSolicitudDialog: React.FC<CreateSolicitudDialogProps> = ({
                             onSelect={(date) => {
                               if (date) {
                                 setConfig({ ...config, endsOnDate: format(date, 'yyyy-MM-dd') });
+                                setOpenEndsOnDate(false);
                               }
                             }}
                             locale={es}

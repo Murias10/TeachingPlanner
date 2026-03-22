@@ -63,6 +63,8 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
 
   const [selectedEventType, setSelectedEventType] = useState<string>(EVENT_TYPES.NORMAL);
   const [groupType, setGroupType] = useState<string>('T');
+  const [openEventDate, setOpenEventDate] = useState(false);
+  const [openCustomStartDate, setOpenCustomStartDate] = useState(false);
   const [openStartTime, setOpenStartTime] = useState(false);
   const [openEndTime, setOpenEndTime] = useState(false);
   const [allowEditPlanifiedHours, setAllowEditPlanifiedHours] = useState(false);
@@ -368,7 +370,7 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
               <div className="flex gap-2">
                 {/* Date Selection - for no-repeat */}
                 {config.frequency === 'no-repeat' && (
-                  <Popover modal={true}>
+                  <Popover modal={true} open={openEventDate} onOpenChange={setOpenEventDate}>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
@@ -385,6 +387,7 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
                         onSelect={(date) => {
                           if (date) {
                             setConfig({ ...config, eventDate: format(date, 'yyyy-MM-dd') });
+                            setOpenEventDate(false);
                           }
                         }}
                         locale={es}
@@ -415,7 +418,7 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
 
                 {/* Date Selection - for custom */}
                 {config.frequency === 'custom' && (
-                  <Popover modal={true}>
+                  <Popover modal={true} open={openCustomStartDate} onOpenChange={setOpenCustomStartDate}>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
@@ -432,6 +435,7 @@ const CreateEventDialog: React.FC<CreateEventDialogProps> = ({ open, onOpenChang
                         onSelect={(date) => {
                           if (date) {
                             setConfig({ ...config, customStartDate: format(date, 'yyyy-MM-dd') });
+                            setOpenCustomStartDate(false);
                           }
                         }}
                         locale={es}

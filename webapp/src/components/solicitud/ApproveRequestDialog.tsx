@@ -131,6 +131,9 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
 
   const [groupType, setGroupType] = useState<string>('T');
   const [selectedEventType, setSelectedEventType] = useState<string>(EVENT_TYPES.NORMAL);
+  const [openEventDate, setOpenEventDate] = useState(false);
+  const [openCustomStartDate, setOpenCustomStartDate] = useState(false);
+  const [openEndsOnDate, setOpenEndsOnDate] = useState(false);
   const [openStartTime, setOpenStartTime] = useState(false);
   const [openEndTime, setOpenEndTime] = useState(false);
 
@@ -394,7 +397,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
               <div className="flex gap-2">
                 {/* Date Picker - Only for puntual (no-repeat) */}
                 {config.frequency === 'no-repeat' && (
-                  <Popover modal={true}>
+                  <Popover modal={true} open={openEventDate} onOpenChange={setOpenEventDate}>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="h-8 px-3 text-xs justify-between font-normal flex-1">
                         {config.eventDate && !isNaN(new Date(config.eventDate).getTime())
@@ -410,6 +413,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                         onSelect={(date) => {
                           if (date) {
                             setConfig({ ...config, eventDate: format(date, 'yyyy-MM-dd') });
+                            setOpenEventDate(false);
                           }
                         }}
                         locale={es}
@@ -440,7 +444,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
 
                 {/* Date Picker for custom frequency start date */}
                 {config.frequency === 'custom' && (
-                  <Popover modal={true}>
+                  <Popover modal={true} open={openCustomStartDate} onOpenChange={setOpenCustomStartDate}>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="h-8 px-3 text-xs justify-between font-normal flex-1">
                         {config.customStartDate && !isNaN(new Date(config.customStartDate).getTime())
@@ -456,6 +460,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                         onSelect={(date) => {
                           if (date) {
                             setConfig({ ...config, customStartDate: format(date, 'yyyy-MM-dd') });
+                            setOpenCustomStartDate(false);
                           }
                         }}
                         locale={es}
@@ -847,7 +852,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                       <Label htmlFor="on" className="text-xs cursor-pointer m-0">
                         El
                       </Label>
-                      <Popover>
+                      <Popover open={openEndsOnDate} onOpenChange={setOpenEndsOnDate}>
                         <PopoverTrigger asChild disabled={config.endsType !== 'on'}>
                           <Button
                             variant="ghost"
@@ -864,6 +869,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                             onSelect={(date) => {
                               if (date) {
                                 setConfig({ ...config, endsOnDate: format(date, 'yyyy-MM-dd') });
+                                setOpenEndsOnDate(false);
                               }
                             }}
                             locale={es}

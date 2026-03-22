@@ -95,7 +95,7 @@ export default function HomePage() {
                 {/* Calendario seleccionado — pasa el selector como headerSlot para fusionar toolbars */}
                 {hasAvailableCalendars && selectedCalendarId && (
                     <div className="flex-1 overflow-hidden">
-                        <CalendarView calendarId={selectedCalendarId} headerSlot={calendarSelector} />
+                        <CalendarView calendarId={selectedCalendarId} headerSlot={calendarSelector} isQuickAccess />
                     </div>
                 )}
 

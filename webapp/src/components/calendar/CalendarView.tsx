@@ -120,9 +120,10 @@ const getSubjectColor = (subjectAcronym: string | undefined): string => {
 interface CalendarViewProps {
     calendarId: string;
     headerSlot?: React.ReactNode;
+    isQuickAccess?: boolean;
 }
 
-export default function CalendarView({ calendarId, headerSlot }: CalendarViewProps) {
+export default function CalendarView({ calendarId, headerSlot, isQuickAccess }: CalendarViewProps) {
     const { t, i18n } = useTranslation();
     const { triggerAlert } = useFloatingAlertContext();
     const { user } = useAuth();
@@ -1331,7 +1332,13 @@ export default function CalendarView({ calendarId, headerSlot }: CalendarViewPro
                         {/* Header */}
                         <div className="flex items-center justify-between px-8 py-4 border-b">
                             <div>
-                                <h1 className="text-xl font-semibold text-foreground">
+                                <h1 className="text-xl font-semibold text-foreground flex items-center gap-2">
+                                    {isQuickAccess && (
+                                        <>
+                                            <span className="text-foreground font-normal">{t('calendar.quickAccess')}</span>
+                                            <span className="text-foreground">·</span>
+                                        </>
+                                    )}
                                     {t('calendar.title', { semester: data.semester })}
                                 </h1>
                                 <p className="text-sm text-muted-foreground mt-1">

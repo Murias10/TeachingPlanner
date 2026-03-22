@@ -893,6 +893,7 @@
             "eventType": "Event type"
         },
         "title": "Calendar - Semester {{semester}}",
+        "quickAccess": "Quick access",
         "showingEvents": "Showing {{count}} of {{total}} events",
         "loadError": "Could not load calendar",
         "academicYear": {

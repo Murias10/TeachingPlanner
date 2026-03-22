@@ -890,6 +890,7 @@
             "eventType": "Tipo de Evento"
         },
         "title": "Calendario - Semestre {{semester}}",
+        "quickAccess": "Acceso rápido",
         "showingEvents": "Mostrando {{count}} de {{total}} eventos",
         "loadError": "No se pudo cargar el calendario",
         "academicYear": {

@@ -399,9 +399,9 @@ export default function CalendarView({ calendarId, headerSlot }: CalendarViewPro
                 : 'Sin aula asignada';
 
             if (event.eventType === 'BLOCKER') {
-                const tooltip = `Blocker\n${classroomStr}\n${event.startTime.substring(0, 5)} - ${event.endTime.substring(0, 5)}`;
+                const tooltip = `IND\n${classroomStr}\n${event.startTime.substring(0, 5)} - ${event.endTime.substring(0, 5)}`;
                 return {
-                    title: `${classroomStr} · ${timeStr}`,
+                    title: `IND · ${classroomStr} · ${timeStr}`,
                     start: startMoment.toDate(),
                     end: endMoment.toDate(),
                     resource: event,
@@ -421,7 +421,8 @@ export default function CalendarView({ calendarId, headerSlot }: CalendarViewPro
                 return `${g.type}.${lang}${g.number}`;
             }).join(', ')}`;
 
-            const tooltip = `${event.subject?.name || 'Sin asignatura'}\n${groupName}\n${event.startTime.substring(0, 5)} - ${event.endTime.substring(0, 5)}\n${classroomStr}`;
+            const tooltipGroupPart = eventPrefix ? `${eventPrefix}${groupName}` : groupName;
+            const tooltip = `${event.subject?.name || 'Sin asignatura'}\n${tooltipGroupPart}\n${event.startTime.substring(0, 5)} - ${event.endTime.substring(0, 5)}\n${classroomStr}`;
 
             return {
                 title: `${eventPrefix}${groupName} · ${timeStr}`,

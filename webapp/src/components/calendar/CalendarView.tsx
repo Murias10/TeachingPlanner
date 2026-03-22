@@ -3,6 +3,7 @@ import { usePersistedFilters } from "@/hooks/usePersistedFilters";
 import { useFilterCascade } from "@/hooks/useFilterCascade";
 import { getActiveValues, applyFilters } from "@/utils/filterUtils";
 import { Calendar, momentLocalizer, Components } from "react-big-calendar";
+import MonthViewSingleEvent from "./MonthViewSingleEvent";
 import moment from "@/utils/momentLocales";
 import { format } from "date-fns";
 import "react-big-calendar/lib/css/react-big-calendar.css";
@@ -1347,7 +1348,7 @@ export default function CalendarView({ calendarId, headerSlot }: CalendarViewPro
                             <Calendar
                                 key={i18n.language}
                                 defaultView="work_week"
-                                views={['week', 'work_week', 'day', 'month']}
+                                views={{ week: true, work_week: true, day: true, month: MonthViewSingleEvent as any }}
                                 localizer={localizer}
                                 events={events}
                                 max={maxDate}

@@ -71,3 +71,10 @@ export const formatGroupForDisplay = (groupId: string): string => {
 export const getGroupAcronym = (groupId: string): string => {
   return groupId.split('-')[0];
 };
+
+/**
+ * Devuelve true si el groupId corresponde a un grupo en inglés.
+ * Formato español: ACRONIMO-G#-TIPO (3 partes)
+ * Formato inglés:  ACRONIMO-G#-I-TIPO (4 partes)
+ */
+export const isEnglishGroup = (groupId: string): boolean => groupId.split('-').length === 4;

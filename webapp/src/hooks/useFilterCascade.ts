@@ -14,6 +14,10 @@ interface FilterOption {
  *            idioma → grupos
  *
  * Se debe llamar después del useMemo de filterOptions en cada página.
+ *
+ * IMPORTANTE: Solo persiste limpiezas de cascada cuando el usuario cambia un filtro padre.
+ * Los valores que no existen en el calendario actual se ignoran visualmente en ClassFilter
+ * usando getActiveValues, sin modificar el estado persistido.
  */
 export function useFilterCascade(
     filters: FilterValues,

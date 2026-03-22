@@ -141,7 +141,15 @@ export default function ClassFilter({
     });
   };
 
-  const totalActiveFilters = Object.values(filters).reduce((sum, arr) => sum + arr.length, 0);
+  // Cuenta solo valores que existen en las opciones del calendario actual
+  const getActiveCount = (category: FilterCategory): number => {
+    const opts = new Set(filterOptions.find(fo => fo.category === category)?.options ?? []);
+    return filters[category].filter(v => opts.has(v)).length;
+  };
+
+  const totalActiveFilters = (Object.keys(filters) as FilterCategory[]).reduce(
+    (sum, cat) => sum + getActiveCount(cat), 0
+  );
 
   // Vista colapsada (solo botón)
   if (isCollapsed) {
@@ -210,7 +218,7 @@ export default function ClassFilter({
         <div className="px-4 py-4 space-y-2">
           {filterOptions.map(({ category, label, options, optionTooltips, icon: Icon }) => {
             const isExpanded = expandedCategory === category;
-            const selectedCount = filters[category].length;
+            const selectedCount = getActiveCount(category);
             const showSearch = options.length > SEARCH_THRESHOLD;
             const filteredOptions = filterOptionsBySearch(options, category);
 
@@ -359,19 +367,20 @@ export default function ClassFilter({
             <div className="mt-4 p-4 bg-card border rounded-lg">
               <p className="text-xs font-medium text-foreground mb-3">{t('filters.activeFilters')}</p>
               <div className="flex flex-wrap gap-2">
-                {Object.entries(filters).map(([category, values]) =>
-                  values.map((value: string) => (
+                {(Object.entries(filters) as [FilterCategory, string[]][]).map(([category, values]) => {
+                  const opts = new Set(filterOptions.find(fo => fo.category === category)?.options ?? []);
+                  return values.filter(v => opts.has(v)).map((value: string) => (
                     <Badge
                       key={`${category}-${value}`}
                       variant="secondary"
                       className="px-2 py-1 flex items-center gap-1 cursor-pointer hover:bg-secondary/80 transition-colors"
-                      onClick={() => toggleFilter(category as FilterCategory, value)}
+                      onClick={() => toggleFilter(category, value)}
                     >
-                      {getDisplayLabel(category as FilterCategory, value)}
+                      {getDisplayLabel(category, value)}
                       <X className="w-3 h-3" />
                     </Badge>
-                  ))
-                )}
+                  ));
+                })}
               </div>
             </div>
           )}

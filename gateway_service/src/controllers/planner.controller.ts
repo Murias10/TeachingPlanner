@@ -374,13 +374,11 @@ export const createEventRequest = (req: Request, res: Response, next: NextFuncti
         body: req.body
     });
 
-export const getEventRequests = (req: Request, res: Response, next: NextFunction) => {
-    const query = new URLSearchParams(req.query as Record<string, string>).toString();
-    return proxyRequest(req, res, next, {
-        url: query ? `${SERVICES.PLANNER}/event-requests?${query}` : `${SERVICES.PLANNER}/event-requests`,
+export const getEventRequests = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/event-requests`,
         method: 'GET'
     });
-};
 
 export const getEventRequestById = (req: Request, res: Response, next: NextFunction) =>
     proxyRequest(req, res, next, {

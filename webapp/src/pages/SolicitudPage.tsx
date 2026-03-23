@@ -12,20 +12,11 @@ import { useCoursesByDegreeAcronym } from "@/hooks/course/useCoursesByDegreeAcro
 import { useCalendarByCourseAndSemester } from "@/hooks/calendar/useCalendarByCourseAndSemester";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-    DialogFooter,
-} from "@/components/ui/dialog";
 import { RefreshCw } from "lucide-react";
 import { SolicitudTable } from "@/components/solicitud/SolicitudTable";
-import ApproveRequestDialog, { canApproveRequestDirectly } from "@/components/solicitud/ApproveRequestDialog";
+import ApproveRequestDialog from "@/components/solicitud/ApproveRequestDialog";
+import RejectRequestDialog from "@/components/calendar/RejectRequestDialog";
 import type { RecurrenceConfig } from '@/types/RecurrenceConfig';
-import moment from "moment";
 
 interface EventRequest {
     id: string;
@@ -51,10 +42,7 @@ const SolicitudPage = () => {
     const { acronym, startYear, endYear, semester } = useParams<{ acronym: string, startYear: string, endYear: string, semester: string }>();
     const { data: degree } = useDegreeByAcronym(acronym || null);
 
-    // Obtener los cursos por acrónimo
     const { data: courses } = useCoursesByDegreeAcronym(acronym || null);
-
-    // Buscar el curso específico basado en startYear y endYear
     const course = courses?.find(c =>
         c.startYear.toString() === startYear &&
         c.endYear.toString() === endYear
@@ -65,11 +53,9 @@ const SolicitudPage = () => {
     const [approveDialogOpen, setApproveDialogOpen] = useState(false);
     const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
     const [selectedSolicitud, setSelectedSolicitud] = useState<EventRequest | null>(null);
-    const [comments, setComments] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [statusFilter, setStatusFilter] = useState<'all' | 'PENDING' | 'APPROVED' | 'REJECTED'>('PENDING');
 
-    // Get calendar data to obtain lective dates
     const { data: calendarData } = useCalendarByCourseAndSemester(
         acronym || null,
         startYear || null,
@@ -81,12 +67,11 @@ const SolicitudPage = () => {
         return new Set(calendarData?.lectiveDates || []);
     }, [calendarData?.lectiveDates]);
 
-    const cargarSolicitudes = useCallback(async (filter?: 'all' | 'PENDING' | 'APPROVED' | 'REJECTED') => {
+    const cargarSolicitudes = useCallback(async (
+        filter: 'all' | 'PENDING' | 'APPROVED' | 'REJECTED' = 'PENDING'
+    ) => {
         setIsLoading(true);
-        const filterToUse = filter ?? statusFilter;
-        const result = await listarSolicitudes(
-            filterToUse === 'all' ? undefined : filterToUse
-        );
+        const result = await listarSolicitudes(filter === 'all' ? undefined : filter);
 
         if (result.success && result.data?.requests) {
             setSolicitudes(result.data.requests);
@@ -98,25 +83,20 @@ const SolicitudPage = () => {
             });
         }
         setIsLoading(false);
-    }, [statusFilter, listarSolicitudes, triggerAlert]);
+    }, [listarSolicitudes, triggerAlert]);
 
-    // Cargar solicitudes al montar el componente
     useEffect(() => {
         setItems([
             { label: t("breadcrumb.degrees"), href: "/degrees" },
-            // Miga intermedia con el nombre del grado (sin enlace, solo informativo)
             ...(course?.degree ? [{ label: course.degree.name, href: "" }] : []),
             { label: t("breadcrumb.courses"), href: `/degrees/${acronym}/courses` },
-            // Miga intermedia con el año académico (sin enlace, solo informativo)
             ...(course ? [{ label: `${course.startYear}/${course.endYear}`, href: "" }] : []),
-            // Miga intermedia con el semestre (sin enlace, solo informativo)
             ...(semester ? [{ label: `${t("breadcrumb.semester")} ${semester}`, href: "" }] : []),
             { label: "Solicitudes", href: "" },
         ]);
-        cargarSolicitudes();
+        cargarSolicitudes('PENDING');
     }, [setItems, t, acronym, startYear, endYear, semester, cargarSolicitudes, course]);
 
-    // Protección: Solo ADMIN puede acceder - esperar a que termine de cargar
     if (authLoading) {
         return (
             <section className="h-full rounded-xl bg-muted/50 flex items-center justify-center m-2 p-10">
@@ -132,21 +112,8 @@ const SolicitudPage = () => {
     }
 
     const handleApprove = (solicitud: EventRequest) => {
-        console.log('[SolicitudPage] handleApprove called with:', solicitud);
-
-        // Validar si la solicitud tiene todos los datos necesarios
-        if (!canApproveRequestDirectly(solicitud.eventData)) {
-            // Faltan datos -> Abrir diálogo de revisión automáticamente
-            setSelectedSolicitud(solicitud);
-            setApproveDialogOpen(true);
-            console.log('[SolicitudPage] Incomplete data - Opening review dialog');
-            return;
-        }
-
-        // Tiene todos los datos -> Abrir diálogo de revisión (mismo comportamiento que antes)
         setSelectedSolicitud(solicitud);
         setApproveDialogOpen(true);
-        console.log('[SolicitudPage] Dialog should open now');
     };
 
     const handleApproveWithData = async (config: RecurrenceConfig) => {
@@ -158,7 +125,7 @@ const SolicitudPage = () => {
             const result = await aprobarSolicitud(
                 selectedSolicitud.id,
                 config,
-                () => cargarSolicitudes()
+                () => cargarSolicitudes(statusFilter)
             );
 
             if (result.success) {
@@ -168,7 +135,7 @@ const SolicitudPage = () => {
                     variant: 'success'
                 });
                 setApproveDialogOpen(false);
-                cargarSolicitudes();
+                cargarSolicitudes(statusFilter);
             } else {
                 const first = result.conflictData?.[0];
                 let description: string;
@@ -210,18 +177,17 @@ const SolicitudPage = () => {
 
     const handleReject = (solicitud: EventRequest) => {
         setSelectedSolicitud(solicitud);
-        setComments("");
         setRejectDialogOpen(true);
     };
 
-    const handleConfirmReject = async () => {
+    const handleRejectWithComments = async (comments: string) => {
         if (!selectedSolicitud) return;
 
         setIsSubmitting(true);
 
         try {
             const result = await rechazarSolicitud(selectedSolicitud.id, comments, () => {
-                cargarSolicitudes();
+                cargarSolicitudes(statusFilter);
             });
 
             if (result.success) {
@@ -231,7 +197,7 @@ const SolicitudPage = () => {
                     variant: 'success'
                 });
                 setRejectDialogOpen(false);
-                cargarSolicitudes();
+                cargarSolicitudes(statusFilter);
             } else {
                 triggerAlert({
                     title: t("common.error"),
@@ -248,10 +214,6 @@ const SolicitudPage = () => {
         } finally {
             setIsSubmitting(false);
         }
-    };
-
-    const getEventTypeLabel = (eventType: string) => {
-        return eventType === 'PUNTUAL' ? 'Puntual' : 'Periódica';
     };
 
     if (isLoading && solicitudes.length === 0) {
@@ -303,7 +265,7 @@ const SolicitudPage = () => {
                         ))}
                     </div>
                     <button
-                        onClick={() => cargarSolicitudes()}
+                        onClick={() => cargarSolicitudes(statusFilter)}
                         disabled={isLoading}
                         className="p-2 rounded-md hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         title={t("requests.page.refresh")}
@@ -331,7 +293,6 @@ const SolicitudPage = () => {
                 </div>
             </section>
 
-            {/* Approve Request Dialog */}
             <ApproveRequestDialog
                 open={approveDialogOpen}
                 onOpenChange={setApproveDialogOpen}
@@ -342,72 +303,12 @@ const SolicitudPage = () => {
                 calendarEndDate={calendarData?.endDate}
             />
 
-            {/* Reject Request Dialog */}
-            <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>{t("requests.dialog.reject.title")}</DialogTitle>
-                        <DialogDescription>
-                            {t("requests.dialog.reject.description")}
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    <div className="space-y-4">
-                        {selectedSolicitud && (
-                            <>
-                                <div>
-                                    <label className="text-sm font-medium">{t("requests.dialog.reject.professor")}</label>
-                                    <p className="text-sm text-muted-foreground mt-1">
-                                        {selectedSolicitud.professorId}
-                                    </p>
-                                </div>
-                                <div>
-                                    <label className="text-sm font-medium">{t("requests.dialog.reject.eventType")}</label>
-                                    <p className="text-sm text-muted-foreground mt-1">
-                                        {getEventTypeLabel(selectedSolicitud.eventType)}
-                                    </p>
-                                </div>
-                                <div>
-                                    <label className="text-sm font-medium">{t("requests.dialog.reject.requestDate")}</label>
-                                    <p className="text-sm text-muted-foreground mt-1">
-                                        {moment(selectedSolicitud.createdAt).format('DD/MM/YYYY HH:mm')}
-                                    </p>
-                                </div>
-                            </>
-                        )}
-
-                        <div>
-                            <label htmlFor="comments" className="text-sm font-medium">
-                                {t("requests.dialog.reject.comments")}
-                            </label>
-                            <Textarea
-                                id="comments"
-                                placeholder={t("requests.dialog.reject.commentsPlaceholder")}
-                                value={comments}
-                                onChange={(e) => setComments(e.target.value)}
-                                className="mt-2 min-h-20"
-                            />
-                        </div>
-                    </div>
-
-                    <DialogFooter>
-                        <Button
-                            variant="outline"
-                            onClick={() => setRejectDialogOpen(false)}
-                            disabled={isSubmitting}
-                        >
-                            {t("requests.dialog.reject.cancel")}
-                        </Button>
-                        <Button
-                            onClick={handleConfirmReject}
-                            disabled={isSubmitting || !comments.trim()}
-                            variant="destructive"
-                        >
-                            {isSubmitting ? t("requests.dialog.reject.processing") : t("requests.dialog.reject.reject")}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            <RejectRequestDialog
+                open={rejectDialogOpen}
+                onOpenChange={setRejectDialogOpen}
+                onReject={handleRejectWithComments}
+                isSubmitting={isSubmitting}
+            />
         </>
     );
 };

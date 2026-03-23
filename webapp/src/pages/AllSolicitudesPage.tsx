@@ -58,12 +58,11 @@ const AllSolicitudesPage = () => {
         return new Set(calendarData?.lectiveDates || []);
     }, [calendarData?.lectiveDates]);
 
-    const cargarSolicitudes = useCallback(async (filter?: 'all' | 'PENDING' | 'APPROVED' | 'REJECTED') => {
+    const cargarSolicitudes = useCallback(async (
+        filter: 'all' | 'PENDING' | 'APPROVED' | 'REJECTED' = 'PENDING'
+    ) => {
         setIsLoading(true);
-        const filterToUse = filter ?? statusFilter;
-        const result = await listarSolicitudes(
-            filterToUse === 'all' ? undefined : filterToUse
-        );
+        const result = await listarSolicitudes(filter === 'all' ? undefined : filter);
 
         if (result.success && result.data?.requests) {
             setSolicitudes(result.data.requests);
@@ -75,7 +74,7 @@ const AllSolicitudesPage = () => {
             });
         }
         setIsLoading(false);
-    }, [statusFilter, listarSolicitudes, triggerAlert]);
+    }, [listarSolicitudes, triggerAlert]);
 
     // Cargar solicitudes al montar el componente
     useEffect(() => {
@@ -83,7 +82,7 @@ const AllSolicitudesPage = () => {
             { label: t("breadcrumb.home"), href: "/degrees" },
             { label: "Solicitudes", href: "" },
         ]);
-        cargarSolicitudes();
+        cargarSolicitudes('PENDING');
     }, [setItems, t, cargarSolicitudes]);
 
     // Protección: Solo ADMIN puede acceder
@@ -114,7 +113,7 @@ const AllSolicitudesPage = () => {
             const result = await aprobarSolicitud(
                 selectedSolicitud.id,
                 config,
-                () => cargarSolicitudes()
+                () => cargarSolicitudes(statusFilter)
             );
 
             if (result.success) {
@@ -124,7 +123,7 @@ const AllSolicitudesPage = () => {
                     variant: 'success'
                 });
                 setApproveDialogOpen(false);
-                cargarSolicitudes();
+                cargarSolicitudes(statusFilter);
             } else {
                 const first = result.conflictData?.[0];
                 let description: string;
@@ -176,7 +175,7 @@ const AllSolicitudesPage = () => {
 
         try {
             const result = await rechazarSolicitud(selectedSolicitud.id, comments, () => {
-                cargarSolicitudes();
+                cargarSolicitudes(statusFilter);
             });
 
             if (result.success) {
@@ -186,7 +185,7 @@ const AllSolicitudesPage = () => {
                     variant: 'success'
                 });
                 setRejectDialogOpen(false);
-                cargarSolicitudes();
+                cargarSolicitudes(statusFilter);
             } else {
                 triggerAlert({
                     title: t("common.error"),
@@ -249,7 +248,7 @@ const AllSolicitudesPage = () => {
                         ))}
                     </div>
                     <button
-                        onClick={() => cargarSolicitudes()}
+                        onClick={() => cargarSolicitudes(statusFilter)}
                         disabled={isLoading}
                         className="p-2 rounded-md hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         title="Actualizar solicitudes"

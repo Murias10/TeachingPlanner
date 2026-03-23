@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CheckCircle2, ChevronDownIcon } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -138,10 +138,12 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
   const [openEndTime, setOpenEndTime] = useState(false);
 
   const calendarId = solicitud?.calendarId;
+  const isInitializingRef = useRef(false);
 
   // Pre-fill form with solicitud data when dialog opens
   React.useEffect(() => {
     if (solicitud && open) {
+      isInitializingRef.current = true;
       const eventData = solicitud.eventData;
 
       const newConfig: RecurrenceConfig = {
@@ -166,18 +168,13 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
 
       setConfig(newConfig);
       setSelectedEventType(eventData.eventType || EVENT_TYPES.NORMAL);
-
-      // Determine group type from first group if available
-      if (eventData.groupIds && eventData.groupIds.length > 0) {
-        // Try to extract group type from group data if available
-        // Otherwise default to 'T'
-        setGroupType('T');
-      }
+      setTimeout(() => { isInitializingRef.current = false; }, 0);
     }
   }, [solicitud, open]);
 
   // Clear group and classroom selections when event type changes
   React.useEffect(() => {
+    if (isInitializingRef.current) return;
     setConfig(prev => ({
       ...prev,
       groupIds: [],
@@ -187,6 +184,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
 
   // Clear group and classroom selections when subject changes
   React.useEffect(() => {
+    if (isInitializingRef.current) return;
     setConfig(prev => ({
       ...prev,
       groupIds: [],
@@ -230,7 +228,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
         }));
       }
     }
-  }, [open, solicitud, config.groupIds, config.subjectId, config.frequency, config.planifiedHours, subjectsWithGroups]);
+  }, [open, solicitud, config.groupIds, config.subjectId, config.frequency, subjectsWithGroups]);
 
   // Pre-select weekday when frequency is 'weekly' and customStartDate is provided
   React.useEffect(() => {
@@ -261,8 +259,6 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
       }
     }
   }, [config.frequency, config.customStartDate]);
-
-  const filteredSubjects = subjects;
 
   // Calculate monthly pattern labels based on customStartDate
   const monthlyPatternLabels = useMemo(() => {
@@ -304,56 +300,10 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
     return selectedSubject.groups.filter(g => g.type === groupType);
   }, [config.subjectId, groupType, subjectsWithGroups, isReviewOrEval]);
 
-  const handleSave = () => {
-    if (!calendarId) return;
-    onApprove(config);
-  };
-
-  // Validate that all required fields are filled
-  const isFormValid = useMemo(() => {
-    const hasClassrooms = config.classroomIds && config.classroomIds.length > 0;
-    const isSpecial = isSpecialEventType(selectedEventType);
-    const isBlocker = !config.subjectId;
-
-    // Blocker: solo necesita aulas (y fecha/días según frecuencia)
-    if (isBlocker) {
-      if (!hasClassrooms) return false;
-      if (config.frequency === 'no-repeat') return !!config.eventDate;
-      if (config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd') {
-        return !!(config.weekDays && config.weekDays.length > 0);
-      }
-      if (config.frequency === 'custom') {
-        return !!config.customStartDate && !!config.customFrequencyUnit && config.interval > 0 && !!(config.weekDays && config.weekDays.length > 0);
-      }
-      return true;
-    }
-
-    // Eventos con asignatura: requieren asignatura, grupo(s), aula(s)
-    const baseValid = (
-      config.subjectId &&
-      config.groupIds &&
-      config.groupIds.length > 0 &&
-      hasClassrooms
-    );
-
-    if (!baseValid) return false;
-
-    // Additional validation based on frequency
-    if (config.frequency === 'no-repeat') {
-      return !!config.eventDate;
-    }
-
-    if (config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd') {
-      // Special types don't require planifiedHours
-      return !!(config.weekDays && config.weekDays.length > 0) && (isSpecial || config.planifiedHours > 0);
-    }
-
-    if (config.frequency === 'custom') {
-      return !!config.customStartDate && !!config.customFrequencyUnit && config.interval > 0 && !!(config.weekDays && config.weekDays.length > 0);
-    }
-
-    return true;
-  }, [selectedEventType, config.subjectId, config.groupIds, config.classroomIds, config.frequency, config.eventDate, config.weekDays, config.planifiedHours, config.customStartDate, config.customFrequencyUnit, config.interval]);
+  const isFormValid = useMemo(
+    () => canApproveRequestDirectly({ ...config, eventType: selectedEventType }),
+    [config, selectedEventType]
+  );
 
   if (!solicitud) return null;
 
@@ -527,29 +477,30 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                 <div className="h-8 text-xs flex items-center text-muted-foreground">
                   Cargando asignaturas...
                 </div>
-              ) : filteredSubjects.length === 0 ? (
+              ) : subjects.length === 0 ? (
                 <div className="h-8 text-xs flex items-center text-muted-foreground">
                   No hay asignaturas disponibles
                 </div>
-              ) : filteredSubjects.length > 8 ? (
+              ) : subjects.length > 8 ? (
                 <SearchableSelect
                   value={config.subjectId || ''}
                   onValueChange={(value) => setConfig({ ...config, subjectId: value })}
-                  options={filteredSubjects.sort((a, b) => a.name.localeCompare(b.name)).map((subject) => ({
+                  options={subjects.sort((a, b) => a.name.localeCompare(b.name)).map((subject) => ({
                     value: subject.id,
                     label: subject.name
                   }))}
                   placeholder="Seleccionar asignatura"
                   searchPlaceholder="Buscar asignatura..."
                   emptyMessage="No se encontraron asignaturas."
+                  disabled={true}
                 />
               ) : (
-                <Select value={config.subjectId || ''} onValueChange={(value) => setConfig({ ...config, subjectId: value })}>
+                <Select value={config.subjectId || ''} onValueChange={(value) => setConfig({ ...config, subjectId: value })} disabled={true}>
                   <SelectTrigger className="h-8 text-xs w-full">
                     <SelectValue placeholder="Seleccionar asignatura" />
                   </SelectTrigger>
                   <SelectContent>
-                    {filteredSubjects.sort((a, b) => a.name.localeCompare(b.name)).map((subject) => (
+                    {subjects.sort((a, b) => a.name.localeCompare(b.name)).map((subject) => (
                       <SelectItem key={subject.id} value={subject.id}>
                         {subject.name}
                       </SelectItem>
@@ -627,6 +578,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                     placeholder="Seleccionar grupos"
                     searchPlaceholder="Buscar grupo..."
                     emptyMessage="No se encontraron grupos."
+                    disabled={true}
                   />
                 ) : availableGroups.length > 8 ? (
                   <SearchableSelect
@@ -649,6 +601,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                     placeholder="Seleccionar grupo"
                     searchPlaceholder="Buscar grupo..."
                     emptyMessage="No se encontraron grupos."
+                    disabled={true}
                   />
                 ) : (
                   <Select
@@ -656,6 +609,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                     onValueChange={(value) => {
                       setConfig({ ...config, groupIds: value ? [value] : [] });
                     }}
+                    disabled={true}
                   >
                     <SelectTrigger className="h-8 text-xs w-full">
                       <SelectValue placeholder="Seleccionar grupo" />
@@ -938,7 +892,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
             Cancelar
           </Button>
           <Button
-            onClick={handleSave}
+            onClick={() => calendarId && onApprove(config)}
             disabled={!isFormValid || isSubmitting}
             className="h-8 text-xs"
           >

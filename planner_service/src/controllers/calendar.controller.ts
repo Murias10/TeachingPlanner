@@ -3312,6 +3312,22 @@ export const replacePeriodicEvent = async (req: AuditedRequest, res: Response) =
             return;
         }
 
+        // Obtener los datos originales del evento periódico para usarlos en el evento cancelado
+        let originalGroups = groups;
+        let originalClassrooms = classrooms;
+
+        if (periodicEventSourceId) {
+            const periodicEventRepo = AppDataSource.getRepository(PeriodicEvent);
+            const originalPeriodicEvent = await periodicEventRepo.findOne({
+                where: { id: periodicEventSourceId },
+                relations: ['groups', 'classrooms']
+            });
+            if (originalPeriodicEvent) {
+                originalGroups = originalPeriodicEvent.groups ?? [];
+                originalClassrooms = originalPeriodicEvent.classrooms ?? [];
+            }
+        }
+
         // PASO 4: Crear transacción para ambas operaciones atómicas
         const queryRunner = AppDataSource.createQueryRunner();
         await queryRunner.connect();
@@ -3335,14 +3351,15 @@ export const replacePeriodicEvent = async (req: AuditedRequest, res: Response) =
             console.log(`[Replace Event] Created replacement event at ${newEventDate} ${newStartTime}-${newEndTime}`);
 
             // PASO 2: Crear evento cancelado en la fecha original vinculado al reemplazo
+            // Usar los datos originales del evento periódico (no los nuevos del reemplazo)
             const cancelledEvent = puntualEventRepo.create({
                 day: originalDay,
                 startTime: originalStartTime,
                 endTime: originalEndTime,
                 cancelled: true,
                 comment: `Evento reemplazado - ${comment}`,
-                groups: groups,
-                classrooms: classrooms,
+                groups: originalGroups,
+                classrooms: originalClassrooms,
                 createdBy: userEmail,
                 replacementEventId: replacementEvent.id,
                 periodicEventSourceId: periodicEventSourceId ?? null,

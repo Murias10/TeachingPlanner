@@ -1103,7 +1103,7 @@ export default function CalendarView({ calendarId, headerSlot, isQuickAccess }: 
                 throw { message: errorData.message, data: errorData.data };
             }
             refetch();
-            const revertedDate = new Date(eventToRevert.date + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+            const revertedDate = new Date(eventToRevert.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
             triggerAlert({ title: t('calendar.alerts.revert.success.title'), description: t('calendar.alerts.revert.success.description', { date: revertedDate, startTime: eventToRevert.startTime.substring(0, 5), endTime: eventToRevert.endTime.substring(0, 5) }), variant: 'success' });
             setIsRevertConfirmationOpen(false);
             setEventToRevert(undefined);

@@ -324,7 +324,7 @@ export function CalendarEventWrapper({
         <ContextMenuTrigger className="h-full w-full cursor-pointer">
           {renderEventContent()}
         </ContextMenuTrigger>
-        <ContextMenuContent className="w-56">
+        <ContextMenuContent>
           <ContextMenuItem onClick={handleViewDetails}>
             <Calendar />
             Ver detalles
@@ -334,12 +334,12 @@ export function CalendarEventWrapper({
 
           <ContextMenuItem onClick={handleRequestEdit}>
             <Edit />
-            Solicitar editar
+            {isPeriodicEvent ? 'Solicitar editar serie de eventos' : 'Solicitar editar evento'}
           </ContextMenuItem>
 
           <ContextMenuItem onClick={handleRequestReplace}>
             <Replace />
-            Solicitar reemplazo
+            Solicitar reemplazar evento
           </ContextMenuItem>
 
           <ContextMenuItem variant="destructive" onClick={handleRequestCancel}>

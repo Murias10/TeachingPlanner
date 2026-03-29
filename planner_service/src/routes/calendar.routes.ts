@@ -21,7 +21,7 @@ router.post('/calendar/replace-event', requireRole(['ADMIN']), replacePeriodicEv
 router.delete('/calendar/puntual-event/:eventId', requireRole(['ADMIN']), deletePuntualEvent);
 router.delete('/calendar/periodic-event/:eventId', requireRole(['ADMIN']), deletePeriodicEvent);
 router.get('/calendar/:id/events', getCalendarEvents);
-router.get('/calendar/:id/pending-requests', getPendingRequestsAsEvents);
+router.get('/calendar/:id/pending-requests', requireRole(['ADMIN', 'PROFESSOR']), getPendingRequestsAsEvents);
 router.get('/calendar/:id/export', exportCalendar);
 router.delete('/calendar/:id', requireRole(['ADMIN']), deleteCalendar);
 

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
 import { User, LoginCredentials, RegisterData } from '@/types/auth.types';
 import { authService } from '@/services/auth.services'
+import { queryClient } from '@/queryClient';
 
 const TOKEN_KEY = 'auth_token';
 
@@ -193,6 +194,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         clearStoredToken();
         authService.logout();
         dispatch({ type: 'LOGOUT' });
+        queryClient.clear();
     };
 
     const updateUser = (user: User) => {

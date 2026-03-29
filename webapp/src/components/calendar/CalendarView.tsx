@@ -1345,7 +1345,7 @@ export default function CalendarView({ calendarId, headerSlot, isQuickAccess }: 
                                     {t('calendar.title', { semester: data.semester })}
                                 </h1>
                                 <p className="text-sm text-muted-foreground mt-1">
-                                    {t('calendar.showingEvents', { count: events.length, total: data.totalEvents })}
+                                    {t('calendar.showingEvents', { count: events.filter(e => !e.resource?.isPending).length, total: data.totalEvents })}
                                 </p>
                             </div>
                             <div className="text-sm text-muted-foreground">

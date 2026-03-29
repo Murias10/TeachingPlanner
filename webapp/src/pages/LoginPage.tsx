@@ -1,16 +1,14 @@
 // pages/login.tsx
 import { LoginForm } from "@/components/login-form"
 import { useAuth } from "@/contexts/AuthContext"
-import { Navigate, useLocation } from "react-router-dom"
+import { Navigate } from "react-router-dom"
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 
 export default function LoginPage() {
     const { isAuthenticated, isLoading } = useAuth();
-    const location = useLocation();
     // Si ya está autenticado, redirigir
     if (isAuthenticated) {
-        const from = location.state?.from?.pathname || '/home';
-        return <Navigate to={from} replace />;
+        return <Navigate to="/home" replace />;
     }
 
     // Mostrar loading mientras verifica

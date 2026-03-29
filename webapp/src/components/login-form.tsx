@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Link, useNavigate, useLocation } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { useAuth } from "@/contexts/AuthContext"
 import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext"
 import { useTranslation } from "react-i18next"
@@ -22,7 +22,6 @@ export function LoginForm({
   ...props
 }: React.ComponentProps<"div">) {
   const navigate = useNavigate();
-  const location = useLocation();
   const { login } = useAuth();
   const { triggerAlert } = useFloatingAlertContext();
   const { t } = useTranslation();
@@ -57,8 +56,7 @@ export function LoginForm({
         });
 
         setTimeout(() => {
-          const from = location.state?.from?.pathname || '/home';
-          navigate(from, { replace: true });
+            navigate('/home', { replace: true });
         }, 800);
       } else {
         triggerAlert({

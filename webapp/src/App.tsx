@@ -71,7 +71,7 @@ export default function App() {
                         <Route
                             path="solicitudes"
                             element={
-                                <ProtectedRoute>
+                                <ProtectedRoute requiredRole="ADMIN">
                                     <AllSolicitudesPage />
                                 </ProtectedRoute>
                             }
@@ -80,7 +80,7 @@ export default function App() {
                         <Route
                             path="my-requests"
                             element={
-                                <ProtectedRoute>
+                                <ProtectedRoute requiredRole="PROFESSOR">
                                     <MyRequestsPage />
                                 </ProtectedRoute>
                             }

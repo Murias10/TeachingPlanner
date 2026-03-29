@@ -17,6 +17,7 @@ import { format } from 'date-fns';
 import { CalendarEvent } from '@/types/CalendarEvent';
 import { useClassrooms } from '@/hooks/classroom/useClassrooms';
 import { calculateDurationInMinutes, calculateNewEndTime } from '@/utils/timeUtils';
+import { useTranslation } from 'react-i18next';
 
 interface RequestReplaceDialogProps {
   open: boolean;
@@ -54,6 +55,7 @@ export default function RequestReplaceDialog({
   lectiveDates = new Set(),
   isSubmitting = false
 }: RequestReplaceDialogProps) {
+  const { t } = useTranslation();
   const [newEventDate, setNewEventDate] = useState('');
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('10:00');
@@ -120,9 +122,9 @@ export default function RequestReplaceDialog({
             <div className="p-2 bg-accent rounded-lg">
               <Replace className="w-5 h-5" />
             </div>
-            <DialogTitle className="text-lg font-semibold">Solicitar reemplazo de evento</DialogTitle>
+            <DialogTitle className="text-lg font-semibold">{t('solicitud.replace.title')}</DialogTitle>
           </div>
-          <DialogDescription className="hidden">Diálogo para solicitar el reemplazo de un evento</DialogDescription>
+          <DialogDescription className="hidden">{t('solicitud.replace.description')}</DialogDescription>
         </DialogHeader>
 
         <div className="overflow-y-auto flex-1 px-6 py-3">
@@ -130,19 +132,19 @@ export default function RequestReplaceDialog({
 
             {/* Información del evento original (solo lectura) */}
             <div className="p-3 bg-muted/50 rounded-lg border space-y-2">
-              <p className="text-xs font-semibold text-muted-foreground">Evento original</p>
+              <p className="text-xs font-semibold text-muted-foreground">{t('solicitud.replace.originalEvent')}</p>
               <div className="space-y-1 text-sm">
-                <p><strong>Asignatura:</strong> {subjectName}</p>
-                <p><strong>Grupos:</strong> {groupNames || '—'}</p>
-                <p><strong>Aulas:</strong> {originalClassroomNames}</p>
-                <p><strong>Fecha:</strong> {format(new Date(event.date), 'dd/MM/yyyy', { locale: es })}</p>
-                <p><strong>Horario:</strong> {normalizeTime(event.startTime)} - {normalizeTime(event.endTime)}</p>
+                <p><strong>{t('solicitud.replace.subject')}:</strong> {subjectName}</p>
+                <p><strong>{t('solicitud.replace.groups')}:</strong> {groupNames || '—'}</p>
+                <p><strong>{t('solicitud.replace.classrooms')}:</strong> {originalClassroomNames}</p>
+                <p><strong>{t('solicitud.replace.date')}:</strong> {format(new Date(event.date), 'dd/MM/yyyy', { locale: es })}</p>
+                <p><strong>{t('solicitud.replace.time')}:</strong> {normalizeTime(event.startTime)} - {normalizeTime(event.endTime)}</p>
               </div>
             </div>
 
             {/* Nueva Fecha y Horario */}
             <div className="space-y-1">
-              <Label className="text-xs font-semibold">Nueva Fecha y Horario</Label>
+              <Label className="text-xs font-semibold">{t('solicitud.replace.newDateTime')}</Label>
               <div className="flex gap-2">
                 {/* Selector de fecha */}
                 <Popover modal={true} open={openNewEventDate} onOpenChange={setOpenNewEventDate}>
@@ -150,7 +152,7 @@ export default function RequestReplaceDialog({
                     <Button variant="outline" className="h-8 px-3 text-xs justify-between font-normal flex-1">
                       {newEventDate && !isNaN(new Date(newEventDate).getTime())
                         ? format(new Date(newEventDate), 'dd/MM/yyyy', { locale: es })
-                        : 'Fecha'}
+                        : t('solicitud.replace.datePlaceholder')}
                       <ChevronDownIcon className="w-3 h-3" />
                     </Button>
                   </PopoverTrigger>
@@ -216,7 +218,7 @@ export default function RequestReplaceDialog({
 
             {/* Asignatura (deshabilitado) */}
             <div className="space-y-1">
-              <Label className="text-xs font-semibold">Asignatura</Label>
+              <Label className="text-xs font-semibold">{t('solicitud.replace.subject')}</Label>
               <Input
                 value={subjectName}
                 disabled
@@ -224,11 +226,11 @@ export default function RequestReplaceDialog({
               />
             </div>
 
-            {/* Grupo y Aula preferida */}
+            {/* Grupo y Aula */}
             <div className="grid grid-cols-2 gap-2">
               {/* Grupo (deshabilitado) */}
               <div className="space-y-1">
-                <Label className="text-xs font-semibold">Grupo</Label>
+                <Label className="text-xs font-semibold">{t('solicitud.replace.group')}</Label>
                 <Input
                   value={groupNames || '—'}
                   disabled
@@ -236,24 +238,24 @@ export default function RequestReplaceDialog({
                 />
               </div>
 
-              {/* Aula preferida (opcional, editable) */}
+              {/* Aula (opcional, editable) */}
               <div className="space-y-1">
-                <Label className="text-xs font-semibold">Aula preferida</Label>
+                <Label className="text-xs font-semibold">{t('solicitud.replace.classroom')}</Label>
                 {classrooms.length === 0 ? (
                   <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
-                    Cargando aulas...
+                    {t('solicitud.replace.loadingClassrooms')}
                   </div>
                 ) : classrooms.length > 8 ? (
                   <SearchableSelect
                     value={selectedClassroomId}
                     onValueChange={(value) => setSelectedClassroomId(value)}
                     options={[
-                      { value: '', label: 'Sin preferencia' },
+                      { value: '', label: t('solicitud.replace.noPreference') },
                       ...sortedClassrooms.map(c => ({ value: c.id, label: c.code }))
                     ]}
-                    placeholder="Sin preferencia"
-                    searchPlaceholder="Buscar aula..."
-                    emptyMessage="No se encontraron aulas."
+                    placeholder={t('solicitud.replace.noPreference')}
+                    searchPlaceholder={t('solicitud.replace.searchClassroom')}
+                    emptyMessage={t('solicitud.replace.noClassroomsFound')}
                   />
                 ) : (
                   <Select
@@ -261,10 +263,10 @@ export default function RequestReplaceDialog({
                     onValueChange={(value) => setSelectedClassroomId(value)}
                   >
                     <SelectTrigger className="h-8 text-xs w-full">
-                      <SelectValue placeholder="Sin preferencia" />
+                      <SelectValue placeholder={t('solicitud.replace.noPreference')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Sin preferencia</SelectItem>
+                      <SelectItem value="">{t('solicitud.replace.noPreference')}</SelectItem>
                       {sortedClassrooms.map(c => (
                         <SelectItem key={c.id} value={c.id}>{c.code}</SelectItem>
                       ))}
@@ -277,11 +279,11 @@ export default function RequestReplaceDialog({
             {/* Comentario (obligatorio) */}
             <div className="space-y-1">
               <Label htmlFor="replace-comment" className="text-xs font-semibold">
-                Comentario
+                {t('solicitud.replace.comment')}
               </Label>
               <Textarea
                 id="replace-comment"
-                placeholder="Explica el motivo de la solicitud de reemplazo..."
+                placeholder={t('solicitud.replace.commentPlaceholder')}
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 className="h-20 text-xs resize-none"
@@ -290,23 +292,22 @@ export default function RequestReplaceDialog({
 
             {/* Resumen del reemplazo */}
             <div className="bg-accent/20 border border-primary/20 rounded p-3 text-xs space-y-1">
-              <p className="font-semibold">Resumen de la solicitud</p>
+              <p className="font-semibold">{t('solicitud.replace.summary')}</p>
               <p className="text-muted-foreground">
-                El evento del{' '}
-                <strong>{format(new Date(event.date), 'dd/MM/yyyy', { locale: es })}</strong>{' '}
-                a las <strong>{normalizeTime(event.startTime)}</strong> será cancelado
+                {t('solicitud.replace.summaryCancel', {
+                  date: format(new Date(event.date), 'dd/MM/yyyy', { locale: es }),
+                  time: normalizeTime(event.startTime),
+                })}
               </p>
               <p className="text-muted-foreground">
-                Se solicitará un nuevo evento el{' '}
-                <strong>
-                  {newEventDate && !isNaN(new Date(newEventDate).getTime())
+                {t('solicitud.replace.summaryNew', {
+                  date: newEventDate && !isNaN(new Date(newEventDate).getTime())
                     ? format(new Date(newEventDate), 'dd/MM/yyyy', { locale: es })
-                    : '—'}
-                </strong>{' '}
-                de <strong>{startTime} – {endTime}</strong>
-                {selectedClassroomCode && (
-                  <>. Aula solicitada: <strong>{selectedClassroomCode}</strong></>
-                )}
+                    : '—',
+                  startTime,
+                  endTime,
+                })}
+                {selectedClassroomCode && t('solicitud.replace.summaryClassroom', { classroom: selectedClassroomCode })}
               </p>
             </div>
 
@@ -316,10 +317,10 @@ export default function RequestReplaceDialog({
         {/* Botones */}
         <div className="flex gap-2 justify-end px-6 pb-6 border-t pt-4">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting} className="h-8 text-xs">
-            Cancelar
+            {t('solicitud.replace.cancel')}
           </Button>
           <Button onClick={handleSave} disabled={!isValid || isSubmitting} className="h-8 text-xs">
-            {isSubmitting ? 'Enviando...' : 'Solicitar reemplazo'}
+            {isSubmitting ? t('solicitud.replace.sending') : t('solicitud.replace.send')}
           </Button>
         </div>
       </DialogContent>

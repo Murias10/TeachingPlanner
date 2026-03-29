@@ -17,19 +17,7 @@ import { SolicitudTable } from "@/components/solicitud/SolicitudTable";
 import ApproveRequestDialog from "@/components/solicitud/ApproveRequestDialog";
 import RejectRequestDialog from "@/components/calendar/RejectRequestDialog";
 import type { RecurrenceConfig } from '@/types/RecurrenceConfig';
-
-interface EventRequest {
-    id: string;
-    professorId: string;
-    calendarId: string;
-    eventType: 'PUNTUAL' | 'PERIODIC';
-    eventData: Record<string, undefined>;
-    status: 'PENDING' | 'APPROVED' | 'REJECTED';
-    reviewedBy?: string;
-    reviewedAt?: string;
-    comments?: string;
-    createdAt: string;
-}
+import type { EventRequest } from '@/types/EventRequest';
 
 const SolicitudPage = () => {
     const { t } = useTranslation();
@@ -56,7 +44,7 @@ const SolicitudPage = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [statusFilter, setStatusFilter] = useState<'all' | 'PENDING' | 'APPROVED' | 'REJECTED'>('PENDING');
 
-    const { data: calendarData } = useCalendarByCourseAndSemester(
+    const { data: calendarData, calendarId } = useCalendarByCourseAndSemester(
         acronym || null,
         startYear || null,
         endYear || null,
@@ -70,8 +58,13 @@ const SolicitudPage = () => {
     const cargarSolicitudes = useCallback(async (
         filter: 'all' | 'PENDING' | 'APPROVED' | 'REJECTED' = 'PENDING'
     ) => {
+        if (!calendarId) return;
+
         setIsLoading(true);
-        const result = await listarSolicitudes(filter === 'all' ? undefined : filter);
+        const result = await listarSolicitudes(
+            filter === 'all' ? undefined : filter,
+            calendarId
+        );
 
         if (result.success && result.data?.requests) {
             setSolicitudes(result.data.requests);
@@ -83,7 +76,7 @@ const SolicitudPage = () => {
             });
         }
         setIsLoading(false);
-    }, [listarSolicitudes, triggerAlert]);
+    }, [listarSolicitudes, triggerAlert, calendarId]);
 
     useEffect(() => {
         setItems([

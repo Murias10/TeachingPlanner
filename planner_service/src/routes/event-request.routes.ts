@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
     createEventRequest,
     getEventRequests,
+    getMyEventRequests,
     getEventRequestById,
     approveEventRequest,
     rejectEventRequest,
@@ -34,6 +35,18 @@ router.get(
     authenticateToken,
     requireRole(['ADMIN']),
     getEventRequests
+);
+
+/**
+ * GET /my-event-requests
+ * Get event requests belonging to the authenticated professor (PROFESSOR only)
+ * Query params: status (PENDING|APPROVED|REJECTED)
+ */
+router.get(
+    '/my-event-requests',
+    authenticateToken,
+    requireRole(['PROFESSOR']),
+    getMyEventRequests
 );
 
 /**

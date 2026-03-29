@@ -12,6 +12,7 @@ import CoursePage from "@/pages/CoursePage";
 import CalendarPage from "@/pages/CalendarPage";
 import SolicitudPage from "@/pages/SolicitudPage";
 import AllSolicitudesPage from "@/pages/AllSolicitudesPage";
+import MyRequestsPage from "@/pages/MyRequestsPage";
 import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
 import CalendarSyncPage from "@/pages/CalendarSyncPage";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -72,6 +73,15 @@ export default function App() {
                             element={
                                 <ProtectedRoute>
                                     <AllSolicitudesPage />
+                                </ProtectedRoute>
+                            }
+                        />
+
+                        <Route
+                            path="my-requests"
+                            element={
+                                <ProtectedRoute>
+                                    <MyRequestsPage />
                                 </ProtectedRoute>
                             }
                         />

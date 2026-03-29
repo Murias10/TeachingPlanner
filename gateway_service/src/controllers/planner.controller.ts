@@ -406,6 +406,12 @@ export const deleteEventRequest = (req: Request, res: Response, next: NextFuncti
         method: 'DELETE'
     });
 
+export const getMyEventRequests = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/my-event-requests`,
+        method: 'GET'
+    });
+
 //////////////////////////////////////////////
 // GROUP ENDPOINTS
 //////////////////////////////////////////////

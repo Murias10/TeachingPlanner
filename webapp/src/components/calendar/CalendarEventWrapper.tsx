@@ -7,7 +7,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { Edit, Trash2, Calendar, XCircle, CheckCircle, Replace, Undo } from "lucide-react";
+import { Edit, Trash2, Calendar, XCircle, Replace, Undo, Check, Eye, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { EVENT_CHARACTERS } from "@/constants/eventCharacters";
 
@@ -197,17 +197,17 @@ export function CalendarEventWrapper({
           <ContextMenuSeparator />
 
           <ContextMenuItem onClick={handleApproveRequest}>
-            <CheckCircle className="text-green-600" />
+            <Check className="text-emerald-600" />
             Aprobar solicitud
           </ContextMenuItem>
 
           <ContextMenuItem onClick={handleReviewRequest}>
-            <Edit />
+            <Eye className="text-blue-600" />
             Revisar solicitud
           </ContextMenuItem>
 
           <ContextMenuItem variant="destructive" onClick={handleRejectRequest}>
-            <XCircle className="text-red-600" />
+            <X className="text-rose-600" />
             Rechazar solicitud
           </ContextMenuItem>
         </ContextMenuContent>

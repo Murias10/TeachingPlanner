@@ -15,24 +15,7 @@ import ApproveRequestDialog, { canApproveRequestDirectly } from "@/components/so
 import RejectRequestDialog from "@/components/calendar/RejectRequestDialog";
 import type { RecurrenceConfig } from '@/types/RecurrenceConfig';
 import { useEventsCalendar } from "@/hooks/calendar/useEventsCalendar";
-
-interface EventRequest {
-    id: string;
-    professorId: string;
-    calendarId: string;
-    eventType: 'PUNTUAL' | 'PERIODIC';
-    eventData: Record<string, any>;
-    status: 'PENDING' | 'APPROVED' | 'REJECTED';
-    reviewedBy?: string;
-    reviewedAt?: string;
-    comments?: string;
-    createdAt: string;
-    degreeAcronym?: string | null;
-    degreeName?: string | null;
-    courseStartYear?: number | null;
-    courseEndYear?: number | null;
-    semester?: number | null;
-}
+import type { EventRequest } from '@/types/EventRequest';
 
 const AllSolicitudesPage = () => {
     const { t } = useTranslation();

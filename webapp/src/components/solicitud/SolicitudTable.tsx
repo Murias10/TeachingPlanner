@@ -31,33 +31,17 @@ import {
     TableCell,
 } from "@/components/ui/table"
 
-interface EventRequest {
-    id: string;
-    professorId: string;
-    calendarId: string;
-    eventType: 'PUNTUAL' | 'PERIODIC';
-    requestType?: 'CREATE' | 'EDIT' | 'CANCEL' | 'REPLACE';
-    eventData: Record<string, any>;
-    status: 'PENDING' | 'APPROVED' | 'REJECTED';
-    reviewedBy?: string;
-    reviewedAt?: string;
-    comments?: string;
-    createdAt: string;
-    degreeAcronym?: string | null;
-    degreeName?: string | null;
-    courseStartYear?: number | null;
-    courseEndYear?: number | null;
-    semester?: number | null;
-}
+import type { EventRequest } from "@/types/EventRequest"
 
 interface SolicitudTableProps {
-    solicitudes: EventRequest[];
-    onApprove: (solicitud: EventRequest) => void;
-    onReject: (solicitud: EventRequest) => void;
-    onReview: (solicitud: EventRequest) => void;
+    readonly solicitudes: EventRequest[];
+    readonly onApprove?: (solicitud: EventRequest) => void;
+    readonly onReject?: (solicitud: EventRequest) => void;
+    readonly onReview?: (solicitud: EventRequest) => void;
+    readonly onDelete?: (solicitud: EventRequest) => void;
 }
 
-export function SolicitudTable({ solicitudes, onApprove, onReject, onReview }: SolicitudTableProps) {
+export function SolicitudTable({ solicitudes, onApprove, onReject, onReview, onDelete }: SolicitudTableProps) {
     const { t } = useTranslation()
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -66,7 +50,7 @@ export function SolicitudTable({ solicitudes, onApprove, onReject, onReview }: S
 
     const table = useReactTable({
         data: solicitudes,
-        columns: defaultColumns({ onApprove, onReject, onReview, t }),
+        columns: defaultColumns({ onApprove, onReject, onReview, onDelete, t }),
         state: {
             sorting,
             columnFilters,

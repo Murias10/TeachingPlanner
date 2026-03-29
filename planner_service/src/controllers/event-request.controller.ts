@@ -164,6 +164,49 @@ export const getEventRequests = async (req: AuditedRequest, res: Response) => {
 };
 
 /**
+ * Get event requests belonging to the authenticated professor (PROFESSOR only)
+ * Filters: status
+ */
+export const getMyEventRequests = async (req: AuditedRequest, res: Response) => {
+    try {
+        const { status } = req.query;
+        const professorId = req.user?.email;
+
+        if (!professorId) {
+            res.status(401).json({
+                status: 'error',
+                message: 'User email not found in request',
+                data: null,
+            });
+            return;
+        }
+
+        const filters: { professorId: string; status?: 'PENDING' | 'APPROVED' | 'REJECTED' } = {
+            professorId,
+        };
+        if (status) filters.status = status as 'PENDING' | 'APPROVED' | 'REJECTED';
+
+        const requests = await eventRequestService.findAll(filters);
+
+        res.status(200).json({
+            status: 'success',
+            message: 'Event requests fetched successfully',
+            data: {
+                requests,
+                count: requests.length,
+            },
+        });
+    } catch (error) {
+        console.error('Error fetching professor event requests:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error fetching event requests',
+            data: error instanceof Error ? error.message : error,
+        });
+    }
+};
+
+/**
  * Get a specific event request by ID
  */
 export const getEventRequestById = async (req: AuditedRequest, res: Response) => {

@@ -1,7 +1,7 @@
 import { ColumnDef } from "@tanstack/react-table"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ArrowUpDown, Check, X, Eye } from "lucide-react"
+import { ArrowUpDown, Check, X, Eye, Trash2 } from "lucide-react"
 import {
     Tooltip,
     TooltipContent,
@@ -9,25 +9,7 @@ import {
 } from "@/components/ui/tooltip"
 import moment from "moment"
 import { TFunction } from "i18next"
-
-interface EventRequest {
-    id: string;
-    professorId: string;
-    calendarId: string;
-    eventType: 'PUNTUAL' | 'PERIODIC';
-    requestType?: 'CREATE' | 'EDIT' | 'CANCEL' | 'REPLACE';
-    eventData: Record<string, any>;
-    status: 'PENDING' | 'APPROVED' | 'REJECTED';
-    reviewedBy?: string;
-    reviewedAt?: string;
-    comments?: string;
-    createdAt: string;
-    degreeAcronym?: string | null;
-    degreeName?: string | null;
-    courseStartYear?: number | null;
-    courseEndYear?: number | null;
-    semester?: number | null;
-}
+import type { EventRequest } from "@/types/EventRequest"
 
 const getRequestTypeBadge = (requestType: string, t: TFunction) => {
     const variant = requestType === 'CANCEL' ? 'destructive' : 'secondary';
@@ -36,9 +18,10 @@ const getRequestTypeBadge = (requestType: string, t: TFunction) => {
 };
 
 interface ColumnExtraProps {
-    onApprove: (solicitud: EventRequest) => void;
-    onReject: (solicitud: EventRequest) => void;
-    onReview: (solicitud: EventRequest) => void;
+    onApprove?: (solicitud: EventRequest) => void;
+    onReject?: (solicitud: EventRequest) => void;
+    onReview?: (solicitud: EventRequest) => void;
+    onDelete?: (solicitud: EventRequest) => void;
     t: TFunction;
 }
 
@@ -59,7 +42,7 @@ const getEventTypeLabel = (eventType: string, t: TFunction) => {
     return eventType === 'PUNTUAL' ? t("requests.dialog.approve.eventType.punctual") : t("requests.dialog.approve.eventType.periodic");
 };
 
-export const columns = ({ onApprove, onReject, onReview, t }: ColumnExtraProps): ColumnDef<EventRequest>[] => [
+export const columns = ({ onApprove, onReject, onReview, onDelete, t }: ColumnExtraProps): ColumnDef<EventRequest>[] => [
     {
         accessorKey: "professorId",
         enableHiding: false,
@@ -178,49 +161,75 @@ export const columns = ({ onApprove, onReject, onReview, t }: ColumnExtraProps):
                 return <span className="text-xs text-muted-foreground">{t("table.solicitudes.status.processed")}</span>;
             }
 
+            // Modo profesor: solo botón de eliminar
+            if (onDelete && !onApprove && !onReject) {
+                return (
+                    <div className="flex justify-end gap-1">
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => onDelete(solicitud)}
+                                    className="h-8 w-8 p-0 text-rose-600 hover:bg-rose-100 hover:text-rose-700"
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>{t("table.solicitudes.actions.delete")}</TooltipContent>
+                        </Tooltip>
+                    </div>
+                );
+            }
+
+            // Modo admin: revisar, aprobar, rechazar
             return (
                 <div className="flex justify-end gap-1">
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => onReview(solicitud)}
-                                className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-100 hover:text-blue-700"
-                            >
-                                <Eye className="h-4 w-4" />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>{t("table.solicitudes.actions.review")}</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => onApprove(solicitud)}
-                                className="h-8 w-8 p-0 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700"
-                            >
-                                <Check className="h-4 w-4" />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            {t("table.solicitudes.actions.approve")}
-                        </TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => onReject(solicitud)}
-                                className="h-8 w-8 p-0 text-rose-600 hover:bg-rose-100 hover:text-rose-700"
-                            >
-                                <X className="h-4 w-4" />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>{t("table.solicitudes.actions.reject")}</TooltipContent>
-                    </Tooltip>
+                    {onReview && (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => onReview(solicitud)}
+                                    className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-100 hover:text-blue-700"
+                                >
+                                    <Eye className="h-4 w-4" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>{t("table.solicitudes.actions.review")}</TooltipContent>
+                        </Tooltip>
+                    )}
+                    {onApprove && (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => onApprove(solicitud)}
+                                    className="h-8 w-8 p-0 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700"
+                                >
+                                    <Check className="h-4 w-4" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>{t("table.solicitudes.actions.approve")}</TooltipContent>
+                        </Tooltip>
+                    )}
+                    {onReject && (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => onReject(solicitud)}
+                                    className="h-8 w-8 p-0 text-rose-600 hover:bg-rose-100 hover:text-rose-700"
+                                >
+                                    <X className="h-4 w-4" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>{t("table.solicitudes.actions.reject")}</TooltipContent>
+                        </Tooltip>
+                    )}
                 </div>
             );
         },

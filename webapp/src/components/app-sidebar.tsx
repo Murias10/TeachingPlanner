@@ -74,6 +74,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         icon: ClipboardList,
         requiredAuth: true,
       },
+      {
+        name: t("sidebar.system.myRequests.title"),
+        url: "/my-requests",
+        icon: ClipboardList,
+        requiredAuth: true,
+      },
     ],
     extra: [
       {
@@ -90,8 +96,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const filteredSystem = data.system.filter(item => {
     if (!item.requiredAuth) return true;
     if (!isAuthenticated) return false;
-    // Solo mostrar opciones de sistema si es ADMIN
     if (item.url === '/solicitudes' || item.url === '/users') return user?.role === 'ADMIN';
+    if (item.url === '/my-requests') return user?.role === 'PROFESSOR';
     return true;
   });
   const filteredExtra = data.extra.filter(item => !item.requiredAuth || isAuthenticated);

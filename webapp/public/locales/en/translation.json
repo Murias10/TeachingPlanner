@@ -40,6 +40,9 @@
             "requests": {
                 "title": "Requests"
             },
+            "myRequests": {
+                "title": "My Requests"
+            },
             "reports": {
                 "title": "Usage reports"
             }
@@ -631,6 +634,7 @@
                 "approve": "Approve request",
                 "approveWithReview": "Approve (dialog will open to complete data)",
                 "reject": "Reject request",
+                "delete": "Delete request",
                 "incompleteData": "Missing required data (classroom, group, etc.). Use 'Review' to complete"
             },
             "status": {
@@ -1567,6 +1571,11 @@
             "step5": "Synchronization is manual. Use the 'Sync Now' button in 'Manage Synchronizations' to sync events",
             "step6": "Changes in TeachingPlanner (new events, modifications, deletions) will be reflected in Google Calendar when you run the sync",
             "note": "Important note: Synchronization is one-way (TeachingPlanner → Google Calendar). Changes made directly in Google Calendar are not synced back to TeachingPlanner."
+        }
+    },
+    "myRequests": {
+        "page": {
+            "subtitle": "History of all event requests you have submitted"
         }
     },
     "requests": {

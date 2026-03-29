@@ -40,6 +40,9 @@
             "requests": {
                 "title": "Solicitudes"
             },
+            "myRequests": {
+                "title": "Mis Solicitudes"
+            },
             "reports": {
                 "title": "Informes de uso"
             }
@@ -628,6 +631,7 @@
                 "approve": "Aprobar solicitud",
                 "approveWithReview": "Aprobar (se abrirá diálogo para completar datos)",
                 "reject": "Rechazar solicitud",
+                "delete": "Eliminar solicitud",
                 "incompleteData": "Faltan datos requeridos (aula, grupo, etc.). Usa 'Revisar' para completar"
             },
             "status": {
@@ -1556,6 +1560,11 @@
             "step5": "La sincronización es manual. Usa el botón 'Sincronizar Ahora' en 'Gestionar Sincronizaciones' para sincronizar los eventos",
             "step6": "Los cambios en TeachingPlanner (nuevos eventos, modificaciones, eliminaciones) se reflejarán en Google Calendar cuando ejecutes la sincronización",
             "note": "Nota importante: La sincronización es unidireccional (TeachingPlanner → Google Calendar). Los cambios realizados directamente en Google Calendar no se sincronizan de vuelta a TeachingPlanner."
+        }
+    },
+    "myRequests": {
+        "page": {
+            "subtitle": "Historial de todas las solicitudes de eventos que has enviado"
         }
     },
     "requests": {

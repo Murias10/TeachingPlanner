@@ -138,6 +138,16 @@ export class EventRequestService {
     }
 
     /**
+     * Get pending event requests referencing a specific original event.
+     * Used to auto-reject orphaned requests when an event is deleted.
+     */
+    async findPendingByOriginalEventId(originalEventId: string): Promise<EventRequest[]> {
+        return await this.eventRequestRepository.find({
+            where: { originalEventId, status: 'PENDING' },
+        });
+    }
+
+    /**
      * Check if an event request exists
      */
     async exists(id: string): Promise<boolean> {

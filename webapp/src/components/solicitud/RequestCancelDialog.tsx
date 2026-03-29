@@ -20,6 +20,9 @@ export interface RequestCancelConfig {
   originalEventId: string;
   eventType: 'PUNTUAL' | 'PERIODIC';
   comment: string;
+  subjectId?: string;
+  groupIds?: string[];
+  classroomIds?: string[];
 }
 
 const normalizeTime = (time: string): string => {
@@ -52,6 +55,9 @@ export default function RequestCancelDialog({
       originalEventId,
       eventType: isPuntual ? 'PUNTUAL' : 'PERIODIC',
       comment,
+      subjectId: event.subject?.id,
+      groupIds: event.groups.map(g => g.id),
+      classroomIds: event.classrooms.map(c => c.id),
     });
   };
 

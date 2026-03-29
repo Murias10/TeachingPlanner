@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CheckCircle2, ChevronDownIcon } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -24,6 +24,91 @@ import { useSubjectsWithGroupsByCalendarId } from '@/hooks/subject/useSubjectsWi
 import { getMonthlyPatternLabels } from '@/utils/customPatternCalculator';
 import { EVENT_TYPES, isSpecialEventType, isReviewOrEvalEventType, EVENT_TYPE_LABELS } from '@/constants/eventCharacters';
 import { calculateDurationInMinutes, calculateNewEndTime } from '@/utils/timeUtils';
+
+const WEEK_DAYS: { value: WeekDay; label: string }[] = [
+  { value: 'L', label: 'L' },
+  { value: 'M', label: 'M' },
+  { value: 'X', label: 'X' },
+  { value: 'J', label: 'J' },
+  { value: 'V', label: 'V' },
+  { value: 'S', label: 'S' },
+  { value: 'D', label: 'D' },
+];
+
+const formatGroupLabel = (
+  group: { type: string; language: string; number: number },
+  acronym?: string
+): string => `${acronym ?? ''}.${group.type}.${group.language === 'EN' ? 'I-' : ''}${group.number}`;
+
+interface GroupSelectorFieldProps {
+  isMulti: boolean;
+  groups: { id: string; type: string; language: string; number: number }[];
+  subjectAcronym?: string;
+  selectedIds: string[];
+  onChangeIds: (ids: string[]) => void;
+}
+
+const GroupSelectorField: React.FC<GroupSelectorFieldProps> = ({
+  isMulti,
+  groups,
+  subjectAcronym,
+  selectedIds,
+  onChangeIds,
+}) => {
+  const sortedOptions = [...groups]
+    .sort((a, b) =>
+      formatGroupLabel(a, subjectAcronym).localeCompare(formatGroupLabel(b, subjectAcronym))
+    )
+    .map(group => ({
+      value: group.id,
+      label: formatGroupLabel(group, subjectAcronym),
+    }));
+
+  if (isMulti) {
+    return (
+      <MultiSelect
+        values={selectedIds}
+        onValuesChange={onChangeIds}
+        options={sortedOptions}
+        placeholder="Seleccionar grupos"
+        searchPlaceholder="Buscar grupo..."
+        emptyMessage="No se encontraron grupos."
+        disabled={true}
+      />
+    );
+  }
+
+  if (groups.length > 8) {
+    return (
+      <SearchableSelect
+        value={selectedIds[0] || ''}
+        onValueChange={(value) => onChangeIds(value ? [value] : [])}
+        options={sortedOptions}
+        placeholder="Seleccionar grupo"
+        searchPlaceholder="Buscar grupo..."
+        emptyMessage="No se encontraron grupos."
+        disabled={true}
+      />
+    );
+  }
+
+  return (
+    <Select
+      value={selectedIds[0] || ''}
+      onValueChange={(value) => onChangeIds(value ? [value] : [])}
+      disabled={true}
+    >
+      <SelectTrigger className="h-8 text-xs w-full">
+        <SelectValue placeholder="Seleccionar grupo" />
+      </SelectTrigger>
+      <SelectContent>
+        {sortedOptions.map(option => (
+          <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+};
 
 /**
  * Validates if a request has all required data to be approved directly
@@ -138,12 +223,10 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
   const [openEndTime, setOpenEndTime] = useState(false);
 
   const calendarId = solicitud?.calendarId;
-  const isInitializingRef = useRef(false);
 
   // Pre-fill form with solicitud data when dialog opens
   React.useEffect(() => {
     if (solicitud && open) {
-      isInitializingRef.current = true;
       const eventData = solicitud.eventData;
 
       const newConfig: RecurrenceConfig = {
@@ -168,34 +251,27 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
 
       setConfig(newConfig);
       setSelectedEventType(eventData.eventType || EVENT_TYPES.NORMAL);
-      setTimeout(() => { isInitializingRef.current = false; }, 0);
     }
   }, [solicitud, open]);
-
-  // Clear group and classroom selections when event type changes
-  React.useEffect(() => {
-    if (isInitializingRef.current) return;
-    setConfig(prev => ({
-      ...prev,
-      groupIds: [],
-      classroomIds: []
-    }));
-  }, [selectedEventType]);
-
-  // Clear group and classroom selections when subject changes
-  React.useEffect(() => {
-    if (isInitializingRef.current) return;
-    setConfig(prev => ({
-      ...prev,
-      groupIds: [],
-      classroomIds: []
-    }));
-  }, [config.subjectId]);
 
   // Hooks must be declared before effects that use them
   const { data: classrooms = [] } = useClassrooms();
   const { data: subjects = [], isLoading: isLoadingSubjects } = useSubjectsByCalendarId(calendarId || null);
   const { data: subjectsWithGroups = [] } = useSubjectsWithGroupsByCalendarId(calendarId || null);
+
+  // Sync groupType with the actual type of the pre-loaded group once subjectsWithGroups is available.
+  // This is necessary because groupType defaults to 'T' but the solicitud's group may be 'S', 'L', or 'TG'.
+  // Without this, availableGroups filters to [] and the group selector shows nothing.
+  React.useEffect(() => {
+    if (!open || !solicitud || !subjectsWithGroups.length) return;
+    if (!config.groupIds?.length || !config.subjectId) return;
+
+    const subject = subjectsWithGroups.find(s => s.id === config.subjectId);
+    const group = subject?.groups?.find(g => g.id === config.groupIds![0]);
+    if (group?.type && group.type !== groupType) {
+      setGroupType(group.type);
+    }
+  }, [open, solicitud, subjectsWithGroups, config.subjectId, config.groupIds]);
 
   // Auto-complete planified hours from selected group
   React.useEffect(() => {
@@ -268,33 +344,17 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
     return getMonthlyPatternLabels(new Date(config.customStartDate));
   }, [config.customStartDate]);
 
-  const weekDays: { value: WeekDay; label: string }[] = [
-    { value: 'L', label: 'L' },
-    { value: 'M', label: 'M' },
-    { value: 'X', label: 'X' },
-    { value: 'J', label: 'J' },
-    { value: 'V', label: 'V' },
-    { value: 'S', label: 'S' },
-    { value: 'D', label: 'D' },
-  ];
-
   const isReviewOrEval = isReviewOrEvalEventType(selectedEventType);
 
   // Filter available groups based on selected subject and group type
   const availableGroups = useMemo(() => {
-    if (!config.subjectId || !subjectsWithGroups.length) {
-      return [];
-    }
+    if (!config.subjectId || !subjectsWithGroups.length) return [];
 
     const selectedSubject = subjectsWithGroups.find(s => s.id === config.subjectId);
-    if (!selectedSubject || !selectedSubject.groups) {
-      return [];
-    }
+    if (!selectedSubject || !selectedSubject.groups) return [];
 
     // For review/eval, return all groups regardless of type
-    if (isReviewOrEval) {
-      return selectedSubject.groups;
-    }
+    if (isReviewOrEval) return selectedSubject.groups;
 
     // Otherwise, filter by group type
     return selectedSubject.groups.filter(g => g.type === groupType);
@@ -304,6 +364,15 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
     () => canApproveRequestDirectly({ ...config, eventType: selectedEventType }),
     [config, selectedEventType]
   );
+
+  const handleEventTypeChange = (value: string) => {
+    setSelectedEventType(value);
+    setConfig(prev => ({ ...prev, groupIds: [], classroomIds: [] }));
+  };
+
+  const handleSubjectChange = (value: string) => {
+    setConfig(prev => ({ ...prev, subjectId: value, groupIds: [], classroomIds: [] }));
+  };
 
   if (!solicitud) return null;
 
@@ -484,7 +553,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
               ) : subjects.length > 8 ? (
                 <SearchableSelect
                   value={config.subjectId || ''}
-                  onValueChange={(value) => setConfig({ ...config, subjectId: value })}
+                  onValueChange={handleSubjectChange}
                   options={subjects.sort((a, b) => a.name.localeCompare(b.name)).map((subject) => ({
                     value: subject.id,
                     label: subject.name
@@ -495,7 +564,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                   disabled={true}
                 />
               ) : (
-                <Select value={config.subjectId || ''} onValueChange={(value) => setConfig({ ...config, subjectId: value })} disabled={true}>
+                <Select value={config.subjectId || ''} onValueChange={handleSubjectChange} disabled={true}>
                   <SelectTrigger className="h-8 text-xs w-full">
                     <SelectValue placeholder="Seleccionar asignatura" />
                   </SelectTrigger>
@@ -516,7 +585,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
               {/* Tipo de Evento */}
               <div className="space-y-1 flex-1">
                 <Label className="text-xs font-semibold">Tipo de Evento</Label>
-                <Select value={selectedEventType} onValueChange={(value) => setSelectedEventType(value)}>
+                <Select value={selectedEventType} onValueChange={handleEventTypeChange}>
                   <SelectTrigger className="h-8 text-xs w-full">
                     <SelectValue />
                   </SelectTrigger>
@@ -559,77 +628,14 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                   <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
                     Sin grupos disponibles
                   </div>
-                ) : isReviewOrEval ? (
-                  <MultiSelect
-                    values={config.groupIds || []}
-                    onValuesChange={(values) => setConfig({ ...config, groupIds: values })}
-                    options={availableGroups.sort((a, b) => {
-                      const subject = subjects.find(s => s.id === config.subjectId);
-                      const labelA = `${subject?.acronym}.${a.type}.${a.language === 'EN' ? 'I-' : ''}${a.number}`;
-                      const labelB = `${subject?.acronym}.${b.type}.${b.language === 'EN' ? 'I-' : ''}${b.number}`;
-                      return labelA.localeCompare(labelB);
-                    }).map((group) => {
-                      const subject = subjects.find(s => s.id === config.subjectId);
-                      return {
-                        value: group.id,
-                        label: `${subject?.acronym}.${group.type}.${group.language === 'EN' ? 'I-' : ''}${group.number}`
-                      };
-                    })}
-                    placeholder="Seleccionar grupos"
-                    searchPlaceholder="Buscar grupo..."
-                    emptyMessage="No se encontraron grupos."
-                    disabled={true}
-                  />
-                ) : availableGroups.length > 8 ? (
-                  <SearchableSelect
-                    value={config.groupIds?.[0] || ''}
-                    onValueChange={(value) => {
-                      setConfig({ ...config, groupIds: value ? [value] : [] });
-                    }}
-                    options={availableGroups.sort((a, b) => {
-                      const subject = subjects.find(s => s.id === config.subjectId);
-                      const labelA = `${subject?.acronym}.${a.type}.${a.language === 'EN' ? 'I-' : ''}${a.number}`;
-                      const labelB = `${subject?.acronym}.${b.type}.${b.language === 'EN' ? 'I-' : ''}${b.number}`;
-                      return labelA.localeCompare(labelB);
-                    }).map((group) => {
-                      const subject = subjects.find(s => s.id === config.subjectId);
-                      return {
-                        value: group.id,
-                        label: `${subject?.acronym}.${group.type}.${group.language === 'EN' ? 'I-' : ''}${group.number}`
-                      };
-                    })}
-                    placeholder="Seleccionar grupo"
-                    searchPlaceholder="Buscar grupo..."
-                    emptyMessage="No se encontraron grupos."
-                    disabled={true}
-                  />
                 ) : (
-                  <Select
-                    value={config.groupIds?.[0] || ''}
-                    onValueChange={(value) => {
-                      setConfig({ ...config, groupIds: value ? [value] : [] });
-                    }}
-                    disabled={true}
-                  >
-                    <SelectTrigger className="h-8 text-xs w-full">
-                      <SelectValue placeholder="Seleccionar grupo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableGroups.sort((a, b) => {
-                        const subject = subjects.find(s => s.id === config.subjectId);
-                        const labelA = `${subject?.acronym}.${a.type}.${a.language === 'EN' ? 'I-' : ''}${a.number}`;
-                        const labelB = `${subject?.acronym}.${b.type}.${b.language === 'EN' ? 'I-' : ''}${b.number}`;
-                        return labelA.localeCompare(labelB);
-                      }).map((group) => {
-                        const subject = subjects.find(s => s.id === config.subjectId);
-                        return (
-                          <SelectItem key={group.id} value={group.id}>
-                            {`${subject?.acronym}.${group.type}.${group.language === 'EN' ? 'I-' : ''}${group.number}`}
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
+                  <GroupSelectorField
+                    isMulti={isReviewOrEval}
+                    groups={availableGroups}
+                    subjectAcronym={subjects.find(s => s.id === config.subjectId)?.acronym}
+                    selectedIds={config.groupIds || []}
+                    onChangeIds={(ids) => setConfig({ ...config, groupIds: ids })}
+                  />
                 )}
               </div>
 
@@ -746,7 +752,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                   <div className="space-y-2">
                     <Label className="text-xs font-semibold">Días</Label>
                     <div className="grid grid-cols-5 gap-1">
-                      {weekDays.filter(day => day.value !== 'S' && day.value !== 'D').map((day) => (
+                      {WEEK_DAYS.filter(day => day.value !== 'S' && day.value !== 'D').map((day) => (
                         <Button
                           key={day.value}
                           variant={config.weekDays.includes(day.value) ? 'default' : 'outline'}

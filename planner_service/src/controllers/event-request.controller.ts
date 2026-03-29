@@ -18,6 +18,21 @@ import { ConflictEntry, ConflictError, getActivePeriodicEventsForDay, findPeriod
 const eventRequestService = new EventRequestService();
 
 /**
+ * Returns true if the original event (puntual or periodic) still exists in the database.
+ * Used as a safety net in approveEventRequest to return a clear 400 instead of a 500
+ * if the event was deleted before the request was approved.
+ */
+async function originalEventExists(originalEventId: string, eventType: 'PUNTUAL' | 'PERIODIC'): Promise<boolean> {
+    if (eventType === 'PUNTUAL') {
+        const repo = AppDataSource.getRepository(PuntualEvent);
+        return !!(await repo.findOne({ where: { id: originalEventId }, select: ['id'] }));
+    } else {
+        const repo = AppDataSource.getRepository(PeriodicEvent);
+        return !!(await repo.findOne({ where: { id: originalEventId }, select: ['id'] }));
+    }
+}
+
+/**
  * Create a new event request (PROFESSOR only)
  * Teacher requests to create a PUNTUAL or PERIODIC event
  */
@@ -211,6 +226,19 @@ export const approveEventRequest = async (req: AuditedRequest, res: Response) =>
                 data: null,
             });
             return;
+        }
+
+        // For non-CREATE requests, verify the original event still exists
+        if (eventRequest.requestType !== 'CREATE' && eventRequest.originalEventId) {
+            const exists = await originalEventExists(eventRequest.originalEventId, eventRequest.eventType);
+            if (!exists) {
+                res.status(400).json({
+                    status: 'error',
+                    message: 'No se puede aprobar: el evento original ya no existe.',
+                    data: null,
+                });
+                return;
+            }
         }
 
         try {

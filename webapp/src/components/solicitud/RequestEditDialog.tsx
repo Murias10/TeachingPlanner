@@ -32,6 +32,9 @@ export interface RequestEditConfig {
   eventDate?: string;    // solo para puntual
   weekDay?: string;      // solo para periódico
   comment: string;
+  subjectId?: string;
+  groupIds?: string[];
+  classroomIds?: string[];
 }
 
 
@@ -84,6 +87,9 @@ export default function RequestEditDialog({
       endTime,
       ...(isPuntual ? { eventDate } : { weekDay }),
       comment,
+      subjectId: event.subject?.id,
+      groupIds: event.groups.map(g => g.id),
+      classroomIds: event.classrooms.map(c => c.id),
     });
   };
 

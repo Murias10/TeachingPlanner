@@ -1818,6 +1818,22 @@ export const deletePuntualEvent = async (req: AuditedRequest, res: Response) => 
             await queryRunner.startTransaction();
 
             try {
+                // Auto-reject pending requests referencing this event
+                const eventRequestRepo = queryRunner.manager.getRepository(EventRequest);
+                const pendingRequests = await eventRequestRepo.find({
+                    where: { originalEventId: eventId, status: 'PENDING' },
+                });
+                const userEmailForReject = getUserEmailFromRequest(req);
+                for (const request of pendingRequests) {
+                    request.status = 'REJECTED';
+                    request.reviewedBy = userEmailForReject;
+                    request.reviewedAt = new Date();
+                    request.comments = 'El evento original fue eliminado por el administrador';
+                    request.updatedBy = userEmailForReject;
+                    request.updatedAt = new Date();
+                    await queryRunner.manager.save(request);
+                }
+
                 // Borrar evento cancelado
                 await queryRunner.manager.remove(puntualEvent);
                 console.log(`[Revert Cancellation] Deleted cancelled event ${eventId}`);
@@ -1851,11 +1867,29 @@ export const deletePuntualEvent = async (req: AuditedRequest, res: Response) => 
             console.log(`[Revert Cancellation] Standalone cancelled event, deleting only cancelled event`);
 
             const userEmail = getUserEmailFromRequest(req);
-            puntualEvent.updatedBy = userEmail;
-            puntualEvent.updatedAt = new Date();
-            await puntualEventRepo.save(puntualEvent);
 
-            await puntualEventRepo.remove(puntualEvent);
+            await AppDataSource.transaction(async (manager) => {
+                // Auto-reject pending requests referencing this event
+                const eventRequestRepo = manager.getRepository(EventRequest);
+                const pendingRequests = await eventRequestRepo.find({
+                    where: { originalEventId: eventId, status: 'PENDING' },
+                });
+                for (const request of pendingRequests) {
+                    request.status = 'REJECTED';
+                    request.reviewedBy = userEmail;
+                    request.reviewedAt = new Date();
+                    request.comments = 'El evento original fue eliminado por el administrador';
+                    request.updatedBy = userEmail;
+                    request.updatedAt = new Date();
+                    await manager.save(request);
+                }
+
+                puntualEvent.updatedBy = userEmail;
+                puntualEvent.updatedAt = new Date();
+                await manager.save(puntualEvent);
+
+                await manager.remove(puntualEvent);
+            });
 
             console.log(`[Revert Cancellation] Deleted standalone cancelled event ${eventId}`);
 
@@ -1926,6 +1960,21 @@ export const deletePeriodicEvent = async (req: AuditedRequest, res: Response) =>
             const groupsToCheck = periodicEvent.groups;
             const eventCharacter = periodicEvent.eventCharacter;
             const calendarId = periodicEvent.calendar.id;
+
+            // Auto-reject pending requests referencing this event
+            const eventRequestRepo = transactionalEntityManager.getRepository(EventRequest);
+            const pendingRequests = await eventRequestRepo.find({
+                where: { originalEventId: eventId, status: 'PENDING' },
+            });
+            for (const request of pendingRequests) {
+                request.status = 'REJECTED';
+                request.reviewedBy = userEmail;
+                request.reviewedAt = new Date();
+                request.comments = 'El evento original fue eliminado por el administrador';
+                request.updatedBy = userEmail;
+                request.updatedAt = new Date();
+                await transactionalEntityManager.save(request);
+            }
 
             // Delete the periodic event
             await transactionalEntityManager.remove(periodicEvent);

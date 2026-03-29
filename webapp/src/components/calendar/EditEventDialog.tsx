@@ -625,22 +625,6 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                     label: subject.name
                   }));
 
-                  console.log('=== DEBUG Subject Selection ===');
-                  console.log('config.subjectId:', config.subjectId);
-                  console.log('event.subject:', event?.subject);
-                  console.log('subjectsWithGroups (all):', subjectsWithGroups.map(s => ({ id: s.id, name: s.name })));
-                  console.log('subjectOptions (all):', subjectOptions);
-
-                  // Buscar el subject en las opciones
-                  const matchingOption = subjectOptions.find(opt => opt.value === config.subjectId);
-                  console.log('matchingOption:', matchingOption);
-
-                  // Verificar si el subject del evento está en subjectsWithGroups
-                  const eventSubjectInList = subjectsWithGroups.find(s => s.id === event?.subject?.id);
-                  console.log('Is event.subject in subjectsWithGroups?', eventSubjectInList);
-
-                  console.log('================================');
-
                   return (
                     <SearchableSelect
                       value={config.subjectId || ''}

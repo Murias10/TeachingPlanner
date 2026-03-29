@@ -1184,9 +1184,9 @@ export default function CalendarView({ calendarId, headerSlot, isQuickAccess }: 
         }
     };
 
-    const handleSubmitRequestEdit = async (config: { originalEventId: string; eventType: 'PUNTUAL' | 'PERIODIC'; startTime: string; endTime: string; eventDate?: string; weekDay?: string; comment: string }) => {
+    const handleSubmitRequestEdit = async (config: { originalEventId: string; eventType: 'PUNTUAL' | 'PERIODIC'; startTime: string; endTime: string; eventDate?: string; weekDay?: string; comment: string; subjectId?: string; groupIds?: string[]; classroomIds?: string[] }) => {
         setIsSubmittingRequest(true);
-        const result = await crearSolicitud(calendarId, config.eventType, { startTime: config.startTime, endTime: config.endTime, eventDate: config.eventDate, weekDay: config.weekDay, comment: config.comment }, () => { refetch(); refetchPendingRequests(); }, 'EDIT', config.originalEventId);
+        const result = await crearSolicitud(calendarId, config.eventType, { startTime: config.startTime, endTime: config.endTime, eventDate: config.eventDate, weekDay: config.weekDay, comment: config.comment, subjectId: config.subjectId, groupIds: config.groupIds, classroomIds: config.classroomIds }, () => { refetch(); refetchPendingRequests(); }, 'EDIT', config.originalEventId);
         setIsSubmittingRequest(false);
         if (result.success) {
             triggerAlert({ title: t('calendar.alerts.request.sent.title'), description: t('calendar.alerts.request.sent.description'), variant: 'success' });
@@ -1196,9 +1196,9 @@ export default function CalendarView({ calendarId, headerSlot, isQuickAccess }: 
         }
     };
 
-    const handleSubmitRequestCancel = async (config: { originalEventId: string; eventType: 'PUNTUAL' | 'PERIODIC'; comment: string }) => {
+    const handleSubmitRequestCancel = async (config: { originalEventId: string; eventType: 'PUNTUAL' | 'PERIODIC'; comment: string; subjectId?: string; groupIds?: string[]; classroomIds?: string[] }) => {
         setIsSubmittingRequest(true);
-        const result = await crearSolicitud(calendarId, config.eventType, { comment: config.comment }, () => { refetch(); refetchPendingRequests(); }, 'CANCEL', config.originalEventId);
+        const result = await crearSolicitud(calendarId, config.eventType, { comment: config.comment, subjectId: config.subjectId, groupIds: config.groupIds, classroomIds: config.classroomIds }, () => { refetch(); refetchPendingRequests(); }, 'CANCEL', config.originalEventId);
         setIsSubmittingRequest(false);
         if (result.success) {
             triggerAlert({ title: t('calendar.alerts.request.sent.title'), description: t('calendar.alerts.request.sent.description'), variant: 'success' });
@@ -1208,9 +1208,9 @@ export default function CalendarView({ calendarId, headerSlot, isQuickAccess }: 
         }
     };
 
-    const handleSubmitRequestReplace = async (config: { originalEventId: string; eventType: 'PUNTUAL' | 'PERIODIC'; originalDate?: string; newEventDate: string; startTime: string; endTime: string; comment: string }) => {
+    const handleSubmitRequestReplace = async (config: { originalEventId: string; eventType: 'PUNTUAL' | 'PERIODIC'; originalDate?: string; newEventDate: string; startTime: string; endTime: string; comment: string; preferredClassroomId?: string; subjectId?: string; groupIds?: string[]; classroomIds?: string[] }) => {
         setIsSubmittingRequest(true);
-        const result = await crearSolicitud(calendarId, config.eventType, { newEventDate: config.newEventDate, startTime: config.startTime, endTime: config.endTime, comment: config.comment, originalDate: config.originalDate }, () => { refetch(); refetchPendingRequests(); }, 'REPLACE', config.originalEventId);
+        const result = await crearSolicitud(calendarId, config.eventType, { newEventDate: config.newEventDate, startTime: config.startTime, endTime: config.endTime, comment: config.comment, originalDate: config.originalDate, preferredClassroomId: config.preferredClassroomId, subjectId: config.subjectId, groupIds: config.groupIds, classroomIds: config.classroomIds }, () => { refetch(); refetchPendingRequests(); }, 'REPLACE', config.originalEventId);
         setIsSubmittingRequest(false);
         if (result.success) {
             triggerAlert({ title: t('calendar.alerts.request.sent.title'), description: t('calendar.alerts.request.sent.description'), variant: 'success' });

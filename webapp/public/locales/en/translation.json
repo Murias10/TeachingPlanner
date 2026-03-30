@@ -910,8 +910,16 @@
         "toolbar": {
             "requests": "Requests",
             "requestsTooltip": "View pending event requests",
-            "requestEvent": "Request event",
-            "requestEventTooltip": "Request a new event"
+            "requestEvent": "Create request",
+            "requestEventTooltip": "Create a new event request",
+            "createEvent": "Create event",
+            "createEventTooltip": "Create a new event",
+            "importExceptions": "Import exceptions",
+            "importExceptionsTooltip": "Import .txt exceptions file",
+            "exportCsv": "Export .csv",
+            "exportCsvTooltip": "Export filtered events as CSV for Google Calendar",
+            "exportTxt": "Export .txt",
+            "exportTxtTooltip": "Export calendar as .txt files"
         },
         "alerts": {
             "nonLectiveDay": {

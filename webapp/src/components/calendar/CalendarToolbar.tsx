@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Download, CirclePlus, FileSpreadsheet, Upload } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface CalendarToolbarProps {
   onExport?: () => void;
@@ -17,6 +18,7 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
   onImportExceptions,
   isAdmin = false,
 }) => {
+  const { t } = useTranslation();
 
   return (
     <TooltipProvider>
@@ -31,10 +33,10 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
               className="h-9 gap-2"
             >
               <CirclePlus className="w-4 h-4" />
-              <span className="hidden sm:inline text-xs">Crear evento</span>
+              <span className="hidden sm:inline text-xs">{t('calendar.toolbar.createEvent')}</span>
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Crear nuevo evento</TooltipContent>
+          <TooltipContent>{t('calendar.toolbar.createEventTooltip')}</TooltipContent>
         </Tooltip>
 
         {/* Import Exceptions Button - Only for ADMIN */}
@@ -48,10 +50,10 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
                 className="h-9 gap-2"
               >
                 <Upload className="w-4 h-4" />
-                <span className="hidden sm:inline text-xs">Importar excepciones</span>
+                <span className="hidden sm:inline text-xs">{t('calendar.toolbar.importExceptions')}</span>
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Importar archivo .txt de excepciones</TooltipContent>
+            <TooltipContent>{t('calendar.toolbar.importExceptionsTooltip')}</TooltipContent>
           </Tooltip>
         )}
 
@@ -65,10 +67,10 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
               className="h-9 gap-2"
             >
               <FileSpreadsheet className="w-4 h-4" />
-              <span className="hidden sm:inline text-xs">Exportar .csv</span>
+              <span className="hidden sm:inline text-xs">{t('calendar.toolbar.exportCsv')}</span>
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Exportar eventos filtrados como CSV para Google Calendar</TooltipContent>
+          <TooltipContent>{t('calendar.toolbar.exportCsvTooltip')}</TooltipContent>
         </Tooltip>
 
         {/* Export TXT Button */}
@@ -81,10 +83,10 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
               className="h-9 gap-2"
             >
               <Download className="w-4 h-4" />
-              <span className="hidden sm:inline text-xs">Exportar .txt</span>
+              <span className="hidden sm:inline text-xs">{t('calendar.toolbar.exportTxt')}</span>
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Exportar calendario como archivos .txt</TooltipContent>
+          <TooltipContent>{t('calendar.toolbar.exportTxtTooltip')}</TooltipContent>
         </Tooltip>
       </div>
     </TooltipProvider>

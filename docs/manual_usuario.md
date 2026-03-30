@@ -90,8 +90,9 @@ The sidebar is the primary navigation tool. Its content changes according to the
 The sidebar header always shows **Escuela de Ingeniería Informática / Universidad de Oviedo**. Below it, the menu is organised into sections:
 
 - **Main** (always visible): **Home**, **Degrees**, **Classrooms**.
-- **System** (Administrators only): **User Management**, **Requests**.
-- **Extra** (always visible): **FAQ** (link not yet active).
+- **System** (authenticated users only, content varies by role):
+  - *Administrators*: **User Management**, **Requests**.
+  - *Professors*: **My Requests**.
 - **User area** (bottom of the sidebar): shows your name and email when signed in, or "Guest / Not authenticated" otherwise. Click it to open a small menu with **Settings** and **Log out**. If you are not signed in, the menu shows **Sign in** instead.
 
 ---
@@ -102,7 +103,7 @@ The application organises information in a hierarchy: **Degrees → Courses → 
 
 > **[IMAGE 10 — Breadcrumb]**: screenshot of the breadcrumb bar on a subjects page, showing the full path: Degrees > [Name] > Courses > [Year] > Semester [N] > Subjects.
 
-**Important:** Calendar, Subjects, Groups, and Requests for a given semester are **separate pages accessible from the course table**, not from within the calendar itself. To navigate between them, return to the course table (click **Degrees** or any breadcrumb ancestor) and use the links available for each semester row.
+**Important:** Calendar, Subjects, Groups, and Requests for a given semester are **separate pages accessible from the course table**, not from within the calendar itself. Each semester row in the course table shows a set of icon buttons: one to open the calendar, one for subjects, one for groups, and (for admins) one for requests. If no calendar has been created yet for a semester, these buttons are disabled and show the tooltip *(Requiere calendario)*.
 
 ---
 
@@ -120,7 +121,7 @@ The features described in this section are accessible to guests, professors, and
 
 The home page shows a calendar with all events from a selected active academic calendar. To use it:
 
-1. Use the **calendar selector** at the top to choose from the available active calendars. Your selection is remembered between visits.
+1. Use the **calendar selector** at the top to choose from the available *Activo* calendars. Each entry uses the format *ACRONYM - YYYY/YYYY - Semestre N* (e.g. `INFORM - 2024/2025 - Semestre 1`). Your selection is remembered between browser sessions.
 2. Expand the **filter panel** to narrow down the events displayed by group type, subject, classroom, language, and other criteria.
 3. Switch between **month, week, day, and agenda** views using the buttons in the calendar header.
 4. Click any event to open the **details panel** on the right, showing the full information for that event (subject, group, classroom, start and end time).
@@ -143,8 +144,8 @@ Click **Degrees** in the sidebar to access the full list of available degrees. C
 
 When you open a degree, the list of its academic courses is displayed. Each course corresponds to an academic year (e.g. 2024/2025) and can have up to two semesters, each with its own calendar.
 
-- Click the **calendar name** of a semester to access the detailed view of that calendar.
-- Guests only see courses in **Active** status. Planned and Finished courses are only visible to authenticated users.
+- Each semester row shows a **Semestre 1** / **Semestre 2** button. Click it to open the calendar for that semester. Additional icon buttons on the same row lead to the Subjects and Groups pages.
+- Each course shows a colour-coded **Status** badge: *Planificado* (yellow — course defined but not yet started), *Activo* (blue — currently running), or *Finalizado* (green — course completed). Guests can only see courses in *Activo* status; Planificado and Finalizado courses are hidden from unauthenticated users.
 
 ---
 
@@ -188,30 +189,59 @@ This section describes the additional features available to users with the **Pro
 
 ---
 
-### 4.1 Submitting an Event Request
+### 4.1 Submitting Event Requests
 
-As a professor, you cannot add events directly to the calendar. Instead, you submit a **request** to the administrator, who evaluates and approves it.
+As a professor, you cannot modify the calendar directly. Instead, you submit **requests** to the administrator, who evaluates and approves them. There are four types of request:
 
-> **[IMAGE 20 — Create event button (professor)]**: screenshot of the calendar toolbar (`.../calendar`) when the user has a Professor session, showing the "Create event" button.
+> **[IMAGE 20 — Create request button (professor)]**: screenshot of the calendar toolbar (`.../calendar`) when the user has a Professor session, showing the "Create request" button.
 
-> **[IMAGE 21 — Request creation dialog]**: screenshot of the dialog that opens when a professor clicks "Create event", showing the event type, date, time, classroom, and group fields.
+> **[IMAGE 21 — Request creation dialog]**: screenshot of the dialog that opens when a professor clicks "Create request", showing the event type, date, time, classroom, and group fields.
 
-To submit a request:
+#### CREATE request — add a new event
 
 1. Navigate to the **semester calendar** where you want to add the event.
-2. Click the **Create event** button in the toolbar, or click and drag on an empty time slot to pre-fill the date and time.
+2. Click the **Create request** (*Crear solicitud*) button in the toolbar, or click and drag on an empty time slot to pre-fill the date and time.
 3. Choose the event type (**one-off** for a single session or **recurring** for a repeating event) and fill in the required fields (date or recurrence pattern, start and end time, classroom, and group).
-4. Click **Submit request**. The request is registered with **Pending** status until the administrator reviews it.
+4. Click **Send request** (*Enviar solicitud*). The request is registered with **Pending** status until the administrator reviews it.
+
+#### EDIT, CANCEL, and REPLACE requests — modify an existing event
+
+> **[IMAGE 21b — Event context menu for professors]**: screenshot of the context menu that appears when a professor clicks on an existing calendar event, showing the edit, replace, and cancel request options.
+
+Click any existing event on the calendar to open its context menu. The following options are available:
+
+- **Request edit** (*Solicitar edición*): propose a change to the time, date, or classroom of an existing event. For recurring events, the option reads *Solicitar editar serie de eventos*. Fill in the updated details and click **Send request** to submit.
+- **Request replacement** (*Solicitar reemplazo*): substitute a single occurrence of a recurring event with a different one-off session. Specify the new date, times, and preferred classroom; the original occurrence is shown read-only for reference. Confirm with **Request replacement** (*Solicitar reemplazo*).
+- **Request cancellation** (*Solicitar cancelación*): request removal of an event from the calendar. This option appears in red as a destructive action. An optional comment field lets you explain the reason. Confirm with **Send cancellation request** (*Enviar solicitud de cancelación*).
+
+All four request types are sent to the administrator's review queue and follow the approval workflow described in sections 5.7 and 5.8.
 
 ---
 
 ### 4.2 Tracking Your Own Requests
 
-> **[IMAGE 22 — Pending request on calendar]**: screenshot of the calendar showing an event with a distinctive visual style (reduced opacity and a dashed grey border) indicating it is pending approval.
+You can follow the status of your submitted requests in two ways:
 
-Submitted requests appear on the calendar with a distinctive look — 50 % opacity and a dashed grey border — to indicate they are awaiting review.
+**On the semester calendar:**
 
-If you need to remove a pending request, right-click it (or click to open the context menu) and select **Delete request**. This permanently removes the request. There is no option to edit a submitted request; if you need to change any details, delete it and submit a new one.
+> **[IMAGE 22 — Pending request on calendar]**: screenshot of the calendar showing an event with reduced opacity and a dashed grey border indicating it is pending approval.
+
+Submitted CREATE requests appear on the calendar with reduced opacity and a dashed grey border to indicate they are awaiting review. Once approved they become regular events; if rejected they disappear from the calendar.
+
+To withdraw a pending CREATE request, click it to open its context menu and select **Eliminar solicitud** (Delete request). This permanently removes the request. Only pending requests can be withdrawn this way.
+
+**On the My Requests page:**
+
+> **[IMAGE 22b — My Requests page]**: screenshot of `/my-requests`, showing the status filter buttons at the top (Pending, Approved, Rejected, All) and the requests table listing all submitted requests across all semesters.
+
+Click **My Requests** in the sidebar to open a dedicated page listing all requests you have submitted across all calendars and semesters.
+
+- Use the **status filter buttons** (Pending, Approved, Rejected, All) at the top to narrow the list. The default view shows Pending requests.
+- Click the **refresh icon** to reload the list at any time.
+- The table shows: degree acronym, course year, semester, request type (CREATE / EDIT / CANCEL / REPLACE), event type (one-off or recurring), submission date, and current status. Status badges use colour coding: amber for Pending, green for Approved, red for Rejected.
+- For **pending** requests, a red delete icon appears in the Actions column to withdraw the request permanently.
+- **Approved and rejected** requests are read-only — the Actions column shows "Processed".
+- The table is paginated (10 rows per page) with Previous / Next navigation at the bottom.
 
 ---
 
@@ -259,8 +289,11 @@ From the **Degrees** page an administrator can:
 Within a degree, the administrator manages its courses and associated calendars.
 
 **Courses:**
-- **Create course**: click **Create course** in the toolbar → select the start and end years and the initial status (usually _Planned_).
-- **Edit course**: click the edit icon to change the years or update the status.
+- **Create course**: click **Create course** in the toolbar → select the start and end years and the initial status. The available statuses are:
+  - *Planificado* — the course is defined but not yet running. This is the usual starting state.
+  - *Activo* — the course is currently in progress. This is the only status visible to guests.
+  - *Finalizado* — the course has ended.
+- **Edit course**: click the edit icon to change the years or update the status. Status transitions are one-directional: Planificado → Activo → Finalizado. You cannot revert a course to a previous status.
 - **Delete course**: click the delete icon. A course can only be deleted if it has no calendars with events.
 
 **Calendars (for each semester row):**
@@ -300,8 +333,26 @@ Navigate to the desired semester → **Subjects** page. From here you can:
 
 Navigate to the desired semester → **Groups** page. The table shows groups organised by subject. To manage them:
 
-- **Create group**: click **Create group** → choose the subject, group type (Large Group, Medium Group, Small Group, etc.), number, and language of instruction.
+- **Create group**: click **Create group** → choose the subject, group type, and language of instruction. The group number is **assigned automatically** (the system picks the next available number for that subject/type/language combination). The available group types are:
+  - **T** — Teoría (Theory)
+  - **S** — Seminario (Seminar)
+  - **L** — Laboratorio (Laboratory)
+  - **TG** — Tutoría Grupal (Group Tutorial)
 - **Delete group**: click the delete icon directly on the group row.
+
+**Planned Hours:**
+
+Each group has a **Planned Hours** value (shown as `Xh`, e.g. `6h`) recording the total teaching hours expected for that group across the semester.
+
+To view or update planned hours:
+
+1. In the **Groups** table, click the **Manage Groups** button on any subject row to open the group detail panel.
+2. Inside the panel, groups are organised into tabs by type (T, S, L, TG) with Spanish and English columns.
+3. As an **administrator**, click the `Xh` value next to any group to switch to edit mode. An input field appears.
+4. Enter the new value. Only non-negative multiples of **0.5** are accepted (e.g. `0`, `0.5`, `1`, `1.5`, `6`). Invalid values are rejected in real time.
+5. Press **Enter** or click the green checkmark to save. Press **Escape** or click the red cross to cancel.
+
+Professors can see planned hours in the panel but cannot edit them.
 
 ---
 
@@ -340,17 +391,31 @@ Click **Create event** in the toolbar, or click and drag on an empty time slot t
 
 **Modifying existing events:**
 
-Click any event to open its details panel, where you will find the following options:
+Click any event to open its context menu. The available options depend on the event type:
 
-- **Edit**: modify the event's details. For recurring series you can choose to update only the selected occurrence or the entire series.
-- **Delete**: remove the event. For recurring series you can delete only the selected occurrence or the entire series.
-- **Replace**: substitute a single occurrence of a recurring series with a different one-off event. The replace dialog shows the original event (read-only) and lets you set a new date, times, and classroom. On confirmation, the original occurrence is cancelled and a new one-off event is created in its place.
+*For one-off events:*
+- **Editar evento** — modify the event's details.
+- **Eliminar evento** — permanently remove the event.
+
+*For recurring events:*
+- **Editar serie de eventos** — modify the details of the entire recurring series.
+- **Reemplazar evento** — substitute a single occurrence with a different one-off event. The dialog shows the original occurrence read-only and lets you set a new date, times, and classroom; on confirmation the original occurrence is cancelled and a new one-off event is created in its place.
+- **Eliminar evento** — cancel only the selected occurrence (leaves the rest of the series intact).
+- **Eliminar serie de eventos** — permanently remove the entire recurring series.
+
+*For cancelled occurrences:*
+- **Revertir cancelación** — restore a previously cancelled occurrence back to its original state.
+
+*For pending professor requests (visible on the calendar as events with a dashed border):*
+- **Aprobar solicitud** — open the approval dialog and approve the request directly from the calendar.
+- **Revisar solicitud** — open the full review dialog to inspect and optionally adjust the request details (frequency, dates, times) before approving.
+- **Rechazar solicitud** — reject the request with an optional comment.
 
 **Additional toolbar tools:**
 
-- **Import exceptions** — load a `.txt` file with exceptions that modify existing recurring patterns (cancelled classes, make-up sessions, etc.). The dialog offers two modes: **Replace** (overwrites all existing exceptions) and **Add** (appends to existing exceptions).
-- **Export .csv** — downloads the currently visible events as a CSV file in Google Calendar format.
-- **Export .txt** — downloads the calendar in the application's native TXT format.
+- **Importar excepciones** — load a `.txt` file with exceptions that modify existing recurring patterns (cancelled classes, make-up sessions, etc.). The dialog offers two modes: **Agregar** (Add — appends to existing exceptions) and **Reemplazar** (Replace — overwrites all existing exceptions).
+- **Exportar .csv** — downloads the currently visible events as a CSV file in Google Calendar format.
+- **Exportar .txt** — downloads the calendar in the application's native TXT format.
 
 ---
 
@@ -364,10 +429,13 @@ Click any event to open its details panel, where you will find the following opt
 
 Within a semester's page, the **Requests** section shows all professor requests for that period. Use the filter buttons at the top to view **Pending**, **Approved**, **Rejected**, or **All** requests.
 
-For each pending request:
+For each pending request, three actions are available:
 
-- **Approve**: click **Approve** → a dialog shows the event details. If there are any scheduling conflicts (same group or classroom already occupied), the system warns you before you confirm. Click **Approve request** to confirm.
-- **Reject**: click **Reject** → enter the reason in the comments field and confirm. The professor can see this comment when checking their request status.
+- **Revisar** (Review, eye icon): opens the full review dialog. The subject, group, and classroom fields are read-only — set by the professor — but you can adjust the **frequency, dates, and times** before approving. Click **Aprobar solicitud** inside the dialog to create the event with the (possibly modified) details.
+- **Aprobar** (Approve, checkmark icon): approves the request immediately without opening the review dialog, using the details as submitted.
+- **Rechazar** (Reject, X icon): opens a dialog where you enter the reason. The professor can see this comment in their My Requests page.
+
+If there are any scheduling conflicts (the same group or classroom is already occupied), the system warns you before you confirm the approval.
 
 ---
 
@@ -389,11 +457,13 @@ Click **Requests** in the sidebar to access a system-wide view of all professor 
 
 Click **User Management** in the sidebar to manage user accounts:
 
+- **Search**: type in the search box at the top of the table to filter users by email address.
 - **Create user**: click **Create user** → fill in the first name, surname(s), email address, and role (Administrator or Professor). On save, an activation email is sent automatically to the address provided.
-- **Edit user**: click the edit icon on a row to update their details.
-- **Delete user**: click the delete icon, or select several rows with the checkboxes and use **Delete selected**.
-- **Import users**: click **Import users** to load an Excel file containing multiple user records. All imported users will receive their activation emails.
-- **Resend activation email**: if a user has not yet activated their account, an icon button appears on their row to resend the activation email.
+- **Edit user**: click the edit (pencil) icon on a row to update their details.
+- **Delete user**: click the delete (trash) icon on a row, or select several rows with the checkboxes and use **Delete selected**.
+- **Import users**: click **Import users** to load an Excel (`.xlsx`) file containing multiple user records. All imported users will receive their activation emails.
+- **Resend activation email**: click the mail icon on any row belonging to a user who has not yet activated their account to resend the activation link.
+- The table is paginated (10 rows per page). Use the **Previous / Next** buttons at the bottom to navigate. The total user count is shown below the table.
 
 ---
 
@@ -418,7 +488,7 @@ Go to **Settings** (click your avatar → **Settings**) and scroll to the **Goog
 
 > **[IMAGE 45 — Synchronisation in progress]**: screenshot of the sync icon button in its loading state and the progress bar showing "{N} / {Total} completed".
 
-From the sidebar → **User Management** → or by clicking **Manage synchronisations** in Settings, you reach the `/calendar-sync` page. You must have a Google account connected (section 5.10) before any synchronisation will work.
+The synchronisation page is accessible by clicking **Manage synchronisations** in the Settings page (section 5.10). There is no direct sidebar link to this page. You must have a Google account connected (section 5.10) before any synchronisation will work.
 
 The table lists all academic calendars in the system. Use the **Filter by degree** dropdown at the top to narrow the list.
 

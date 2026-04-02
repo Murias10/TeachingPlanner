@@ -1196,9 +1196,9 @@ export default function CalendarView({ calendarId, headerSlot, isQuickAccess }: 
         }
     };
 
-    const handleSubmitRequestCancel = async (config: { originalEventId: string; eventType: 'PUNTUAL' | 'PERIODIC'; comment: string; subjectId?: string; groupIds?: string[]; classroomIds?: string[] }) => {
+    const handleSubmitRequestCancel = async (config: { originalEventId: string; eventType: 'PUNTUAL' | 'PERIODIC'; comment: string; specificDate?: string; subjectId?: string; groupIds?: string[]; classroomIds?: string[] }) => {
         setIsSubmittingRequest(true);
-        const result = await crearSolicitud(calendarId, config.eventType, { comment: config.comment, subjectId: config.subjectId, groupIds: config.groupIds, classroomIds: config.classroomIds }, () => { refetch(); refetchPendingRequests(); }, 'CANCEL', config.originalEventId);
+        const result = await crearSolicitud(calendarId, config.eventType, { comment: config.comment, specificDate: config.specificDate, subjectId: config.subjectId, groupIds: config.groupIds, classroomIds: config.classroomIds }, () => { refetch(); refetchPendingRequests(); }, 'CANCEL', config.originalEventId);
         setIsSubmittingRequest(false);
         if (result.success) {
             triggerAlert({ title: t('calendar.alerts.request.sent.title'), description: t('calendar.alerts.request.sent.description'), variant: 'success' });

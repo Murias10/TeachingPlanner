@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useEffect } from 'react';
+import { format, parseISO } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -20,6 +22,7 @@ export interface RequestCancelConfig {
   originalEventId: string;
   eventType: 'PUNTUAL' | 'PERIODIC';
   comment: string;
+  specificDate?: string;
   subjectId?: string;
   groupIds?: string[];
   classroomIds?: string[];
@@ -55,6 +58,7 @@ export default function RequestCancelDialog({
       originalEventId,
       eventType: isPuntual ? 'PUNTUAL' : 'PERIODIC',
       comment,
+      specificDate: !isPuntual ? event.date : undefined,
       subjectId: event.subject?.id,
       groupIds: event.groups.map(g => g.id),
       classroomIds: event.classrooms.map(c => c.id),
@@ -77,16 +81,13 @@ export default function RequestCancelDialog({
         <div className="overflow-y-auto flex-1 px-6 py-3">
           <div className="space-y-3">
             {/* Info del evento (read-only) */}
-            <div className="p-3 bg-accent/20 rounded border border-primary/20">
+            <div className="p-3 bg-accent/20 rounded-md border border-primary/20">
               <p className="text-xs font-semibold text-muted-foreground mb-1">Evento a cancelar</p>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div><span className="text-muted-foreground">Tipo:</span> {isPuntual ? 'Puntual' : 'Periódico'}</div>
                 <div><span className="text-muted-foreground">Horario:</span> {normalizeTime(event.startTime)} - {normalizeTime(event.endTime)}</div>
-                {isPuntual && (
-                  <div><span className="text-muted-foreground">Fecha:</span> {event.date}</div>
-                )}
-                {!isPuntual && event.weekDay && (
-                  <div><span className="text-muted-foreground">Día:</span> {event.weekDay}</div>
+                {event.date && (
+                  <div><span className="text-muted-foreground">Fecha:</span> {format(parseISO(event.date), 'dd/MM/yyyy', { locale: es })}</div>
                 )}
                 {event.groups.length > 0 && (
                   <div className="col-span-2">
@@ -105,7 +106,9 @@ export default function RequestCancelDialog({
 
             {/* Comentario */}
             <div className="space-y-1">
-              <Label htmlFor="cancel-comment" className="text-xs font-semibold">Comentario (opcional)</Label>
+              <Label htmlFor="cancel-comment" className="text-xs font-semibold">
+                Comentario
+              </Label>
               <Textarea
                 id="cancel-comment"
                 placeholder="Motivo de la cancelación..."
@@ -122,7 +125,7 @@ export default function RequestCancelDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting} className="h-8 text-xs">
             Cancelar
           </Button>
-          <Button onClick={handleSave} disabled={isSubmitting} variant="destructive" className="h-8 text-xs">
+          <Button onClick={handleSave} disabled={isSubmitting || !comment.trim()} variant="destructive" className="h-8 text-xs">
             {isSubmitting ? 'Enviando...' : 'Solicitar cancelación'}
           </Button>
         </div>

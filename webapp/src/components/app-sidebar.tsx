@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom"
 import {
-  CircleHelp,
   UserRoundCog,
   Warehouse,
   CalendarDays,
@@ -10,7 +9,6 @@ import {
 
 import { NavMain } from "@/components/nav-main"
 import { NavSystem } from "@/components/nav-system"
-import { NavExtra } from "@/components/nav-extra"
 import { NavUser } from "@/components/nav-user"
 import {
   Sidebar,
@@ -81,14 +79,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         requiredAuth: true,
       },
     ],
-    extra: [
-      {
-        title: t("sidebar.extra.faq.title"),
-        url: "#",
-        icon: CircleHelp,
-        requiredAuth: false,
-      }
-    ],
   }
 
   // Filtrar items según la autenticación del usuario
@@ -100,8 +90,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     if (item.url === '/my-requests') return user?.role === 'PROFESSOR';
     return true;
   });
-  const filteredExtra = data.extra.filter(item => !item.requiredAuth || isAuthenticated);
-
   return (
     <Sidebar
       className="top-(--header-height) h-[calc(100svh-var(--header-height))]!"
@@ -129,7 +117,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         <NavMain items={filteredMain} />
         <NavSystem projects={filteredSystem} />
-        <NavExtra items={filteredExtra} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} />

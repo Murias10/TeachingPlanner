@@ -1141,11 +1141,12 @@ async function editEventFromRequest(eventRequest: EventRequest): Promise<string>
 }
 
 /**
- * Helper: cancel an existing event by setting cancelled = true (puntual)
- * or removing it (periodic). For periodic events we only cancel on the
- * specific occurrence via a cancelled puntual event on that day — but
- * since professors can only cancel whole periodic events here, we just
- * delete the periodic event row.
+ * Helper: cancel an event by creating a new PuntualEvent "blocker" with cancelled=true.
+ * The original event is never modified. Reverting = deleting the blocker.
+ *
+ * - PUNTUAL: copies the original event's data into a new cancelled PuntualEvent on the same day.
+ * - PERIODIC: creates a new cancelled PuntualEvent on the specific occurrence date,
+ *   linked via periodicEventSourceId so the calendar service skips that date.
  */
 async function cancelEventFromRequest(eventRequest: EventRequest): Promise<string> {
     const { originalEventId, eventData } = eventRequest;
@@ -1153,29 +1154,63 @@ async function cancelEventFromRequest(eventRequest: EventRequest): Promise<strin
         throw new Error('originalEventId is required for CANCEL requests');
     }
 
-    const { comment } = eventData;
-
+    const { comment, specificDate } = eventData;
     const puntualEventRepo = AppDataSource.getRepository(PuntualEvent);
-    const periodicEventRepo = AppDataSource.getRepository(PeriodicEvent);
+    const dayRepo = AppDataSource.getRepository(Day);
 
     if (eventRequest.eventType === 'PUNTUAL') {
-        const event = await puntualEventRepo.findOne({ where: { id: originalEventId } });
-        if (!event) throw new Error('Original puntual event not found');
+        const original = await puntualEventRepo.findOne({
+            where: { id: originalEventId },
+            relations: ['day', 'groups', 'classrooms'],
+        });
+        if (!original) throw new Error('Original puntual event not found');
 
-        event.cancelled = true;
-        if (comment !== undefined) event.comment = comment;
-        event.updatedBy = eventRequest.professorId;
-        event.updatedAt = new Date();
+        const blocker = new PuntualEvent();
+        blocker.day = original.day;
+        blocker.startTime = original.startTime;
+        blocker.endTime = original.endTime;
+        blocker.eventType = original.eventType;
+        blocker.groups = original.groups;
+        blocker.classrooms = original.classrooms;
+        blocker.cancelled = true;
+        blocker.comment = comment ?? '';
+        blocker.createdBy = eventRequest.professorId;
+        blocker.updatedBy = eventRequest.professorId;
 
-        await puntualEventRepo.save(event);
-        return event.id;
+        await puntualEventRepo.save(blocker);
+        return blocker.id;
     } else {
-        // PERIODIC — delete the event row
-        const event = await periodicEventRepo.findOne({ where: { id: originalEventId } });
-        if (!event) throw new Error('Original periodic event not found');
+        if (!specificDate) throw new Error('specificDate is required for PERIODIC cancel requests');
 
-        await periodicEventRepo.remove(event);
-        return originalEventId;
+        const periodicEventRepo = AppDataSource.getRepository(PeriodicEvent);
+        const periodicEvent = await periodicEventRepo.findOne({
+            where: { id: originalEventId },
+            relations: ['groups', 'classrooms'],
+        });
+        if (!periodicEvent) throw new Error('Original periodic event not found');
+
+        const targetDate = new Date(specificDate);
+        targetDate.setUTCHours(0, 0, 0, 0);
+        const day = await dayRepo.findOne({
+            where: { calendar: { id: eventRequest.calendarId }, date: targetDate },
+        });
+        if (!day) throw new Error(`Day not found for date ${specificDate}`);
+
+        const blocker = new PuntualEvent();
+        blocker.day = day;
+        blocker.startTime = periodicEvent.startTime;
+        blocker.endTime = periodicEvent.endTime;
+        blocker.eventType = periodicEvent.eventType;
+        blocker.groups = periodicEvent.groups;
+        blocker.classrooms = periodicEvent.classrooms;
+        blocker.cancelled = true;
+        blocker.comment = comment ?? '';
+        blocker.periodicEventSourceId = periodicEvent.id;
+        blocker.createdBy = eventRequest.professorId;
+        blocker.updatedBy = eventRequest.professorId;
+
+        await puntualEventRepo.save(blocker);
+        return blocker.id;
     }
 }
 

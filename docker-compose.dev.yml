@@ -18,7 +18,7 @@ services:
     volumes:
       - caddy_data:/data
       - caddy_config:/config
-      - ./certs:/etc/caddy/certs:ro
+      - ./certs:/certs:ro
 
   gateway_service:
     container_name: ${GATEWAY_SERVICE_HOST}
@@ -59,10 +59,10 @@ services:
       dockerfile: Dockerfile
     image: teachingplanner_planner_database:dev
     environment:
-      MARIADB_ROOT_PASSWORD: "root_secret"
-      MARIADB_DATABASE: "planner_db"
-      MARIADB_USER: "planner_user"
-      MARIADB_PASSWORD: "planner_password"
+      MARIADB_ROOT_PASSWORD: ${PLANNER_DATABASE_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${PLANNER_DATABASE_DATABASE}
+      MARIADB_USER: ${PLANNER_DATABASE_USER}
+      MARIADB_PASSWORD: ${PLANNER_DATABASE_PASSWORD}
     env_file:
       - .env
     restart: unless-stopped
@@ -117,10 +117,10 @@ services:
       dockerfile: Dockerfile
     image: teachingplanner_management_database:dev
     environment:
-      MARIADB_ROOT_PASSWORD: "root_secret"
-      MARIADB_DATABASE: "management_db"
-      MARIADB_USER: "management_user"
-      MARIADB_PASSWORD: "management_password"
+      MARIADB_ROOT_PASSWORD: ${MANAGEMENT_DATABASE_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${MANAGEMENT_DATABASE_DATABASE}
+      MARIADB_USER: ${MANAGEMENT_DATABASE_USER}
+      MARIADB_PASSWORD: ${MANAGEMENT_DATABASE_PASSWORD}
     env_file:
       - .env
     restart: unless-stopped

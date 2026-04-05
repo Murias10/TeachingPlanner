@@ -9,12 +9,12 @@ jobs:
     runs-on: ubuntu-latest  # Usa la última versión de Ubuntu como sistema operativo
     steps:
       - name: 📥 Clonar el repositorio
-        uses: actions/checkout@v4  # Descarga el código del repositorio
+        uses: actions/checkout@v5  # Descarga el código del repositorio
         with:
           fetch-depth: 0  # Clona todo el historial para un análisis más preciso
 
       - name: ⚙️ Configurar Node.js
-        uses: actions/setup-node@v4  # Configura el entorno con Node.js
+        uses: actions/setup-node@v5  # Configura el entorno con Node.js
         with:
           node-version: 20  # Usa la versión 20 de Node.js
 
@@ -51,10 +51,10 @@ jobs:
 
     steps:
       - name: 📥 Clonar el repositorio
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: ⚙️ Configurar Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 20
 

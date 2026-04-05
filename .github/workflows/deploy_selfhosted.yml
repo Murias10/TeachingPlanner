@@ -54,12 +54,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 📥 Clonar el repositorio
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: ⚙️ Configurar Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 20
 
@@ -103,10 +103,10 @@ jobs:
 
     steps:
       - name: 📥 Clonar el repositorio
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: ⚙️ Configurar Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 20
 
@@ -236,7 +236,7 @@ jobs:
       # SETUP: Preparación del entorno
       # -----------------------------------------------------------------------
       - name: 📥 Clonar código fuente
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: ⚙️ Configurar Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -347,7 +347,7 @@ jobs:
       # SETUP: Preparación del entorno
       # -----------------------------------------------------------------------
       - name: 📥 Clonar código fuente
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: 🔑 Autenticar en GitHub Container Registry
         run: |

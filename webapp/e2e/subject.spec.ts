@@ -162,6 +162,13 @@ async function createSubject(page: Page, data: { name: string; acronym: string; 
   // Verificar que el botón save esté habilitado y hacer click
   const saveButton = dialog.getByRole('button', { name: /guardar|save/i });
   await expect(saveButton).toBeEnabled({ timeout: 2000 });
+
+  // Registrar el listener del refetch (GET) ANTES del click para no perdernos la respuesta
+  const refetchPromise = page.waitForResponse(
+    r => r.url().includes('/subjects/calendar/') && r.request().method() === 'GET',
+    { timeout: 15000 }
+  );
+
   await Promise.all([
     page.waitForResponse(r =>
       r.url().includes('/subject') &&
@@ -170,22 +177,21 @@ async function createSubject(page: Page, data: { name: string; acronym: string; 
     saveButton.click(),
   ]);
 
-  // Esperar a que la tabla se actualice antes de filtrar
-  await page.waitForLoadState('networkidle');
+  // Esperar el refetch de React Query (GET subjects/calendar/:id)
+  await refetchPromise;
+
+  // Esperar que el drawer se cierre (implica que el POST retornó éxito)
+  await expect(dialog).not.toBeVisible({ timeout: 5000 });
 
   // Usar el filtro de búsqueda para verificar que el subject se creó
   const filterInput = page.getByPlaceholder(/buscar|filter|search/i);
   await filterInput.fill(data.name);
 
-  // Esperar a que el subject aparezca en la tabla filtrada
-  // Si esto falla, significa que la creación falló
-  await expect(page.locator('table').getByText(data.acronym)).toBeVisible({ timeout: 10000 });
+  // La tabla ya tiene datos actualizados — el acrónimo debe ser visible
+  await expect(page.locator('table').getByText(data.acronym)).toBeVisible({ timeout: 5000 });
 
   // Limpiar filtro
   await filterInput.clear();
-
-  // Verificar que el drawer se cerró (solo se cierra si la creación fue exitosa)
-  await expect(dialog).not.toBeVisible({ timeout: 2000 });
 }
 
 test.describe('Subject Management', () => {

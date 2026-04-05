@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/sidebar"
 import { useAuth } from "@/contexts/AuthContext"
 import { useNavigate } from "react-router-dom"
+import { useEffect, useRef } from "react"
 
 export function NavUser({
   user,
@@ -42,10 +43,18 @@ export function NavUser({
   const { isMobile } = useSidebar()
   const { logout, isAuthenticated } = useAuth()
   const navigate = useNavigate()
+  const justLoggedOut = useRef(false)
+
+  useEffect(() => {
+    if (justLoggedOut.current && !isAuthenticated) {
+      justLoggedOut.current = false
+      navigate("/", { replace: true })
+    }
+  }, [isAuthenticated, navigate])
 
   const handleLogout = () => {
+    justLoggedOut.current = true
     logout()
-    navigate("/", { replace: true })
   }
 
   const handleSignIn = () => {

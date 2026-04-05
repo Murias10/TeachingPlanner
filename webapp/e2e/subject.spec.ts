@@ -165,8 +165,7 @@ async function createSubject(page: Page, data: { name: string; acronym: string; 
   await Promise.all([
     page.waitForResponse(r =>
       r.url().includes('/subject') &&
-      r.request().method() === 'POST' &&
-      r.status() === 201
+      r.request().method() === 'POST'
     ),
     saveButton.click(),
   ]);

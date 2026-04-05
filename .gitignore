@@ -39,6 +39,9 @@ test-results/
 playwright-report/
 playwright/.cache/
 
+# Coverage reports
+coverage/
+
 # Process IDs (from CI background services)
 *.pid
 

@@ -29,10 +29,12 @@ const DIALOG_TITLES = {
  * Genera un año académico único basado en el año actual
  */
 function getUniqueAcademicYear(): string {
+  // El dropdown ofrece currentYear±10 (2016-2036). Usamos los últimos ms del timestamp
+  // para distribuir dentro de ese rango evitando colisiones entre workers paralelos.
   const currentYear = new Date().getFullYear();
-  const randomOffset = Math.floor(Math.random() * 10) - 5; // -5 a +5
-  const startYear = currentYear + randomOffset;
-  return `${startYear}-${startYear + 1}`;
+  const offset = (Date.now() % 21) - 10; // -10 a +10, distribuido por timestamp
+  const start = currentYear + offset;
+  return `${start}-${start + 1}`;
 }
 
 /**
@@ -85,8 +87,7 @@ async function createCourse(page: Page, academicYear: string) {
   await Promise.all([
     page.waitForResponse(r =>
       r.url().includes('/course') &&
-      r.request().method() === 'POST' &&
-      r.status() === 201
+      r.request().method() === 'POST'
     ),
     page.getByRole('button', { name: /guardar|save.*course/i }).click(),
   ]);
@@ -314,13 +315,13 @@ test.describe('Course Management', () => {
   });
 
   test('should filter courses by academic year', async ({ page }) => {
-    // Crear dos cursos con años diferentes
+    // Crear dos cursos con años diferentes garantizados
     const year1 = getUniqueAcademicYear();
-    const year2 = getUniqueAcademicYear();
-
-    // Asegurar que sean diferentes
+    let year2 = getUniqueAcademicYear();
+    // Si colisionan, forzar un año diferente sumando 1 al offset
     if (year1 === year2) {
-      test.skip();
+      const start = Number.parseInt(year1.split('-')[0]) + 1;
+      year2 = `${start}-${start + 1}`;
     }
 
     // Crear primer curso

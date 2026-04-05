@@ -35,13 +35,12 @@ import type { EventRequest } from "@/types/EventRequest"
 
 interface SolicitudTableProps {
     readonly solicitudes: EventRequest[];
-    readonly onApprove?: (solicitud: EventRequest) => void;
     readonly onReject?: (solicitud: EventRequest) => void;
     readonly onReview?: (solicitud: EventRequest) => void;
     readonly onDelete?: (solicitud: EventRequest) => void;
 }
 
-export function SolicitudTable({ solicitudes, onApprove, onReject, onReview, onDelete }: SolicitudTableProps) {
+export function SolicitudTable({ solicitudes, onReject, onReview, onDelete }: SolicitudTableProps) {
     const { t } = useTranslation()
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -50,7 +49,7 @@ export function SolicitudTable({ solicitudes, onApprove, onReject, onReview, onD
 
     const table = useReactTable({
         data: solicitudes,
-        columns: defaultColumns({ onApprove, onReject, onReview, onDelete, t }),
+        columns: defaultColumns({ onReject, onReview, onDelete, t }),
         state: {
             sorting,
             columnFilters,

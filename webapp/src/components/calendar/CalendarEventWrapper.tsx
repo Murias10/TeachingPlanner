@@ -7,7 +7,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { Edit, Trash2, Calendar, XCircle, Replace, Undo, Check, Eye, X } from "lucide-react";
+import { Edit, Trash2, Calendar, XCircle, Replace, Undo, Eye, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { EVENT_CHARACTERS } from "@/constants/eventCharacters";
 
@@ -19,7 +19,6 @@ interface CalendarEventWrapperProps {
   onEdit?: (event: CalendarEvent) => void;
   onDelete?: (event: CalendarEvent) => void;
   onViewDetails?: (event: CalendarEvent) => void;
-  onApproveRequest?: (event: CalendarEvent) => void;
   onRejectRequest?: (event: CalendarEvent) => void;
   onReviewRequest?: (event: CalendarEvent) => void;
   onDeleteRequest?: (event: CalendarEvent) => void;
@@ -37,7 +36,6 @@ export function CalendarEventWrapper({
   onEdit,
   onDelete,
   onViewDetails,
-  onApproveRequest,
   onRejectRequest,
   onReviewRequest,
   onDeleteRequest,
@@ -74,11 +72,6 @@ export function CalendarEventWrapper({
   const handleViewDetails = (e: React.MouseEvent<HTMLDivElement>) => {
     e.preventDefault();
     onViewDetails?.(calendarEvent);
-  };
-
-  const handleApproveRequest = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    onApproveRequest?.(calendarEvent);
   };
 
   const handleRejectRequest = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -195,11 +188,6 @@ export function CalendarEventWrapper({
           </ContextMenuItem>
 
           <ContextMenuSeparator />
-
-          <ContextMenuItem onClick={handleApproveRequest}>
-            <Check className="text-emerald-600" />
-            Aprobar solicitud
-          </ContextMenuItem>
 
           <ContextMenuItem onClick={handleReviewRequest}>
             <Eye className="text-blue-600" />

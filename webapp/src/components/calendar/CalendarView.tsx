@@ -35,7 +35,7 @@ import ReplaceEventDialog from "@/components/calendar/ReplaceEventDialog";
 import RequestEditDialog from "@/components/solicitud/RequestEditDialog";
 import RequestCancelDialog from "@/components/solicitud/RequestCancelDialog";
 import RequestReplaceDialog from "@/components/solicitud/RequestReplaceDialog";
-import ApproveRequestDialog, { canApproveRequestDirectly } from "@/components/solicitud/ApproveRequestDialog";
+import ApproveRequestDialog from "@/components/solicitud/ApproveRequestDialog";
 import RejectRequestDialog from "@/components/calendar/RejectRequestDialog";
 import { useCreatePuntualEvent } from "@/hooks/calendar/useCreatePuntualEvent";
 import { useCreatePeriodicEvent } from "@/hooks/calendar/useCreatePeriodicEvent";
@@ -964,41 +964,6 @@ export default function CalendarView({ calendarId, headerSlot, isQuickAccess }: 
         return actualId;
     };
 
-    const handleApproveRequest = async (event: CalendarEvent) => {
-        if (!event.requestId) {
-            triggerAlert({ title: t('calendar.alerts.request.noRequestId.title'), description: t('calendar.alerts.request.noRequestId.description'), variant: 'destructive' });
-            return;
-        }
-        const actualRequestId = extractRequestId(event.requestId);
-        try {
-            const response = await fetch(`${VITE_GATEWAY_API_URL}/event-request/${actualRequestId}`, { headers: getAuthHeaders() });
-            if (!response.ok) {
-                triggerAlert({ title: t('calendar.alerts.request.approveError.title'), description: 'No se pudo obtener la información de la solicitud', variant: 'destructive' });
-                return;
-            }
-            const body = await response.json();
-            const solicitud = body.data;
-            if (!solicitud?.eventData) {
-                triggerAlert({ title: t('calendar.alerts.request.approveError.title'), description: 'No se pudo obtener la información de la solicitud', variant: 'destructive' });
-                return;
-            }
-            if (!canApproveRequestDirectly(solicitud.eventData)) {
-                setReviewRequestId(actualRequestId);
-                setApproveDialogOpen(true);
-                return;
-            }
-            const config = solicitud.eventData as RecurrenceConfig;
-            const result = await aprobarSolicitud(actualRequestId, config, refetchPendingRequests);
-            if (result.success) {
-                triggerAlert({ title: t('calendar.alerts.request.approved.title'), description: t('calendar.alerts.request.approved.description'), variant: 'default' });
-                refetch();
-            } else {
-                triggerAlert({ title: t('calendar.alerts.request.approveError.title'), description: result.message || t('calendar.alerts.request.approveError.description'), variant: 'destructive' });
-            }
-        } catch {
-            triggerAlert({ title: t('calendar.alerts.request.approveErrorGeneric.title'), description: t('calendar.alerts.request.approveErrorGeneric.description'), variant: 'destructive' });
-        }
-    };
 
     const handleRejectRequest = (event: CalendarEvent) => {
         if (!event.requestId) {
@@ -1227,7 +1192,6 @@ export default function CalendarView({ calendarId, headerSlot, isQuickAccess }: 
             onEdit={handleEditEvent}
             onDelete={handleDeleteEvent}
             onViewDetails={handleViewEventDetails}
-            onApproveRequest={handleApproveRequest}
             onRejectRequest={handleRejectRequest}
             onReviewRequest={handleReviewRequest}
             onDeleteRequest={handleDeleteRequest}

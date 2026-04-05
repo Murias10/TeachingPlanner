@@ -250,7 +250,6 @@ const AllSolicitudesPage = () => {
                         <div className="h-full">
                             <SolicitudTable
                                 solicitudes={solicitudes}
-                                onApprove={handleApprove}
                                 onReject={handleReject}
                                 onReview={handleApprove}
                             />

@@ -1,7 +1,7 @@
 import { ColumnDef } from "@tanstack/react-table"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ArrowUpDown, Check, X, Eye, Trash2 } from "lucide-react"
+import { ArrowUpDown, X, Eye, Trash2 } from "lucide-react"
 import {
     Tooltip,
     TooltipContent,
@@ -18,7 +18,6 @@ const getRequestTypeBadge = (requestType: string, t: TFunction) => {
 };
 
 interface ColumnExtraProps {
-    onApprove?: (solicitud: EventRequest) => void;
     onReject?: (solicitud: EventRequest) => void;
     onReview?: (solicitud: EventRequest) => void;
     onDelete?: (solicitud: EventRequest) => void;
@@ -42,7 +41,7 @@ const getEventTypeLabel = (eventType: string, t: TFunction) => {
     return eventType === 'PUNTUAL' ? t("requests.dialog.approve.eventType.punctual") : t("requests.dialog.approve.eventType.periodic");
 };
 
-export const columns = ({ onApprove, onReject, onReview, onDelete, t }: ColumnExtraProps): ColumnDef<EventRequest>[] => [
+export const columns = ({ onReject, onReview, onDelete, t }: ColumnExtraProps): ColumnDef<EventRequest>[] => [
     {
         accessorKey: "professorId",
         enableHiding: false,
@@ -162,7 +161,7 @@ export const columns = ({ onApprove, onReject, onReview, onDelete, t }: ColumnEx
             }
 
             // Modo profesor: solo botón de eliminar
-            if (onDelete && !onApprove && !onReject) {
+            if (onDelete && !onReject) {
                 return (
                     <div className="flex justify-end gap-1">
                         <Tooltip>
@@ -182,7 +181,7 @@ export const columns = ({ onApprove, onReject, onReview, onDelete, t }: ColumnEx
                 );
             }
 
-            // Modo admin: revisar, aprobar, rechazar
+            // Modo admin: revisar, rechazar
             return (
                 <div className="flex justify-end gap-1">
                     {onReview && (
@@ -198,21 +197,6 @@ export const columns = ({ onApprove, onReject, onReview, onDelete, t }: ColumnEx
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>{t("table.solicitudes.actions.review")}</TooltipContent>
-                        </Tooltip>
-                    )}
-                    {onApprove && (
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => onApprove(solicitud)}
-                                    className="h-8 w-8 p-0 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700"
-                                >
-                                    <Check className="h-4 w-4" />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>{t("table.solicitudes.actions.approve")}</TooltipContent>
                         </Tooltip>
                     )}
                     {onReject && (

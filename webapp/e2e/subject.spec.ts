@@ -162,10 +162,19 @@ async function createSubject(page: Page, data: { name: string; acronym: string; 
   // Verificar que el botón save esté habilitado y hacer click
   const saveButton = dialog.getByRole('button', { name: /guardar|save/i });
   await expect(saveButton).toBeEnabled({ timeout: 2000 });
-  await saveButton.click();
+  await Promise.all([
+    page.waitForResponse(r =>
+      r.url().includes('/subject') &&
+      r.request().method() === 'POST' &&
+      r.status() === 201
+    ),
+    saveButton.click(),
+  ]);
+
+  // Esperar a que la tabla se actualice antes de filtrar
+  await page.waitForLoadState('networkidle');
 
   // Usar el filtro de búsqueda para verificar que el subject se creó
-  // Esto funciona sin importar la página y sin esperar a que el drawer se cierre
   const filterInput = page.getByPlaceholder(/buscar|filter|search/i);
   await filterInput.fill(data.name);
 

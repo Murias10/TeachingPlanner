@@ -82,7 +82,14 @@ async function createCourse(page: Page, academicYear: string) {
   await page.getByRole('option', { name: academicYear }).click();
 
   // El estado por defecto es PLANIFICADO y está deshabilitado
-  await page.getByRole('button', { name: /guardar|save.*course/i }).click();
+  await Promise.all([
+    page.waitForResponse(r =>
+      r.url().includes('/course') &&
+      r.request().method() === 'POST' &&
+      r.status() === 201
+    ),
+    page.getByRole('button', { name: /guardar|save.*course/i }).click(),
+  ]);
 
   await expectSuccessAlert(page, ALERT_MESSAGES.CREATED);
   await page.waitForLoadState('networkidle');

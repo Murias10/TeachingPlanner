@@ -107,8 +107,7 @@
    - role (ROLE_ADMIN/ROLE_PROFESSOR)
    - iat (issued at)
    - exp (expiration: 24h)
-6. Sistema registra inicio de sesión en tabla AUDIT_LOGS
-7. Sistema devuelve JWT al cliente
+6. Sistema devuelve JWT al cliente
 8. Cliente almacena JWT en localStorage/sessionStorage
 9. Sistema redirige según rol:
    - ROLE_ADMIN → Dashboard administrativo
@@ -132,7 +131,6 @@
 **Criterios de Aceptación:**
 - Tiempo de respuesta <1 segundo para login exitoso
 - JWT incluye todos los claims necesarios
-- Se registra timestamp exacto de login en auditoría
 
 ---
 
@@ -145,10 +143,9 @@
 
 **Proceso:**
 1. Usuario hace clic en "Cerrar Sesión"
-2. Sistema registra cierre de sesión en AUDIT_LOGS
-3. Cliente elimina JWT de localStorage/sessionStorage
-4. Sistema redirige a página de login público
-5. (Opcional futuro) Sistema invalida JWT en blacklist
+2. Cliente elimina JWT de localStorage/sessionStorage
+3. Sistema redirige a página de login
+4. (Opcional futuro) Sistema invalida JWT en blacklist
 
 **Salidas:**
 - Sesión cerrada
@@ -158,46 +155,60 @@
 **Criterios de Aceptación:**
 - JWT se elimina completamente del cliente
 - No es posible realizar acciones autenticadas tras logout
-- Se registra timestamp de logout en auditoría
 
 ---
 
 #### RF-AUTH-05: Recuperación de Contraseña
 **Prioridad:** ALTA
-**Descripción:** Los usuarios deben poder recuperar su contraseña si la olvidan.
+**Descripción:** Los usuarios deben poder recuperar su contraseña mediante un código OTP de verificación enviado por email.
 
-**Entradas:**
+**Entradas (Paso 1 - Solicitud):**
 - Email del usuario
+
+**Entradas (Paso 2 - Verificación OTP):**
+- Email
+- Código OTP de 6 dígitos
+
+**Entradas (Paso 3 - Nueva contraseña):**
+- Token de reseteo (devuelto en paso 2)
+- Nueva contraseña
+- Confirmación de contraseña
 
 **Proceso:**
 1. Usuario accede a "¿Olvidó su contraseña?"
 2. Usuario ingresa su email
 3. Sistema verifica que el email existe y está activado
-4. Sistema genera token de recuperación único con validez de 1 hora
-5. Sistema almacena token y timestamp de expiración
-6. Sistema envía email con enlace de recuperación
-7. Usuario accede a URL con token
-8. Sistema verifica validez del token
-9. Usuario establece nueva contraseña
-10. Sistema encripta nueva contraseña
-11. Sistema invalida token de recuperación
-12. Sistema envía email de confirmación de cambio
+4. Sistema genera código OTP de 6 dígitos con validez de 15 minutos
+5. Sistema almacena OTP en memoria (asociado al email) con su expiración
+6. Sistema aplica cooldown: no permite nueva solicitud hasta 60 segundos tras la anterior
+7. Sistema envía email con el código OTP
+8. Usuario introduce el código OTP en el formulario de verificación
+9. Sistema valida el OTP → devuelve `resetToken` de un solo uso
+10. Usuario establece nueva contraseña usando el `resetToken`
+11. Sistema valida la nueva contraseña
+12. Sistema encripta la nueva contraseña (bcrypt factor 10)
+13. Sistema invalida el `resetToken`
+14. Sistema actualiza la contraseña en base de datos
 
 **Salidas:**
-- Token de recuperación generado
-- Email enviado con enlace
-- Contraseña actualizada (tras completar proceso)
+- Email con código OTP enviado
+- `resetToken` temporal tras verificación OTP exitosa
+- Contraseña actualizada
 
 **Validaciones:**
 - Email existe en sistema
 - Cuenta está activada
-- Token no expirado (<1h)
-- Nueva contraseña cumple política de seguridad
+- OTP no expirado (<15 minutos)
+- OTP correcto
+- Nueva contraseña: mínimo 6 caracteres
+- Confirmación de contraseña coincide con nueva contraseña
 
 **Casos de Error:**
 - ER-AUTH-05-01: Email no registrado → Mensaje genérico: "Si el email existe, recibirá instrucciones" (por seguridad)
-- ER-AUTH-05-02: Token expirado → Mensaje: "El enlace ha expirado. Solicite uno nuevo"
-- ER-AUTH-05-03: Token inválido → Mensaje: "Enlace de recuperación inválido"
+- ER-AUTH-05-02: OTP expirado → Mensaje: "El código ha expirado. Solicite uno nuevo"
+- ER-AUTH-05-03: OTP inválido → Mensaje: "Código de verificación inválido"
+- ER-AUTH-05-04: Cooldown activo → No se puede solicitar nuevo código hasta transcurrido el tiempo de espera
+- ER-AUTH-05-05: Contraseña débil → Mensaje: "La contraseña debe tener al menos 6 caracteres"
 
 ---
 
@@ -298,16 +309,11 @@
 3. Administrador modifica campos deseados
 4. Sistema valida cambios
 5. Sistema actualiza registro en BD
-6. Sistema registra cambio en AUDIT_LOGS con:
-   - Campos modificados
-   - Valores anteriores y nuevos
-   - Usuario que realizó cambio
-   - Timestamp
+6. Los metadatos de auditoría de la entidad se actualizan automáticamente: `updatedBy` (email del administrador) y `updatedAt` (timestamp de la modificación)
 7. Sistema muestra confirmación
 
 **Salidas:**
-- Usuario actualizado
-- Registro de auditoría generado
+- Usuario actualizado con metadatos de auditoría actualizados
 - Confirmación de éxito
 
 **Validaciones:**
@@ -323,7 +329,7 @@
 
 #### RF-USER-03: Eliminar Usuario
 **Prioridad:** MEDIA
-**Descripción:** Los administradores deben poder eliminar usuarios (soft delete).
+**Descripción:** Los administradores deben poder eliminar usuarios del sistema (eliminación permanente del registro).
 
 **Entradas:**
 - ID del usuario a eliminar
@@ -337,13 +343,11 @@
 3. Administrador confirma
 4. Sistema verifica que no es el último administrador
 5. Sistema verifica que no es el usuario actual
-6. Sistema marca usuario como `is_active=false`
-7. Sistema registra eliminación en AUDIT_LOGS
-8. Sistema refresca listado
+6. Sistema elimina el usuario de la base de datos
+7. Sistema refresca listado
 
 **Salidas:**
-- Usuario marcado como inactivo
-- Registro de eliminación en auditoría
+- Usuario eliminado del sistema
 
 **Validaciones:**
 - No eliminar último administrador
@@ -373,12 +377,12 @@
 4. Administrador completa datos
 5. Sistema valida unicidad de nombre y acrónimo
 6. Sistema crea registro en tabla DEGREES
-7. Sistema registra creación en AUDIT_LOGS
+7. Los metadatos de auditoría de la entidad se establecen automáticamente (`createdBy`, `createdAt`)
 8. Sistema muestra confirmación
 
 **Salidas:**
 - Nueva titulación creada
-- Registro de auditoría
+- Metadatos de auditoría actualizados en la entidad
 - Confirmación de éxito
 
 **Validaciones:**
@@ -432,7 +436,7 @@
 3. Administrador modifica campos
 4. Sistema valida unicidad si se cambiaron
 5. Sistema actualiza registro
-6. Sistema registra en AUDIT_LOGS
+6. Los metadatos de auditoría de la entidad se actualizan automáticamente (`updatedBy`, `updatedAt`)
 7. Sistema actualiza vista
 
 **Validaciones:**
@@ -455,7 +459,7 @@
 3. Sistema muestra diálogo de confirmación
 4. Administrador confirma
 5. Sistema elimina registro (CASCADE eliminará cursos vacíos)
-6. Sistema registra en AUDIT_LOGS
+6. Los metadatos de auditoría de la entidad se actualizan automáticamente (`updatedBy`, `updatedAt`)
 
 **Validaciones:**
 - No debe tener asignaturas asociadas
@@ -490,12 +494,12 @@
    - Semestre válido (1 o 2)
    - Curso válido (1-4)
 5. Sistema crea registro en SUBJECTS
-6. Sistema registra en AUDIT_LOGS
+6. Los metadatos de auditoría de la entidad se actualizan automáticamente (`updatedBy`, `updatedAt`)
 7. Sistema muestra confirmación
 
 **Salidas:**
 - Nueva asignatura creada
-- Registro de auditoría
+- Metadatos de auditoría actualizados en la entidad
 
 **Validaciones:**
 - Nombre único dentro de la misma titulación
@@ -566,7 +570,7 @@
 4. Administrador modifica campos deseados
 5. Sistema valida unicidad si cambió nombre/acrónimo
 6. Sistema actualiza registro
-7. Sistema registra en AUDIT_LOGS
+7. Los metadatos de auditoría de la entidad se actualizan automáticamente (`updatedBy`, `updatedAt`)
 8. Sistema actualiza vista
 
 **Validaciones:**
@@ -594,7 +598,7 @@
 3. Sistema muestra confirmación
 4. Administrador confirma
 5. Sistema elimina registro
-6. Sistema registra en AUDIT_LOGS
+6. Los metadatos de auditoría de la entidad se actualizan automáticamente (`updatedBy`, `updatedAt`)
 
 **Validaciones:**
 - No debe tener grupos asociados
@@ -622,12 +626,12 @@
 3. Administrador completa datos
 4. Sistema valida combinación única (asignatura, número, tipo, idioma)
 5. Sistema crea registro en GROUPS
-6. Sistema registra en AUDIT_LOGS
+6. Los metadatos de auditoría de la entidad se actualizan automáticamente (`updatedBy`, `updatedAt`)
 7. Sistema muestra confirmación
 
 **Salidas:**
 - Nuevo grupo creado
-- Registro de auditoría
+- Metadatos de auditoría actualizados en la entidad
 
 **Validaciones:**
 - Combinación (asignatura, número, tipo, idioma) única
@@ -685,7 +689,7 @@
 2. Administrador modifica campos
 3. Sistema valida unicidad de combinación si cambió
 4. Sistema actualiza registro
-5. Sistema registra en AUDIT_LOGS
+5. Los metadatos de auditoría de la entidad se actualizan automáticamente (`updatedBy`, `updatedAt`)
 
 **Validaciones:**
 - Combinación única si se modificó algún campo de la clave
@@ -705,7 +709,7 @@
 2. Sistema muestra advertencia si tiene eventos
 3. Administrador confirma
 4. Sistema elimina grupo (CASCADE eliminará relaciones en tablas intermedias)
-5. Sistema registra en AUDIT_LOGS
+5. Los metadatos de auditoría de la entidad se actualizan automáticamente (`updatedBy`, `updatedAt`)
 
 **Validaciones:**
 - Confirmación requerida
@@ -730,11 +734,11 @@
 4. Sistema valida unicidad del código
 5. Sistema valida formato de URL GIS
 6. Sistema crea registro en CLASSROOMS
-7. Sistema registra en AUDIT_LOGS
+7. Los metadatos de auditoría de la entidad se actualizan automáticamente (`updatedBy`, `updatedAt`)
 
 **Salidas:**
 - Nueva aula creada
-- Registro de auditoría
+- Metadatos de auditoría actualizados en la entidad
 
 **Validaciones:**
 - Código único
@@ -783,7 +787,7 @@
 3. Sistema valida unicidad de código si cambió
 4. Sistema valida formato de URL
 5. Sistema actualiza registro
-6. Sistema registra en AUDIT_LOGS
+6. Los metadatos de auditoría de la entidad se actualizan automáticamente (`updatedBy`, `updatedAt`)
 
 ---
 
@@ -800,7 +804,7 @@
 2. Sistema muestra confirmación
 3. Administrador confirma
 4. Sistema elimina registro
-5. Sistema registra en AUDIT_LOGS
+5. Los metadatos de auditoría de la entidad se actualizan automáticamente (`updatedBy`, `updatedAt`)
 
 **Casos de Error:**
 - ER-CLASSROOM-04-01: Tiene eventos → Mensaje: "No puede eliminar un aula con eventos asociados"
@@ -835,13 +839,13 @@
    - Crea un registro en DAYS por cada día entre inicio y fin
    - Excluye sábados y domingos
    - Marca días como lectivos inicialmente
-9. Sistema registra en AUDIT_LOGS
+9. Los metadatos de auditoría de la entidad se actualizan automáticamente (`updatedBy`, `updatedAt`)
 10. Sistema muestra confirmación y redirige a vista de calendario
 
 **Salidas:**
 - Nuevo calendario creado
 - Días lectivos generados (si aplica)
-- Registro de auditoría
+- Metadatos de auditoría actualizados en la entidad
 
 **Validaciones:**
 - Combinación (curso, semestre) única
@@ -939,13 +943,13 @@
 8. Si "Duplicar eventos periódicos" activado:
    - Sistema copia eventos periódicos del calendario origen al destino
    - Sistema ajusta fechas de eventos proporcionalmente
-9. Sistema registra en AUDIT_LOGS
+9. Los metadatos de auditoría de la entidad se actualizan automáticamente (`updatedBy`, `updatedAt`)
 10. Sistema muestra confirmación
 
 **Salidas:**
 - Nuevo calendario creado con estructura duplicada
 - Eventos duplicados (si aplica)
-- Registro de auditoría
+- Metadatos de auditoría actualizados en la entidad
 
 **Validaciones:**
 - No debe existir calendario para curso/semestre destino
@@ -978,7 +982,7 @@
 3. Administrador debe escribir "ELIMINAR" para confirmar
 4. Sistema verifica confirmación
 5. Sistema elimina calendario (CASCADE eliminará días y eventos)
-6. Sistema registra en AUDIT_LOGS
+6. Los metadatos de auditoría de la entidad se actualizan automáticamente (`updatedBy`, `updatedAt`)
 7. Sistema muestra confirmación
 
 **Validaciones:**
@@ -1019,13 +1023,13 @@
 9. Administrador confirma
 10. Sistema crea registro en PERIODIC_EVENTS
 11. Sistema crea relaciones en tablas intermedias con grupos y aulas
-12. Sistema registra en AUDIT_LOGS
+12. Los metadatos de auditoría de la entidad se actualizan automáticamente (`updatedBy`, `updatedAt`)
 13. Sistema sincroniza con Google Calendar (si usuarios tienen sync activado)
 
 **Salidas:**
 - Evento periódico creado
 - Relaciones con grupos/aulas establecidas
-- Registro de auditoría
+- Metadatos de auditoría actualizados en la entidad
 - Sincronización con Google Calendar
 
 **Validaciones:**
@@ -1078,12 +1082,12 @@ Sistema debe verificar que NO existan:
    - Hora fin > hora inicio
    - No conflictos en ese día/hora específico
 5. Sistema crea registro en PUNTUAL_EVENTS asociado a DAY
-6. Sistema registra en AUDIT_LOGS
+6. Los metadatos de auditoría de la entidad se actualizan automáticamente (`updatedBy`, `updatedAt`)
 7. Sistema sincroniza con Google Calendar
 
 **Salidas:**
 - Evento puntual creado
-- Registro de auditoría
+- Metadatos de auditoría actualizados en la entidad
 - Sincronización con Google
 
 **Validaciones:**
@@ -1117,7 +1121,7 @@ Sistema debe verificar que NO existan:
 6. Sistema valida no conflictos con nuevos parámetros
 7. Sistema actualiza registro
 8. Sistema cancela eventos puntuales afectados si se pidió (opcional)
-9. Sistema registra en AUDIT_LOGS
+9. Los metadatos de auditoría de la entidad se actualizan automáticamente (`updatedBy`, `updatedAt`)
 10. Sistema sincroniza con Google Calendar
 
 **Validaciones:**
@@ -1145,7 +1149,7 @@ Sistema debe verificar que NO existan:
 3. Administrador modifica campos
 4. Sistema valida no conflictos
 5. Sistema actualiza registro
-6. Sistema registra en AUDIT_LOGS
+6. Los metadatos de auditoría de la entidad se actualizan automáticamente (`updatedBy`, `updatedAt`)
 7. Sistema sincroniza con Google Calendar
 
 ---
@@ -1164,13 +1168,13 @@ Sistema debe verificar que NO existan:
 3. Administrador confirma
 4. Sistema marca evento como `cancelled=true`
 5. Sistema almacena motivo en campo `comment`
-6. Sistema registra en AUDIT_LOGS
+6. Los metadatos de auditoría de la entidad se actualizan automáticamente (`updatedBy`, `updatedAt`)
 7. Sistema sincroniza con Google Calendar (elimina o marca como cancelado)
 8. Sistema muestra evento con estilo visual "cancelado" (tachado, gris)
 
 **Salidas:**
 - Evento marcado como cancelado (no eliminado)
-- Registro de auditoría
+- Metadatos de auditoría actualizados en la entidad
 - Sincronización con Google
 
 **Criterios de Aceptación:**
@@ -1194,7 +1198,7 @@ Sistema debe verificar que NO existan:
    - "Eventos puntuales asociados no se eliminarán"
 3. Administrador confirma
 4. Sistema elimina registro de PERIODIC_EVENTS
-5. Sistema registra en AUDIT_LOGS
+5. Los metadatos de auditoría de la entidad se actualizan automáticamente (`updatedBy`, `updatedAt`)
 6. Sistema sincroniza con Google Calendar (elimina todas ocurrencias)
 
 **Validaciones:**
@@ -1306,7 +1310,7 @@ A_inicio < B_fin AND A_fin > B_inicio
    - Estado: PENDING
    - Profesor solicitante
    - Datos del evento en campo JSON
-10. Sistema registra en AUDIT_LOGS
+10. Los metadatos de auditoría de la entidad se actualizan automáticamente (`updatedBy`, `updatedAt`)
 11. Sistema envía email a administradores notificando solicitud
 12. Sistema muestra confirmación al profesor
 
@@ -1410,7 +1414,7 @@ A_inicio < B_fin AND A_fin > B_inicio
    - reviewed_by: email del administrador
    - reviewed_at: timestamp actual
    - comments: comentarios del revisor
-8. Sistema registra en AUDIT_LOGS
+8. Los metadatos de auditoría de la entidad se actualizan automáticamente (`updatedBy`, `updatedAt`)
 9. Sistema envía email a profesor notificando aprobación
 10. Sistema sincroniza evento con Google Calendar
 11. Sistema muestra confirmación
@@ -1419,7 +1423,7 @@ A_inicio < B_fin AND A_fin > B_inicio
 - Evento creado en calendario
 - Solicitud marcada como APPROVED
 - Notificación a profesor
-- Registro de auditoría
+- Metadatos de auditoría actualizados en la entidad
 
 **Validaciones:**
 - Solicitud debe estar en estado PENDING
@@ -1455,14 +1459,14 @@ A_inicio < B_fin AND A_fin > B_inicio
    - reviewed_by: email del administrador
    - reviewed_at: timestamp actual
    - comments: motivo de rechazo
-7. Sistema registra en AUDIT_LOGS
+7. Los metadatos de auditoría de la entidad se actualizan automáticamente (`updatedBy`, `updatedAt`)
 8. Sistema envía email a profesor con motivo de rechazo
 9. Sistema muestra confirmación
 
 **Salidas:**
 - Solicitud marcada como REJECTED
 - Notificación a profesor con motivo
-- Registro de auditoría
+- Metadatos de auditoría actualizados en la entidad
 
 **Validaciones:**
 - Solicitud en estado PENDING
@@ -1491,7 +1495,7 @@ A_inicio < B_fin AND A_fin > B_inicio
 4. Sistema muestra confirmación
 5. Profesor confirma
 6. Sistema elimina registro de EVENT_REQUESTS
-7. Sistema registra en AUDIT_LOGS
+7. Los metadatos de auditoría de la entidad se actualizan automáticamente (`updatedBy`, `updatedAt`)
 8. Sistema muestra confirmación
 
 **Validaciones:**
@@ -1504,352 +1508,302 @@ A_inicio < B_fin AND A_fin > B_inicio
 
 ---
 
-### 4.1.10 Módulo de Visualización Pública (RF-VIEW)
+### 4.1.10 Módulo de Visualización de Horarios (RF-VIEW)
 
-#### RF-VIEW-01: Vista Pública de Horarios
+#### RF-VIEW-01: Vista de Horarios por Calendario
 **Prioridad:** CRÍTICA
-**Descripción:** Usuarios anónimos deben poder consultar horarios sin autenticación.
+**Descripción:** Los usuarios autenticados deben poder consultar los horarios del calendario académico.
+
+> **Nota v1.0:** El acceso requiere autenticación. El acceso público sin autenticación está previsto en versiones futuras.
 
 **Entradas:**
 - Filtros:
+  - Titulación (acronym)
   - Curso Académico
   - Semestre
-  - Titulación
-  - Curso (1-4)
   - Asignatura (opcional)
-  - Vista: Semanal/Mensual
 
 **Proceso:**
-1. Usuario accede a URL pública (ej: /horarios)
-2. Sistema muestra formulario de filtros
-3. Usuario selecciona curso académico y semestre
-4. Sistema carga titulaciones disponibles
-5. Usuario selecciona titulación y curso
-6. Sistema carga asignaturas disponibles
-7. Usuario opcionalmente filtra por asignatura
-8. Usuario selecciona tipo de vista (Semanal/Mensual)
-9. Sistema consulta eventos (periódicos y puntuales) que coincidan con filtros
-10. Sistema renderiza calendario visual con:
-    - Eventos periódicos expandidos por día
+1. Usuario autenticado navega a la sección de calendarios
+2. Usuario selecciona titulación → cursos académicos disponibles
+3. Usuario selecciona curso académico y semestre → calendario
+4. Sistema carga el calendario con sus eventos
+5. Sistema renderiza calendario visual con:
+    - Eventos periódicos expandidos por día de la semana
     - Eventos puntuales en fechas específicas
     - Información: Asignatura, Grupo, Aula, Horario
     - Eventos cancelados marcados visualmente
-11. Sistema permite navegación entre semanas/meses
-12. Sistema muestra leyenda de colores por tipo de evento
+6. Sistema permite navegación entre días
+7. Sistema muestra las solicitudes de cambio pendientes (para administradores)
 
 **Salidas:**
-- Calendario visual con horarios
+- Vista de calendario con horarios
 - Información detallada de cada evento
 
 **Criterios de Aceptación:**
 - Carga de página <3 segundos
 - Responsive (funcional en móvil)
 - Información clara y legible
-- No requiere autenticación
+- Requiere autenticación válida
 
 **Restricciones:**
 - No se muestra información sensible (emails de profesores)
-- No se permite edición
-- Caché de 5 minutos para mejorar rendimiento
-
----
-
-#### RF-VIEW-02: Exportar Horario a PDF
-**Prioridad:** MEDIA
-**Descripción:** Usuarios deben poder descargar horarios en formato PDF.
-
-**Entradas:**
-- Filtros seleccionados en vista pública
-- Opción de exportación (Semana/Mes/Semestre completo)
-
-**Proceso:**
-1. Usuario consulta horarios con filtros aplicados
-2. Usuario hace clic en "Exportar a PDF"
-3. Sistema muestra opciones de exportación
-4. Usuario selecciona rango (semana actual/mes actual/semestre completo)
-5. Sistema genera PDF con:
-   - Encabezado: Logo UniOvi, Titulación, Curso, Semestre
-   - Calendario visual del rango seleccionado
-   - Tabla detallada de eventos
-   - Leyenda
-   - Fecha de generación
-6. Sistema descarga PDF en navegador
-
-**Salidas:**
-- Archivo PDF con horarios
-
-**Criterios de Aceptación:**
-- PDF legible y con formato profesional
-- Generación <10 segundos
-- Tamaño de archivo razonable (<5MB)
+- La edición directa de eventos solo está disponible para administradores
 
 ---
 
 ### 4.1.11 Módulo de Sincronización con Google Calendar (RF-SYNC)
 
-#### RF-SYNC-01: Configurar Sincronización
+#### RF-SYNC-01: Conectar Cuenta de Google
 **Prioridad:** ALTA
-**Descripción:** Usuarios deben poder habilitar/deshabilitar sincronización con Google Calendar.
+**Descripción:** Los usuarios autenticados deben poder vincular su cuenta de Google para habilitar la sincronización de calendarios de aulas.
 
 **Entradas:**
 - JWT de usuario autenticado
-- Acción: Habilitar/Deshabilitar
+- Consentimiento OAuth 2.0 de Google
 
-**Proceso (Habilitar):**
+**Proceso (Conectar):**
 1. Usuario accede a Configuración → Google Calendar
 2. Usuario hace clic en "Conectar con Google Calendar"
-3. Sistema redirige a OAuth 2.0 de Google
-4. Usuario autoriza acceso a calendarios
-5. Google devuelve tokens
-6. Sistema almacena tokens encriptados
-7. Sistema activa flag `google_calendar_sync_enabled=true`
-8. Sistema sincroniza eventos existentes (ver RF-SYNC-02)
-9. Sistema muestra confirmación
+3. Sistema redirige a la pantalla de consentimiento OAuth 2.0 de Google
+4. Usuario autoriza acceso a Google Calendar (`calendar` scope)
+5. Google devuelve authorization code
+6. Sistema intercambia code por `access_token` y `refresh_token`
+7. Sistema almacena tokens encriptados en la base de datos
+8. Sistema marca la cuenta como conectada a Google
+9. Sistema muestra confirmación con el email de la cuenta Google vinculada
 
-**Proceso (Deshabilitar):**
+**Proceso (Desconectar):**
 1. Usuario hace clic en "Desconectar Google Calendar"
-2. Sistema muestra confirmación: "Esto eliminará todos los eventos sincronizados de su Google Calendar"
+2. Sistema muestra confirmación
 3. Usuario confirma
-4. Sistema elimina eventos sincronizados de Google Calendar
-5. Sistema elimina tokens de BD
-6. Sistema desactiva flag `google_calendar_sync_enabled=false`
-7. Sistema muestra confirmación
+4. Sistema limpia los Google Calendars de aulas creados por este usuario
+5. Sistema elimina los tokens de la base de datos
+6. Sistema muestra confirmación
 
 **Criterios de Aceptación:**
-- OAuth funciona correctamente
-- Tokens se almacenan encriptados
-- Desconexión limpia (elimina eventos de Google)
+- OAuth funciona correctamente con Google
+- Tokens se almacenan encriptados (nunca en texto plano)
+- Desconexión limpia (limpia Google Calendars de aulas creados)
+- El email de la cuenta Google vinculada se muestra al usuario
 
 ---
 
-#### RF-SYNC-02: Sincronizar Eventos con Google Calendar
+#### RF-SYNC-02: Sincronizar Calendario Académico con Google Calendar
 **Prioridad:** ALTA
-**Descripción:** El sistema debe sincronizar automáticamente eventos del usuario con su Google Calendar.
+**Descripción:** El administrador puede sincronizar un calendario académico completo con Google Calendar. El sistema crea un Google Calendar independiente por cada aula involucrada en el calendario.
 
-**Eventos a Sincronizar:**
-- **Para Profesores**: Eventos de grupos asignados al profesor
-- **Para Administradores**: (Opcional) Todos los eventos
+**Modelo de Sincronización:**
+- Cada aula (`Classroom`) con eventos en el calendario obtiene su propio Google Calendar
+- Los eventos del calendario se distribuyen al Google Calendar del aula correspondiente
+- La entidad `GoogleClassroomCalendar` almacena el mapeo entre cada aula y su Google Calendar ID
+- La entidad `CalendarSync` registra el estado de la sincronización por calendario académico
 
-**Proceso Inicial (Primera Sincronización):**
-1. Usuario habilita sincronización
-2. Sistema identifica eventos relevantes para el usuario
-3. Para cada evento periódico:
-   - Sistema crea evento recurrente en Google Calendar
-   - Sistema almacena mapping (event_id_local ↔ event_id_google)
-4. Para cada evento puntual:
-   - Sistema crea evento único en Google Calendar
-   - Sistema almacena mapping
-5. Sistema registra última sincronización
+**Proceso de Sincronización:**
+1. Administrador accede a `/calendar-sync`
+2. El sistema muestra el listado de calendarios académicos activos con su estado de sincronización
+3. Administrador activa la sincronización de un calendario (`toggle`)
+4. Administrador puede lanzar sincronización manual (`sync-now`)
+5. Sistema identifica todas las aulas con eventos en el calendario
+6. Para cada aula nueva: sistema crea un Google Calendar con nombre `[código aula]`
+7. Para cada evento periódico/puntual: sistema crea el evento en el Google Calendar del aula correspondiente
+8. Sistema actualiza el progreso en tiempo real: `totalCalendars`, `processedCalendars`, `currentOperation`
+9. Sistema almacena estado final: `SUCCESS` o `ERROR` con mensaje de error si aplica
+10. Sistema respeta límite de tasa de la API de Google (400 requests/min)
 
-**Proceso Incremental (Cambios):**
-1. Sistema detecta cambio en evento (vía trigger o job)
-2. Sistema verifica si usuario tiene sincronización activa
-3. Sistema consulta mapping para obtener event_id_google
-4. Sistema actualiza evento en Google Calendar
-5. Sistema actualiza timestamp de última sincronización
+**Estados de Sincronización (`SyncStatus`):**
+- `IDLE`: Sin sincronización en curso
+- `SYNCING`: Sincronización en progreso
+- `SUCCESS`: Última sincronización completada
+- `ERROR`: Última sincronización fallida (con mensaje de error)
 
-**Datos Sincronizados:**
-- Título: "[Asignatura] - [Tipo Grupo] [Número]"
-- Descripción: Aula, Comentarios
-- Fecha y hora
-- Recurrencia (para eventos periódicos)
-- Estado (cancelado → color diferente o cancelación en Google)
+**Datos Sincronizados en Google Calendar:**
+- Título del evento: Información de asignatura y grupo
+- Descripción: Comentarios adicionales
+- Fecha y hora del evento
+- Ubicación: Código del aula
 
 **Criterios de Aceptación:**
-- Sincronización inicial completa en <2 minutos
-- Cambios reflejados en Google en <5 minutos
+- Sincronización de un calendario completo en <2 minutos (hasta 100 eventos)
+- Progreso visible en tiempo real en la interfaz
 - Errores de sincronización no bloquean operaciones locales
+- Respeto del rate limit de Google Calendar API
 
 ---
 
-#### RF-SYNC-03: Actualizar Evento en Google Calendar
+#### RF-SYNC-03: Renovar Tokens de Google Automáticamente
 **Prioridad:** ALTA
-**Descripción:** Cuando se modifica un evento en TeachingPlanner, debe actualizarse en Google Calendar.
+**Descripción:** El sistema debe renovar automáticamente los tokens de acceso de Google cuando se lanzan sincronizaciones, dado que los `access_token` tienen una validez limitada.
 
 **Proceso:**
-1. Administrador modifica evento en TeachingPlanner
-2. Sistema detecta cambio
-3. Sistema consulta usuarios con sincronización activa y acceso a ese evento
-4. Para cada usuario:
-   - Sistema consulta mapping para obtener event_id_google
-   - Sistema actualiza evento en Google Calendar vía API
-   - Sistema maneja errores (token expirado → refresh token)
-5. Sistema registra sincronización en logs
+1. Administrador lanza sincronización manual (`sync-now`) o el sistema la ejecuta
+2. Sistema recupera los tokens almacenados del usuario
+3. Si el `access_token` está próximo a expirar o expirado:
+   - Sistema usa el `refresh_token` para obtener un nuevo `access_token` desde Google
+   - Sistema almacena el nuevo `access_token` y su nueva fecha de expiración
+4. Sistema continúa la sincronización con el token renovado
 
 **Casos de Error:**
-- Token expirado → Sistema intenta refresh token
-- Refresh token inválido → Sistema desactiva sincronización y notifica usuario
-- Error de red → Sistema reintenta 3 veces con backoff exponencial
+- Refresh token inválido o revocado → Sistema desactiva la sincronización del usuario y muestra error en la página de sincronización
+- Error de red con Google → Sistema almacena el error en el estado `CalendarSync.error` y marca el estado como `ERROR`
 
 ---
 
-#### RF-SYNC-04: Eliminar Evento de Google Calendar
+#### RF-SYNC-04: Limpiar Google Calendars al Desconectar
 **Prioridad:** ALTA
-**Descripción:** Cuando se elimina o cancela un evento en TeachingPlanner, debe reflejarse en Google Calendar.
-
-**Proceso (Eliminación):**
-1. Administrador elimina evento
-2. Sistema consulta usuarios afectados
-3. Sistema elimina evento de Google Calendar
-4. Sistema elimina mapping de BD
-
-**Proceso (Cancelación):**
-1. Administrador cancela evento puntual
-2. Sistema consulta usuarios afectados
-3. Sistema marca evento como "Cancelado" en Google Calendar (no lo elimina)
-4. Sistema actualiza título: "[CANCELADO] ..."
-
----
-
-#### RF-SYNC-05: Renovar Tokens de Google
-**Prioridad:** ALTA
-**Descripción:** El sistema debe renovar automáticamente tokens de Google antes de que expiren.
+**Descripción:** Cuando un usuario desconecta su cuenta de Google, el sistema debe limpiar todos los Google Calendars de aulas que fueron creados por ese usuario.
 
 **Proceso:**
-1. Sistema ejecuta job diario (cron)
-2. Sistema consulta usuarios con tokens próximos a expirar (<7 días)
-3. Para cada usuario:
-   - Sistema usa refresh_token para obtener nuevo access_token
-   - Sistema actualiza tokens en BD
-   - Sistema actualiza fecha de expiración
-4. Si refresh_token inválido:
-   - Sistema desactiva sincronización
-   - Sistema envía email a usuario notificando
-   - Sistema marca para re-autenticación
+1. Usuario desconecta su cuenta de Google (RF-SYNC-01 proceso de desconexión)
+2. Sistema identifica todos los `GoogleClassroomCalendar` asociados al usuario
+3. Para cada Google Calendar de aula: sistema elimina o limpia los eventos de Google Calendar vía API
+4. Sistema elimina los registros `GoogleClassroomCalendar` de la base de datos
+5. Sistema elimina todos los `CalendarSync` del usuario
+6. Sistema elimina los tokens de Google del usuario
+
+---
+
+#### RF-SYNC-05: Inicializar Entradas de Sincronización
+**Prioridad:** ALTA
+**Descripción:** Al conectar la cuenta de Google, el sistema debe inicializar los registros `CalendarSync` para todos los calendarios académicos activos, de forma que el administrador pueda gestionarlos.
+
+**Proceso:**
+1. Administrador conecta su cuenta de Google exitosamente (RF-SYNC-01)
+2. Sistema llama al endpoint `POST /calendar-sync/initialize`
+3. Sistema obtiene todos los calendarios académicos activos
+4. Para cada calendario activo: sistema crea un registro `CalendarSync` con estado `IDLE` si no existe ya
+5. Sistema muestra al administrador el listado de calendarios listos para sincronizar
 
 ---
 
 ### 4.1.12 Módulo de Auditoría (RF-AUDIT)
 
-#### RF-AUDIT-01: Registrar Acciones Automáticamente
-**Prioridad:** CRÍTICA
-**Descripción:** El sistema debe registrar automáticamente todas las acciones que modifiquen datos.
-
-**Eventos a Auditar:**
-- Inicio/cierre de sesión
-- Creación de entidades (usuarios, titulaciones, asignaturas, grupos, aulas, calendarios, eventos)
-- Modificación de entidades
-- Eliminación de entidades
-- Aprobación/rechazo de solicitudes
-
-**Información Registrada:**
-- Usuario que realizó la acción (email)
-- Timestamp exacto (fecha y hora)
-- Tipo de acción (CREATE/UPDATE/DELETE/LOGIN/LOGOUT/APPROVE/REJECT)
-- Entidad afectada (tabla)
-- ID de registro afectado
-- Campos modificados (para UPDATE: valores anteriores y nuevos)
-- IP del usuario (opcional)
+#### RF-AUDIT-01: Registro de Auditoría en Entidades
+**Prioridad:** ALTA
+**Descripción:** Todas las entidades del sistema deben registrar automáticamente los metadatos de creación y modificación mediante la clase base `AuditedEntity`.
 
 **Implementación:**
-- Tabla AUDIT_LOGS con estructura:
-  - id (UUID)
-  - user_email (varchar)
-  - action_type (varchar)
-  - entity_type (varchar)
-  - entity_id (varchar)
-  - changes (JSONB)  // {field: {old: valor_antiguo, new: valor_nuevo}}
-  - ip_address (varchar, nullable)
-  - created_at (timestamp)
+- La clase `AuditedEntity` se extiende en todas las entidades principales del sistema
+- Campos de auditoría añadidos automáticamente a cada entidad:
+  - `createdAt` (timestamp): Fecha y hora de creación del registro
+  - `createdBy` (string): Email del usuario que creó el registro
+  - `updatedAt` (timestamp): Fecha y hora de la última modificación
+  - `updatedBy` (string): Email del usuario que realizó la última modificación
+
+**Entidades Auditadas:**
+- `Calendar`, `Course`, `Degree`, `Subject`, `Classroom`, `Group`
+- `Day`, `PuntualEvent`, `PeriodicEvent`
+- `EventRequest`, `CalendarSync`
+
+**Proceso de registro:**
+- Al crear una entidad: el sistema extrae el email del JWT del usuario y lo almacena en `createdBy` y `createdAt`
+- Al modificar una entidad: el sistema actualiza `updatedBy` y `updatedAt` automáticamente
+
+**Limitaciones actuales (v1.0):**
+- No se registran eventos de login/logout
+- No se almacenan valores anteriores/nuevos de campos modificados
+- No se registra la IP del usuario
+- No existe una tabla de historial de cambios separada
 
 **Criterios de Aceptación:**
-- 100% de acciones críticas auditadas
-- Registro no bloquea operación (asíncrono si es necesario)
-- Logs retenidos mínimo 2 años
+- Todas las entidades del sistema heredan de `AuditedEntity`
+- Los campos `createdBy`/`createdAt` se establecen en la creación
+- Los campos `updatedBy`/`updatedAt` se actualizan en cada modificación
 
 ---
 
-#### RF-AUDIT-02: Consultar Logs de Auditoría
-**Prioridad:** ALTA
-**Descripción:** Los administradores deben poder consultar el historial de auditoría.
-
-**Entradas:**
-- Filtros:
-  - Usuario
-  - Tipo de acción
-  - Entidad
-  - Rango de fechas
-  - ID de registro específico
-
-**Proceso:**
-1. Administrador accede a "Auditoría"
-2. Sistema muestra formulario de filtros
-3. Administrador aplica filtros deseados
-4. Sistema consulta AUDIT_LOGS
-5. Sistema muestra tabla con columnas:
-   - Timestamp
-   - Usuario
-   - Acción
-   - Entidad
-   - ID Registro
-   - Detalle (expandible)
-6. Sistema permite ordenar por timestamp
-7. Sistema implementa paginación (50 por página)
-
-**Salidas:**
-- Listado de logs con filtros aplicados
-
-**Criterios de Aceptación:**
-- Consulta <2 segundos con filtros
-- Detalles de cambios legibles
-
----
-
-#### RF-AUDIT-03: Exportar Logs de Auditoría
+#### RF-AUDIT-02: Consultar Metadatos de Auditoría
 **Prioridad:** MEDIA
-**Descripción:** Los administradores deben poder exportar logs a CSV.
+**Descripción:** Los administradores deben poder consultar quién creó y modificó cada entidad del sistema.
 
-**Entradas:**
-- Filtros aplicados en consulta
-- Formato: CSV
+> **Estado v1.0:** La interfaz de consulta de auditoría centralizada (página `/logs`) está prevista para versiones futuras. En v1.0, los metadatos de auditoría son accesibles en los detalles de cada entidad.
 
-**Proceso:**
-1. Administrador consulta logs con filtros
-2. Administrador hace clic en "Exportar a CSV"
-3. Sistema genera CSV con columnas:
-   - Timestamp, Usuario, Acción, Entidad, ID, Cambios (JSON serializado)
-4. Sistema descarga archivo
+**Información Disponible por Entidad:**
+- Fecha de creación (`createdAt`)
+- Responsable de la creación (`createdBy`)
+- Fecha de última modificación (`updatedAt`)
+- Responsable de la última modificación (`updatedBy`)
 
-**Salidas:**
-- Archivo CSV con logs filtrados
+---
 
-**Criterios de Aceptación:**
-- CSV compatible con Excel
-- Codificación UTF-8
+#### RF-AUDIT-03: Exportar Datos de Auditoría
+**Prioridad:** BAJA
+**Descripción:** Exportación de información de auditoría de entidades.
+
+> **Estado v1.0:** Funcionalidad de exportación centralizada de auditoría prevista en versiones futuras. En v1.0, los metadatos de auditoría se incluyen en las exportaciones de cada entidad.
 
 ---
 
 ### 4.1.13 Módulo de Exportación de Datos (RF-EXPORT)
 
-#### RF-EXPORT-01: Exportar Listados a CSV
-**Prioridad:** MEDIA
-**Descripción:** Los administradores deben poder exportar listados de entidades a CSV.
-
-**Entidades Exportables:**
-- Usuarios
-- Titulaciones
-- Asignaturas
-- Grupos
-- Aulas
-- Calendarios
-- Eventos
+#### RF-EXPORT-01: Exportar Calendario como ZIP
+**Prioridad:** ALTA
+**Descripción:** Los administradores deben poder exportar un calendario académico completo en formato ZIP con los ficheros necesarios para importación en otros sistemas.
 
 **Proceso:**
-1. Administrador consulta listado de entidad
-2. Administrador aplica filtros deseados
-3. Administrador hace clic en "Exportar a CSV"
-4. Sistema genera CSV con:
-   - Encabezados con nombres de columnas
-   - Filas con datos filtrados
-   - Formato legible (fechas en formato local)
-5. Sistema descarga archivo: [entidad]_[timestamp].csv
+1. Administrador accede a la vista de un calendario académico
+2. Administrador hace clic en "Exportar"
+3. Sistema genera un archivo ZIP con tres ficheros:
+   - `ubicaciones.txt`: listado de aulas en formato `CÓDIGO_AULA:URL_GIS`, ordenado por código ascendente
+   - `asignaturas.txt`: datos académicos de asignaturas con 12 campos (`Acrónimo:Nombre:Año:GruposTeoriaES:GruposSeminarioES:GruposLaboratorioES:GruposTeoriaEN:GruposSeminarioEN:GruposLaboratorioEN:GruposTutoriaGrupalES:GruposTutoriaGrupalEN:CódigoSIES`), ordenado por acrónimo
+   - `calendario.txt`: eventos programados del calendario (únicamente tipo NORMAL; se excluyen eventos de tipo BLOCKER, REVISION_* y EVALUACION_*)
+4. Sistema descarga el archivo ZIP en el navegador
 
 **Salidas:**
-- Archivo CSV con datos exportados
+- Archivo ZIP con `ubicaciones.txt`, `asignaturas.txt` y `calendario.txt`
 
 **Criterios de Aceptación:**
-- CSV compatible con Excel
-- Codificación UTF-8 con BOM
-- Campos de texto con comillas si contienen comas
+- ZIP generado en <10 segundos para calendarios con hasta 200 eventos
+- Codificación UTF-8 en todos los ficheros de texto
+- Formato compatible con el proceso de importación del sistema
+
+---
+
+#### RF-EXPORT-02: Importar Calendario desde Ficheros de Texto
+**Prioridad:** ALTA
+**Descripción:** Los administradores deben poder importar eventos de un calendario desde ficheros de texto con formato específico.
+
+**Entradas:**
+- Fichero `asignaturas.txt` con eventos a importar
+- Fichero `calendario.txt` con configuración de días lectivos/festivos (opcional)
+- ID del calendario destino
+
+**Proceso:**
+1. Administrador accede a la vista del calendario
+2. Administrador carga el/los fichero(s) de importación
+3. Sistema parsea y valida el contenido
+4. Sistema muestra vista previa de los eventos a importar
+5. Administrador confirma la importación
+6. Sistema crea los eventos en el calendario
+7. Sistema reporta resultado: eventos importados, errores encontrados
+
+**Criterios de Aceptación:**
+- Importación correcta del formato de fichero estándar
+- Validación de formato antes de importar
+- Reporte claro de errores
+
+---
+
+#### RF-EXPORT-03: Importar Usuarios desde Excel
+**Prioridad:** ALTA
+**Descripción:** Los administradores deben poder importar usuarios masivamente desde un fichero Excel (XLSX).
+
+**Entradas:**
+- Fichero Excel (.xlsx) con listado de usuarios
+- Columnas esperadas: nombre, primer apellido, segundo apellido, email, rol, usuario UniOvi (opcional)
+
+**Proceso:**
+1. Administrador accede a la sección de usuarios
+2. Administrador carga el fichero Excel
+3. Sistema parsea el fichero con la librería XLSX
+4. Sistema valida cada fila (email único, rol válido, campos obligatorios)
+5. Sistema crea los usuarios válidos con `is_active=false`
+6. Sistema envía email de activación a cada usuario creado
+7. Sistema reporta resultado: usuarios creados, filas con errores
+
+**Criterios de Aceptación:**
+- Compatible con archivos Excel generados por Office 365 y LibreOffice
+- Validación fila a fila con informe de errores
+- Emails de activación enviados a usuarios creados correctamente
 
 ---

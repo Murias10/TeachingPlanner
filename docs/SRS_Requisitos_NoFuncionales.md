@@ -13,11 +13,10 @@
 | Listar entidades (usuarios, asignaturas, etc.) | 2 segundos | Hasta 1000 registros |
 | Crear/Editar entidad | 1 segundo | Operación simple |
 | Crear evento con validación de conflictos | 3 segundos | Calendario con hasta 500 eventos |
-| Vista pública de horarios | 3 segundos | Carga inicial con caché |
+| Cargar vista de horarios | 3 segundos | Carga inicial del calendario |
 | Duplicar calendario | 10 segundos | Hasta 200 eventos |
 | Sincronización inicial con Google Calendar | 2 minutos | Hasta 100 eventos |
-| Exportar a PDF | 10 segundos | Calendario de 1 semana |
-| Consultar logs de auditoría | 2 segundos | Con filtros aplicados |
+| Exportar calendario a ZIP | 10 segundos | Calendario con hasta 200 eventos |
 
 **Criterios de Medición:**
 - Tiempos medidos desde el cliente (incluye latencia de red)
@@ -63,45 +62,38 @@
 
 **Índices Requeridos:**
 ```sql
--- Usuarios
+-- Usuarios (management_db)
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_role ON users(role);
 
--- Calendarios
+-- Calendarios (planner_db)
 CREATE INDEX idx_calendars_course_semester ON calendars(id_course, semester);
 
 -- Eventos
 CREATE INDEX idx_periodic_events_calendar ON periodic_events(id_calendar);
 CREATE INDEX idx_puntual_events_day ON puntual_events(id_day);
 
--- Auditoría
-CREATE INDEX idx_audit_logs_user ON audit_logs(user_email);
-CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at);
-CREATE INDEX idx_audit_logs_entity ON audit_logs(entity_type, entity_id);
+-- Auditoría de entidades (campos en cada tabla)
+CREATE INDEX idx_entities_created_by ON <tabla>(created_by);
+CREATE INDEX idx_entities_updated_at ON <tabla>(updated_at);
 ```
 
 ---
 
 ### RNF-PERF-04: Uso de Caché
 **Prioridad:** MEDIA
-**Descripción:** El sistema debe implementar caché para datos consultados frecuentemente.
+**Descripción:** El sistema utiliza cabeceras HTTP estándar para el control de caché en el lado del cliente.
 
-**Estrategia de Caché:**
-| Tipo de Dato | TTL (Time To Live) | Estrategia |
-|--------------|-------------------|-----------|
-| Vista pública de horarios | 5 minutos | Cache-Control header |
-| Listado de titulaciones | 1 hora | In-memory cache |
-| Listado de aulas | 1 hora | In-memory cache |
-| Configuración del sistema | 24 horas | In-memory cache |
-| Calendarios activos | 15 minutos | In-memory cache |
+**Estrategia de Caché implementada (v1.0):**
+| Tipo de Dato | Estrategia |
+|--------------|-----------|
+| Respuestas GET de entidades estáticas | Headers `Cache-Control` estándar de Express |
+| Datos de calendarios activos | Sin caché dedicada en servidor |
 
-**Invalidación de Caché:**
-- Invalidar automáticamente cuando se modifiquen datos
-- Endpoint manual de limpieza de caché para administradores
-
-**Tecnología:**
-- Redis (opcional para caché distribuido)
-- Node.js memory cache (para implementación simple)
+**Extensiones Futuras:**
+- In-memory cache para listados de titulaciones y aulas (alto acceso, baja mutación)
+- Caché de calendarios activos con TTL de 15 minutos
+- Redis para caché distribuido si se escala horizontalmente
 
 ---
 
@@ -337,42 +329,40 @@ CREATE INDEX idx_audit_logs_entity ON audit_logs(entity_type, entity_id);
 
 **Roles Definidos:**
 1. **ROLE_ADMIN:**
-   - Acceso total a todas las funcionalidades
-   - CRUD de todas las entidades
-   - Aprobación de solicitudes
-   - Consulta de auditorías
-   - Gestión de usuarios
+   - Acceso total a todas las funcionalidades de gestión
+   - CRUD de todas las entidades (titulaciones, asignaturas, grupos, aulas, calendarios, eventos)
+   - Aprobación y rechazo de solicitudes de cambio
+   - Consulta de metadatos de auditoría en cada entidad (createdBy/updatedBy)
+   - Gestión de usuarios (importar, activar, eliminar)
 
 2. **ROLE_PROFESSOR:**
-   - Consulta de horarios públicos
-   - Consulta de su planificación personal
-   - Creación de solicitudes de cambio
-   - Gestión de su perfil
-   - Sincronización con Google Calendar
-
-3. **ANÓNIMO (sin autenticación):**
-   - Solo consulta de horarios públicos
-   - No acceso a endpoints protegidos
+   - Consulta de horarios por titulación y semestre
+   - Creación y consulta de sus propias solicitudes de cambio
+   - Conexión de su cuenta personal con Google Calendar
+   - Activación y gestión de sincronización de sus calendarios académicos asignados con Google Calendar
 
 **Implementación:**
 - Middleware de autenticación verifica JWT en todas las rutas protegidas
-- Middleware de autorización verifica rol necesario
-- Validación tanto en frontend como backend
+- Middleware de autorización verifica rol necesario por endpoint
+- Validación tanto en frontend (rutas protegidas) como backend (middleware)
 - Mensajes de error genéricos (no revelar existencia de recursos)
 
 **Matriz de Permisos:**
-| Funcionalidad | ADMIN | PROFESSOR | ANÓNIMO |
-|---------------|-------|-----------|---------|
-| Ver horarios públicos | ✓ | ✓ | ✓ |
-| Gestionar usuarios | ✓ | ✗ | ✗ |
-| Gestionar estructura académica | ✓ | ✗ | ✗ |
-| Gestionar calendarios | ✓ | ✗ | ✗ |
-| Gestionar eventos | ✓ | ✗ | ✗ |
-| Crear solicitudes | ✓ | ✓ | ✗ |
-| Aprobar solicitudes | ✓ | ✗ | ✗ |
-| Ver auditorías | ✓ | ✗ | ✗ |
-| Exportar datos | ✓ | ✗ | ✗ |
-| Sincronizar Google Calendar | ✓ | ✓ | ✗ |
+| Funcionalidad | ADMIN | PROFESSOR |
+|---------------|-------|-----------|
+| Ver horarios (requiere auth) | ✓ | ✓ |
+| Gestionar usuarios | ✓ | ✗ |
+| Importar usuarios desde Excel | ✓ | ✗ |
+| Gestionar estructura académica | ✓ | ✗ |
+| Gestionar calendarios | ✓ | ✗ |
+| Gestionar eventos | ✓ | ✗ |
+| Crear solicitudes de cambio | ✗ | ✓ |
+| Aprobar/rechazar solicitudes | ✓ | ✗ |
+| Ver todas las solicitudes | ✓ | ✗ |
+| Ver mis solicitudes | ✗ | ✓ |
+| Exportar calendario ZIP | ✓ | ✗ |
+| Conectar Google Calendar | ✓ | ✓ |
+| Gestionar sincronización Google | ✓ | ✓ |
 
 ---
 
@@ -907,16 +897,15 @@ tests/
 
 ### RNF-PORT-03: Independencia de Base de Datos
 **Prioridad:** BAJA
-**Descripción:** Minimizar acoplamiento con PostgreSQL específico.
+**Descripción:** Minimizar acoplamiento con MariaDB específico para facilitar migración futura.
 
 **Enfoque:**
-- Uso de ORM (TypeORM) para abstracción
-- Evitar SQL nativo (usar query builder)
-- Evitar features específicas de PostgreSQL (a menos que sean críticas)
+- Uso de ORM (TypeORM) para abstracción de la base de datos
+- Preferencia de query builder sobre SQL nativo
+- Evitar features específicas de MariaDB salvo que sean críticas
 
 **Excepciones Permitidas:**
-- Uso de JSONB para campos dinámicos (campos `changes` en auditoría)
-- Índices específicos de PostgreSQL si mejoran significativamente rendimiento
+- Optimizaciones de índices específicas de MariaDB si mejoran significativamente el rendimiento
 
 ---
 
@@ -1107,13 +1096,13 @@ tests/
 - Creación de solicitudes
 - Sincronización con Google Calendar
 
-**C) Guía de Consulta Pública:**
-- Cómo consultar horarios
+**C) Guía de Consulta de Horarios:**
+- Cómo navegar por titulaciones y calendarios
 - Filtros disponibles
-- Exportación a PDF
+- Cómo interpretar los eventos del calendario
 
 **Formato:**
-- PDF descargable
+- Documentación en formato Markdown en el repositorio
 - Sección de ayuda en la aplicación
 - Videos tutoriales (opcional - futuro)
 

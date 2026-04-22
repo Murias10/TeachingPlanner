@@ -489,7 +489,6 @@ export class CalendarEventsService {
       const caracterDia = (dia.dayCharacter || '').toUpperCase();
 
       for (const especial of especialesN) {
-        if (!caracterDia.includes(EVENT_CHARACTERS.NORMAL)) continue;
         if (especial.weekDay !== diaSemanaCalendario) continue;
         if (this.tieneConflictoCancelacion(especial, dia, indiceCanceladosEventos)) continue;
 

@@ -402,8 +402,11 @@ export default function CalendarView({ calendarId, headerSlot, isQuickAccess }: 
 
             if (event.eventType === 'BLOCKER') {
                 const tooltip = `IND\n${classroomStr}\n${event.startTime.substring(0, 5)} - ${event.endTime.substring(0, 5)}`;
+                const indFirstRow = (event.type === 'puntual' && event.comment)
+                    ? `IND • ${event.comment.substring(0, 20)}${event.comment.length > 20 ? '...' : ''}`
+                    : 'IND';
                 return {
-                    title: `IND · ${classroomStr} · ${timeStr}`,
+                    title: `${indFirstRow} · ${timeStr}`,
                     start: startMoment.toDate(),
                     end: endMoment.toDate(),
                     resource: event,

@@ -1488,6 +1488,7 @@
             "error": {
                 "load": "No se pudieron cargar los usuarios",
                 "create": "Error al crear el usuario",
+                "emailDuplicate": "Ya existe un usuario con esta dirección de correo electrónico",
                 "import": "Error al importar usuarios",
                 "delete": "Error al eliminar el usuario",
                 "deleteMultiple": "Error al eliminar usuarios",

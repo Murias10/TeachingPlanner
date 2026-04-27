@@ -5,7 +5,7 @@ import { UserImportService } from '@/service/user-import.service';
 import { ApiResponse, CreateUserDTO, UpdateUserDTO } from '../types/user.types';
 
 export class UserController {
-    private userService: UserService;
+    private readonly userService: UserService;
 
     constructor() {
         this.userService = new UserService();
@@ -23,13 +23,11 @@ export class UserController {
             };
 
             res.status(201).json(response);
-        } catch (error: any) {
-            const response: ApiResponse = {
-                status: 'error',
-                message: 'Failed to create user',
-                error: error.message
-            };
-            res.status(400).json(response);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : 'Failed to create user';
+            const httpStatus = message === 'Email already exists' ? 409 : 400;
+            const response: ApiResponse = { status: 'error', message };
+            res.status(httpStatus).json(response);
         }
     };
 

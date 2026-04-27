@@ -22,11 +22,12 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useCreateUser } from "@/hooks/user/useCreateUser";
 import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext";
+import { isValidEmail } from "@/utils/emailValidation";
 
 interface CreateUserDrawerProps {
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
-    onSuccess?: () => void;
+    readonly open: boolean;
+    readonly onOpenChange: (open: boolean) => void;
+    readonly onSuccess?: () => void;
 }
 
 export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDrawerProps) {
@@ -85,6 +86,14 @@ export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDr
             });
             return false;
         }
+        if (!isValidEmail(formData.email)) {
+            triggerAlert({
+                title: t("common.error"),
+                description: t("users.validation.email.invalid"),
+                variant: "destructive"
+            });
+            return false;
+        }
         return true;
     };
 
@@ -112,9 +121,12 @@ export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDr
             onOpenChange(false);
             onSuccess?.();
         } else {
+            const description = result.status === 409
+                ? t("users.alerts.error.emailDuplicate")
+                : t("users.alerts.error.create");
             triggerAlert({
                 title: t("common.error"),
-                description: result.message,
+                description,
                 variant: "destructive"
             });
         }

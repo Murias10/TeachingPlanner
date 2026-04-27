@@ -1492,6 +1492,7 @@
             "error": {
                 "load": "Could not load users",
                 "create": "Error creating user",
+                "emailDuplicate": "A user with this email address already exists",
                 "import": "Error importing users",
                 "delete": "Error deleting user",
                 "deleteMultiple": "Error deleting users",

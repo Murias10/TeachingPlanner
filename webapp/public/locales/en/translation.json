@@ -970,8 +970,10 @@
             },
             "periodicEvent": {
                 "success": {
-                    "title": "Success",
-                    "description": "{{count}} periodic event(s) successfully created"
+                    "title": "Periodic event created",
+                    "descriptionWeekly": "Periodic event created on {{weekDays}} from {{startTime}} to {{endTime}}.",
+                    "descriptionEven": "Periodic event created on {{weekDays}} on even weeks from {{startTime}} to {{endTime}}.",
+                    "descriptionOdd": "Periodic event created on {{weekDays}} on odd weeks from {{startTime}} to {{endTime}}."
                 },
                 "partial": {
                     "title": "Partially completed",
@@ -993,7 +995,7 @@
             "customPeriodicEvent": {
                 "created": {
                     "title": "Custom event created",
-                    "description": "{{count}} periodic event(s) created with custom pattern ({{dates}} affected dates)"
+                    "description": "Custom event created from {{startTime}} to {{endTime}} (from {{firstDate}} to {{lastDate}})."
                 },
                 "error": {
                     "title": "Error",
@@ -1062,15 +1064,15 @@
                     "description": "Event has been successfully created"
                 },
                 "approveError": {
-                    "title": "Error",
+                    "title": "Approval error",
                     "description": "Could not approve request"
                 },
                 "approveErrorGeneric": {
-                    "title": "Error",
+                    "title": "Approval error",
                     "description": "Error occurred while approving request"
                 },
                 "approveErrorWithMessage": {
-                    "title": "Error",
+                    "title": "Approval error",
                     "description": "Error approving request"
                 },
                 "deleted": {
@@ -1078,7 +1080,7 @@
                     "description": "Your request has been successfully deleted"
                 },
                 "deleteError": {
-                    "title": "Error",
+                    "title": "Delete error",
                     "description": "Error deleting request"
                 },
                 "rejected": {
@@ -1086,20 +1088,36 @@
                     "description": "Request has been successfully rejected"
                 },
                 "rejectError": {
-                    "title": "Error",
+                    "title": "Rejection error",
                     "description": "Could not reject request"
                 },
                 "rejectErrorGeneric": {
-                    "title": "Error",
+                    "title": "Rejection error",
                     "description": "Error occurred while rejecting request"
                 },
                 "sent": {
                     "title": "Request sent",
                     "description": "Your event request has been sent for approval"
                 },
+                "editSent": {
+                    "title": "Edit request sent",
+                    "description": "Your edit request has been sent for approval"
+                },
+                "cancelSent": {
+                    "title": "Cancellation request sent",
+                    "description": "Your cancellation request has been sent for approval"
+                },
+                "replaceSent": {
+                    "title": "Replace request sent",
+                    "description": "Your replace request has been sent for approval"
+                },
                 "sendError": {
-                    "title": "Error",
+                    "title": "Send error",
                     "description": "Error sending request"
+                },
+                "loadError": {
+                    "title": "Error",
+                    "description": "Could not load requests"
                 },
                 "approveConflict": {
                     "title": "Conflict when approving request",
@@ -1152,6 +1170,10 @@
                 }
             },
             "replace": {
+                "success": {
+                    "title": "Event replaced",
+                    "description": "The event has been successfully replaced."
+                },
                 "error": {
                     "title": "Error",
                     "description": "Error replacing event"

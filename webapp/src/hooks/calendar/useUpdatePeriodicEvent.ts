@@ -2,6 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useRef } from "react";
 import { getAuthHeaders } from '@/utils/authHeaders';
 import VITE_GATEWAY_API_URL from "@/config/api";
+import type { ApiError } from '@/types/conflict.types';
 
 export interface UpdatePeriodicEventPayload {
     eventId: string;
@@ -20,16 +21,6 @@ export interface UpdatePeriodicEventResponse {
     data: {
         event: any;
     } | null;
-}
-
-export interface ConflictEntry {
-    groupNames: string[];
-    classroomNames: string[];
-}
-
-interface ApiError extends Error {
-    statusCode?: number;
-    conflictData?: ConflictEntry[];
 }
 
 interface UpdatePeriodicEventOptions {

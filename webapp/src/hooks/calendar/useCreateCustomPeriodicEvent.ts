@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRef } from "react";
 import { getAuthHeaders } from '@/utils/authHeaders';
 import VITE_GATEWAY_API_URL from "@/config/api";
+import type { ApiError } from '@/types/conflict.types';
 
 export interface CreateCustomPeriodicEventPayload {
     calendarId: string;
@@ -34,10 +35,6 @@ export interface CreateCustomPeriodicEventResponse {
     };
 }
 
-interface ApiError extends Error {
-    statusCode?: number;
-}
-
 interface CreateCustomPeriodicEventOptions {
     onSuccess?: (data: CreateCustomPeriodicEventResponse) => void;
     onError?: (error: ApiError) => void;
@@ -59,6 +56,9 @@ export function useCreateCustomPeriodicEvent() {
                 const errorData = await res.json();
                 const error = new Error(errorData.message || `Error ${res.status}`) as ApiError;
                 error.statusCode = res.status;
+                if (res.status === 409 && errorData.data?.conflicts) {
+                    error.conflictData = errorData.data.conflicts;
+                }
                 throw error;
             }
 

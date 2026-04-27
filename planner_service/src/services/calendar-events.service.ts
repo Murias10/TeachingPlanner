@@ -2,6 +2,7 @@ import { AppDataSource } from '@/config/data-source';
 import { Day } from '@/entities/day.entity';
 import { PeriodicEvent } from '@/entities/periodic_event.entity';
 import { EVENT_CHARACTERS, EVENT_TYPES, isSpecialEventType } from '@/constants/event-characters.constants';
+import type { GeneratedCalendarEvent } from '@/types/generated-calendar-event.types';
 
 /**
  * CalendarEventsService
@@ -29,7 +30,7 @@ export class CalendarEventsService {
   /**
    * Genera todos los eventos de calendario para un calendario específico
    */
-  static async generateCalendarEvents(calendarId: string) {
+  static async generateCalendarEvents(calendarId: string): Promise<GeneratedCalendarEvent[]> {
     // Cargar datos en paralelo
     const [diasDelCalendario, eventosPeriodicos] = await Promise.all([
       this.cargarDiasDelCalendario(calendarId),
@@ -424,7 +425,8 @@ export class CalendarEventsService {
         id: grupo.id,
         number: grupo.number,
         type: grupo.type,
-        language: grupo.language
+        language: grupo.language,
+        subject: grupo.subject ? { acronym: grupo.subject.acronym } : null
       })),
       classrooms: eventoPuntual.classrooms.map((aula: any) => ({
         id: aula.id,
@@ -663,7 +665,8 @@ export class CalendarEventsService {
         number: grupo.number,
         type: grupo.type,
         language: grupo.language,
-        planifiedHours: grupo.planifiedHours
+        planifiedHours: grupo.planifiedHours,
+        subject: grupo.subject ? { acronym: grupo.subject.acronym } : null
       })),
       classrooms: eventoPeriodico.classrooms.map((aula: any) => ({
         id: aula.id,

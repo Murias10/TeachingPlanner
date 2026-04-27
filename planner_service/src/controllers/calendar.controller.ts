@@ -23,7 +23,7 @@ import { CalendarImportService } from '@/services/calendar-import.service';
 import { CalendarEventsService } from '@/services/calendar-events.service';
 import { EVENT_CHARACTERS, DAY_CHARACTERS, AVAILABLE_CHARACTERS, MAX_EVENT_TYPES, isStandardCharacter, EVENT_TYPES, isSpecialEventType } from '@/constants/event-characters.constants';
 import { esSemanaPar } from '@/utils/calendar-week.utils';
-import { getActivePeriodicEventsForDay, findPeriodicEventConflicts } from '@/utils/conflict-detection.utils';
+import { getActivePeriodicEventsForDay, findPeriodicEventConflicts, toConflictEntry, GeneratedCalendarEvent } from '@/utils/conflict-detection.utils';
 
 export const getCalendars = async (_req: AuditedRequest, res: Response) => {
     try {
@@ -1512,9 +1512,9 @@ export const createPuntualEvent = async (req: AuditedRequest, res: Response) => 
                                 id: e.id,
                                 startTime: e.startTime,
                                 endTime: e.endTime,
-                                type: 'periodic',
-                                groupNames: e.groups?.filter((g: any) => groupIds.includes(g.id)).map((g: any) => `${g.subject?.acronym}.${g.type}.${g.number}`) ?? [],
-                                classroomNames: e.classrooms?.filter((c: any) => classroomIds.includes(c.id)).map((c: any) => c.code) ?? []
+                                type: 'periodic' as const,
+                                groupNames: e.groups?.filter(g => groupIds.includes(g.id)).map(g => `${g.subject?.acronym}.${g.type}.${g.number}`) ?? [],
+                                classroomNames: e.classrooms?.filter(c => classroomIds.includes(c.id)).map(c => c.code) ?? []
                             }))
                         ]
                     }
@@ -2417,7 +2417,7 @@ export const createPeriodicEvent = async (req: AuditedRequest, res: Response) =>
         const newEnd = normalizeTimeStr(endTime);
         const dayNumToCode: Record<number, string> = { 1: 'L', 2: 'M', 3: 'X', 4: 'J', 5: 'V', 6: 'S', 0: 'D' };
 
-        const conflictos = allGeneratedEvents.filter((event: any) => {
+        const conflictos = allGeneratedEvents.filter((event: GeneratedCalendarEvent) => {
             if (event.cancelled) return false;
 
             // Derivar el día de semana: los periódicos ya tienen weekDay, los puntuales no
@@ -2432,10 +2432,10 @@ export const createPeriodicEvent = async (req: AuditedRequest, res: Response) =>
             // Conflicto de grupo
             const sharesGroup = eventType !== EVENT_TYPES.BLOCKER &&
                 event.eventType !== EVENT_TYPES.BLOCKER &&
-                event.groups?.some((g: any) => groupIds.includes(g.id));
+                event.groups.some(g => groupIds.includes(g.id));
 
             // Conflicto de aula
-            const sharesClassroom = event.classrooms?.some((c: any) => classroomIds.includes(c.id));
+            const sharesClassroom = event.classrooms.some(c => classroomIds.includes(c.id));
 
             return sharesGroup || sharesClassroom;
         });
@@ -2444,8 +2444,8 @@ export const createPeriodicEvent = async (req: AuditedRequest, res: Response) =>
             const first = conflictos[0];
             const sharesGroup = eventType !== EVENT_TYPES.BLOCKER &&
                 first.eventType !== EVENT_TYPES.BLOCKER &&
-                first.groups?.some((g: any) => groupIds.includes(g.id));
-            const sharesClassroom = first.classrooms?.some((c: any) => classroomIds.includes(c.id));
+                first.groups.some(g => groupIds.includes(g.id));
+            const sharesClassroom = first.classrooms.some(c => classroomIds.includes(c.id));
             const bothShare = sharesGroup && sharesClassroom;
 
             const messageKey = bothShare
@@ -2457,17 +2457,7 @@ export const createPeriodicEvent = async (req: AuditedRequest, res: Response) =>
             res.status(409).json({
                 status: 'error',
                 message: messageKey,
-                data: {
-                    conflicts: conflictos.slice(0, 5).map((e: any) => ({
-                        id: e.id,
-                        date: e.date,
-                        startTime: e.startTime,
-                        endTime: e.endTime,
-                        type: e.type,
-                        groupNames: e.groups?.filter((g: any) => groupIds.includes(g.id)).map((g: any) => `${g.subject?.acronym}.${g.type}.${g.number}`) ?? [],
-                        classroomNames: e.classrooms?.filter((c: any) => classroomIds.includes(c.id)).map((c: any) => c.code) ?? []
-                    }))
-                }
+                data: { conflicts: conflictos.slice(0, 5).map(e => toConflictEntry(e, groupIds, classroomIds)) }
             });
             return;
         }
@@ -2620,6 +2610,58 @@ export const createCustomPeriodicEvent = async (req: AuditedRequest, res: Respon
                 data: null
             });
             return;
+        }
+
+        // Verificar conflictos antes de realizar cambios
+        {
+            const allGeneratedEvents = await CalendarEventsService.generateCalendarEvents(calendarId);
+            const normalizeTimeStr = (t: string) => t.substring(0, 5);
+            const newStart = normalizeTimeStr(startTime);
+            const newEnd = normalizeTimeStr(endTime);
+
+            const allConflicts: GeneratedCalendarEvent[] = [];
+
+            for (const dateStr of affectedDates) {
+                const targetDateStr = new Date(dateStr).toISOString().split('T')[0];
+                const eventsOnDate = allGeneratedEvents.filter((e: GeneratedCalendarEvent) =>
+                    !e.cancelled && e.date.startsWith(targetDateStr)
+                );
+                const conflicts = eventsOnDate.filter((event: GeneratedCalendarEvent) => {
+                    const eStart = normalizeTimeStr(event.startTime);
+                    const eEnd = normalizeTimeStr(event.endTime);
+                    if (newStart >= eEnd || newEnd <= eStart) return false;
+
+                    const sharesGroup = eventType !== EVENT_TYPES.BLOCKER &&
+                        event.eventType !== EVENT_TYPES.BLOCKER &&
+                        event.groups.some(g => groupIds.includes(g.id));
+                    const sharesClassroom = event.classrooms.some(c => classroomIds.includes(c.id));
+
+                    return sharesGroup || sharesClassroom;
+                });
+                allConflicts.push(...conflicts);
+            }
+
+            if (allConflicts.length > 0) {
+                const first = allConflicts[0];
+                const sharesGroup = eventType !== EVENT_TYPES.BLOCKER &&
+                    first.eventType !== EVENT_TYPES.BLOCKER &&
+                    first.groups.some(g => groupIds.includes(g.id));
+                const sharesClassroom = first.classrooms.some(c => classroomIds.includes(c.id));
+                const bothShare = sharesGroup && sharesClassroom;
+
+                const messageKey = bothShare
+                    ? 'alerts.puntualEvent.error.shared_both'
+                    : sharesGroup
+                        ? 'alerts.puntualEvent.error.shared_group'
+                        : 'alerts.puntualEvent.error.shared_classroom';
+
+                res.status(409).json({
+                    status: 'error',
+                    message: messageKey,
+                    data: { conflicts: allConflicts.slice(0, 5).map(e => toConflictEntry(e, groupIds, classroomIds)) }
+                });
+                return;
+            }
         }
 
         // Si el carácter no está en uso, agregarlo
@@ -2835,7 +2877,7 @@ export const updatePeriodicEvent = async (req: AuditedRequest, res: Response) =>
 
             const allGeneratedEvents = await CalendarEventsService.generateCalendarEvents(calendarId);
 
-            const conflictos = allGeneratedEvents.filter((event: any) => {
+            const conflictos = allGeneratedEvents.filter((event: GeneratedCalendarEvent) => {
                 if (event.cancelled) return false;
                 // Excluir el propio evento
                 if (event.type === 'periodic' && event.periodicEventId === eventId) return false;
@@ -2849,8 +2891,8 @@ export const updatePeriodicEvent = async (req: AuditedRequest, res: Response) =>
 
                 const sharesGroup = eventType !== EVENT_TYPES.BLOCKER &&
                     event.eventType !== EVENT_TYPES.BLOCKER &&
-                    event.groups?.some((g: any) => groupIds.includes(g.id));
-                const sharesClassroom = event.classrooms?.some((c: any) => classroomIds.includes(c.id));
+                    event.groups.some(g => groupIds.includes(g.id));
+                const sharesClassroom = event.classrooms.some(c => classroomIds.includes(c.id));
 
                 return sharesGroup || sharesClassroom;
             });
@@ -2859,8 +2901,8 @@ export const updatePeriodicEvent = async (req: AuditedRequest, res: Response) =>
                 const first = conflictos[0];
                 const sharesGroup = eventType !== EVENT_TYPES.BLOCKER &&
                     first.eventType !== EVENT_TYPES.BLOCKER &&
-                    first.groups?.some((g: any) => groupIds.includes(g.id));
-                const sharesClassroom = first.classrooms?.some((c: any) => classroomIds.includes(c.id));
+                    first.groups.some(g => groupIds.includes(g.id));
+                const sharesClassroom = first.classrooms.some(c => classroomIds.includes(c.id));
                 const bothShare = sharesGroup && sharesClassroom;
 
                 const messageKey = bothShare
@@ -2872,17 +2914,7 @@ export const updatePeriodicEvent = async (req: AuditedRequest, res: Response) =>
                 res.status(409).json({
                     status: 'error',
                     message: messageKey,
-                    data: {
-                        conflicts: conflictos.slice(0, 5).map((e: any) => ({
-                            id: e.id,
-                            date: e.date,
-                            startTime: e.startTime,
-                            endTime: e.endTime,
-                            type: e.type,
-                            groupNames: e.groups?.filter((g: any) => groupIds.includes(g.id)).map((g: any) => `${g.subject?.acronym}.${g.type}.${g.number}`) ?? [],
-                            classroomNames: e.classrooms?.filter((c: any) => classroomIds.includes(c.id)).map((c: any) => c.code) ?? []
-                        }))
-                    }
+                    data: { conflicts: conflictos.slice(0, 5).map(e => toConflictEntry(e, groupIds, classroomIds)) }
                 });
                 return;
             }
@@ -3043,10 +3075,10 @@ export const updateCustomPeriodicEvent = async (req: AuditedRequest, res: Respon
                 const eventWeekDay = periodicEvent.weekDay;
                 const groupIds = periodicEvent.groups.map((g: any) => g.id);
 
-                const conflictos = allGeneratedEvents.filter((event: any) => {
+                const conflictos = allGeneratedEvents.filter((event: GeneratedCalendarEvent) => {
                     if (event.cancelled) return false;
                     // Excluir los eventos que se están editando
-                    if (event.type === 'periodic' && editingIds.has(event.periodicEventId)) return false;
+                    if (event.type === 'periodic' && editingIds.has(event.periodicEventId ?? '')) return false;
 
                     const evWeekDay = event.weekDay ?? dayNumToCode[new Date(event.date).getDay()];
                     if (evWeekDay !== eventWeekDay) return false;
@@ -3057,8 +3089,8 @@ export const updateCustomPeriodicEvent = async (req: AuditedRequest, res: Respon
 
                     const sharesGroup = eventType !== EVENT_TYPES.BLOCKER &&
                         event.eventType !== EVENT_TYPES.BLOCKER &&
-                        event.groups?.some((g: any) => groupIds.includes(g.id));
-                    const sharesClassroom = event.classrooms?.some((c: any) => classroomIds.includes(c.id));
+                        event.groups.some(g => groupIds.includes(g.id));
+                    const sharesClassroom = event.classrooms.some(c => classroomIds.includes(c.id));
 
                     return sharesGroup || sharesClassroom;
                 });
@@ -3067,8 +3099,8 @@ export const updateCustomPeriodicEvent = async (req: AuditedRequest, res: Respon
                     const first = conflictos[0];
                     const sharesGroup = eventType !== EVENT_TYPES.BLOCKER &&
                         first.eventType !== EVENT_TYPES.BLOCKER &&
-                        first.groups?.some((g: any) => groupIds.includes(g.id));
-                    const sharesClassroom = first.classrooms?.some((c: any) => classroomIds.includes(c.id));
+                        first.groups.some(g => groupIds.includes(g.id));
+                    const sharesClassroom = first.classrooms.some(c => classroomIds.includes(c.id));
                     const bothShare = sharesGroup && sharesClassroom;
 
                     const messageKey = bothShare
@@ -3080,17 +3112,7 @@ export const updateCustomPeriodicEvent = async (req: AuditedRequest, res: Respon
                     res.status(409).json({
                         status: 'error',
                         message: messageKey,
-                        data: {
-                            conflicts: conflictos.slice(0, 5).map((e: any) => ({
-                                id: e.id,
-                                date: e.date,
-                                startTime: e.startTime,
-                                endTime: e.endTime,
-                                type: e.type,
-                                groupNames: e.groups?.filter((g: any) => groupIds.includes(g.id)).map((g: any) => `${g.subject?.acronym}.${g.type}.${g.number}`) ?? [],
-                                classroomNames: e.classrooms?.filter((c: any) => classroomIds.includes(c.id)).map((c: any) => c.code) ?? []
-                            }))
-                        }
+                        data: { conflicts: conflictos.slice(0, 5).map(e => toConflictEntry(e, groupIds, classroomIds)) }
                     });
                     return;
                 }
@@ -3295,7 +3317,7 @@ export const replacePeriodicEvent = async (req: AuditedRequest, res: Response) =
                 date: newEventDateObj,
                 calendar: { id: calendarId }
             },
-            relations: ['puntualEvents', 'puntualEvents.groups', 'puntualEvents.classrooms']
+            relations: ['puntualEvents', 'puntualEvents.groups', 'puntualEvents.groups.subject', 'puntualEvents.classrooms']
         });
 
         if (!newDay) {
@@ -3318,45 +3340,68 @@ export const replacePeriodicEvent = async (req: AuditedRequest, res: Response) =
         }
 
         // PASO 3: Verificar conflictos en la nueva fecha/hora
-        const conflictingEvents = newDay.puntualEvents?.filter(event => {
-            const eventStart = event.startTime;
-            const eventEnd = event.endTime;
-            const hasTimeOverlap = newStartTime < eventEnd && newEndTime > eventStart;
+        const normalizeTime = (t: string) => t.substring(0, 5);
+        const newStart = normalizeTime(newStartTime);
+        const newEnd = normalizeTime(newEndTime);
 
-            if (!hasTimeOverlap) return false;
+        const conflictingPuntualEvents = newDay.puntualEvents?.filter(event => {
+            if (event.cancelled) return false;
 
-            // Verificar si comparte grupo
-            const sharesGroup = event.groups?.some(g => groupIds.includes(g.id)) || groupIds.length === 0;
-            // Verificar si comparte aula
-            const sharesClassroom = event.classrooms?.some(c => classroomIds.includes(c.id)) || classroomIds.length === 0;
+            const eStart = normalizeTime(event.startTime);
+            const eEnd = normalizeTime(event.endTime);
+            if (newStart >= eEnd || newEnd <= eStart) return false;
 
-            // Conflicto si comparte grupo O aula (no necesita compartir ambos)
+            const sharesGroup = groupIds.length > 0 &&
+                event.groups?.some(g => groupIds.includes(g.id));
+            const sharesClassroom = classroomIds.length > 0 &&
+                event.classrooms?.some(c => classroomIds.includes(c.id));
+
             return sharesGroup || sharesClassroom;
-        });
+        }) ?? [];
 
-        if (conflictingEvents && conflictingEvents.length > 0) {
-            // Determinar el tipo específico de conflicto
-            const firstConflict = conflictingEvents[0];
-            const sharesGroup = firstConflict.groups?.some(g => groupIds.includes(g.id)) || groupIds.length === 0;
-            const sharesClassroom = firstConflict.classrooms?.some(c => classroomIds.includes(c.id)) || classroomIds.length === 0;
+        const newEventDateForConflict = new Date(newEventDate + 'T00:00:00');
+        newEventDateForConflict.setHours(0, 0, 0, 0);
+        const activePeriodicEvents = await getActivePeriodicEventsForDay(
+            calendarId, newDay.id, newEventDateForConflict, newDay.dayCharacter
+        );
+        const conflictingPeriodicEvents = findPeriodicEventConflicts(
+            newStartTime, newEndTime, groupIds, classroomIds, activePeriodicEvents, EVENT_TYPES.NORMAL
+        );
 
-            let conflictMessage = 'alerts.puntualEvent.error.shared_both';
-            if (sharesGroup && !sharesClassroom) {
-                conflictMessage = 'alerts.puntualEvent.error.shared_group';
-            } else if (!sharesGroup && sharesClassroom) {
-                conflictMessage = 'alerts.puntualEvent.error.shared_classroom';
-            }
+        const allReplaceConflicts = [
+            ...conflictingPuntualEvents.map(e => ({
+                id: e.id,
+                startTime: e.startTime,
+                endTime: e.endTime,
+                type: 'puntual' as const,
+                groupNames: e.groups?.filter(g => groupIds.includes(g.id)).map(g => `${g.subject?.acronym}.${g.type}.${g.number}`) ?? [],
+                classroomNames: e.classrooms?.filter(c => classroomIds.includes(c.id)).map(c => c.code) ?? []
+            })),
+            ...conflictingPeriodicEvents.map(e => ({
+                id: e.id,
+                startTime: e.startTime,
+                endTime: e.endTime,
+                type: 'periodic' as const,
+                groupNames: e.groups?.filter(g => groupIds.includes(g.id)).map(g => `${g.subject?.acronym}.${g.type}.${g.number}`) ?? [],
+                classroomNames: e.classrooms?.filter(c => classroomIds.includes(c.id)).map(c => c.code) ?? []
+            }))
+        ];
+
+        if (allReplaceConflicts.length > 0) {
+            const first = allReplaceConflicts[0];
+            const hasGroup = first.groupNames.length > 0;
+            const hasClassroom = first.classroomNames.length > 0;
+
+            const messageKey = hasGroup && hasClassroom
+                ? 'alerts.puntualEvent.error.shared_both'
+                : hasGroup
+                    ? 'alerts.puntualEvent.error.shared_group'
+                    : 'alerts.puntualEvent.error.shared_classroom';
 
             res.status(409).json({
                 status: 'error',
-                message: conflictMessage,
-                data: {
-                    conflicts: conflictingEvents.map(e => ({
-                        id: e.id,
-                        startTime: e.startTime,
-                        endTime: e.endTime
-                    }))
-                }
+                message: messageKey,
+                data: { conflicts: allReplaceConflicts.slice(0, 5) }
             });
             return;
         }

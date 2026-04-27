@@ -3,6 +3,8 @@ import VITE_GATEWAY_API_URL from '@/config/api';
 import { useFloatingAlertContext } from '@/contexts/useFloatingAlertContext';
 import { getAuthHeaders } from '@/utils/authHeaders';
 import { useTranslation } from 'react-i18next';
+import type { ApiError } from '@/types/conflict.types';
+import { buildConflictDescription } from '@/utils/conflict.utils';
 
 interface UpdateCustomPeriodicEventData {
     eventCharacter: string;
@@ -24,7 +26,7 @@ export const useUpdateCustomPeriodicEvent = () => {
     const { triggerAlert } = useFloatingAlertContext();
     const { t } = useTranslation();
 
-    const mutation = useMutation<UpdateCustomPeriodicEventResult, Error, UpdateCustomPeriodicEventData>({
+    const mutation = useMutation<UpdateCustomPeriodicEventResult, ApiError, UpdateCustomPeriodicEventData>({
         mutationFn: async (data: UpdateCustomPeriodicEventData): Promise<UpdateCustomPeriodicEventResult> => {
             const response = await fetch(`${VITE_GATEWAY_API_URL}/calendar/custom-periodic-event`, {
                 method: 'PUT',
@@ -36,8 +38,7 @@ export const useUpdateCustomPeriodicEvent = () => {
 
             if (!response.ok) {
                 const errorData = await response.json();
-                const error: Error & { statusCode?: number; conflictData?: { groupNames: string[]; classroomNames: string[] }[] } =
-                    new Error(errorData.message || 'Error actualizando eventos periódicos personalizados');
+                const error = new Error(errorData.message || 'Error actualizando eventos periódicos personalizados') as ApiError;
                 error.statusCode = response.status;
                 if (response.status === 409 && errorData.data?.conflicts) {
                     error.conflictData = errorData.data.conflicts;
@@ -49,7 +50,6 @@ export const useUpdateCustomPeriodicEvent = () => {
             return result.data;
         },
         onSuccess: async (data) => {
-            // Invalidar caches relacionados
             await queryClient.invalidateQueries({
                 queryKey: ['calendar-events']
             });
@@ -60,24 +60,20 @@ export const useUpdateCustomPeriodicEvent = () => {
                 variant: 'success'
             });
         },
-        onError: (error: Error & { statusCode?: number; conflictData?: { groupNames: string[]; classroomNames: string[] }[] }) => {
-            const first = error.conflictData?.[0];
-            let description: string;
-            if (error.statusCode === 409 && first) {
-                const groupNames = first.groupNames?.join(', ') || '';
-                const classroomNames = first.classroomNames?.join(', ') || '';
-                if (groupNames && classroomNames) {
-                    description = t('alerts.puntualEvent.error.shared_both_detail', { groupNames, classroomNames });
-                } else if (groupNames) {
-                    description = t('alerts.puntualEvent.error.shared_group_detail', { names: groupNames });
-                } else {
-                    description = t('alerts.puntualEvent.error.shared_classroom_detail', { names: classroomNames });
-                }
-            } else {
-                description = error.message;
-            }
+        onError: (error: ApiError) => {
+            const description = buildConflictDescription(
+                error.conflictData?.[0],
+                {
+                    both: 'calendar.alerts.customPeriodicEvent.updateError.conflictBoth',
+                    group: 'calendar.alerts.customPeriodicEvent.updateError.conflictGroup',
+                    classroom: 'calendar.alerts.customPeriodicEvent.updateError.conflictClassroom',
+                },
+                {},
+                t
+            ) ?? error.message;
+
             triggerAlert({
-                title: 'Error al actualizar eventos',
+                title: t('calendar.alerts.customPeriodicEvent.updateError.title'),
                 description,
                 variant: 'destructive'
             });

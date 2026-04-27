@@ -46,6 +46,7 @@ import { useUpdateCustomPeriodicEvent } from "@/hooks/calendar/useUpdateCustomPe
 import { useDeletePuntualEvent } from "@/hooks/calendar/useDeletePuntualEvent";
 import { useImportExceptions } from "@/hooks/calendar/useImportExceptions";
 import { calculateAffectedDates, getAffectedDatesSummary } from "@/utils/customPatternCalculator";
+import { getWeekDayName } from "@/utils/weekdayUtils";
 import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCrearSolicitud } from "@/hooks/event-request/useCrearSolicitud";
@@ -59,6 +60,8 @@ import { generateGoogleCalendarCSV, downloadCSV } from "@/utils/csvExport";
 import { getAuthHeaders } from "@/utils/authHeaders";
 import { EVENT_CHARACTERS, EVENT_TYPES, isCustomEventCharacter } from "@/constants/eventCharacters";
 import VITE_GATEWAY_API_URL from "@/config/api";
+import type { ApiError } from "@/types/conflict.types";
+import { buildConflictDescription } from "@/utils/conflict.utils";
 
 // El localizer se crea de forma global
 const localizer = momentLocalizer(moment);
@@ -605,18 +608,13 @@ export default function CalendarView({ calendarId, headerSlot, isQuickAccess }: 
                         setIsCreateEventDialogOpen(false);
                         refetch();
                     },
-                    onError: (error: Error & { statusCode?: number; conflictData?: { groupNames: string[]; classroomNames: string[] }[] }) => {
-                        const first = error.conflictData?.[0];
-                        let description: string;
-                        if (first) {
-                            const groupNames = first.groupNames?.join(', ') || '';
-                            const classroomNames = first.classroomNames?.join(', ') || '';
-                            if (groupNames && classroomNames) description = t('alerts.puntualEvent.error.shared_both_detail', { date: formattedDate, startTime: startTimeShort, endTime: endTimeShort, groupNames, classroomNames });
-                            else if (groupNames) description = t('alerts.puntualEvent.error.shared_group_detail', { date: formattedDate, startTime: startTimeShort, endTime: endTimeShort, names: groupNames });
-                            else description = t('alerts.puntualEvent.error.shared_classroom_detail', { date: formattedDate, startTime: startTimeShort, endTime: endTimeShort, names: classroomNames });
-                        } else {
-                            description = t('alerts.puntualEvent.error.shared_group_detail', { date: formattedDate, startTime: startTimeShort, endTime: endTimeShort, names: '' });
-                        }
+                    onError: (error: ApiError) => {
+                        const description = buildConflictDescription(
+                            error.conflictData?.[0],
+                            { both: 'alerts.puntualEvent.error.shared_both_detail', group: 'alerts.puntualEvent.error.shared_group_detail', classroom: 'alerts.puntualEvent.error.shared_classroom_detail' },
+                            { date: formattedDate, startTime: startTimeShort, endTime: endTimeShort },
+                            t
+                        ) ?? t('alerts.puntualEvent.error.shared_group_detail', { date: formattedDate, startTime: startTimeShort, endTime: endTimeShort, names: '' });
                         triggerAlert({ title: t('alerts.puntualEvent.error.title'), description, variant: 'destructive' });
                     }
                 }
@@ -638,13 +636,16 @@ export default function CalendarView({ calendarId, headerSlot, isQuickAccess }: 
             let createdCount = 0;
             let errorCount = 0;
             const totalDays = config.weekDays.length;
-            const weekDayNames: Record<string, string> = { 'L': 'lunes', 'M': 'martes', 'X': 'miércoles', 'J': 'jueves', 'V': 'viernes', 'S': 'sábado', 'D': 'domingo' };
-            const weekDaysStr = config.weekDays.map((d: string) => weekDayNames[d] || d).join(', ');
+            const weekDaysStr = config.weekDays.map((d: string) => getWeekDayName(d, t)).join(', ');
 
             const createNextEvent = (index: number) => {
                 if (index >= totalDays) {
                     if (errorCount === 0) {
-                        triggerAlert({ title: t('calendar.alerts.periodicEvent.success.title'), description: t('calendar.alerts.periodicEvent.success.description', { count: createdCount, weekDays: weekDaysStr, startTime: config.startTime.substring(0, 5), endTime: config.endTime.substring(0, 5) }), variant: 'success' });
+                        const descKey =
+                            config.frequency === 'biweekly-even' ? 'calendar.alerts.periodicEvent.success.descriptionEven' :
+                            config.frequency === 'biweekly-odd'  ? 'calendar.alerts.periodicEvent.success.descriptionOdd' :
+                                                                   'calendar.alerts.periodicEvent.success.descriptionWeekly';
+                        triggerAlert({ title: t('calendar.alerts.periodicEvent.success.title'), description: t(descKey, { weekDays: weekDaysStr, startTime: config.startTime.substring(0, 5), endTime: config.endTime.substring(0, 5) }), variant: 'success' });
                         setIsCreateEventDialogOpen(false);
                         refetch();
                     }
@@ -654,24 +655,18 @@ export default function CalendarView({ calendarId, headerSlot, isQuickAccess }: 
                     { calendarId, weekDay: config.weekDays[index], startTime: config.startTime, endTime: config.endTime, planifiedHours: config.planifiedHours, eventCharacter: config.eventCharacter, groupIds: config.groupIds, classroomIds: config.classroomIds || [], eventType },
                     {
                         onSuccess: () => { createdCount++; createNextEvent(index + 1); },
-                        onError: (error: Error & { statusCode?: number; conflictData?: { groupNames: string[]; classroomNames: string[] }[] }) => {
+                        onError: (error: ApiError) => {
                             errorCount++;
                             if (index === 0) {
-                                const isConflict = error.statusCode === 409;
-                                let description: string;
-                                const first = error.conflictData?.[0];
-                                const currentWeekDay = weekDayNames[config.weekDays[index]] || config.weekDays[index];
+                                const currentWeekDay = getWeekDayName(config.weekDays[index], t) || config.weekDays[index];
                                 const startTimeShortP = config.startTime.substring(0, 5);
                                 const endTimeShortP = config.endTime.substring(0, 5);
-                                if (isConflict && first) {
-                                    const groupNames = first.groupNames?.join(', ') || '';
-                                    const classroomNames = first.classroomNames?.join(', ') || '';
-                                    if (groupNames && classroomNames) description = t('alerts.puntualEvent.error.shared_both_detail', { date: currentWeekDay, startTime: startTimeShortP, endTime: endTimeShortP, groupNames, classroomNames });
-                                    else if (groupNames) description = t('alerts.puntualEvent.error.shared_group_detail', { date: currentWeekDay, startTime: startTimeShortP, endTime: endTimeShortP, names: groupNames });
-                                    else description = t('alerts.puntualEvent.error.shared_classroom_detail', { date: currentWeekDay, startTime: startTimeShortP, endTime: endTimeShortP, names: classroomNames });
-                                } else {
-                                    description = t('calendar.alerts.periodicEvent.error.description', { weekDay: currentWeekDay, startTime: startTimeShortP, endTime: endTimeShortP });
-                                }
+                                const description = buildConflictDescription(
+                                    error.conflictData?.[0],
+                                    { both: 'alerts.puntualEvent.error.shared_both_detail', group: 'alerts.puntualEvent.error.shared_group_detail', classroom: 'alerts.puntualEvent.error.shared_classroom_detail' },
+                                    { date: currentWeekDay, startTime: startTimeShortP, endTime: endTimeShortP },
+                                    t
+                                ) ?? t('calendar.alerts.periodicEvent.error.description', { weekDay: currentWeekDay, startTime: startTimeShortP, endTime: endTimeShortP });
                                 triggerAlert({ title: t('calendar.alerts.periodicEvent.error.title'), description, variant: 'destructive' });
                             } else {
                                 createNextEvent(index + 1);
@@ -739,14 +734,21 @@ export default function CalendarView({ calendarId, headerSlot, isQuickAccess }: 
             createCustomPeriodicEvent(
                 { calendarId, affectedDates: affectedDates!, startTime: config.startTime, endTime: config.endTime, planifiedHours: config.planifiedHours, groupIds: config.groupIds, classroomIds: config.classroomIds || [], eventType },
                 {
-                    onSuccess: (responseData) => {
+                    onSuccess: (_responseData) => {
                         const summary = getAffectedDatesSummary(affectedDates!);
+                        const formatDate = (iso: string | null) => iso ? iso.split('-').reverse().join('/') : '';
                         setIsCreateEventDialogOpen(false);
                         refetch();
-                        triggerAlert({ title: t('calendar.alerts.customPeriodicEvent.created.title'), description: t('calendar.alerts.customPeriodicEvent.created.description', { count: responseData.data.events.length, startTime: config.startTime.substring(0, 5), endTime: config.endTime.substring(0, 5), dates: summary.totalDates }), variant: 'success' });
+                        triggerAlert({ title: t('calendar.alerts.customPeriodicEvent.created.title'), description: t('calendar.alerts.customPeriodicEvent.created.description', { startTime: config.startTime.substring(0, 5), endTime: config.endTime.substring(0, 5), firstDate: formatDate(summary.firstDate), lastDate: formatDate(summary.lastDate) }), variant: 'success' });
                     },
-                    onError: () => {
-                        triggerAlert({ title: t('calendar.alerts.customPeriodicEvent.error.title'), description: t('calendar.alerts.customPeriodicEvent.error.description', { startTime: config.startTime.substring(0, 5), endTime: config.endTime.substring(0, 5) }), variant: 'destructive' });
+                    onError: (error: ApiError) => {
+                        const description = buildConflictDescription(
+                            error.conflictData?.[0],
+                            { both: 'alerts.puntualEvent.error.shared_both_detail', group: 'alerts.puntualEvent.error.shared_group_detail', classroom: 'alerts.puntualEvent.error.shared_classroom_detail' },
+                            {},
+                            t
+                        ) ?? t('calendar.alerts.customPeriodicEvent.error.description', { startTime: config.startTime.substring(0, 5), endTime: config.endTime.substring(0, 5) });
+                        triggerAlert({ title: t('calendar.alerts.customPeriodicEvent.error.title'), description, variant: 'destructive' });
                     }
                 }
             );
@@ -786,29 +788,22 @@ export default function CalendarView({ calendarId, headerSlot, isQuickAccess }: 
                 { eventId: eventToEdit.periodicEventId, startTime: config.startTime, endTime: config.endTime, weekDay: config.weekDays && config.weekDays.length > 0 ? config.weekDays[0] : undefined, classroomIds: config.classroomIds || [], groupIds: config.groupIds, planifiedHours: config.planifiedHours, eventType: config.eventType },
                 {
                     onSuccess: () => {
-                        const weekDayNames: Record<string, string> = { 'L': 'lunes', 'M': 'martes', 'X': 'miércoles', 'J': 'jueves', 'V': 'viernes', 'S': 'sábado', 'D': 'domingo' };
-                        const weekDayStr = weekDayNames[config.weekDays?.[0]] || config.weekDays?.[0] || '';
+                        const weekDayStr = getWeekDayName(config.weekDays?.[0] || '', t) || config.weekDays?.[0] || '';
                         setIsEditEventDialogOpen(false);
                         setEventToEdit(null);
                         refetch();
                         triggerAlert({ title: t('calendar.alerts.periodicEvent.updated.title'), description: t('calendar.alerts.periodicEvent.updated.description', { weekDay: weekDayStr, startTime: config.startTime.substring(0, 5), endTime: config.endTime.substring(0, 5) }), variant: 'success' });
                     },
-                    onError: (error: Error & { statusCode?: number; conflictData?: { groupNames: string[]; classroomNames: string[] }[] }) => {
-                        const weekDayNames: Record<string, string> = { 'L': 'lunes', 'M': 'martes', 'X': 'miércoles', 'J': 'jueves', 'V': 'viernes', 'S': 'sábado', 'D': 'domingo' };
-                        const weekDayStr = weekDayNames[config.weekDays?.[0]] || config.weekDays?.[0] || '';
+                    onError: (error: ApiError) => {
+                        const weekDayStr = getWeekDayName(config.weekDays?.[0] || '', t) || config.weekDays?.[0] || '';
                         const startTimeShort = config.startTime.substring(0, 5);
                         const endTimeShort = config.endTime.substring(0, 5);
-                        const first = error.conflictData?.[0];
-                        let description: string;
-                        if (first) {
-                            const groupNames = first.groupNames?.join(', ') || '';
-                            const classroomNames = first.classroomNames?.join(', ') || '';
-                            if (groupNames && classroomNames) description = t('calendar.alerts.periodicEvent.updateError.conflictBoth', { weekDay: weekDayStr, startTime: startTimeShort, endTime: endTimeShort, groupNames, classroomNames });
-                            else if (groupNames) description = t('calendar.alerts.periodicEvent.updateError.conflictGroup', { weekDay: weekDayStr, startTime: startTimeShort, endTime: endTimeShort, names: groupNames });
-                            else description = t('calendar.alerts.periodicEvent.updateError.conflictClassroom', { weekDay: weekDayStr, startTime: startTimeShort, endTime: endTimeShort, names: classroomNames });
-                        } else {
-                            description = t('calendar.alerts.periodicEvent.updateError.description', { weekDay: weekDayStr, startTime: startTimeShort, endTime: endTimeShort });
-                        }
+                        const description = buildConflictDescription(
+                            error.conflictData?.[0],
+                            { both: 'calendar.alerts.periodicEvent.updateError.conflictBoth', group: 'calendar.alerts.periodicEvent.updateError.conflictGroup', classroom: 'calendar.alerts.periodicEvent.updateError.conflictClassroom' },
+                            { weekDay: weekDayStr, startTime: startTimeShort, endTime: endTimeShort },
+                            t
+                        ) ?? t('calendar.alerts.periodicEvent.updateError.description', { weekDay: weekDayStr, startTime: startTimeShort, endTime: endTimeShort });
                         triggerAlert({ title: t('calendar.alerts.periodicEvent.updateError.title'), description, variant: 'destructive' });
                     }
                 }
@@ -828,20 +823,15 @@ export default function CalendarView({ calendarId, headerSlot, isQuickAccess }: 
                         refetch();
                         triggerAlert({ title: t('calendar.alerts.eventUpdate.success.title'), description: t('calendar.alerts.eventUpdate.success.description', { date: formattedDate, startTime: config.startTime.substring(0, 5), endTime: config.endTime.substring(0, 5) }), variant: 'success' });
                     },
-                    onError: (error: Error & { statusCode?: number; conflictData?: { groupNames: string[]; classroomNames: string[] }[] }) => {
+                    onError: (error: ApiError) => {
                         const startTimeShort = config.startTime.substring(0, 5);
                         const endTimeShort = config.endTime.substring(0, 5);
-                        const first = error.conflictData?.[0];
-                        let description: string;
-                        if (first) {
-                            const groupNames = first.groupNames?.join(', ') || '';
-                            const classroomNames = first.classroomNames?.join(', ') || '';
-                            if (groupNames && classroomNames) description = t('calendar.alerts.eventUpdate.error.conflictBoth', { date: formattedDate, startTime: startTimeShort, endTime: endTimeShort, groupNames, classroomNames });
-                            else if (groupNames) description = t('calendar.alerts.eventUpdate.error.conflictGroup', { date: formattedDate, startTime: startTimeShort, endTime: endTimeShort, names: groupNames });
-                            else description = t('calendar.alerts.eventUpdate.error.conflictClassroom', { date: formattedDate, startTime: startTimeShort, endTime: endTimeShort, names: classroomNames });
-                        } else {
-                            description = t('calendar.alerts.eventUpdate.error.description', { date: formattedDate, startTime: startTimeShort, endTime: endTimeShort });
-                        }
+                        const description = buildConflictDescription(
+                            error.conflictData?.[0],
+                            { both: 'calendar.alerts.eventUpdate.error.conflictBoth', group: 'calendar.alerts.eventUpdate.error.conflictGroup', classroom: 'calendar.alerts.eventUpdate.error.conflictClassroom' },
+                            { date: formattedDate, startTime: startTimeShort, endTime: endTimeShort },
+                            t
+                        ) ?? t('calendar.alerts.eventUpdate.error.description', { date: formattedDate, startTime: startTimeShort, endTime: endTimeShort });
                         triggerAlert({ title: t('calendar.alerts.eventUpdate.error.title'), description, variant: 'destructive' });
                     }
                 }
@@ -879,7 +869,8 @@ export default function CalendarView({ calendarId, headerSlot, isQuickAccess }: 
                 });
                 const result = await response.json();
                 if (result.status === 'success') {
-                    triggerAlert({ title: t('calendar.alerts.eventDelete.seriesDeleted.title'), description: t('calendar.alerts.eventDelete.seriesDeleted.description', { weekDay: eventToDelete.weekDay || '', startTime: eventToDelete.startTime.substring(0, 5), endTime: eventToDelete.endTime.substring(0, 5) }), variant: 'success' });
+                    const weekDayStr = getWeekDayName(eventToDelete.weekDay || '', t) || eventToDelete.weekDay || '';
+                    triggerAlert({ title: t('calendar.alerts.eventDelete.seriesDeleted.title'), description: t('calendar.alerts.eventDelete.seriesDeleted.description', { weekDay: weekDayStr, startTime: eventToDelete.startTime.substring(0, 5), endTime: eventToDelete.endTime.substring(0, 5) }), variant: 'success' });
                     setIsDeleteConfirmationOpen(false);
                     setEventToDelete(undefined);
                     refetch();
@@ -1016,6 +1007,22 @@ export default function CalendarView({ calendarId, headerSlot, isQuickAccess }: 
                 setReviewRequestId(null);
                 refetchPendingRequests();
                 refetch();
+            } else if (result.status === 409) {
+                const description = buildConflictDescription(
+                    result.conflictData?.[0],
+                    {
+                        both: 'calendar.alerts.request.approveConflict.shared_both_detail',
+                        group: 'calendar.alerts.request.approveConflict.shared_group_detail',
+                        classroom: 'calendar.alerts.request.approveConflict.shared_classroom_detail',
+                    },
+                    {},
+                    t
+                );
+                if (description) {
+                    triggerAlert({ title: t('calendar.alerts.request.approveConflict.title'), description, variant: 'destructive' });
+                } else {
+                    triggerAlert({ title: t('common.error'), description: result.message || t('calendar.alerts.request.approveErrorWithMessage.description'), variant: 'destructive' });
+                }
             } else {
                 triggerAlert({ title: t('calendar.alerts.request.approveErrorWithMessage.title'), description: result.message || t('calendar.alerts.request.approveErrorWithMessage.description'), variant: 'destructive' });
             }
@@ -1113,14 +1120,26 @@ export default function CalendarView({ calendarId, headerSlot, isQuickAccess }: 
             });
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.message || 'Error al reemplazar el evento');
+                const error = new Error(errorData.message || 'Error al reemplazar el evento') as ApiError;
+                if (response.status === 409 && errorData.data?.conflicts) {
+                    error.conflictData = errorData.data.conflicts;
+                }
+                throw error;
             }
             refetch();
             setIsReplaceEventDialogOpen(false);
             setEventToReplace(null);
+            triggerAlert({ title: t('calendar.alerts.replace.success.title'), description: t('calendar.alerts.replace.success.description'), variant: 'success' });
         } catch (error) {
             console.error('Error al reemplazar el evento:', error);
-            triggerAlert({ title: t('calendar.alerts.replace.error.title'), description: error instanceof Error ? t(error.message) : t('calendar.alerts.replace.error.description'), variant: 'destructive' });
+            const apiError = error as ApiError;
+            const description = buildConflictDescription(
+                apiError.conflictData?.[0],
+                { both: 'calendar.alerts.replace.error.conflictBoth', group: 'calendar.alerts.replace.error.conflictGroup', classroom: 'calendar.alerts.replace.error.conflictClassroom' },
+                {},
+                t
+            ) ?? t('calendar.alerts.replace.error.description');
+            triggerAlert({ title: t('calendar.alerts.replace.error.title'), description, variant: 'destructive' });
         }
     };
 
@@ -1157,7 +1176,7 @@ export default function CalendarView({ calendarId, headerSlot, isQuickAccess }: 
         const result = await crearSolicitud(calendarId, config.eventType, { startTime: config.startTime, endTime: config.endTime, eventDate: config.eventDate, weekDay: config.weekDay, comment: config.comment, subjectId: config.subjectId, groupIds: config.groupIds, classroomIds: config.classroomIds }, () => { refetch(); refetchPendingRequests(); }, 'EDIT', config.originalEventId);
         setIsSubmittingRequest(false);
         if (result.success) {
-            triggerAlert({ title: t('calendar.alerts.request.sent.title'), description: t('calendar.alerts.request.sent.description'), variant: 'success' });
+            triggerAlert({ title: t('calendar.alerts.request.editSent.title'), description: t('calendar.alerts.request.editSent.description'), variant: 'success' });
             setIsRequestEditOpen(false);
         } else {
             triggerAlert({ title: t('calendar.alerts.request.sendError.title'), description: result.message || t('calendar.alerts.request.sendError.description'), variant: 'destructive' });
@@ -1169,7 +1188,7 @@ export default function CalendarView({ calendarId, headerSlot, isQuickAccess }: 
         const result = await crearSolicitud(calendarId, config.eventType, { comment: config.comment, specificDate: config.specificDate, subjectId: config.subjectId, groupIds: config.groupIds, classroomIds: config.classroomIds }, () => { refetch(); refetchPendingRequests(); }, 'CANCEL', config.originalEventId);
         setIsSubmittingRequest(false);
         if (result.success) {
-            triggerAlert({ title: t('calendar.alerts.request.sent.title'), description: t('calendar.alerts.request.sent.description'), variant: 'success' });
+            triggerAlert({ title: t('calendar.alerts.request.cancelSent.title'), description: t('calendar.alerts.request.cancelSent.description'), variant: 'success' });
             setIsRequestCancelOpen(false);
         } else {
             triggerAlert({ title: t('calendar.alerts.request.sendError.title'), description: result.message || t('calendar.alerts.request.sendError.description'), variant: 'destructive' });
@@ -1181,7 +1200,7 @@ export default function CalendarView({ calendarId, headerSlot, isQuickAccess }: 
         const result = await crearSolicitud(calendarId, config.eventType, { newEventDate: config.newEventDate, startTime: config.startTime, endTime: config.endTime, comment: config.comment, originalDate: config.originalDate, preferredClassroomId: config.preferredClassroomId, subjectId: config.subjectId, groupIds: config.groupIds, classroomIds: config.classroomIds }, () => { refetch(); refetchPendingRequests(); }, 'REPLACE', config.originalEventId);
         setIsSubmittingRequest(false);
         if (result.success) {
-            triggerAlert({ title: t('calendar.alerts.request.sent.title'), description: t('calendar.alerts.request.sent.description'), variant: 'success' });
+            triggerAlert({ title: t('calendar.alerts.request.replaceSent.title'), description: t('calendar.alerts.request.replaceSent.description'), variant: 'success' });
             setIsRequestReplaceOpen(false);
         } else {
             triggerAlert({ title: t('calendar.alerts.request.sendError.title'), description: result.message || t('calendar.alerts.request.sendError.description'), variant: 'destructive' });

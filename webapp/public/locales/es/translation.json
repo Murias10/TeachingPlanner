@@ -284,7 +284,7 @@
                 "shared_both_detail": "El evento del {{date}} de {{startTime}} a {{endTime}} no se pudo crear: el grupo {{groupNames}} y el aula {{classroomNames}} ya tienen un evento en ese horario."
             },
             "success": {
-                "title": "Evento creado",
+                "title": "Evento puntual creado",
                 "description": "Evento puntual creado el {{date}} de {{startTime}} a {{endTime}}."
             }
         }
@@ -968,7 +968,9 @@
             "periodicEvent": {
                 "success": {
                     "title": "Evento periódico creado",
-                    "description": "{{count}} evento(s) periódico(s) creado(s) los {{weekDays}} de {{startTime}} a {{endTime}}."
+                    "descriptionWeekly": "Evento periódico creado los {{weekDays}} de {{startTime}} a {{endTime}}.",
+                    "descriptionEven": "Evento periódico creado los {{weekDays}} de las semanas pares de {{startTime}} a {{endTime}}.",
+                    "descriptionOdd": "Evento periódico creado los {{weekDays}} de las semanas impares de {{startTime}} a {{endTime}}."
                 },
                 "error": {
                     "title": "Error al crear",
@@ -989,11 +991,18 @@
             "customPeriodicEvent": {
                 "created": {
                     "title": "Evento personalizado creado",
-                    "description": "{{count}} evento(s) periódico(s) creado(s) de {{startTime}} a {{endTime}} ({{dates}} fechas afectadas)."
+                    "description": "Evento personalizado creado de {{startTime}} a {{endTime}} (del {{firstDate}} al {{lastDate}})."
                 },
                 "error": {
                     "title": "Error al crear",
                     "description": "El evento de {{startTime}} a {{endTime}} no se pudo crear."
+                },
+                "updateError": {
+                    "title": "Error al actualizar",
+                    "description": "El evento de {{startTime}} a {{endTime}} no se pudo actualizar.",
+                    "conflictGroup": "El evento de {{startTime}} a {{endTime}} no se pudo actualizar: el grupo {{names}} ya tiene un evento en ese horario.",
+                    "conflictClassroom": "El evento de {{startTime}} a {{endTime}} no se pudo actualizar: el aula {{names}} ya tiene un evento en ese horario.",
+                    "conflictBoth": "El evento de {{startTime}} a {{endTime}} no se pudo actualizar: el grupo {{groupNames}} y el aula {{classroomNames}} ya tienen un evento en ese horario."
                 }
             },
             "eventUpdate": {
@@ -1061,15 +1070,15 @@
                     "description": "El evento ha sido creado exitosamente"
                 },
                 "approveError": {
-                    "title": "Error",
+                    "title": "Error al aprobar",
                     "description": "No se pudo aprobar la solicitud"
                 },
                 "approveErrorGeneric": {
-                    "title": "Error",
+                    "title": "Error al aprobar",
                     "description": "Ocurrió un error al aprobar la solicitud"
                 },
                 "approveErrorWithMessage": {
-                    "title": "Error",
+                    "title": "Error al aprobar",
                     "description": "Error al aprobar la solicitud"
                 },
                 "deleted": {
@@ -1077,7 +1086,7 @@
                     "description": "Tu solicitud ha sido eliminada exitosamente"
                 },
                 "deleteError": {
-                    "title": "Error",
+                    "title": "Error al eliminar",
                     "description": "Error al eliminar la solicitud"
                 },
                 "rejected": {
@@ -1085,20 +1094,36 @@
                     "description": "La solicitud ha sido rechazada exitosamente"
                 },
                 "rejectError": {
-                    "title": "Error",
+                    "title": "Error al rechazar",
                     "description": "No se pudo rechazar la solicitud"
                 },
                 "rejectErrorGeneric": {
-                    "title": "Error",
+                    "title": "Error al rechazar",
                     "description": "Ocurrió un error al rechazar la solicitud"
                 },
                 "sent": {
                     "title": "Solicitud enviada",
                     "description": "Tu solicitud de evento ha sido enviada para aprobación"
                 },
+                "editSent": {
+                    "title": "Solicitud de edición enviada",
+                    "description": "Tu solicitud de edición ha sido enviada para aprobación"
+                },
+                "cancelSent": {
+                    "title": "Solicitud de cancelación enviada",
+                    "description": "Tu solicitud de cancelación ha sido enviada para aprobación"
+                },
+                "replaceSent": {
+                    "title": "Solicitud de reemplazo enviada",
+                    "description": "Tu solicitud de reemplazo ha sido enviada para aprobación"
+                },
                 "sendError": {
-                    "title": "Error",
+                    "title": "Error al enviar",
                     "description": "Error al enviar la solicitud"
+                },
+                "loadError": {
+                    "title": "Error",
+                    "description": "No se pudieron cargar las solicitudes"
                 },
                 "approveConflict": {
                     "title": "Conflicto al aprobar solicitud",
@@ -1155,9 +1180,16 @@
                 }
             },
             "replace": {
+                "success": {
+                    "title": "Evento reemplazado",
+                    "description": "El evento ha sido reemplazado correctamente."
+                },
                 "error": {
                     "title": "Error",
-                    "description": "Error al reemplazar el evento"
+                    "description": "Error al reemplazar el evento",
+                    "conflictGroup": "No se pudo reemplazar el evento: el grupo {{names}} ya tiene un evento de {{startTime}} a {{endTime}} en ese horario.",
+                    "conflictClassroom": "No se pudo reemplazar el evento: el aula {{names}} ya tiene un evento de {{startTime}} a {{endTime}} en ese horario.",
+                    "conflictBoth": "No se pudo reemplazar el evento: el grupo {{groupNames}} y el aula {{classroomNames}} ya tienen un evento de {{startTime}} a {{endTime}} en ese horario."
                 }
             },
             "export": {

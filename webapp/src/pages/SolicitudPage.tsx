@@ -18,6 +18,7 @@ import ApproveRequestDialog from "@/components/solicitud/ApproveRequestDialog";
 import RejectRequestDialog from "@/components/calendar/RejectRequestDialog";
 import type { RecurrenceConfig } from '@/types/RecurrenceConfig';
 import type { EventRequest } from '@/types/EventRequest';
+import { buildConflictDescription } from "@/utils/conflict.utils";
 
 const SolicitudPage = () => {
     const { t } = useTranslation();
@@ -70,8 +71,8 @@ const SolicitudPage = () => {
             setSolicitudes(result.data.requests);
         } else {
             triggerAlert({
-                title: 'Error',
-                description: 'No se pudieron cargar las solicitudes',
+                title: t('calendar.alerts.request.loadError.title'),
+                description: t('calendar.alerts.request.loadError.description'),
                 variant: 'destructive'
             });
         }
@@ -129,37 +130,32 @@ const SolicitudPage = () => {
                 });
                 setApproveDialogOpen(false);
                 cargarSolicitudes(statusFilter);
-            } else {
-                const first = result.conflictData?.[0];
-                let description: string;
-                if (result.status === 409 && first) {
-                    const groupNames = first.groupNames?.join(', ') || '';
-                    const classroomNames = first.classroomNames?.join(', ') || '';
-                    const startTimeShort = first.startTime?.substring(0, 5) || '';
-                    const endTimeShort = first.endTime?.substring(0, 5) || '';
-                    if (groupNames && classroomNames) {
-                        description = t('calendar.alerts.request.approveConflict.shared_both_detail', { startTime: startTimeShort, endTime: endTimeShort, groupNames, classroomNames });
-                    } else if (groupNames) {
-                        description = t('calendar.alerts.request.approveConflict.shared_group_detail', { startTime: startTimeShort, endTime: endTimeShort, names: groupNames });
-                    } else {
-                        description = t('calendar.alerts.request.approveConflict.shared_classroom_detail', { startTime: startTimeShort, endTime: endTimeShort, names: classroomNames });
-                    }
-                    triggerAlert({
-                        title: t('calendar.alerts.request.approveConflict.title'),
-                        description,
-                        variant: 'destructive'
-                    });
+            } else if (result.status === 409) {
+                const description = buildConflictDescription(
+                    result.conflictData?.[0],
+                    {
+                        both: 'calendar.alerts.request.approveConflict.shared_both_detail',
+                        group: 'calendar.alerts.request.approveConflict.shared_group_detail',
+                        classroom: 'calendar.alerts.request.approveConflict.shared_classroom_detail',
+                    },
+                    {},
+                    t
+                );
+                if (description) {
+                    triggerAlert({ title: t('calendar.alerts.request.approveConflict.title'), description, variant: 'destructive' });
                 } else {
-                    triggerAlert({
-                        title: t("common.error"),
-                        description: result.message || t("calendar.alerts.request.approveErrorWithMessage.description"),
-                        variant: 'destructive'
-                    });
+                    triggerAlert({ title: t('calendar.alerts.request.approveErrorWithMessage.title'), description: result.message || t('calendar.alerts.request.approveErrorWithMessage.description'), variant: 'destructive' });
                 }
+            } else {
+                triggerAlert({
+                    title: t('calendar.alerts.request.approveErrorWithMessage.title'),
+                    description: result.message || t("calendar.alerts.request.approveErrorWithMessage.description"),
+                    variant: 'destructive'
+                });
             }
         } catch {
             triggerAlert({
-                title: t("common.error"),
+                title: t('calendar.alerts.request.approveErrorGeneric.title'),
                 description: t("calendar.alerts.request.approveErrorGeneric.description"),
                 variant: 'destructive'
             });
@@ -193,14 +189,14 @@ const SolicitudPage = () => {
                 cargarSolicitudes(statusFilter);
             } else {
                 triggerAlert({
-                    title: t("common.error"),
+                    title: t('calendar.alerts.request.rejectError.title'),
                     description: result.message || t("calendar.alerts.request.rejectError.description"),
                     variant: 'destructive'
                 });
             }
         } catch {
             triggerAlert({
-                title: t("common.error"),
+                title: t('calendar.alerts.request.rejectErrorGeneric.title'),
                 description: t("calendar.alerts.request.rejectErrorGeneric.description"),
                 variant: 'destructive'
             });

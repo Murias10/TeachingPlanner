@@ -2,16 +2,7 @@ import { useCallback } from "react";
 import VITE_GATEWAY_API_URL from '@/config/api';
 import { getAuthHeaders } from '@/utils/authHeaders';
 import type { RecurrenceConfig } from '@/types/RecurrenceConfig';
-
-interface ConflictEntry {
-    id: string;
-    startTime: string;
-    endTime: string;
-    type: 'puntual' | 'periodic';
-    groupNames: string[];
-    classroomNames: string[];
-    date?: string;
-}
+import type { ConflictEntry } from '@/types/conflict.types';
 
 interface AprobarSolicitudResponse {
     success: boolean;

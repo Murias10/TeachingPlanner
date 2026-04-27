@@ -4,6 +4,13 @@ import { CalendarEventsService } from '@/services/calendar-events.service';
 import { EVENT_TYPES } from '@/constants/event-characters.constants';
 import { In } from 'typeorm';
 
+import type { GeneratedCalendarEvent } from '@/types/generated-calendar-event.types';
+export type { GeneratedCalendarEvent, GeneratedEventGroup, GeneratedEventClassroom } from '@/types/generated-calendar-event.types';
+
+// ---------------------------------------------------------------------------
+// ConflictEntry — estructura devuelta al cliente en las respuestas 409
+// ---------------------------------------------------------------------------
+
 export interface ConflictEntry {
     id: string;
     startTime: string;
@@ -23,6 +30,10 @@ export class ConflictError extends Error {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Helpers de detección
+// ---------------------------------------------------------------------------
+
 /**
  * Returns PeriodicEvent entities that materialize on a specific date.
  * Uses generateCalendarEvents as the single source of truth.
@@ -37,7 +48,7 @@ export async function getActivePeriodicEventsForDay(
 
     const targetDateStr = eventDate.toISOString().split('T')[0];
 
-    const periodicEventsOnDay = allEvents.filter((e: any) =>
+    const periodicEventsOnDay = allEvents.filter((e: GeneratedCalendarEvent) =>
         e.type === 'periodic' &&
         !e.cancelled &&
         e.date.startsWith(targetDateStr)
@@ -46,7 +57,7 @@ export async function getActivePeriodicEventsForDay(
     if (periodicEventsOnDay.length === 0) return [];
 
     const periodicEventRepo = AppDataSource.getRepository(PeriodicEvent);
-    const ids = [...new Set(periodicEventsOnDay.map((e: any) => e.periodicEventId as string))];
+    const ids = [...new Set(periodicEventsOnDay.map((e: GeneratedCalendarEvent) => e.periodicEventId as string))];
     return periodicEventRepo.find({
         where: { id: In(ids) },
         relations: ['groups', 'groups.subject', 'classrooms']
@@ -83,4 +94,29 @@ export function findPeriodicEventConflicts(
 
         return sharesGroup || sharesClassroom;
     });
+}
+
+/**
+ * Mapea un evento generado a ConflictEntry filtrando los grupos/aulas compartidos.
+ * Requiere que el evento haya sido producido por generateCalendarEvents(), que incluye
+ * subject dentro de cada grupo desde calendar-events.service.ts.
+ */
+export function toConflictEntry(
+    event: GeneratedCalendarEvent,
+    groupIds: string[],
+    classroomIds: string[]
+): ConflictEntry {
+    return {
+        id: event.id,
+        date: event.date,
+        startTime: event.startTime,
+        endTime: event.endTime,
+        type: event.type,
+        groupNames: event.groups
+            .filter(g => groupIds.includes(g.id))
+            .map(g => g.subject ? `${g.subject.acronym}.${g.type}.${g.number}` : `${g.type}.${g.number}`),
+        classroomNames: event.classrooms
+            .filter(c => classroomIds.includes(c.id))
+            .map(c => c.code),
+    };
 }

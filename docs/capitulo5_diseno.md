@@ -82,7 +82,7 @@ graph TD
 | `gateway_service` | Punto de entrada único para todas las peticiones del frontend; enruta y reenvía peticiones HTTP a los servicios internos; gestiona CORS y carga de ficheros multiparte | Express 5, TypeScript, Axios, Multer |
 | `auth_service` | Autenticación mediante JWT; registro y activación de cuentas; integración con Google OAuth 2.0; reseteo de contraseñas con OTP por correo | Express 5, TypeORM, bcrypt, jsonwebtoken, Nodemailer |
 | `user_service` | Gestión CRUD de usuarios; control de roles (`ADMIN`, `PROFESSOR`); importación masiva desde ficheros Excel (XLSX) | Express 5, TypeORM, xlsx |
-| `planner_service` | Núcleo de negocio: gestión de calendarios, titulaciones, cursos, asignaturas, grupos, aulas, eventos periódicos y puntuales; solicitudes de cambio; sincronización con Google Calendar; importación/exportación Excel; auditoría de operaciones | Express 5, TypeORM, xlsx, archiver, node-cron |
+| `planner_service` | Núcleo de negocio: gestión de calendarios, titulaciones, cursos, asignaturas, grupos, aulas, eventos periódicos y puntuales; solicitudes de cambio; sincronización con Google Calendar; importación/exportación Excel; auditoría de operaciones | Express 5, TypeORM, xlsx, archiver |
 | `management_database` | Almacén relacional para usuarios y credenciales; compartido entre `auth_service` y `user_service` | MariaDB 11 |
 | `planner_database` | Almacén relacional para toda la información académica; uso exclusivo de `planner_service` | MariaDB 11 |
 

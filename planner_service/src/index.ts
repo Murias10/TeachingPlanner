@@ -27,11 +27,6 @@ const startServer = async () => {
 
     app.listen(port, '0.0.0.0', () => {
         console.log(`🚀 App listening on port ${port}`);
-
-        // Automatic sync disabled - admin can manually sync from UI
-        // if (process.env.GOOGLE_CALENDAR_SYNC_ENABLED === 'true') {
-        //     startCalendarSyncJob();
-        // }
     });
 };
 

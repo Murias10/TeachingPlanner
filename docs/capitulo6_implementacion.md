@@ -217,8 +217,6 @@ planner_service/src/
 │   ├── puntual_event.entity.ts
 │   ├── request.entity.ts
 │   └── subject.entity.ts
-├── jobs/
-│   └── calendar-sync.job.ts      # Job programado de sincronización con Google Calendar
 ├── middleware/
 │   ├── auth.middleware.ts
 │   └── require-role.middleware.ts
@@ -264,7 +262,6 @@ graph LR
 
     subgraph "Capa de negocio"
         SV["services/ (7)"]
-        JB["jobs/\ncalendar-sync"]
     end
 
     subgraph "Capa de datos"
@@ -282,7 +279,6 @@ graph LR
     CT --> EN
     SV --> EN
     SV --> DS
-    JB --> SV
     DS --> DB
     SV --> GCAL
 ```

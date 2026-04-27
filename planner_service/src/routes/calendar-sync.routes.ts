@@ -1,7 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { authenticateToken } from '@/middleware/auth.middleware';
 import { GoogleCalendarService } from '@/services/google-calendar.service';
-import { triggerImmediateSync } from '@/jobs/calendar-sync.job';
 
 const router = Router();
 
@@ -164,7 +163,7 @@ router.post('/calendar-sync/:id/sync-now', authenticateToken, async (req: AuthRe
             return;
         }
 
-        const result = await triggerImmediateSync(id, tokenData.data.accessToken);
+        const result = await GoogleCalendarService.syncCalendarToGoogle(id, tokenData.data.accessToken);
 
         res.json({
             success: result.success,

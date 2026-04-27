@@ -115,9 +115,6 @@ GOOGLE_REDIRECT_URI=https://teachingplanner.duckdns.org/api/auth/google/callback
 
 # Clave de cifrado para tokens (genera con: openssl rand -hex 32)
 ENCRYPTION_KEY=tu_clave_de_32_caracteres_hex
-
-# Activar sincronización
-GOOGLE_CALENDAR_SYNC_ENABLED=true
 ```
 
 ---
@@ -188,7 +185,7 @@ Una vez configurado:
 3. Autorizar el acceso a Google Calendar
 4. Ir a la pagina de **Calendarios**
 5. Seleccionar los calendarios que quiere sincronizar
-6. La sincronizacion se ejecuta automaticamente cada 5 minutos
+6. Usar el botón **Sincronizar** para lanzar la sincronización manualmente
 
 ### Endpoints disponibles
 

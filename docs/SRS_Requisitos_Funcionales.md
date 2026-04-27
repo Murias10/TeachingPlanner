@@ -1636,7 +1636,7 @@ A_inicio < B_fin AND A_fin > B_inicio
 **Descripción:** El sistema debe renovar automáticamente los tokens de acceso de Google cuando se lanzan sincronizaciones, dado que los `access_token` tienen una validez limitada.
 
 **Proceso:**
-1. Administrador lanza sincronización manual (`sync-now`) o el sistema la ejecuta
+1. Administrador lanza sincronización manual (`sync-now`)
 2. Sistema recupera los tokens almacenados del usuario
 3. Si el `access_token` está próximo a expirar o expirado:
    - Sistema usa el `refresh_token` para obtener un nuevo `access_token` desde Google

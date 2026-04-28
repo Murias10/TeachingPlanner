@@ -1,25 +1,23 @@
 import { SubjectToolbar } from "@/components/subject/SubjectToolbar"
 import { SubjectTable } from "@/components/subject/SubjectTable"
 import { CreateSubjectDrawer } from "@/components/subject/CreateSubjectDrawer"
-import { EditSubjectDrawer } from "@/components/subject/EditSubjectDrawer"
+import { EditSubjectDrawer, EditSubjectFormData } from "@/components/subject/EditSubjectDrawer"
 import { DeleteConfirmationDialog } from "@/components/DeleteConfirmationDialog"
 import { ProtectedComponent } from "@/components/ProtectedComponent"
-import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext"
 import { useAuth } from "@/contexts/AuthContext"
 import { useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { BookOpen } from "lucide-react"
 import { useParams } from "react-router-dom"
 import { useSubjectsByCalendarId } from "@/hooks/subject/useSubjectsByCalendarId"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
 import { useDeleteSubject } from "@/hooks/subject/useDeleteSubject"
 import { useCreateSubject } from "@/hooks/subject/useCreateSubject"
 import { useUpdateSubject } from "@/hooks/subject/useUpdateSubject"
-import { useCoursesByDegreeAcronym } from "@/hooks/course/useCoursesByDegreeAcronym"
 import { useCalendarByCourseAndSemester } from "@/hooks/calendar/useCalendarByCourseAndSemester"
 import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext"
 import { Subject } from "@/types/Subject"
-import { EditSubjectFormData } from "@/components/subject/EditSubjectDrawer"
-
+import { useCourseNavBreadcrumb } from "@/hooks/breadcrumb/useCourseNavBreadcrumb"
 const EMPTY_SUBJECTS: Subject[] = [];
 
 interface DeleteState {
@@ -49,18 +47,10 @@ export default function SubjectPage() {
     const { deleteSubject } = useDeleteSubject()
     const { createSubject } = useCreateSubject()
     const { updateSubject } = useUpdateSubject()
-    const { setItems } = useBreadcrumbContext()
-
-    // Obtener los cursos por acrónimo
-    const {
-        data: courses
-    } = useCoursesByDegreeAcronym(acronym || null);
-
-    // Buscar el curso específico basado en startYear y endYear
-    const course = courses?.find(c =>
-        c.startYear.toString() === startYear &&
-        c.endYear.toString() === endYear
-    );
+    useCourseNavBreadcrumb(acronym, startYear, endYear, semester, {
+        label: t("breadcrumb.subjects"),
+        icon: BookOpen,
+    })
 
     // Obtener el calendarId
     const { calendarId } = useCalendarByCourseAndSemester(
@@ -85,23 +75,6 @@ export default function SubjectPage() {
     const [editDrawerOpen, setEditDrawerOpen] = useState(false)
     const [subjectToEdit, setSubjectToEdit] = useState<Subject | undefined>(undefined)
     const [deleteState, setDeleteState] = useState<DeleteState>({ type: null })
-
-    // Configurar breadcrumb
-    useEffect(() => {
-        const items = [
-            { label: t("breadcrumb.degrees"), href: "/degrees" },
-            // Miga intermedia con el nombre del grado (sin enlace, solo informativo)
-            ...(course?.degree ? [{ label: course.degree.name, href: "" }] : []),
-            { label: t("breadcrumb.courses"), href: `/degrees/${acronym}/courses` },
-            // Miga intermedia con el año académico (sin enlace, solo informativo)
-            ...(course ? [{ label: `${course.startYear}/${course.endYear}`, href: "" }] : []),
-            // Miga intermedia con el semestre (sin enlace, solo informativo)
-            ...(semester ? [{ label: `${t("breadcrumb.semester")} ${semester}`, href: "" }] : []),
-            { label: t("breadcrumb.subjects"), href: "" }
-        ];
-
-        setItems(items);
-    }, [setItems, t, acronym, startYear, endYear, semester, course])
 
     // Manejo de errores de carga
     useEffect(() => {

@@ -8,6 +8,7 @@ import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext"
 import { useAuth } from "@/contexts/AuthContext"
 import { useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { GraduationCap } from "lucide-react"
 import { useDegrees } from "@/hooks/degree/useDegrees"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
 import { useDeleteDegree } from "@/hooks/degree/useDeleteDegree"
@@ -45,7 +46,7 @@ export default function DegreePage() {
     // Configurar breadcrumb
     useEffect(() => {
         setItems([
-            { label: t("breadcrumb.degrees"), href: "/degrees" }
+            { label: t("breadcrumb.degrees"), href: "/degrees", icon: GraduationCap }
         ])
     }, [setItems, t])
 

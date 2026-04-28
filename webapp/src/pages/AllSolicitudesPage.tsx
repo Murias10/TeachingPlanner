@@ -9,7 +9,7 @@ import { useRechazarSolicitud } from "@/hooks/event-request/useRechazarSolicitud
 import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, ClipboardList } from "lucide-react";
 import { SolicitudTable } from "@/components/solicitud/SolicitudTable";
 import ApproveRequestDialog, { canApproveRequestDirectly } from "@/components/solicitud/ApproveRequestDialog";
 import RejectRequestDialog from "@/components/calendar/RejectRequestDialog";
@@ -63,8 +63,8 @@ const AllSolicitudesPage = () => {
     // Cargar solicitudes al montar el componente
     useEffect(() => {
         setItems([
-            { label: t("breadcrumb.home"), href: "/degrees" },
-            { label: "Solicitudes", href: "" },
+            { label: t("breadcrumb.home"), href: "/degrees", shortLabel: t("breadcrumb.home") },
+            { label: t("breadcrumb.requests"), href: "", icon: ClipboardList },
         ]);
         cargarSolicitudes('PENDING');
     }, [setItems, t, cargarSolicitudes]);

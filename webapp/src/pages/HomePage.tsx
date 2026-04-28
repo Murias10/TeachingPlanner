@@ -4,7 +4,7 @@ import { useActiveCalendars } from "@/hooks/calendar/useActiveCalendars";
 import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, Home } from "lucide-react";
 import { Calendar, momentLocalizer } from "react-big-calendar";
 import moment from "@/utils/momentLocales";
 import "react-big-calendar/lib/css/react-big-calendar.css";
@@ -38,7 +38,7 @@ export default function HomePage() {
     // Breadcrumb
     useEffect(() => {
         setItems([
-            { label: t("breadcrumb.home"), href: "/home" }
+            { label: t("breadcrumb.home"), href: "/home", icon: Home }
         ]);
     }, [setItems, t]);
 

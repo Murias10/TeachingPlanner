@@ -8,7 +8,7 @@ import { useDeleteRequest } from "@/hooks/event-request/useDeleteRequest";
 import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, ClipboardList } from "lucide-react";
 import { SolicitudTable } from "@/components/solicitud/SolicitudTable";
 import type { EventRequest } from "@/types/EventRequest";
 
@@ -49,8 +49,8 @@ const MyRequestsPage = () => {
 
     useEffect(() => {
         setItems([
-            { label: t("breadcrumb.home"), href: "/degrees" },
-            { label: t("sidebar.system.myRequests.title"), href: "" },
+            { label: t("breadcrumb.home"), href: "/degrees", shortLabel: t("breadcrumb.home") },
+            { label: t("sidebar.system.myRequests.title"), href: "", icon: ClipboardList },
         ]);
         cargarSolicitudes('PENDING');
     }, [setItems, t, cargarSolicitudes]);

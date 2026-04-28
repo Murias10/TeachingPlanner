@@ -1,14 +1,14 @@
 
 import { GroupToolbar } from "@/components/group/GroupToolbar"
-import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext"
 import { useCallback, useEffect, useState } from "react"
+import { Users } from "lucide-react"
 import { GroupTable } from "@/components/group/GroupTable"
 import { useTranslation } from "react-i18next"
 import { useSubjectsWithGroupsByCalendarId } from "@/hooks/subject/useSubjectsWithGroupsByCalendarId"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
 import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext"
-import { useCoursesByDegreeAcronym } from "@/hooks/course/useCoursesByDegreeAcronym"
 import { useParams } from "react-router-dom"
+import { useCourseNavBreadcrumb } from "@/hooks/breadcrumb/useCourseNavBreadcrumb"
 import CreateGroupDialog from "@/components/group/CreateGroupDialog"
 import { useCreateGroup } from "@/hooks/group/useCreateGroup"
 import { useDeleteGroup } from "@/hooks/group/useDeleteGroup"
@@ -24,38 +24,16 @@ export default function GroupPage() {
 
     const { triggerAlert } = useFloatingAlertContext()
 
-    const { setItems } = useBreadcrumbContext()
-
     const [createDialogOpen, setCreateDialogOpen] = useState(false)
     const [preSelectedSubjectId, setPreSelectedSubjectId] = useState<string | undefined>(undefined)
 
     // Obtener parámetros de la URL
     const { acronym, startYear, endYear, semester } = useParams();
 
-    // Obtener los cursos por acrónimo
-    const {
-        data: courses
-    } = useCoursesByDegreeAcronym(acronym || null);
-
-    // Buscar el curso específico basado en startYear y endYear
-    const course = courses?.find(c =>
-        c.startYear.toString() === startYear &&
-        c.endYear.toString() === endYear
-    );
-
-    useEffect(() => {
-        setItems([
-            { label: t("breadcrumb.degrees"), href: "/degrees" },
-            // Miga intermedia con el nombre del grado (sin enlace, solo informativo)
-            ...(course?.degree ? [{ label: course.degree.name, href: "" }] : []),
-            { label: t("breadcrumb.courses"), href: `/degrees/${acronym}/courses` },
-            // Miga intermedia con el año académico (sin enlace, solo informativo)
-            ...(course ? [{ label: `${course.startYear}/${course.endYear}`, href: "" }] : []),
-            // Miga intermedia con el semestre (sin enlace, solo informativo)
-            ...(semester ? [{ label: `${t("breadcrumb.semester")} ${semester}`, href: "" }] : []),
-            { label: t("breadcrumb.groups"), href: "" }
-        ])
-    }, [setItems, t, acronym, startYear, endYear, semester, course])
+    useCourseNavBreadcrumb(acronym, startYear, endYear, semester, {
+        label: t("breadcrumb.groups"),
+        icon: Users,
+    })
 
     // Obtener el calendarId
     const { calendarId } = useCalendarByCourseAndSemester(

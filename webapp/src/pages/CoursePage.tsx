@@ -5,6 +5,7 @@ import { ProtectedComponent } from "@/components/ProtectedComponent"
 import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext"
 import { useAuth } from "@/contexts/AuthContext"
 import { useCallback, useEffect, useState, useMemo } from "react"
+import { GraduationCap, FolderOpen } from "lucide-react"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
 import { useTranslation } from "react-i18next"
 import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext"
@@ -102,10 +103,9 @@ export default function CoursePage() {
     // Configurar breadcrumb
     useEffect(() => {
         const items = [
-            { label: t("breadcrumb.degrees"), href: "/degrees" },
-            // Miga intermedia con el nombre del grado (sin enlace, solo informativo)
-            ...(degree ? [{ label: degree.name, href: "" }] : []),
-            { label: t("breadcrumb.courses"), href: "" },
+            { label: t("breadcrumb.degrees"), href: "/degrees", icon: GraduationCap },
+            ...(degree ? [{ label: degree.name, href: "", shortLabel: acronym?.toUpperCase() }] : []),
+            { label: t("breadcrumb.courses"), href: "", icon: FolderOpen },
         ];
 
         setItems(items);

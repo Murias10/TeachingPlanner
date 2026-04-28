@@ -4,11 +4,14 @@ import {
     ReactNode,
     useMemo,
 } from "react"
+import { LucideIcon } from "lucide-react"
 import { BreadcrumbContext } from "@/contexts/BreadcrumbContextInstance"
 
 export interface BreadcrumbItem {
     label: string
     href: string
+    shortLabel?: string
+    icon?: LucideIcon
 }
 
 export interface BreadcrumbContextType {

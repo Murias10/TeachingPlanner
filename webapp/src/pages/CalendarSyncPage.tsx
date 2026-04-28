@@ -8,7 +8,7 @@ import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { useCalendarSync } from "@/hooks/google/useCalendarSync";
 import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext";
 import { Navigate, useNavigate } from "react-router-dom";
-import { Calendar, RefreshCw, ArrowLeft } from "lucide-react";
+import { Calendar, RefreshCw, ArrowLeft, Settings } from "lucide-react";
 import { useDegrees } from "@/hooks/degree/useDegrees";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -35,8 +35,8 @@ const CalendarSyncPage = () => {
 
     useEffect(() => {
         setItems([
-            { label: "Ajustes", href: "/settings" },
-            { label: "Sincronización con Google", href: "/calendar-sync" }
+            { label: t("settings.title"), href: "/settings", shortLabel: t("settings.title") },
+            { label: t("breadcrumb.calendarSync"), href: "/calendar-sync", icon: Settings }
         ]);
     }, [setItems]);
 

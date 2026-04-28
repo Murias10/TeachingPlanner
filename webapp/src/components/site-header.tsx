@@ -1,3 +1,4 @@
+import React from "react"
 import { SidebarIcon } from "lucide-react"
 import {
   Breadcrumb,
@@ -7,6 +8,12 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { useSidebar } from "@/components/ui/sidebar"
@@ -34,35 +41,78 @@ export function SiteHeader() {
         <Separator orientation="vertical" className="mr-2 h-4" />
 
         {items.length > 0 && (
-          <Breadcrumb className="hidden sm:block">
-            <BreadcrumbList>
-              {items.map((item, index) => {
-                const isLast = index === items.length - 1
-                const isClickable = item.href && item.href !== ""
+          <div
+            className="flex-1 min-w-0 overflow-hidden"
+            style={{
+              maskImage: "linear-gradient(to right, black 90%, transparent 100%)",
+              WebkitMaskImage: "linear-gradient(to right, black 90%, transparent 100%)",
+            }}
+          >
+            <Breadcrumb>
+              <BreadcrumbList>
+                <TooltipProvider>
+                  {items.map((item, index) => {
+                    const isLast = index === items.length - 1
+                    const isClickable = item.href && item.href !== ""
+                    const Icon = item.icon
+                    const onlyOne = items.length === 1
 
-                return (
-                  <BreadcrumbItem key={index}>
-                    {isLast || !isClickable ? (
-                      <>
-                        <BreadcrumbPage>{item.label}</BreadcrumbPage>
-                        {!isLast && <BreadcrumbSeparator />}
-                      </>
-                    ) : (
-                      <>
-                        <BreadcrumbLink asChild>
-                          <Link to={item.href}>{item.label}</Link>
-                        </BreadcrumbLink>
-                        <BreadcrumbSeparator />
-                      </>
-                    )}
-                  </BreadcrumbItem>
-                )
-              })}
-            </BreadcrumbList>
-          </Breadcrumb>
+                    const desktopContent = item.label
+                    let mobileContent: React.ReactNode
+                    if (onlyOne) {
+                      mobileContent = item.label
+                    } else if (Icon) {
+                      mobileContent = (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex items-center">
+                              <Icon className="size-4" />
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>{item.label}</TooltipContent>
+                        </Tooltip>
+                      )
+                    } else {
+                      mobileContent = item.shortLabel ?? item.label
+                    }
+
+                    return (
+                      <BreadcrumbItem
+                        key={`${item.label}-${item.href ?? index}`}
+                      >
+                        {isLast || !isClickable ? (
+                          <>
+                            <BreadcrumbPage>
+                              <span className="hidden sm:inline">{desktopContent}</span>
+                              <span className="sm:hidden inline-flex items-center">
+                                {mobileContent}
+                              </span>
+                            </BreadcrumbPage>
+                            {!isLast && <BreadcrumbSeparator />}
+                          </>
+                        ) : (
+                          <>
+                            <BreadcrumbLink asChild>
+                              <Link to={item.href}>
+                                <span className="hidden sm:inline">{desktopContent}</span>
+                                <span className="sm:hidden inline-flex items-center">
+                                  {mobileContent}
+                                </span>
+                              </Link>
+                            </BreadcrumbLink>
+                            <BreadcrumbSeparator />
+                          </>
+                        )}
+                      </BreadcrumbItem>
+                    )
+                  })}
+                </TooltipProvider>
+              </BreadcrumbList>
+            </Breadcrumb>
+          </div>
         )}
 
-        <div className="flex flex-1 items-center justify-end gap-2">
+        <div className="ml-auto flex shrink-0 items-center gap-2">
           <LanguageSelector />
           <ModeToggle />
         </div>

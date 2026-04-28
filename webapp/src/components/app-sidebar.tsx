@@ -2,7 +2,7 @@ import { Link } from "react-router-dom"
 import {
   UserRoundCog,
   Warehouse,
-  CalendarDays,
+  GraduationCap,
   Home,
   ClipboardList,
 } from "lucide-react"
@@ -46,7 +46,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       {
         title: t("sidebar.main.degrees.title"),
         url: "/degrees",
-        icon: CalendarDays,
+        icon: GraduationCap,
         isActive: true,
         items: [],
         requiredAuth: false,

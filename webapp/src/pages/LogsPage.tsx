@@ -1,16 +1,18 @@
 import { useEffect } from "react"
 import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext";
+import { useTranslation } from "react-i18next";
+import { FileText } from "lucide-react";
 
 const LogPage = () => {
-
+    const { t } = useTranslation()
     const { setItems } = useBreadcrumbContext()
 
     useEffect(() => {
         setItems([
-            { label: "Inicio", href: "/home" },
-            { label: "Logs", href: "/logs" },
+            { label: t("breadcrumb.home"), href: "/home", shortLabel: t("breadcrumb.home") },
+            { label: t("breadcrumb.logs"), href: "/logs", icon: FileText },
         ])
-    }, [setItems])
+    }, [setItems, t])
 
     return (
         <>

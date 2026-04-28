@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { useNavigate } from "react-router-dom"
 import { Degree } from "@/types/Degree"
-import { Trash2, Pencil, ChevronsRight, GraduationCap } from "lucide-react"
+import { Trash2, Pencil, ChevronsRight, FolderOpen } from "lucide-react"
 import {
     Tooltip,
     TooltipContent,
@@ -39,7 +39,7 @@ export function DegreeTableButtons({ degree, deleteDegree, editDegree }: Props) 
                         <span className="hidden lg:inline">
                             {t("table.degrees.actions.show.courses")}
                         </span>
-                        <GraduationCap className="lg:hidden size-4" />
+                        <FolderOpen className="lg:hidden size-4" />
                         <ChevronsRight className="hidden lg:inline ml-1" />
                     </Button>
                 </TooltipTrigger>

@@ -1,16 +1,18 @@
 import { useEffect } from "react"
 import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext";
+import { useTranslation } from "react-i18next";
+import { BarChart } from "lucide-react";
 
 const ReportPage = () => {
-
+    const { t } = useTranslation()
     const { setItems } = useBreadcrumbContext()
 
     useEffect(() => {
         setItems([
-            { label: "Inicio", href: "/home" },
-            { label: "Registros de uso", href: "/reports" },
+            { label: t("breadcrumb.home"), href: "/home", shortLabel: t("breadcrumb.home") },
+            { label: t("breadcrumb.reports"), href: "/reports", icon: BarChart },
         ])
-    }, [setItems])
+    }, [setItems, t])
 
     return (
         <>

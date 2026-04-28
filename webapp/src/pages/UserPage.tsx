@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Navigate } from "react-router-dom"
+import { UserRoundCog } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext"
 import { useAuth } from "@/contexts/AuthContext"
 import { useListUsers } from "@/hooks/user/useListUsers"
@@ -23,6 +25,7 @@ interface DeleteState {
 }
 
 const UserPage = () => {
+    const { t } = useTranslation()
     const { setItems } = useBreadcrumbContext()
     const { user: currentUser } = useAuth()
     const { triggerAlert } = useFloatingAlertContext()
@@ -53,9 +56,9 @@ const UserPage = () => {
 
     useEffect(() => {
         setItems([
-            { label: "Usuarios", href: "/users" },
+            { label: t("breadcrumb.users"), href: "/users", icon: UserRoundCog },
         ])
-    }, [setItems])
+    }, [setItems, t])
 
     useEffect(() => {
         if (error) {

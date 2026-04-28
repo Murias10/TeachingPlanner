@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState, useMemo } from "react";
 import { useParams, Navigate } from "react-router-dom";
-import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { useListarSolicitudes } from "@/hooks/event-request/useListarSolicitudes";
@@ -8,11 +7,11 @@ import { useAprobarSolicitud } from "@/hooks/event-request/useAprobarSolicitud";
 import { useRechazarSolicitud } from "@/hooks/event-request/useRechazarSolicitud";
 import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext";
 import { useDegreeByAcronym } from "@/hooks/degree/useDegreeByAcronym";
-import { useCoursesByDegreeAcronym } from "@/hooks/course/useCoursesByDegreeAcronym";
 import { useCalendarByCourseAndSemester } from "@/hooks/calendar/useCalendarByCourseAndSemester";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, ClipboardList } from "lucide-react";
+import { useCourseNavBreadcrumb } from "@/hooks/breadcrumb/useCourseNavBreadcrumb";
 import { SolicitudTable } from "@/components/solicitud/SolicitudTable";
 import ApproveRequestDialog from "@/components/solicitud/ApproveRequestDialog";
 import RejectRequestDialog from "@/components/calendar/RejectRequestDialog";
@@ -22,7 +21,6 @@ import { buildConflictDescription } from "@/utils/conflict.utils";
 
 const SolicitudPage = () => {
     const { t } = useTranslation();
-    const { setItems } = useBreadcrumbContext();
     const { triggerAlert } = useFloatingAlertContext();
     const { user, isLoading: authLoading } = useAuth();
     const listarSolicitudes = useListarSolicitudes();
@@ -31,11 +29,10 @@ const SolicitudPage = () => {
     const { acronym, startYear, endYear, semester } = useParams<{ acronym: string, startYear: string, endYear: string, semester: string }>();
     const { data: degree } = useDegreeByAcronym(acronym || null);
 
-    const { data: courses } = useCoursesByDegreeAcronym(acronym || null);
-    const course = courses?.find(c =>
-        c.startYear.toString() === startYear &&
-        c.endYear.toString() === endYear
-    );
+    useCourseNavBreadcrumb(acronym, startYear, endYear, semester, {
+        label: t("breadcrumb.requests"),
+        icon: ClipboardList,
+    });
 
     const [solicitudes, setSolicitudes] = useState<EventRequest[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -80,16 +77,8 @@ const SolicitudPage = () => {
     }, [listarSolicitudes, triggerAlert, calendarId]);
 
     useEffect(() => {
-        setItems([
-            { label: t("breadcrumb.degrees"), href: "/degrees" },
-            ...(course?.degree ? [{ label: course.degree.name, href: "" }] : []),
-            { label: t("breadcrumb.courses"), href: `/degrees/${acronym}/courses` },
-            ...(course ? [{ label: `${course.startYear}/${course.endYear}`, href: "" }] : []),
-            ...(semester ? [{ label: `${t("breadcrumb.semester")} ${semester}`, href: "" }] : []),
-            { label: "Solicitudes", href: "" },
-        ]);
         cargarSolicitudes('PENDING');
-    }, [setItems, t, acronym, startYear, endYear, semester, cargarSolicitudes, course]);
+    }, [cargarSolicitudes]);
 
     if (authLoading) {
         return (

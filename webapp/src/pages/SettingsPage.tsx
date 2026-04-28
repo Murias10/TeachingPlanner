@@ -14,7 +14,7 @@ import { validatePassword } from "@/utils/passwordValidation";
 import { useTranslation } from "react-i18next";
 import { useGoogleAuth } from "@/hooks/google/useGoogleAuth";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Calendar, CheckCircle2, XCircle } from "lucide-react";
+import { Calendar, CheckCircle2, XCircle, Settings } from "lucide-react";
 import { PasswordRequirements } from "@/components/ui/password-requirements";
 
 const SettingsPage = () => {
@@ -59,7 +59,7 @@ const SettingsPage = () => {
 
     useEffect(() => {
         setItems([
-            { label: t("settings.title"), href: "/settings" },
+            { label: t("settings.title"), href: "/settings", icon: Settings },
         ])
     }, [setItems, t]);
 

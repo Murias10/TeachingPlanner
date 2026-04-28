@@ -8,6 +8,7 @@ import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext"
 import { useAuth } from "@/contexts/AuthContext"
 import { useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { Warehouse } from "lucide-react"
 import { useClassrooms } from "@/hooks/classroom/useClassrooms"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
 import { useDeleteClassroom } from "@/hooks/classroom/useDeleteClassroom"
@@ -46,7 +47,7 @@ export default function ClassroomPage() {
     // Configurar breadcrumb
     useEffect(() => {
         setItems([
-            { label: t("breadcrumb.classrooms"), href: "/classrooms" }
+            { label: t("breadcrumb.classrooms"), href: "/classrooms", icon: Warehouse }
         ])
     }, [setItems, t])
 

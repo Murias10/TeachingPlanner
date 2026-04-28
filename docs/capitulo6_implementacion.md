@@ -131,7 +131,7 @@ auth_service/src/
 │   ├── auth.middleware.ts        # Validación JWT entrante
 │   └── validate.middleware.ts   # Validación de cuerpo de petición con Zod
 ├── routes/
-│   └── auth.routes.ts            # POST /login, /register, /refresh-token, /reset-password, /oauth
+│   └── auth.routes.ts            # POST /login /validate /logout /forgot-password /verify-otp /reset-password /activate · GET /profile · GET+POST /google/*
 ├── schemas/
 │   └── auth.schemas.ts           # Esquemas Zod de validación
 ├── services/
@@ -151,7 +151,7 @@ auth_service/src/
 
 ### 6.1.4 user_service — Servicio de gestión de usuarios
 
-Gestiona el ciclo de vida de los usuarios (alta, baja, modificación, consulta) y permite la importación masiva desde ficheros CSV.
+Gestiona el ciclo de vida de los usuarios (alta, baja, modificación, consulta) y permite la importación masiva desde ficheros **Excel (XLSX)**. La creación de usuarios incluye validación de formato de email (schema Zod) y detección de email duplicado: si el email ya existe en la base de datos, el servicio devuelve **HTTP 409** con un mensaje de error localizado (ES/EN).
 
 ```
 user_service/src/
@@ -172,7 +172,7 @@ user_service/src/
 │   └── user.schemas.ts
 ├── service/                      # Nota: carpeta en singular
 │   ├── user.service.ts
-│   ├── user-import.service.ts   # Procesamiento de CSV (importación masiva)
+│   ├── user-import.service.ts   # Procesamiento de Excel/XLSX (importación masiva)
 │   └── email.service.ts
 ├── types/
 │   └── user.types.ts
@@ -202,7 +202,7 @@ planner_service/src/
 │   ├── group.controller.ts
 │   ├── subject.controller.ts
 │   └── test.controller.ts        # Endpoint de limpieza para tests
-├── entities/              # 14 entidades TypeORM
+├── entities/              # 14 ficheros de entidad; 12 registradas en el DataSource (excluye audited.entity —clase abstracta— y request.entity —auxiliar no registrada—)
 │   ├── audited.entity.ts         # Clase abstracta base (id, createdAt/By, updatedAt/By)
 │   ├── calendar.entity.ts
 │   ├── calendar-sync.entity.ts
@@ -231,13 +231,15 @@ planner_service/src/
 │   ├── subject.routes.ts
 │   └── test.routes.ts
 ├── services/              # 7 servicios
-│   ├── calendar-events.service.ts
+│   ├── calendar-events.service.ts    # Expansión de eventos periódicos a fechas concretas
 │   ├── calendar-formatting.service.ts
 │   ├── calendar-import.service.ts
 │   ├── calendar-repository.service.ts
 │   ├── event-request.service.ts
-│   ├── google-calendar.service.ts
-│   └── validation.service.ts
+│   ├── google-calendar.service.ts    # Comunicación con Google Calendar API v3
+│   └── validation.service.ts         # Validación de UUIDs y existencia de entidades
+├── utils/
+│   └── conflict-detection.utils.ts  # Detección de conflictos de horario (grupo/aula) en 6 operaciones
 └── __tests__/
     ├── setup/
     │   └── testDatabase.ts       # Setup/teardown de Testcontainers
@@ -292,7 +294,7 @@ El sistema emplea dos bases de datos MariaDB 11 completamente independientes:
 | Base de datos | Servicio propietario | Entidades gestionadas |
 |---|---|---|
 | `management_database` | `auth_service`, `user_service` | `User` (autenticación y perfil de usuario) |
-| `planner_database` | `planner_service` | 14 entidades del dominio académico |
+| `planner_database` | `planner_service` | 12 entidades del dominio académico registradas en el DataSource |
 
 Esta separación garantiza que un fallo o una migración en la base de datos de planificación no afecte a la autenticación, y viceversa.
 
@@ -305,7 +307,7 @@ Véase el **§5.1.3** del Capítulo 5 para el diagrama UML de despliegue complet
 - Cada componente dispone de su propio `Dockerfile` (7 en total). La imagen de `webapp` utiliza **Caddy** como servidor web con soporte HTTPS automático.
 - En el entorno de desarrollo, todos los servicios se levantan con `docker-compose.dev.yml`, que monta los directorios fuente como volúmenes para permitir hot-reload.
 - En producción (Azure VM), `docker-compose.azure.yml` utiliza imágenes preconstruidas publicadas en GitHub Container Registry con la convención `ghcr.io/murias10/teachingplanner/{servicio}:latest`. Solo `gateway_service` (puerto 8080) y `webapp` (443/80) son accesibles desde el exterior.
-- El pipeline de CI/CD (GitHub Actions) ejecuta los tests en cada *pull request* antes de autorizar el merge, y el despliegue en Azure se realiza de forma manual mediante `workflow_dispatch`.
+- El pipeline de CI/CD (GitHub Actions) ejecuta los tests en cada *pull request* antes de autorizar el merge. El mecanismo de despliegue manual (`workflow_dispatch`) y su justificación se describen en **§5.1.3**.
 
 ---
 
@@ -566,7 +568,7 @@ flowchart TD
 
     subgraph "Job 1: unit-tests"
         U1["Checkout código"]
-        U2["Setup Node.js 20"]
+        U2["Setup Node.js 20\n(CI — las imágenes Docker de producción usan Node.js 23)"]
         U3["npm ci — planner_service"]
         U4["npm run test:ci\nJest + Testcontainers MariaDB 11.2"]
         U5{{"¿Tests OK?"}}

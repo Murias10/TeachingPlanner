@@ -159,14 +159,14 @@ El proceso de despliegue a producción se articula en cuatro etapas dependientes
 3. **`docker-push`** (workflow `deploy_azure.yml`, trigger: `workflow_dispatch` — manual): construye las imágenes Docker de todos los servicios usando `node:23-alpine` como base y las publica en `ghcr.io/murias10/teachingplanner/<servicio>`.
 4. **`deploy`** (depende de `docker-push`): accede a la Azure VM por SSH, ejecuta `docker compose pull` para descargar las nuevas imágenes y `docker compose up -d` para reiniciar los servicios afectados con tiempo de inactividad mínimo.
 
-El hecho de que el despliegue a producción sea siempre un `workflow_dispatch` (activación manual) es una decisión deliberada: ningún `push` a `main` desencadena un despliegue automático, garantizando que la decisión de poner en producción siempre sea consciente.
+El hecho de que el despliegue a producción sea siempre un `workflow_dispatch` (activación manual) es una decisión deliberada: ningún `push` a `main` desencadena un despliegue automático, garantizando que la decisión de poner en producción siempre sea consciente. En la práctica, el responsable accede a la pestaña *Actions* del repositorio en GitHub, selecciona el workflow `deploy_azure.yml` y pulsa *Run workflow*; los pasos operativos detallados se recogen en el [Manual de Instalación](./manual_instalacion.md).
 
 **Aspectos relevantes del despliegue en producción:**
 
 - Las bases de datos cuentan con *health checks* (`mysqladmin ping -u root -p$MYSQL_ROOT_PASSWORD`) antes de que los servicios dependientes arranquen, garantizando que `auth_service`, `user_service` y `planner_service` no inicien la conexión TypeORM sobre una base de datos no disponible.
 - Solo `gateway_service` (puerto 8080) y `webapp` (puertos 80/443) son accesibles desde el exterior. Los servicios backend y las bases de datos se encuentran en la red interna `app_network`.
 - El frontend se sirve desde un contenedor **Caddy**, que gestiona automáticamente la obtención y renovación de certificados TLS vía ACME/Let's Encrypt, sin necesidad de cron ni certificados preaprovisionados.
-- TypeORM opera con `synchronize: false` en producción, garantizando que los cambios de esquema sean explícitos y controlados. En los tests de integración, en cambio, se usa `synchronize: true` sobre la base de datos efímera de Testcontainers para garantizar que el esquema de prueba es siempre idéntico al de producción.
+- TypeORM opera con `synchronize: true` tanto en producción como en tests de integración, lo que significa que el esquema de base de datos se sincroniza automáticamente con las entidades TypeORM en cada arranque del servicio. En los tests de integración con Testcontainers esta configuración es igualmente válida, ya que la base de datos efímera parte siempre de cero.
 
 ---
 
@@ -177,15 +177,17 @@ El hecho de que el despliegue a producción sea siempre un `workflow_dispatch` (
 | Capa | Componente | Lenguaje | Framework / Runtime | ORM / BD | Tests | Integración externa |
 |---|---|---|---|---|---|---|
 | Frontend | webapp | TypeScript | React 19, Vite 6, Tailwind 4 | — | Playwright 1.58 | — |
-| API Gateway | gateway_service | TypeScript | Express 5, Node.js 23 | — | — | — |
-| Autenticación | auth_service | TypeScript | Express 5, Node.js 23 | TypeORM 0.3 | — | Google OAuth 2.0, SMTP |
-| Usuarios | user_service | TypeScript | Express 5, Node.js 23 | TypeORM 0.3 | — | SMTP |
-| Planificación | planner_service | TypeScript | Express 5, Node.js 23 | TypeORM 0.3 | Jest 30 + Testcontainers | Google Calendar API |
+| API Gateway | gateway_service | TypeScript | Express 5, Node.js 23¹ | — | — | — |
+| Autenticación | auth_service | TypeScript | Express 5, Node.js 23¹ | TypeORM 0.3 | — | Google OAuth 2.0, SMTP |
+| Usuarios | user_service | TypeScript | Express 5, Node.js 23¹ | TypeORM 0.3 | — | SMTP |
+| Planificación | planner_service | TypeScript | Express 5, Node.js 23¹ | TypeORM 0.3 | Jest 30 + Testcontainers | Google Calendar API |
 | Persistencia | management_database | SQL | MariaDB 11 | — | — | — |
 | Persistencia | planner_database | SQL | MariaDB 11 | — | — | — |
 | Contenedores | — | YAML | Docker · Docker Compose | — | — | — |
 | CI/CD | — | YAML | GitHub Actions | — | — | GitHub Container Registry |
 | Calidad de código | — | — | SonarQube | — | — | — |
+
+> ¹ Node.js 23 en imágenes Docker de producción (`node:23-alpine`). El entorno de CI (GitHub Actions) ejecuta Node.js 20.
 
 ---
 
@@ -207,8 +209,8 @@ El diagrama 5.3 muestra el ciclo de vida de la cuenta de usuario.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> INACTIVA : Registro (POST /auth/register)
-    INACTIVA --> ACTIVA : Activación (GET /auth/activate?token=...)
+    [*] --> INACTIVA : Creación por admin (POST /api/user)
+    INACTIVA --> ACTIVA : Activación (POST /auth/activate)
     ACTIVA --> PASSWORD_RESET_PENDING : Solicita reseteo (POST /auth/forgot-password)
     PASSWORD_RESET_PENDING --> ACTIVA : OTP verificado + nueva contraseña
     ACTIVA --> [*] : Eliminación de cuenta
@@ -621,37 +623,40 @@ sequenceDiagram
     end
 ```
 
-#### Flujo 2: Autenticación con Google OAuth 2.0
+#### Flujo 2: Vinculación de cuenta de Google
 
-El segundo flujo de autenticación utiliza el protocolo OAuth 2.0 para delegar la verificación de identidad en Google. Este flujo justifica la existencia de los campos `googleId`, `googleAccessToken`, `googleRefreshToken` y `googleTokenExpiry` en la entidad `User`.
+El segundo flujo permite a un usuario ya autenticado **conectar su cuenta de Google** para habilitar la sincronización del calendario académico con Google Calendar. No es un flujo de autenticación alternativo: la ruta `GET /auth/google/initiate` exige el middleware `authenticateToken`, por lo que solo es accesible con un JWT válido. El usuario inicia el proceso desde la página `/settings`.
 
-**Figura 5.7 — Secuencia de autenticación Google OAuth 2.0**
+Este flujo justifica la existencia de los campos `googleId`, `googleAccessToken`, `googleRefreshToken` y `googleTokenExpiry` en la entidad `User`.
+
+**Figura 5.7 — Secuencia de vinculación de cuenta de Google**
 
 ```mermaid
 sequenceDiagram
     actor Usuario
-    participant webapp as webapp (React)
+    participant webapp as webapp (React) /settings
     participant gateway as gateway_service
     participant auth as auth_service
     participant google as Google OAuth 2.0
     participant db as management_database
+    participant planner as planner_service
 
-    Usuario->>webapp: Pulsa "Iniciar sesión con Google"
-    webapp->>gateway: GET /auth/google
-    gateway->>auth: GET /google/initiate
+    Usuario->>webapp: Pulsa "Conectar Google" (ya autenticado)
+    webapp->>gateway: GET /auth/google/initiate (Authorization: Bearer JWT)
+    gateway->>auth: GET /auth/google/initiate
     auth-->>gateway: 302 Redirect → Google consent screen URL
     gateway-->>webapp: 302 Redirect
     webapp->>google: Navega a pantalla de consentimiento OAuth
     Usuario->>google: Autoriza el acceso
-    google-->>auth: Callback GET /auth/google/callback?code=...
+    google-->>auth: Callback GET /auth/google/callback?code=...&state=...
     auth->>google: POST token endpoint (intercambia código por tokens)
     google-->>auth: {access_token, refresh_token, id_token, expiry}
-    auth->>auth: Decodifica id_token → {googleId, email, name}
-    auth->>db: UPSERT User (googleId, googleAccessToken, googleRefreshToken)
-    auth->>auth: jwt.sign({userId, email, role}, secret)
-    auth-->>webapp: Redirect a /home?token=JWT
-    webapp->>webapp: Extrae token de query param, almacena en AuthContext
-    webapp-->>Usuario: Accede a la aplicación
+    auth->>auth: Descifra state → userId; decodifica id_token
+    auth->>db: UPDATE User (googleId, googleAccessToken cifrado, googleRefreshToken cifrado)
+    auth->>planner: POST /calendar-sync/initialize {userId, userEmail}
+    planner->>db: INSERT CalendarSync por cada Calendar (syncEnabled=false)
+    auth-->>webapp: Redirect a /settings?googleConnected=true
+    webapp-->>Usuario: Confirmación de cuenta vinculada
 ```
 
 ---
@@ -775,6 +780,29 @@ Cuando se cancela una ocurrencia concreta de un `PeriodicEvent` (por ejemplo, la
 
 El reemplazo sigue el mismo mecanismo: se crea el `PuntualEvent` de cancelación y, adicionalmente, un segundo `PuntualEvent` con los nuevos datos del evento de reemplazo, con `replacementEventId` apuntando al evento cancelado, estableciendo así la trazabilidad bidireccional del cambio.
 
+#### Detección de conflictos
+
+El sistema impide que dos eventos se solapen en horario si comparten algún grupo de clase o algún aula. Esta validación se ejecuta en seis operaciones distintas sobre eventos, implementadas en `calendar.controller.ts` con ayuda de la utilidad `conflict-detection.utils.ts`:
+
+| Operación | Qué se comprueba |
+|---|---|
+| Crear `PuntualEvent` | Vs. PuntualEvents no cancelados del mismo día + PeriodicEvents que materializan ese día |
+| Crear `PeriodicEvent` | Vs. todos los eventos expandidos del calendario (mismo día de la semana y solapamiento horario) |
+| Mover `PuntualEvent` (replace) | Vs. PuntualEvents + PeriodicEvents de la nueva fecha/hora |
+| Editar `PeriodicEvent` (individual) | Vs. todos los eventos expandidos, excluyendo el propio |
+| Editar `PeriodicEvent` (en lote) | Vs. todos los eventos expandidos, excluyendo los editados |
+| Revertir cancelación | Vs. PuntualEvents + PeriodicEvents activos en ese día (el periódico restaurado no debe chocar) |
+
+Cuando se detecta un conflicto, la API responde con **HTTP 409** e incluye hasta 5 entradas de conflicto con: tipo (puntual/periódico), franja horaria, grupos afectados y códigos de aula. Los mensajes de error están localizados en español e inglés mediante claves i18n:
+
+| Clave i18n | Condición |
+|---|---|
+| `shared_group` | Solapamiento horario con ≥1 grupo compartido |
+| `shared_classroom` | Solapamiento horario con ≥1 aula compartida |
+| `shared_both` | Ambas condiciones simultáneas |
+
+> **Nota:** los eventos `BLOCKER` no generan conflicto por grupo (solo por aula), ya que su propósito es reservar un espacio sin asociarlo a ninguna asignatura.
+
 ---
 
 ### 5.2.7 Diseño de la integración con Google Calendar
@@ -793,7 +821,20 @@ El diseño se apoya en dos entidades nuevas del modelo de dominio y un servicio 
 
 #### Flujo de sincronización
 
-**Figura 5.9 — Secuencia de sincronización con Google Calendar**
+La sincronización con Google Calendar es **exclusivamente manual**: el usuario habilita los calendarios que desea sincronizar y después dispara la sincronización con el botón «Sincronizar ahora». El toggle de activación y la sincronización real son dos operaciones independientes.
+
+Los endpoints disponibles en `planner_service` para este flujo son:
+
+| Verbo | Ruta | Descripción |
+|---|---|---|
+| `POST` | `/calendar-sync/initialize` | Crea las entradas `CalendarSync` tras vincular Google (llamado desde `auth_service`) |
+| `GET` | `/calendar-sync` | Devuelve las configuraciones de sync del usuario autenticado |
+| `PATCH` | `/calendar-sync/:id/toggle` | Activa o desactiva el flag `syncEnabled` (no sincroniza) |
+| `POST` | `/calendar-sync/:id/sync-now` | Dispara la sincronización real del calendario a Google Calendar |
+| `DELETE` | `/calendar-sync/user/all` | Elimina todas las entradas de sync del usuario (al desconectar Google) |
+| `DELETE` | `/calendar-sync/cleanup` | Endpoint interno: llamado desde `auth_service` durante la desconexión |
+
+**Figura 5.9a — Toggle: habilitar/deshabilitar sincronización**
 
 ```mermaid
 sequenceDiagram
@@ -801,14 +842,36 @@ sequenceDiagram
     participant webapp as webapp (React)
     participant gateway as gateway_service
     participant planner as planner_service
+    participant db as planner_database
+
+    Admin->>webapp: Activa o desactiva el toggle de un Calendar
+    webapp->>gateway: PATCH /calendar-sync/:id/toggle
+    gateway->>planner: PATCH /calendar-sync/:id/toggle
+    planner->>db: UPDATE CalendarSync (syncEnabled = !syncEnabled)
+    planner-->>gateway: 200 {syncEnabled: true|false}
+    gateway-->>webapp: 200 OK
+    webapp-->>Admin: Toggle actualizado
+```
+
+**Figura 5.9b — Sincronización manual con Google Calendar**
+
+```mermaid
+sequenceDiagram
+    actor Admin
+    participant webapp as webapp (React)
+    participant gateway as gateway_service
+    participant planner as planner_service
+    participant auth as auth_service
     participant google as Google Calendar API
     participant db as planner_database
 
-    Admin->>webapp: Activa sincronización de un Calendar
-    webapp->>gateway: POST /calendar-sync/:id/toggle
-    gateway->>planner: POST /calendar-sync/:id/toggle
-    planner->>db: UPDATE CalendarSync (syncEnabled=true, syncStatus=SYNCING)
-    planner->>db: SELECT todos los eventos del Calendar (periódicos + puntuales)
+    Admin->>webapp: Pulsa "Sincronizar ahora"
+    webapp->>gateway: POST /calendar-sync/:id/sync-now
+    gateway->>planner: POST /calendar-sync/:id/sync-now
+    planner->>auth: GET /auth/google/token/:userId (interno)
+    auth-->>planner: {accessToken}
+    planner->>db: UPDATE CalendarSync (syncStatus=SYNCING)
+    planner->>db: SELECT todos los eventos del Calendar (periódicos + puntuales expandidos)
     planner->>db: SELECT GoogleClassroomCalendar por aula del usuario
     loop Por cada evento del Calendar
         planner->>google: Upsert evento en Google Calendar del aula correspondiente
@@ -816,7 +879,7 @@ sequenceDiagram
         planner->>db: UPDATE CalendarSync (currentOperation, processedCalendars++)
     end
     planner->>db: UPDATE CalendarSync (syncStatus=SUCCESS, lastSyncAt=now)
-    planner-->>gateway: 200 {syncStatus: SUCCESS}
+    planner-->>gateway: 200 {success: true}
     gateway-->>webapp: 200 OK
     webapp-->>Admin: Confirmación de sincronización completada
 ```
@@ -869,7 +932,7 @@ La estrategia de pruebas de TeachingPlanner se articula en tres niveles compleme
 **Objeto de prueba:** la capa de datos y servicios del `planner_service`, con especial atención a las operaciones de escritura que afectan a múltiples entidades relacionadas y a las restricciones de integridad de la base de datos.
 
 **Herramientas:**
-- **Jest 30** con soporte TypeScript mediante `ts-jest`. Timeout configurado a 120 segundos por suite para dar margen suficiente al arranque del contenedor MariaDB mediante Testcontainers.
+- **Jest 30** con soporte TypeScript mediante `ts-jest`. Timeout configurado a 60 segundos por suite (`testTimeout: 60000` en `jest.config.js`) para dar margen suficiente al arranque del contenedor MariaDB mediante Testcontainers.
 - **Testcontainers** (`@testcontainers/mariadb 11.2`): levanta un contenedor MariaDB efímero por suite de pruebas y lo destruye automáticamente al finalizar, garantizando aislamiento total entre suites.
 - **TypeORM** con `synchronize: true` sobre la base de datos de test, asegurando que el esquema es siempre idéntico al de producción sin requerir migraciones.
 - **supertest 7.2.2**: para aserciones sobre respuestas HTTP en los tests que ejercitan controladores.

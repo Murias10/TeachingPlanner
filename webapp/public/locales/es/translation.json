@@ -68,7 +68,8 @@
         "users": "Gestión de usuarios",
         "requests": "Solicitudes",
         "reports": "Informes de uso",
-        "faq": "Preguntas frecuentes"
+        "faq": "Preguntas frecuentes",
+        "calendarSync": "Sincronización con Google"
     },
     "filters": {
         "title": "Filtros",

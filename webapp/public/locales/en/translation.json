@@ -68,7 +68,8 @@
         "users": "User management",
         "requests": "Requests",
         "reports": "Usage reports",
-        "faq": "Frequently asked questions"
+        "faq": "Frequently asked questions",
+        "calendarSync": "Google Calendar sync"
     },
     "filters": {
         "title": "Filters",

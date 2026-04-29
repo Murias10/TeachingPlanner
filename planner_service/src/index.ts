@@ -1,5 +1,6 @@
 import app from '@/app';
 import { connectToPlannerDatabase } from '@/config/data-source';
+import { GoogleCalendarService } from '@/services/google-calendar.service';
 import degreeRouter from '@/routes/degree.routes';
 import courseRouter from '@/routes/course.routes';
 import classroomRouter from '@/routes/classrooms.routes';
@@ -14,6 +15,7 @@ const port = process.env.PLANNER_SERVICE_PORT;
 
 const startServer = async () => {
     await connectToPlannerDatabase();
+    await GoogleCalendarService.initQuotaCounters();
 
     app.use(degreeRouter);
     app.use(courseRouter);

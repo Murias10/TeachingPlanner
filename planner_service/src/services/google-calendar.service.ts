@@ -4,6 +4,7 @@ import { GoogleClassroomCalendar } from '@/entities/google-classroom-calendar.en
 import { Calendar } from '@/entities/calendar.entity';
 import { Classroom } from '@/entities/classroom.entity';
 import { CalendarEventsService } from '@/services/calendar-events.service';
+import { ApiQuotaCounter } from '@/entities/api-quota-counter.entity';
 
 interface GoogleCalendarEvent {
     id?: string;
@@ -44,9 +45,17 @@ export class GoogleCalendarService {
 
     // Rate limiter: Google allows 600 requests per minute per user
     // Using 400 to have a safer margin and account for parallel requests
-    private static readonly MAX_REQUESTS_PER_MINUTE = 400; // Conservative safety margin
+    private static readonly MAX_REQUESTS_PER_MINUTE = 400;
+    private static readonly ESTIMATED_DAILY_REQUEST_LIMIT = 10000;
+    private static readonly ESTIMATED_DAILY_CALENDAR_CREATION_LIMIT = 150;
+    private static readonly QUOTA_KEY = 'google_calendar';
+
+    // In-memory cache — loaded from DB on startup via initQuotaCounters()
     private static requestCount = 0;
     private static requestWindowStart = Date.now();
+    private static dailyRequestCount = 0;
+    private static dailyCalendarCreations = 0;
+    private static dailyWindowStart = Date.now();
 
     /**
      * Rate limiter to avoid exceeding Google Calendar API quotas
@@ -55,8 +64,16 @@ export class GoogleCalendarService {
     private static async waitForRateLimit(): Promise<void> {
         const now = Date.now();
         const windowDuration = 60000; // 1 minute
+        const dayDuration = 86400000; // 24 hours
 
-        // Reset counter if window has passed
+        // Reset daily counter at midnight (or after 24h)
+        if (now - this.dailyWindowStart >= dayDuration) {
+            this.dailyRequestCount = 0;
+            this.dailyCalendarCreations = 0;
+            this.dailyWindowStart = now;
+        }
+
+        // Reset per-minute counter if window has passed
         if (now - this.requestWindowStart >= windowDuration) {
             console.log(`[RATE LIMITER] Window reset - processed ${this.requestCount} requests in last minute`);
             this.requestCount = 0;
@@ -79,9 +96,112 @@ export class GoogleCalendarService {
         }
 
         this.requestCount++;
+        this.dailyRequestCount++;
+        this.persistQuotaCounters();
 
         // Add a tiny delay between each request to prevent bursts
         await new Promise(resolve => setTimeout(resolve, 150)); // 150ms between requests = max 400/min
+    }
+
+    /**
+     * Returns current rate limit status for diagnostics
+     */
+    static getRateLimitStatus() {
+        const now = Date.now();
+        const windowDuration = 60000;
+        const dayDuration = 86400000;
+
+        const minuteElapsed = now - this.requestWindowStart;
+        const windowResetInMs = minuteElapsed >= windowDuration ? 0 : windowDuration - minuteElapsed;
+
+        const dayElapsed = now - this.dailyWindowStart;
+        const dailyResetInMs = dayElapsed >= dayDuration ? 0 : dayDuration - dayElapsed;
+
+        return {
+            minute: {
+                used: this.requestCount,
+                limit: this.MAX_REQUESTS_PER_MINUTE,
+                windowResetInMs
+            },
+            daily: {
+                used: this.dailyRequestCount,
+                estimatedLimit: this.ESTIMATED_DAILY_REQUEST_LIMIT,
+                resetInMs: dailyResetInMs
+            },
+            calendarsCreatedToday: {
+                used: this.dailyCalendarCreations,
+                estimatedLimit: this.ESTIMATED_DAILY_CALENDAR_CREATION_LIMIT
+            }
+        };
+    }
+
+    /**
+     * Load quota counters from DB into memory on server startup.
+     * Creates the row if it doesn't exist yet.
+     */
+    static async initQuotaCounters(): Promise<void> {
+        try {
+            const repo = AppDataSource.getRepository(ApiQuotaCounter);
+            const now = Date.now();
+            const dayDuration = 86400000;
+
+            let row = await repo.findOne({ where: { apiKey: this.QUOTA_KEY } });
+
+            if (!row) {
+                row = repo.create({
+                    apiKey: this.QUOTA_KEY,
+                    minuteCount: 0,
+                    minuteWindowStart: now,
+                    dailyCount: 0,
+                    dailyCalendarCreations: 0,
+                    dailyWindowStart: now,
+                });
+                await repo.save(row);
+            }
+
+            // bigint columns come back as strings from MariaDB
+            const dailyWindowStart = Number(row.dailyWindowStart);
+            const minuteWindowStart = Number(row.minuteWindowStart);
+
+            // Reset daily counters if the window has expired
+            if (now - dailyWindowStart >= dayDuration) {
+                this.dailyRequestCount = 0;
+                this.dailyCalendarCreations = 0;
+                this.dailyWindowStart = now;
+            } else {
+                this.dailyRequestCount = row.dailyCount;
+                this.dailyCalendarCreations = row.dailyCalendarCreations;
+                this.dailyWindowStart = dailyWindowStart;
+            }
+
+            // Reset per-minute counter if the window has expired
+            if (now - minuteWindowStart >= 60000) {
+                this.requestCount = 0;
+                this.requestWindowStart = now;
+            } else {
+                this.requestCount = row.minuteCount;
+                this.requestWindowStart = minuteWindowStart;
+            }
+
+            console.log(`[QUOTA] Loaded from DB — minute: ${this.requestCount}, daily: ${this.dailyRequestCount}, calendars: ${this.dailyCalendarCreations}`);
+        } catch (error) {
+            console.error('[QUOTA] Failed to load quota counters from DB, starting from 0:', error);
+        }
+    }
+
+    /**
+     * Persist current in-memory counters to DB asynchronously (fire-and-forget).
+     */
+    private static persistQuotaCounters(): void {
+        const repo = AppDataSource.getRepository(ApiQuotaCounter);
+        repo.save({
+            apiKey: this.QUOTA_KEY,
+            minuteCount: this.requestCount,
+            minuteWindowStart: this.requestWindowStart,
+            dailyCount: this.dailyRequestCount,
+            dailyCalendarCreations: this.dailyCalendarCreations,
+            dailyWindowStart: this.dailyWindowStart,
+        }).catch(err => console.error('[QUOTA] Failed to persist quota counters:', err));
     }
 
     /**
@@ -661,6 +781,8 @@ export class GoogleCalendarService {
                 return null;
             }
 
+            this.dailyCalendarCreations++;
+            this.persistQuotaCounters();
             return await response.json();
         } catch (error) {
             console.error('Error creating Google Calendar:', error);

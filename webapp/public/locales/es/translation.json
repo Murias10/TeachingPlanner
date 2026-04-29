@@ -1564,7 +1564,9 @@
             "updateButton": "Actualizar Perfil",
             "success": "Perfil actualizado exitosamente",
             "noChanges": "No se ha realizado ningún cambio",
-            "allFieldsRequired": "Todos los campos obligatorios deben estar completos"
+            "allFieldsRequired": "Todos los campos obligatorios deben estar completos",
+            "unioviUserPlaceholder": "ej: uo123456",
+            "emailPlaceholder": "usuario@ejemplo.com"
         },
         "password": {
             "title": "Cambiar Contraseña",
@@ -1578,7 +1580,8 @@
             "updating": "Actualizando...",
             "changeButton": "Cambiar Contraseña",
             "success": "Contraseña actualizada exitosamente",
-            "allFieldsRequired": "Todos los campos son obligatorios"
+            "allFieldsRequired": "Todos los campos son obligatorios",
+            "requirementsTitle": "La contraseña debe cumplir:"
         },
         "google": {
             "title": "Google Calendar",
@@ -1602,6 +1605,70 @@
             "step5": "La sincronización es manual. Usa el botón 'Sincronizar Ahora' en 'Gestionar Sincronizaciones' para sincronizar los eventos",
             "step6": "Los cambios en TeachingPlanner (nuevos eventos, modificaciones, eliminaciones) se reflejarán en Google Calendar cuando ejecutes la sincronización",
             "note": "Nota importante: La sincronización es unidireccional (TeachingPlanner → Google Calendar). Los cambios realizados directamente en Google Calendar no se sincronizan de vuelta a TeachingPlanner."
+        }
+    },
+    "calendarSync": {
+        "title": "Sincronización con Google Calendar",
+        "infoNote": {
+            "label": "Nota:",
+            "text": "Cuando actives un calendario académico y lo sincronices, se crearán automáticamente Google Calendars para las aulas que tengan eventos de ese calendario. Los eventos se distribuirán a las aulas según su ubicación. La sincronización es manual - usa el botón \"Sincronizar ahora\" para actualizar los calendarios."
+        },
+        "toggleSuccess": {
+            "title": "Estado actualizado",
+            "description": "El estado de la sincronización ha sido actualizado"
+        },
+        "toggleDisabled": {
+            "title": "Sincronización desactivada",
+            "description": "Los eventos de este calendario han sido eliminados de Google Calendar"
+        },
+        "toggleError": "Error al actualizar estado",
+        "syncStarted": {
+            "title": "Sincronización iniciada",
+            "description": "La sincronización se está ejecutando"
+        },
+        "syncError": "Error al sincronizar",
+        "syncNow": "Sincronizar ahora",
+        "status": {
+            "idle": "Inactivo",
+            "syncing": "Sincronizando",
+            "success": "Éxito",
+            "error": "Error"
+        },
+        "card": {
+            "title": "Calendarios Académicos",
+            "description": "Activa o desactiva la sincronización de calendarios académicos con Google Calendar"
+        },
+        "filterByDegree": "Filtrar por titulación:",
+        "selectDegreePlaceholder": "Selecciona una titulación",
+        "allDegrees": "Todas las titulaciones",
+        "table": {
+            "degree": "Titulación",
+            "course": "Curso",
+            "semester": "Semestre",
+            "status": "Estado",
+            "lastSync": "Última Sincronización",
+            "actions": "Acciones",
+            "emptyAll": "No hay calendarios académicos disponibles",
+            "emptyFiltered": "No hay calendarios para esta titulación",
+            "never": "Nunca",
+            "enabled": "Activo",
+            "disabled": "Inactivo"
+        },
+        "progress": {
+            "syncing": "Sincronizando...",
+            "completed": "completados"
+        },
+        "quota": {
+            "title": "Uso de API de Google Calendar",
+            "description": "Previsión aproximada basada en los límites conocidos de Google Calendar API. Google no publica los valores exactos de sus límites.",
+            "perMinute": "Llamadas este minuto",
+            "perDay": "Llamadas hoy",
+            "calendarsCreated": "Calendarios creados hoy",
+            "estimated": "est.",
+            "calendarsCreatedNote": "Se resetea a medianoche",
+            "resetting": "Reiniciando...",
+            "resetInSeconds": "Se resetea en ~{{seconds}}s",
+            "resetInMinutes": "Se resetea en ~{{minutes}} min"
         }
     },
     "myRequests": {

@@ -292,7 +292,7 @@ const SettingsPage = () => {
     if (!user) return null;
 
     return (
-        <div className="container mx-auto py-6 px-4 space-y-6">
+        <div className="p-6 space-y-6">
             {/* Sección de Perfil */}
             <Card>
                 <CardHeader>
@@ -325,7 +325,7 @@ const SettingsPage = () => {
                             value={unioviUser}
                             onChange={(e) => setUnioviUser(e.target.value)}
                             disabled={isUpdatingProfile}
-                            placeholder="uo123456"
+                            placeholder={t("settings.profile.unioviUserPlaceholder")}
                         />
                     </div>
 
@@ -338,7 +338,7 @@ const SettingsPage = () => {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             disabled={isUpdatingProfile}
-                            placeholder="usuario@example.com"
+                            placeholder={t("settings.profile.emailPlaceholder")}
                         />
                     </div>
 

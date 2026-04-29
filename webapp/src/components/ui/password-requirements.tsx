@@ -41,7 +41,7 @@ export function PasswordRequirements({ password, showRequirements = true }: Pass
 
     return (
         <div className="space-y-2 text-sm">
-            <p className="font-medium text-muted-foreground">La contraseña debe cumplir:</p>
+            <p className="font-medium text-muted-foreground">{t("settings.password.requirementsTitle")}</p>
             <ul className="space-y-1">
                 {requirements.map((req) => (
                     <li key={req.key} className="flex items-center gap-2">

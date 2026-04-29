@@ -133,6 +133,12 @@ export const getCalendarSyncs = (req: Request, res: Response, next: NextFunction
         method: 'GET'
     });
 
+export const getRateLimitStatus = (req: Request, res: Response, next: NextFunction) =>
+    proxyRequest(req, res, next, {
+        url: `${SERVICES.PLANNER}/calendar-sync/rate-limit-status`,
+        method: 'GET'
+    });
+
 export const toggleCalendarSync = (req: Request, res: Response, next: NextFunction) =>
     proxyRequest(req, res, next, {
         url: `${SERVICES.PLANNER}/calendar-sync/${req.params.id}/toggle`,

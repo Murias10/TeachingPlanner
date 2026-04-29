@@ -1565,7 +1565,9 @@
             "updateButton": "Update Profile",
             "success": "Profile updated successfully",
             "noChanges": "No changes have been made",
-            "allFieldsRequired": "All required fields must be completed"
+            "allFieldsRequired": "All required fields must be completed",
+            "unioviUserPlaceholder": "e.g. uo123456",
+            "emailPlaceholder": "user@example.com"
         },
         "password": {
             "title": "Change Password",
@@ -1579,7 +1581,8 @@
             "updating": "Updating...",
             "changeButton": "Change Password",
             "success": "Password updated successfully",
-            "allFieldsRequired": "All fields are required"
+            "allFieldsRequired": "All fields are required",
+            "requirementsTitle": "Password must meet:"
         },
         "google": {
             "title": "Google Calendar",
@@ -1603,6 +1606,70 @@
             "step5": "Synchronization is manual. Use the 'Sync Now' button in 'Manage Synchronizations' to sync events",
             "step6": "Changes in TeachingPlanner (new events, modifications, deletions) will be reflected in Google Calendar when you run the sync",
             "note": "Important note: Synchronization is one-way (TeachingPlanner → Google Calendar). Changes made directly in Google Calendar are not synced back to TeachingPlanner."
+        }
+    },
+    "calendarSync": {
+        "title": "Google Calendar Sync",
+        "infoNote": {
+            "label": "Note:",
+            "text": "When you enable an academic calendar and sync it, Google Calendars will be automatically created for classrooms that have events in that calendar. Events are distributed to classrooms based on their location. Sync is manual — use the \"Sync now\" button to update calendars."
+        },
+        "toggleSuccess": {
+            "title": "Status updated",
+            "description": "The sync status has been updated"
+        },
+        "toggleDisabled": {
+            "title": "Sync disabled",
+            "description": "Events from this calendar have been removed from Google Calendar"
+        },
+        "toggleError": "Error updating status",
+        "syncStarted": {
+            "title": "Sync started",
+            "description": "Synchronization is running"
+        },
+        "syncError": "Error syncing",
+        "syncNow": "Sync now",
+        "status": {
+            "idle": "Idle",
+            "syncing": "Syncing",
+            "success": "Success",
+            "error": "Error"
+        },
+        "card": {
+            "title": "Academic Calendars",
+            "description": "Enable or disable synchronization of academic calendars with Google Calendar"
+        },
+        "filterByDegree": "Filter by degree:",
+        "selectDegreePlaceholder": "Select a degree",
+        "allDegrees": "All degrees",
+        "table": {
+            "degree": "Degree",
+            "course": "Course",
+            "semester": "Semester",
+            "status": "Status",
+            "lastSync": "Last Sync",
+            "actions": "Actions",
+            "emptyAll": "No academic calendars available",
+            "emptyFiltered": "No calendars for this degree",
+            "never": "Never",
+            "enabled": "Active",
+            "disabled": "Inactive"
+        },
+        "progress": {
+            "syncing": "Syncing...",
+            "completed": "completed"
+        },
+        "quota": {
+            "title": "Google Calendar API Usage",
+            "description": "Approximate estimate based on known Google Calendar API limits. Google does not publish exact quota values.",
+            "perMinute": "Calls this minute",
+            "perDay": "Calls today",
+            "calendarsCreated": "Calendars created today",
+            "estimated": "est.",
+            "calendarsCreatedNote": "Resets at midnight",
+            "resetting": "Resetting...",
+            "resetInSeconds": "Resets in ~{{seconds}}s",
+            "resetInMinutes": "Resets in ~{{minutes}} min"
         }
     },
     "myRequests": {

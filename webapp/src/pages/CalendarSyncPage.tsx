@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -6,9 +7,10 @@ import { Switch } from "@/components/ui/switch";
 import { Spinner } from "@/components/ui/spinner";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { useCalendarSync } from "@/hooks/google/useCalendarSync";
+import { useRateLimitStatus } from "@/hooks/google/useRateLimitStatus";
 import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext";
 import { Navigate, useNavigate } from "react-router-dom";
-import { Calendar, RefreshCw, ArrowLeft, Settings } from "lucide-react";
+import { Calendar, RefreshCw, ArrowLeft, Settings, Info } from "lucide-react";
 import { useDegrees } from "@/hooks/degree/useDegrees";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -21,13 +23,17 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { useTranslation } from "react-i18next";
 
 const CalendarSyncPage = () => {
+    const { t } = useTranslation();
     const { setItems } = useBreadcrumbContext();
     const { user } = useAuth();
     const { triggerAlert } = useFloatingAlertContext();
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
     const { syncs, isSyncsLoading, toggleSync, syncNow, isLoading } = useCalendarSync();
+    const { rateLimitStatus } = useRateLimitStatus(syncs);
     const { data: degrees = [] } = useDegrees();
 
     const [selectedDegreeId, setSelectedDegreeId] = useState<string>("all");
@@ -38,34 +44,39 @@ const CalendarSyncPage = () => {
             { label: t("settings.title"), href: "/settings", shortLabel: t("settings.title") },
             { label: t("breadcrumb.calendarSync"), href: "/calendar-sync", icon: Settings }
         ]);
-    }, [setItems]);
+    }, [setItems, t]);
 
-    // Filtrar calendarios por titulación
     const filteredSyncs = useMemo(() => {
-        if (selectedDegreeId === "all") {
-            return syncs;
-        }
+        if (selectedDegreeId === "all") return syncs;
         return syncs.filter(sync => sync.degreeId === selectedDegreeId);
     }, [syncs, selectedDegreeId]);
 
-    // Protección: Solo ADMIN puede acceder
     if (user?.role !== 'ADMIN') {
         return <Navigate to="/degrees" replace />;
     }
 
     const handleToggleSync = async (syncId: string) => {
+        const sync = syncs.find(s => s.id === syncId);
+        const isEnabling = !sync?.syncEnabled;
+
         const result = await toggleSync(syncId);
-        if (result.success) {
+        if (!result.success) {
             triggerAlert({
-                title: "Estado actualizado",
-                description: "El estado de la sincronización ha sido actualizado",
-                variant: "success"
+                title: t("error.title"),
+                description: result.message || t("calendarSync.toggleError"),
+                variant: "destructive"
             });
+            return;
+        }
+
+        if (isEnabling) {
+            // Al activar, lanzar sincronización automáticamente
+            await handleSyncNow(syncId);
         } else {
             triggerAlert({
-                title: "Error",
-                description: result.message || "Error al actualizar estado",
-                variant: "destructive"
+                title: t("calendarSync.toggleDisabled.title"),
+                description: t("calendarSync.toggleDisabled.description"),
+                variant: "success"
             });
         }
     };
@@ -81,31 +92,47 @@ const CalendarSyncPage = () => {
             return newSet;
         });
 
+        queryClient.invalidateQueries({ queryKey: ['rateLimitStatus'] });
+
         if (result.success) {
             triggerAlert({
-                title: "Sincronización iniciada",
-                description: result.message || "La sincronización se está ejecutando",
+                title: t("calendarSync.syncStarted.title"),
+                description: result.message || t("calendarSync.syncStarted.description"),
                 variant: "success"
             });
         } else {
             triggerAlert({
-                title: "Error",
-                description: result.message || "Error al sincronizar",
+                title: t("error.title"),
+                description: result.message || t("calendarSync.syncError"),
                 variant: "destructive"
             });
         }
     };
 
     const getSyncStatusBadge = (status: string) => {
-        const statusMap = {
-            'IDLE': { label: 'Inactivo', variant: 'secondary' as const },
-            'SYNCING': { label: 'Sincronizando', variant: 'default' as const },
-            'SUCCESS': { label: 'Éxito', variant: 'default' as const },
-            'ERROR': { label: 'Error', variant: 'destructive' as const }
+        const statusMap: Record<string, { label: string; variant: "secondary" | "default" | "destructive" }> = {
+            'IDLE': { label: t("calendarSync.status.idle"), variant: 'secondary' },
+            'SYNCING': { label: t("calendarSync.status.syncing"), variant: 'default' },
+            'SUCCESS': { label: t("calendarSync.status.success"), variant: 'default' },
+            'ERROR': { label: t("calendarSync.status.error"), variant: 'destructive' }
         };
 
-        const config = statusMap[status as keyof typeof statusMap] || { label: status, variant: 'secondary' as const };
+        const config = statusMap[status] ?? { label: status, variant: 'secondary' as const };
         return <Badge variant={config.variant}>{config.label}</Badge>;
+    };
+
+    const getBarColor = (percentage: number) => {
+        if (percentage >= 85) return "bg-red-500";
+        if (percentage >= 60) return "bg-yellow-500";
+        return "bg-green-500";
+    };
+
+    const formatResetTime = (ms: number) => {
+        const seconds = Math.ceil(ms / 1000);
+        if (seconds <= 0) return "";
+        if (seconds < 60) return t("calendarSync.quota.resetInSeconds", { seconds });
+        const minutes = Math.ceil(seconds / 60);
+        return t("calendarSync.quota.resetInMinutes", { minutes });
     };
 
     if (isSyncsLoading) {
@@ -116,8 +143,14 @@ const CalendarSyncPage = () => {
         );
     }
 
+    const quota = rateLimitStatus ?? {
+        minute: { used: 0, limit: 400, windowResetInMs: 0 },
+        daily: { used: 0, estimatedLimit: 10000, resetInMs: 0 },
+        calendarsCreatedToday: { used: 0, estimatedLimit: 150 }
+    };
+
     return (
-        <div className="container mx-auto py-6 px-4 space-y-6">
+        <div className="p-6 space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -130,37 +163,100 @@ const CalendarSyncPage = () => {
                     </Button>
                     <div className="flex items-center gap-2">
                         <Calendar className="h-6 w-6" />
-                        <h1 className="text-2xl font-bold">Sincronización con Google Calendar</h1>
+                        <h1 className="text-2xl font-bold">{t("calendarSync.title")}</h1>
                     </div>
                 </div>
             </div>
 
-            {/* Info Card */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-sm text-blue-800">
-                    <strong>Nota:</strong> Cuando actives un calendario académico y lo sincronices, se crearán automáticamente Google Calendars
-                    para las aulas que tengan eventos de ese calendario. Los eventos se distribuirán a las aulas según su ubicación.
-                    La sincronización es manual - usa el botón "Sincronizar ahora" para actualizar los calendarios.
+            {/* Info Note */}
+            <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <p className="text-sm text-blue-800 dark:text-blue-200">
+                    <strong>{t("calendarSync.infoNote.label")}</strong> {t("calendarSync.infoNote.text")}
                 </p>
             </div>
 
-            {/* Toolbar con selector de titulación */}
+            {/* API Quota Widget */}
+            <Card>
+                <CardHeader className="pb-3">
+                    <div className="flex items-center gap-2">
+                        <Info className="h-4 w-4 text-muted-foreground" />
+                        <CardTitle className="text-base">{t("calendarSync.quota.title")}</CardTitle>
+                    </div>
+                    <CardDescription>{t("calendarSync.quota.description")}</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    {/* Per-minute */}
+                    <div className="space-y-1">
+                        <div className="flex items-center justify-between text-sm">
+                            <span className="font-medium">{t("calendarSync.quota.perMinute")}</span>
+                            <span className="text-muted-foreground">
+                                {quota.minute.used} / {quota.minute.limit}
+                            </span>
+                        </div>
+                        <div className="relative h-2 w-full rounded-full bg-muted overflow-hidden">
+                            <div
+                                className={`h-full rounded-full transition-all ${getBarColor(quota.minute.used / quota.minute.limit * 100)}`}
+                                style={{ width: `${Math.min(quota.minute.used / quota.minute.limit * 100, 100)}%` }}
+                            />
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            {formatResetTime(quota.minute.windowResetInMs)}
+                        </p>
+                    </div>
+
+                    {/* Daily requests */}
+                    <div className="space-y-1">
+                        <div className="flex items-center justify-between text-sm">
+                            <span className="font-medium">{t("calendarSync.quota.perDay")}</span>
+                            <span className="text-muted-foreground">
+                                {quota.daily.used} / ~{quota.daily.estimatedLimit.toLocaleString()} {t("calendarSync.quota.estimated")}
+                            </span>
+                        </div>
+                        <div className="relative h-2 w-full rounded-full bg-muted overflow-hidden">
+                            <div
+                                className={`h-full rounded-full transition-all ${getBarColor(quota.daily.used / quota.daily.estimatedLimit * 100)}`}
+                                style={{ width: `${Math.min(quota.daily.used / quota.daily.estimatedLimit * 100, 100)}%` }}
+                            />
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            {formatResetTime(quota.daily.resetInMs)}
+                        </p>
+                    </div>
+
+                    {/* Calendar creations */}
+                    <div className="space-y-1">
+                        <div className="flex items-center justify-between text-sm">
+                            <span className="font-medium">{t("calendarSync.quota.calendarsCreated")}</span>
+                            <span className="text-muted-foreground">
+                                {quota.calendarsCreatedToday.used} / ~{quota.calendarsCreatedToday.estimatedLimit} {t("calendarSync.quota.estimated")}
+                            </span>
+                        </div>
+                        <div className="relative h-2 w-full rounded-full bg-muted overflow-hidden">
+                            <div
+                                className={`h-full rounded-full transition-all ${getBarColor(quota.calendarsCreatedToday.used / quota.calendarsCreatedToday.estimatedLimit * 100)}`}
+                                style={{ width: `${Math.min(quota.calendarsCreatedToday.used / quota.calendarsCreatedToday.estimatedLimit * 100, 100)}%` }}
+                            />
+                        </div>
+                        <p className="text-xs text-muted-foreground">{t("calendarSync.quota.calendarsCreatedNote")}</p>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Academic Calendars Card */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Calendarios Académicos</CardTitle>
-                    <CardDescription>
-                        Activa o desactiva la sincronización de calendarios académicos con Google Calendar
-                    </CardDescription>
+                    <CardTitle>{t("calendarSync.card.title")}</CardTitle>
+                    <CardDescription>{t("calendarSync.card.description")}</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="flex items-center gap-4 mb-4">
-                        <span className="text-sm font-medium">Filtrar por titulación:</span>
+                        <span className="text-sm font-medium">{t("calendarSync.filterByDegree")}</span>
                         <Select value={selectedDegreeId} onValueChange={setSelectedDegreeId}>
                             <SelectTrigger className="w-[300px]">
-                                <SelectValue placeholder="Selecciona una titulación" />
+                                <SelectValue placeholder={t("calendarSync.selectDegreePlaceholder")} />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">Todas las titulaciones</SelectItem>
+                                <SelectItem value="all">{t("calendarSync.allDegrees")}</SelectItem>
                                 {degrees.map((degree) => (
                                     <SelectItem key={degree.id} value={degree.id}>
                                         {degree.acronym} - {degree.name}
@@ -170,17 +266,16 @@ const CalendarSyncPage = () => {
                         </Select>
                     </div>
 
-                    {/* Table */}
                     <div className="rounded-md border">
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Titulación</TableHead>
-                                    <TableHead>Curso</TableHead>
-                                    <TableHead>Semestre</TableHead>
-                                    <TableHead>Estado</TableHead>
-                                    <TableHead>Última Sincronización</TableHead>
-                                    <TableHead className="text-right">Acciones</TableHead>
+                                    <TableHead>{t("calendarSync.table.degree")}</TableHead>
+                                    <TableHead>{t("calendarSync.table.course")}</TableHead>
+                                    <TableHead>{t("calendarSync.table.semester")}</TableHead>
+                                    <TableHead>{t("calendarSync.table.status")}</TableHead>
+                                    <TableHead>{t("calendarSync.table.lastSync")}</TableHead>
+                                    <TableHead className="text-right">{t("calendarSync.table.actions")}</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -188,8 +283,8 @@ const CalendarSyncPage = () => {
                                     <TableRow>
                                         <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                                             {selectedDegreeId === "all"
-                                                ? "No hay calendarios académicos disponibles"
-                                                : "No hay calendarios para esta titulación"}
+                                                ? t("calendarSync.table.emptyAll")
+                                                : t("calendarSync.table.emptyFiltered")}
                                         </TableCell>
                                     </TableRow>
                                 ) : (
@@ -220,14 +315,14 @@ const CalendarSyncPage = () => {
                                                             {new Date(sync.lastSyncAt).toLocaleString()}
                                                         </span>
                                                     ) : (
-                                                        <span className="text-sm text-muted-foreground">Nunca</span>
+                                                        <span className="text-sm text-muted-foreground">{t("calendarSync.table.never")}</span>
                                                     )}
                                                 </TableCell>
                                                 <TableCell className="text-right">
                                                     <div className="flex items-center justify-end gap-2">
                                                         <div className="flex items-center gap-2">
                                                             <span className="text-xs text-muted-foreground">
-                                                                {sync.syncEnabled ? 'Activo' : 'Inactivo'}
+                                                                {sync.syncEnabled ? t("calendarSync.table.enabled") : t("calendarSync.table.disabled")}
                                                             </span>
                                                             <Switch
                                                                 checked={sync.syncEnabled}
@@ -240,7 +335,7 @@ const CalendarSyncPage = () => {
                                                             size="icon"
                                                             onClick={() => handleSyncNow(sync.id)}
                                                             disabled={isLoading || !sync.syncEnabled || sync.syncStatus === 'SYNCING' || syncsWithAccess.has(sync.id)}
-                                                            title="Sincronizar ahora"
+                                                            title={t("calendarSync.syncNow")}
                                                         >
                                                             {syncsWithAccess.has(sync.id) || sync.syncStatus === 'SYNCING' ? (
                                                                 <Spinner />
@@ -251,17 +346,16 @@ const CalendarSyncPage = () => {
                                                     </div>
                                                 </TableCell>
                                             </TableRow>
-                                            {/* Progress row - shown only when syncing */}
                                             {sync.syncStatus === 'SYNCING' && sync.totalCalendars && (
                                                 <TableRow key={`${sync.id}-progress`} className="bg-muted/50 hover:bg-muted/50">
                                                     <TableCell colSpan={6} className="py-4">
                                                         <div className="space-y-2">
                                                             <div className="flex items-center justify-between text-sm">
                                                                 <span className="font-medium text-muted-foreground">
-                                                                    {sync.currentOperation || 'Sincronizando...'}
+                                                                    {sync.currentOperation || t("calendarSync.progress.syncing")}
                                                                 </span>
                                                                 <span className="text-muted-foreground">
-                                                                    {sync.processedCalendars || 0} / {sync.totalCalendars} completados
+                                                                    {sync.processedCalendars || 0} / {sync.totalCalendars} {t("calendarSync.progress.completed")}
                                                                 </span>
                                                             </div>
                                                             <Progress

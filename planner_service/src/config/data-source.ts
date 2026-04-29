@@ -11,6 +11,7 @@ import { Day } from '@/entities/day.entity';
 import { EventRequest } from '@/entities/event-request.entity';
 import { CalendarSync } from '@/entities/calendar-sync.entity';
 import { GoogleClassroomCalendar } from '@/entities/google-classroom-calendar.entity';
+import { ApiQuotaCounter } from '@/entities/api-quota-counter.entity';
 
 export function createAppDataSource() {
   return new DataSource({
@@ -20,7 +21,7 @@ export function createAppDataSource() {
     username: process.env.PLANNER_DATABASE_USER,
     password: process.env.PLANNER_DATABASE_PASSWORD,
     database: process.env.PLANNER_DATABASE_DATABASE,
-    entities: [Degree, Course, Calendar, Classroom, Subject, Group, Day, PuntualEvent, PeriodicEvent, EventRequest, CalendarSync, GoogleClassroomCalendar],
+    entities: [Degree, Course, Calendar, Classroom, Subject, Group, Day, PuntualEvent, PeriodicEvent, EventRequest, CalendarSync, GoogleClassroomCalendar, ApiQuotaCounter],
     synchronize: true,
     logging: false,
   });

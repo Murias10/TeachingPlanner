@@ -13,6 +13,18 @@ interface AuthRequest extends Request {
 }
 
 /**
+ * Get current Google Calendar API rate limit status for diagnostics
+ */
+router.get('/calendar-sync/rate-limit-status', authenticateToken, async (req: AuthRequest, res: Response) => {
+    if (!req.user) {
+        res.status(401).json({ success: false, message: 'Unauthorized' });
+        return;
+    }
+    const status = GoogleCalendarService.getRateLimitStatus();
+    res.json({ success: true, data: status });
+});
+
+/**
  * Initialize calendar sync entries (lightweight - no Google Calendar creation)
  * Called from auth_service after successful OAuth
  */

@@ -11,6 +11,7 @@ import { useRateLimitStatus } from "@/hooks/google/useRateLimitStatus";
 import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext";
 import { Navigate, useNavigate } from "react-router-dom";
 import { Calendar, RefreshCw, ArrowLeft, Settings, Info } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDegrees } from "@/hooks/degree/useDegrees";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -330,19 +331,25 @@ const CalendarSyncPage = () => {
                                                                 disabled={isLoading || sync.syncStatus === 'SYNCING'}
                                                             />
                                                         </div>
-                                                        <Button
-                                                            variant="outline"
-                                                            size="icon"
-                                                            onClick={() => handleSyncNow(sync.id)}
-                                                            disabled={isLoading || !sync.syncEnabled || sync.syncStatus === 'SYNCING' || syncsWithAccess.has(sync.id)}
-                                                            title={t("calendarSync.syncNow")}
-                                                        >
-                                                            {syncsWithAccess.has(sync.id) || sync.syncStatus === 'SYNCING' ? (
-                                                                <Spinner />
-                                                            ) : (
-                                                                <RefreshCw className="h-4 w-4" />
-                                                            )}
-                                                        </Button>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="icon"
+                                                                    onClick={() => handleSyncNow(sync.id)}
+                                                                    disabled={isLoading || !sync.syncEnabled || sync.syncStatus === 'SYNCING' || syncsWithAccess.has(sync.id)}
+                                                                >
+                                                                    {syncsWithAccess.has(sync.id) || sync.syncStatus === 'SYNCING' ? (
+                                                                        <Spinner />
+                                                                    ) : (
+                                                                        <RefreshCw className="h-4 w-4" />
+                                                                    )}
+                                                                </Button>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>
+                                                                {t("calendarSync.syncNow")}
+                                                            </TooltipContent>
+                                                        </Tooltip>
                                                     </div>
                                                 </TableCell>
                                             </TableRow>

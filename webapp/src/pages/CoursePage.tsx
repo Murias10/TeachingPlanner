@@ -381,9 +381,6 @@ export default function CoursePage() {
                         onSuccess: (data) => {
                             handleCloseCalendarDrawer();
 
-                            // Verificar si hay datos de sustitución para mostrar
-                            // Check if there are validation results from complete import
-                            console.log('[Import] Import result:', data?.importResult);
                             if (data?.importResult && (
                                 data.importResult.ubicaciones ||
                                 data.importResult.calendario ||
@@ -391,11 +388,8 @@ export default function CoursePage() {
                                 data.importResult.horarios ||
                                 data.importResult.excepciones
                             )) {
-                                console.log('[Import] Opening validation dialog');
                                 setCompleteImportData(data);
                                 setOpenCompleteImportDialog(true);
-                            } else {
-                                console.log('[Import] No validation data found');
                             }
 
                             triggerAlert({

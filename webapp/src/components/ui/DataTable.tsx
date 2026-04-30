@@ -9,9 +9,10 @@ import {
     SortingState,
     ColumnFiltersState,
     VisibilityState,
+    ColumnDef,
 } from "@tanstack/react-table"
-
-import { columns as defaultColumns } from "@/components/group/GroupTable.config"
+import { useEffect } from "react"
+import { useTranslation } from "react-i18next"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react"
@@ -29,18 +30,29 @@ import {
     TableRow,
     TableCell,
 } from "@/components/ui/table"
-import { Subject } from "@/types/Subject"
-import { useTranslation } from "react-i18next"
 
-interface GroupTableProps {
-    subjects: Subject[];
-    onDeleteGroup?: (groupId: string) => void;
-    onCreateGroup?: (subjectId: string) => void;
+interface DataTableProps<T extends { id: string }> {
+    data: T[]
+    columns: ColumnDef<T, unknown>[]
+    filterColumn: string
+    filterPlaceholder: string
+    noResultsText: string
+    totalLabel: string
+    columnsButtonLabel: string
+    setSelectedIds?: (ids: string[]) => void
 }
 
-export function GroupTable({ subjects, onDeleteGroup, onCreateGroup }: GroupTableProps) {
-
-    const { t } = useTranslation();
+export function DataTable<T extends { id: string }>({
+    data,
+    columns,
+    filterColumn,
+    filterPlaceholder,
+    noResultsText,
+    totalLabel,
+    columnsButtonLabel,
+    setSelectedIds,
+}: DataTableProps<T>) {
+    const { t } = useTranslation()
 
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -48,14 +60,14 @@ export function GroupTable({ subjects, onDeleteGroup, onCreateGroup }: GroupTabl
     const [rowSelection, setRowSelection] = React.useState({})
     const [filterValue, setFilterValue] = React.useState("")
 
-    // Memoize columns to prevent unnecessary re-creation and component re-mounting
-    const columns = React.useMemo(
-        () => defaultColumns(t, onDeleteGroup, onCreateGroup),
-        [t, onDeleteGroup, onCreateGroup]
-    )
+    useEffect(() => {
+        if (!setSelectedIds) return
+        const ids = Object.keys(rowSelection).map(idx => data[Number(idx)]?.id).filter(Boolean)
+        setSelectedIds(ids)
+    }, [rowSelection, data])
 
     const table = useReactTable({
-        data: subjects,
+        data,
         columns,
         state: {
             sorting,
@@ -78,11 +90,11 @@ export function GroupTable({ subjects, onDeleteGroup, onCreateGroup }: GroupTabl
         <div className="w-full h-full flex flex-col justify-center">
             <div className="flex items-center py-4">
                 <Input
-                    placeholder={t("table.groups.filter.placeholder")}
+                    placeholder={filterPlaceholder}
                     value={filterValue}
                     onChange={(e) => {
                         setFilterValue(e.target.value)
-                        table.getColumn("name")?.setFilterValue(e.target.value)
+                        table.getColumn(filterColumn)?.setFilterValue(e.target.value)
                     }}
                     className="max-w-sm"
                 />
@@ -90,12 +102,11 @@ export function GroupTable({ subjects, onDeleteGroup, onCreateGroup }: GroupTabl
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="outline" className="ml-auto">
-                            {t("table.groups.columns.title")} <ChevronDown className="ml-2 h-4 w-4" />
+                            {columnsButtonLabel} <ChevronDown className="ml-2 h-4 w-4" />
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                        {table
-                            .getAllColumns()
+                        {table.getAllColumns()
                             .filter((c) => c.getCanHide())
                             .map((c) => (
                                 <DropdownMenuCheckboxItem
@@ -103,12 +114,13 @@ export function GroupTable({ subjects, onDeleteGroup, onCreateGroup }: GroupTabl
                                     checked={c.getIsVisible()}
                                     onCheckedChange={(v) => c.toggleVisibility(!!v)}
                                 >
-                                    {c.columnDef?.meta?.label || c.id}
+                                    {(c.columnDef?.meta as { label?: string } | undefined)?.label ?? c.id}
                                 </DropdownMenuCheckboxItem>
                             ))}
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
+
             <div className="rounded-lg border overflow-hidden">
                 <Table>
                     <TableHeader>
@@ -140,7 +152,7 @@ export function GroupTable({ subjects, onDeleteGroup, onCreateGroup }: GroupTabl
                         {table.getRowModel().rows.length === 0 && (
                             <TableRow className="h-[53px]">
                                 <TableCell colSpan={table.getAllColumns().length} className="text-center">
-                                    {t("table.groups.no.results")}
+                                    {noResultsText}
                                 </TableCell>
                             </TableRow>
                         )}
@@ -155,7 +167,7 @@ export function GroupTable({ subjects, onDeleteGroup, onCreateGroup }: GroupTabl
 
             <div className="flex items-center justify-between space-x-2 py-4">
                 <div className="text-sm text-muted-foreground">
-                    Total: {table.getFilteredRowModel().rows.length} {t("table.subjects.title").toLowerCase()}
+                    Total: {table.getFilteredRowModel().rows.length} {totalLabel}
                 </div>
                 <div className="space-x-2">
                     <Button

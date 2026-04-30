@@ -1,18 +1,9 @@
 // components/course/CreateCourseDrawer.tsx
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Info } from "lucide-react";
-import {
-    Drawer,
-    DrawerContent,
-    DrawerHeader,
-    DrawerTitle,
-    DrawerClose,
-    DrawerDescription
-} from "@/components/ui/drawer";
 import {
     Select,
     SelectTrigger,
@@ -24,6 +15,7 @@ import {
     Alert,
     AlertDescription,
 } from "@/components/ui/alert";
+import { FormDrawer } from "@/components/ui/FormDrawer";
 import { CourseState, CourseStateManager, CourseFormData } from "@/types/Course";
 
 interface CreateCourseDrawerProps {
@@ -35,13 +27,10 @@ interface CreateCourseDrawerProps {
 const generateYearOptions = (): string[] => {
     const currentYear = new Date().getFullYear();
     const years: string[] = [];
-
-    // Generar 10 años anteriores y 10 años siguientes (21 años en total)
     for (let i = -10; i <= 10; i++) {
         const start = currentYear + i;
         years.push(`${start}-${start + 1}`);
     }
-
     return years;
 };
 
@@ -57,7 +46,6 @@ export const CreateCourseDrawer = ({
 
     const yearOptions = generateYearOptions();
 
-    // Reset form when drawer closes
     useEffect(() => {
         if (!open) {
             setSelectedYearRange("");
@@ -68,18 +56,10 @@ export const CreateCourseDrawer = ({
 
     const handleSave = async () => {
         if (!selectedYearRange) return;
-
         setIsLoading(true);
-
         try {
-            // Extraer startYear y endYear del formato "YYYY-YYYY"
             const [startYear, endYear] = selectedYearRange.split('-');
-
-            await onSave({
-                startYear: startYear.trim(),
-                endYear: endYear.trim(),
-                state
-            });
+            await onSave({ startYear: startYear.trim(), endYear: endYear.trim(), state });
         } catch (error) {
             console.error('Error saving course:', error);
         } finally {
@@ -87,137 +67,88 @@ export const CreateCourseDrawer = ({
         }
     };
 
-    const handleClose = () => {
-        if (!isLoading) {
-            onOpenChange(false);
-        }
-    };
-
-    const isFormValid = selectedYearRange.trim() !== "";
-
     return (
-        <Drawer open={open} onOpenChange={onOpenChange}>
-            <DrawerContent className="flex flex-col max-h-screen">
-                <DrawerHeader>
-                    <DrawerTitle>{t("drawer.courses.create.title")}</DrawerTitle>
-                    <DrawerDescription>
-                        {t("drawer.courses.create.description")}
-                    </DrawerDescription>
-                </DrawerHeader>
+        <FormDrawer
+            open={open}
+            onOpenChange={onOpenChange}
+            title={t("drawer.courses.create.title")}
+            description={t("drawer.courses.create.description")}
+            onSave={handleSave}
+            onCancel={() => { if (!isLoading) onOpenChange(false); }}
+            isValid={selectedYearRange.trim() !== ""}
+            isLoading={isLoading}
+            saveLabel={t("drawer.courses.create.save")}
+            cancelLabel={t("drawer.courses.create.cancel")}
+        >
+            <div className="space-y-2 max-w-sm mx-auto">
+                <Label htmlFor="course-start-end-year">
+                    {t("drawer.courses.create.start.end.year.title")}
+                </Label>
+                <Select value={selectedYearRange} onValueChange={setSelectedYearRange} disabled={isLoading}>
+                    <SelectTrigger className="w-full">
+                        <SelectValue placeholder={t("drawer.courses.create.start.end.year.placeholder")} />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-55">
+                        {yearOptions.map((yearOption) => (
+                            <SelectItem key={yearOption} value={yearOption}>
+                                {yearOption}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
 
-                {/* Contenido desplazable */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-6">
-                    {/* Select de año académico */}
-                    <div className="space-y-2 max-w-sm mx-auto">
-                        <Label htmlFor="course-start-end-year">
-                            {t("drawer.courses.create.start.end.year.title")}
-                        </Label>
-                        <Select
-                            value={selectedYearRange}
-                            onValueChange={setSelectedYearRange}
-                            disabled={isLoading}
-                        >
-                            <SelectTrigger className="w-full">
-                                <SelectValue placeholder={t("drawer.courses.create.start.end.year.placeholder")} />
-                            </SelectTrigger>
-                            <SelectContent className="max-h-55">
-                                {yearOptions.map((yearOption) => (
-                                    <SelectItem key={yearOption} value={yearOption}>
-                                        {yearOption}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    {/* Select de estado */}
-                    <div className="space-y-3 max-w-sm mx-auto">
-                        <Label htmlFor="course-state">
-                            {t("drawer.courses.create.state.title")}
-                        </Label>
-                        <Select
-                            value={state}
-                            onValueChange={(value: CourseState) => setState(value)}
-                            disabled={true}
-                        >
-                            <SelectTrigger className="w-full">
-                                <SelectValue>
-                                    <div className="flex items-center gap-2">
-                                        <Badge
-                                            variant="secondary"
-                                            className={`text-xs ${CourseStateManager.getStateColor(state)}`}
-                                        >
-                                            {t(`drawer.courses.create.states.${state.toLowerCase()}`)}
-                                        </Badge>
-                                        <span className="text-sm text-muted-foreground">
-                                            {CourseStateManager.getStateDescription(state)}
+            <div className="space-y-3 max-w-sm mx-auto">
+                <Label htmlFor="course-state">{t("drawer.courses.create.state.title")}</Label>
+                <Select value={state} onValueChange={(value: CourseState) => setState(value)} disabled={true}>
+                    <SelectTrigger className="w-full">
+                        <SelectValue>
+                            <div className="flex items-center gap-2">
+                                <Badge variant="secondary" className={`text-xs ${CourseStateManager.getStateColor(state)}`}>
+                                    {t(`drawer.courses.create.states.${state.toLowerCase()}`)}
+                                </Badge>
+                                <span className="text-sm text-muted-foreground">
+                                    {CourseStateManager.getStateDescription(state)}
+                                </span>
+                            </div>
+                        </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                        {Object.values(CourseState).map((stateOption) => (
+                            <SelectItem key={stateOption} value={stateOption}>
+                                <div className="flex items-center gap-3 py-1">
+                                    <Badge variant="secondary" className={`text-xs ${CourseStateManager.getStateColor(stateOption)}`}>
+                                        {t(`drawer.courses.create.states.${stateOption.toLowerCase()}`)}
+                                    </Badge>
+                                    <div className="flex flex-col">
+                                        <span className="font-medium">
+                                            {t(`drawer.courses.create.states.${stateOption.toLowerCase()}`)}
+                                        </span>
+                                        <span className="text-xs text-muted-foreground">
+                                            {CourseStateManager.getStateDescription(stateOption)}
                                         </span>
                                     </div>
-                                </SelectValue>
-                            </SelectTrigger>
-                            <SelectContent>
-                                {Object.values(CourseState).map((stateOption) => (
-                                    <SelectItem key={stateOption} value={stateOption}>
-                                        <div className="flex items-center gap-3 py-1">
-                                            <Badge
-                                                variant="secondary"
-                                                className={`text-xs ${CourseStateManager.getStateColor(stateOption)}`}
-                                            >
-                                                {t(`drawer.courses.create.states.${stateOption.toLowerCase()}`)}
-                                            </Badge>
-                                            <div className="flex flex-col">
-                                                <span className="font-medium">
-                                                    {t(`drawer.courses.create.states.${stateOption.toLowerCase()}`)}
-                                                </span>
-                                                <span className="text-xs text-muted-foreground">
-                                                    {CourseStateManager.getStateDescription(stateOption)}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-
-                        {/* Información sobre transiciones de estado */}
-                        <Alert>
-                            <Info className="h-4 w-4" />
-                            <AlertDescription>
-                                <div className="space-y-1">
-                                    <p className="text-sm font-medium">
-                                        {t("drawer.courses.create.state.info.title")}:
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                        {t("drawer.courses.create.states.planificado")} → {t("drawer.courses.create.states.activo")} → {t("drawer.courses.create.states.finalizado")}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                        {t("drawer.courses.create.state.info.description")}
-                                    </p>
                                 </div>
-                            </AlertDescription>
-                        </Alert>
-                    </div>
-                </div>
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
 
-                {/* Botones */}
-                <div className="p-4 flex justify-end space-x-2 border-t">
-                    <DrawerClose asChild>
-                        <Button
-                            variant="outline"
-                            onClick={handleClose}
-                            disabled={isLoading}
-                        >
-                            {t("drawer.courses.create.cancel")}
-                        </Button>
-                    </DrawerClose>
-                    <Button
-                        disabled={!isFormValid || isLoading}
-                        onClick={handleSave}
-                    >
-                        {t("drawer.courses.create.save")}
-                    </Button>
-                </div>
-            </DrawerContent>
-        </Drawer>
+                <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertDescription>
+                        <div className="space-y-1">
+                            <p className="text-sm font-medium">{t("drawer.courses.create.state.info.title")}:</p>
+                            <p className="text-xs text-muted-foreground">
+                                {t("drawer.courses.create.states.planificado")} → {t("drawer.courses.create.states.activo")} → {t("drawer.courses.create.states.finalizado")}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                                {t("drawer.courses.create.state.info.description")}
+                            </p>
+                        </div>
+                    </AlertDescription>
+                </Alert>
+            </div>
+        </FormDrawer>
     );
 };

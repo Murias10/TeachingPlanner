@@ -259,38 +259,26 @@ export class AuthController {
 
     handleGoogleCallback = async (req: Request, res: Response): Promise<void> => {
         try {
-            console.log('[DEBUG] handleGoogleCallback invoked');
             const { code, state } = req.query;
-            console.log('[DEBUG] Query params - code:', code ? 'present' : 'missing', 'state:', state ? 'present' : 'missing');
 
             if (!code || !state) {
-                const redirectUrl = `${process.env.FRONTEND_URL}/settings?google_error=missing_params`;
-                console.log('[DEBUG] Missing params, redirecting to:', redirectUrl);
-                res.redirect(redirectUrl);
+                res.redirect(`${process.env.FRONTEND_URL}/settings?google_error=missing_params`);
                 return;
             }
 
-            console.log('[DEBUG] Calling googleOAuthService.handleCallback');
             const result = await this.googleOAuthService.handleCallback(
                 code as string,
                 state as string
             );
-            console.log('[DEBUG] handleCallback result:', result);
 
             if (result.success) {
-                const redirectUrl = `${process.env.FRONTEND_URL}/settings?google_connected=true`;
-                console.log('[DEBUG] Success! Redirecting to:', redirectUrl);
-                res.redirect(redirectUrl);
+                res.redirect(`${process.env.FRONTEND_URL}/settings?google_connected=true`);
             } else {
-                const redirectUrl = `${process.env.FRONTEND_URL}/settings?google_error=${encodeURIComponent(result.message)}`;
-                console.log('[DEBUG] Failure! Redirecting to:', redirectUrl);
-                res.redirect(redirectUrl);
+                res.redirect(`${process.env.FRONTEND_URL}/settings?google_error=${encodeURIComponent(result.message)}`);
             }
         } catch (error: any) {
-            console.error('[DEBUG] Google OAuth callback error:', error);
-            const redirectUrl = `${process.env.FRONTEND_URL}/settings?google_error=callback_failed`;
-            console.log('[DEBUG] Exception occurred, redirecting to:', redirectUrl);
-            res.redirect(redirectUrl);
+            console.error('Google OAuth callback error:', error);
+            res.redirect(`${process.env.FRONTEND_URL}/settings?google_error=callback_failed`);
         }
     };
 

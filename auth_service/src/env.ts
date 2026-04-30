@@ -5,8 +5,5 @@ if (process.env.NODE_ENV !== "production") {
     const result = dotenv.config({ path: "../.env" });
     if (result.error) {
         console.warn("⚠️  No se encontró .env, asumiendo variables del entorno");
-    } else {
-        console.log("✅  Variables de entorno cargadas desde .env");
-        console.log("Variables de entorno:", result.parsed);
     }
 }

@@ -1,18 +1,9 @@
 // components/course/EditCourseDrawer.tsx
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Info } from "lucide-react";
-import {
-    Drawer,
-    DrawerContent,
-    DrawerHeader,
-    DrawerTitle,
-    DrawerClose,
-    DrawerDescription
-} from "@/components/ui/drawer";
 import {
     Select,
     SelectTrigger,
@@ -24,6 +15,7 @@ import {
     Alert,
     AlertDescription,
 } from "@/components/ui/alert";
+import { FormDrawer } from "@/components/ui/FormDrawer";
 import { CourseState, CourseStateManager } from "@/types/Course";
 
 export interface EditCourseFormData {
@@ -55,7 +47,6 @@ export const EditCourseDrawer = ({
     const [state, setState] = useState<CourseState>(CourseState.PLANIFICADO);
     const [isLoading, setIsLoading] = useState(false);
 
-    // Reset form when drawer closes or courseData changes
     useEffect(() => {
         if (open && courseData) {
             setState(courseData.state);
@@ -67,16 +58,9 @@ export const EditCourseDrawer = ({
 
     const handleSave = async () => {
         if (!courseData) return;
-
         setIsLoading(true);
-
         try {
-            await onSave({
-                courseId: courseData.id,
-                startYear: courseData.startYear,
-                endYear: courseData.endYear,
-                state
-            });
+            await onSave({ courseId: courseData.id, startYear: courseData.startYear, endYear: courseData.endYear, state });
         } catch (error) {
             console.error('Error saving course:', error);
         } finally {
@@ -84,129 +68,86 @@ export const EditCourseDrawer = ({
         }
     };
 
-    const handleClose = () => {
-        if (!isLoading) {
-            onOpenChange(false);
-        }
-    };
-
-    const isFormValid = state !== courseData?.state; // Solo habilitar guardar si cambió el estado
-
     return (
-        <Drawer open={open} onOpenChange={onOpenChange}>
-            <DrawerContent className="flex flex-col max-h-screen">
-                <DrawerHeader>
-                    <DrawerTitle>{t("drawer.courses.edit.title")}</DrawerTitle>
-                    <DrawerDescription>
-                        {t("drawer.courses.edit.description")}
-                    </DrawerDescription>
-                </DrawerHeader>
+        <FormDrawer
+            open={open}
+            onOpenChange={onOpenChange}
+            title={t("drawer.courses.edit.title")}
+            description={t("drawer.courses.edit.description")}
+            onSave={handleSave}
+            onCancel={() => { if (!isLoading) onOpenChange(false); }}
+            isValid={state !== courseData?.state}
+            isLoading={isLoading}
+            saveLabel={t("drawer.courses.edit.save")}
+            cancelLabel={t("drawer.courses.edit.cancel")}
+        >
+            {courseData && (
+                <div className="space-y-3 max-w-sm mx-auto">
+                    <Label htmlFor="course-year">{t("drawer.courses.edit.course.year")}</Label>
+                    <Select value={`${courseData.startYear}-${courseData.endYear}`} disabled={true}>
+                        <SelectTrigger className="w-full">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value={`${courseData.startYear}-${courseData.endYear}`}>
+                                {courseData.startYear}-{courseData.endYear}
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            )}
 
-                {/* Contenido desplazable */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-6">
-                    {/* Año académico (desactivado) */}
-                    {courseData && (
-                        <div className="space-y-3 max-w-sm mx-auto">
-                            <Label htmlFor="course-year">
-                                {t("drawer.courses.edit.course.year")}
-                            </Label>
-                            <Select value={`${courseData.startYear}-${courseData.endYear}`} disabled={true}>
-                                <SelectTrigger className="w-full">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value={`${courseData.startYear}-${courseData.endYear}`}>
-                                        {courseData.startYear}-{courseData.endYear}
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    )}
-
-                    {/* Select de estado */}
-                    <div className="space-y-3 max-w-sm mx-auto">
-                        <Label htmlFor="course-state">
-                            {t("drawer.courses.edit.state.title")}
-                        </Label>
-                        <Select value={state} onValueChange={(value: CourseState) => setState(value)} disabled={isLoading}>
-                            <SelectTrigger className="w-full">
-                                <SelectValue>
-                                    <div className="flex items-center gap-2">
-                                        <Badge
-                                            variant="secondary"
-                                            className={`text-xs ${CourseStateManager.getStateColor(state)}`}
-                                        >
-                                            {t(`drawer.courses.create.states.${state.toLowerCase()}`)}
-                                        </Badge>
-                                        <span className="text-sm text-muted-foreground">
-                                            {CourseStateManager.getStateDescription(state)}
+            <div className="space-y-3 max-w-sm mx-auto">
+                <Label htmlFor="course-state">{t("drawer.courses.edit.state.title")}</Label>
+                <Select value={state} onValueChange={(value: CourseState) => setState(value)} disabled={isLoading}>
+                    <SelectTrigger className="w-full">
+                        <SelectValue>
+                            <div className="flex items-center gap-2">
+                                <Badge variant="secondary" className={`text-xs ${CourseStateManager.getStateColor(state)}`}>
+                                    {t(`drawer.courses.create.states.${state.toLowerCase()}`)}
+                                </Badge>
+                                <span className="text-sm text-muted-foreground">
+                                    {CourseStateManager.getStateDescription(state)}
+                                </span>
+                            </div>
+                        </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                        {Object.values(CourseState).map((stateOption) => (
+                            <SelectItem key={stateOption} value={stateOption}>
+                                <div className="flex items-center gap-3 py-1">
+                                    <Badge variant="secondary" className={`text-xs ${CourseStateManager.getStateColor(stateOption)}`}>
+                                        {t(`drawer.courses.create.states.${stateOption.toLowerCase()}`)}
+                                    </Badge>
+                                    <div className="flex flex-col">
+                                        <span className="font-medium">
+                                            {t(`drawer.courses.create.states.${stateOption.toLowerCase()}`)}
+                                        </span>
+                                        <span className="text-xs text-muted-foreground">
+                                            {CourseStateManager.getStateDescription(stateOption)}
                                         </span>
                                     </div>
-                                </SelectValue>
-                            </SelectTrigger>
-                            <SelectContent>
-                                {Object.values(CourseState).map((stateOption) => (
-                                    <SelectItem key={stateOption} value={stateOption}>
-                                        <div className="flex items-center gap-3 py-1">
-                                            <Badge
-                                                variant="secondary"
-                                                className={`text-xs ${CourseStateManager.getStateColor(stateOption)}`}
-                                            >
-                                                {t(`drawer.courses.create.states.${stateOption.toLowerCase()}`)}
-                                            </Badge>
-                                            <div className="flex flex-col">
-                                                <span className="font-medium">
-                                                    {t(`drawer.courses.create.states.${stateOption.toLowerCase()}`)}
-                                                </span>
-                                                <span className="text-xs text-muted-foreground">
-                                                    {CourseStateManager.getStateDescription(stateOption)}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-
-                        {/* Información sobre transiciones de estado */}
-                        <Alert>
-                            <Info className="h-4 w-4" />
-                            <AlertDescription>
-                                <div className="space-y-1">
-                                    <p className="text-sm font-medium">
-                                        {t("drawer.courses.create.state.info.title")}:
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                        {t("drawer.courses.create.states.planificado")} → {t("drawer.courses.create.states.activo")} → {t("drawer.courses.create.states.finalizado")}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                        {t("drawer.courses.create.state.info.description")}
-                                    </p>
                                 </div>
-                            </AlertDescription>
-                        </Alert>
-                    </div>
-                </div>
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
 
-                {/* Botones */}
-                <div className="p-4 flex justify-end space-x-2 border-t">
-                    <DrawerClose asChild>
-                        <Button
-                            variant="outline"
-                            onClick={handleClose}
-                            disabled={isLoading}
-                        >
-                            {t("drawer.courses.edit.cancel")}
-                        </Button>
-                    </DrawerClose>
-                    <Button
-                        disabled={!isFormValid || isLoading}
-                        onClick={handleSave}
-                    >
-                        {t("drawer.courses.edit.save")}
-                    </Button>
-                </div>
-            </DrawerContent>
-        </Drawer>
+                <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertDescription>
+                        <div className="space-y-1">
+                            <p className="text-sm font-medium">{t("drawer.courses.create.state.info.title")}:</p>
+                            <p className="text-xs text-muted-foreground">
+                                {t("drawer.courses.create.states.planificado")} → {t("drawer.courses.create.states.activo")} → {t("drawer.courses.create.states.finalizado")}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                                {t("drawer.courses.create.state.info.description")}
+                            </p>
+                        </div>
+                    </AlertDescription>
+                </Alert>
+            </div>
+        </FormDrawer>
     );
 };

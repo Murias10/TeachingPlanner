@@ -155,7 +155,7 @@ export function SolicitudTable({ solicitudes, onReject, onReview, onDelete }: So
 
             <div className="flex items-center justify-between space-x-2 py-4">
                 <div className="text-sm text-muted-foreground">
-                    Total: {table.getFilteredRowModel().rows.length} solicitudes
+                    {t("table.solicitudes.total", { count: table.getFilteredRowModel().rows.length })}
                 </div>
                 <div className="space-x-2">
                     <Button
@@ -165,7 +165,7 @@ export function SolicitudTable({ solicitudes, onReject, onReview, onDelete }: So
                         disabled={!table.getCanPreviousPage()}
                     >
                         <ChevronLeft className="h-4 w-4 mr-1" />
-                        Anterior
+                        {t("table.pagination.previous")}
                     </Button>
                     <Button
                         variant="outline"
@@ -173,7 +173,7 @@ export function SolicitudTable({ solicitudes, onReject, onReview, onDelete }: So
                         onClick={() => table.nextPage()}
                         disabled={!table.getCanNextPage()}
                     >
-                        Siguiente
+                        {t("table.pagination.next")}
                         <ChevronRight className="h-4 w-4 ml-1" />
                     </Button>
                 </div>

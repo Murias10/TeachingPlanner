@@ -1,4 +1,4 @@
-import { Response } from 'express';
+﻿import { Response } from 'express';
 import { AppDataSource } from '@/config/data-source';
 import { Calendar } from '@/entities/calendar.entity';
 import { Course } from '@/entities/course.entity';
@@ -154,18 +154,18 @@ export const createCalendar = async (req: AuditedRequest, res: Response) => {
     }
 
     // Parsear fechas en zona horaria de Madrid (Europe/Madrid)
-    // Esto evita problemas de conversión UTC que pueden cambiar el día
+    // Esto evita problemas de conversiÃ³n UTC que pueden cambiar el dÃ­a
     const parseSpainDate = (dateString: string): Date => {
         const parts = dateString.split(/[-T]/);
         if (parts.length >= 3) {
-            // Crear fecha a mediodía en zona horaria de Madrid para evitar cambios de día
+            // Crear fecha a mediodÃ­a en zona horaria de Madrid para evitar cambios de dÃ­a
             const year = Number.parseInt(parts[0]);
             const month = Number.parseInt(parts[1]) - 1;
             const day = Number.parseInt(parts[2]);
             const date = new Date(year, month, day, 12, 0, 0, 0);
             return date;
         }
-        // Fallback: añadir hora del mediodía para evitar problemas con UTC
+        // Fallback: aÃ±adir hora del mediodÃ­a para evitar problemas con UTC
         return new Date(dateString + 'T12:00:00');
     };
 
@@ -216,11 +216,11 @@ export const createCalendar = async (req: AuditedRequest, res: Response) => {
 
         const savedCalendar = await calendarRepo.save(calendar);
 
-        // Crear mapa de fechas festivas con comentarios para búsqueda rápida
+        // Crear mapa de fechas festivas con comentarios para bÃºsqueda rÃ¡pida
         const holidayMap = new Map<string, string>();
         (holidays as Array<{ date: string; comment: string }>).forEach((holiday) => {
             const date = parseSpainDate(holiday.date);
-            // Formatear como YYYY-MM-DD para comparación
+            // Formatear como YYYY-MM-DD para comparaciÃ³n
             const year = date.getFullYear();
             const month = String(date.getMonth() + 1).padStart(2, '0');
             const day = String(date.getDate()).padStart(2, '0');
@@ -228,7 +228,7 @@ export const createCalendar = async (req: AuditedRequest, res: Response) => {
             holidayMap.set(dateKey, holiday.comment || '');
         });
 
-        // Crear Day records para cada día del calendario
+        // Crear Day records para cada dÃ­a del calendario
         const days: Day[] = [];
         // Crear copias para no modificar las fechas originales
         const startDateNormalized = new Date(startDate);
@@ -241,15 +241,15 @@ export const createCalendar = async (req: AuditedRequest, res: Response) => {
             const dayOfWeek = currentDate.getDay(); // 0 = Sunday, 6 = Saturday
             const dateKey = currentDate.toISOString().split('T')[0];
 
-            // Determinar si es día lectivo
+            // Determinar si es dÃ­a lectivo
             const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
             const isHoliday = holidayMap.has(dateKey);
             const isLective = !isWeekend && !isHoliday;
 
-            // Determinar el carácter del día
+            // Determinar el carÃ¡cter del dÃ­a
             let dayCharacter = '';
             if (isLective) {
-                // Días lectivos: solo P o I según semana par/impar (sin N)
+                // DÃ­as lectivos: solo P o I segÃºn semana par/impar (sin N)
                 const esPar = esSemanaPar(currentDate, startDateNormalized);
                 dayCharacter = esPar ? EVENT_CHARACTERS.PAR : EVENT_CHARACTERS.IMPAR;
             } else {
@@ -257,7 +257,7 @@ export const createCalendar = async (req: AuditedRequest, res: Response) => {
                 dayCharacter = DAY_CHARACTERS.NON_LECTIVE;
             }
 
-            // Obtener el comentario del día festivo si existe
+            // Obtener el comentario del dÃ­a festivo si existe
             const holidayComment = holidayMap.get(dateKey) || '';
 
             const day = dayRepo.create({
@@ -271,18 +271,13 @@ export const createCalendar = async (req: AuditedRequest, res: Response) => {
 
             days.push(day);
 
-            // Avanzar al siguiente día
+            // Avanzar al siguiente dÃ­a
             currentDate.setDate(currentDate.getDate() + 1);
         }
 
-        // Guardar todos los días
+        // Guardar todos los dÃ­as
         await dayRepo.save(days);
 
-        console.log(`[Calendar Creation] Created ${days.length} days for calendar ${savedCalendar.id}`);
-        console.log(`[Calendar Creation] Lective days: ${days.filter(d => d.lective).length}`);
-        console.log(`[Calendar Creation] Par weeks (P): ${days.filter(d => d.dayCharacter === EVENT_CHARACTERS.PAR).length}`);
-        console.log(`[Calendar Creation] Impar weeks (I): ${days.filter(d => d.dayCharacter === EVENT_CHARACTERS.IMPAR).length}`);
-        console.log(`[Calendar Creation] Non-lective days (F): ${days.filter(d => d.dayCharacter === DAY_CHARACTERS.NON_LECTIVE).length}`);
 
         res.status(201).json({
             status: "success",
@@ -306,9 +301,8 @@ export const createCalendar = async (req: AuditedRequest, res: Response) => {
 export const deleteCalendar = async (req: AuditedRequest, res: Response) => {
     try {
         const calendarId = req.params.id?.trim();
-        console.log('[DELETE CALENDAR] Received calendar ID:', calendarId);
 
-        // Validar que el ID esté presente
+        // Validar que el ID estÃ© presente
         if (!calendarId) {
             res.status(400).json({
                 status: "error",
@@ -318,9 +312,8 @@ export const deleteCalendar = async (req: AuditedRequest, res: Response) => {
             return;
         }
 
-        // Validar que el ID sea un UUID válido
+        // Validar que el ID sea un UUID vÃ¡lido
         if (!isValidUUID(calendarId)) {
-            console.log('[DELETE CALENDAR] Invalid UUID format:', calendarId);
             res.status(400).json({
                 status: "error",
                 message: "Invalid UUID format for calendar ID",
@@ -335,7 +328,6 @@ export const deleteCalendar = async (req: AuditedRequest, res: Response) => {
         const calendar = await calendarRepo.findOne({
             where: { id: calendarId }
         });
-        console.log('[DELETE CALENDAR] Calendar found:', !!calendar);
 
         if (!calendar) {
             res.status(404).json({
@@ -349,24 +341,20 @@ export const deleteCalendar = async (req: AuditedRequest, res: Response) => {
         // IMPORTANTE: Eliminar eventos ANTES que grupos
         // Las junction tables (PERIODIC_EVENTS_GROUPS, PUNTUAL_EVENTS_GROUPS) tienen
         // ON DELETE NO ACTION en las FK hacia Groups.
-        // TypeORM solo limpia automáticamente las junction tables cuando eliminas
-        // desde el lado del @JoinTable (el lado que "posee" la relación).
+        // TypeORM solo limpia automÃ¡ticamente las junction tables cuando eliminas
+        // desde el lado del @JoinTable (el lado que "posee" la relaciÃ³n).
         // En este caso, PeriodicEvent y PuntualEvent poseen las relaciones.
 
         // Paso 1: Eliminar PeriodicEvents del calendario
-        console.log(`[DELETE CALENDAR] Step 1: Deleting periodic events...`);
         const periodicEventRepo = AppDataSource.getRepository(PeriodicEvent);
         const periodicEvents = await periodicEventRepo.find({
             where: { calendar: { id: calendarId } }
         });
-        console.log(`[DELETE CALENDAR] Found ${periodicEvents.length} periodic events to remove`);
         if (periodicEvents.length > 0) {
             await periodicEventRepo.remove(periodicEvents);
-            console.log(`[DELETE CALENDAR] Removed ${periodicEvents.length} periodic events`);
         }
 
-        // Paso 2: Eliminar PuntualEvents del calendario (a través de Days)
-        console.log(`[DELETE CALENDAR] Step 2: Deleting puntual events...`);
+        // Paso 2: Eliminar PuntualEvents del calendario (a travÃ©s de Days)
         const dayRepo = AppDataSource.getRepository(Day);
         const days = await dayRepo.find({
             where: { calendar: { id: calendarId } },
@@ -381,26 +369,21 @@ export const deleteCalendar = async (req: AuditedRequest, res: Response) => {
                 await puntualEventRepo.remove(day.puntualEvents);
             }
         }
-        console.log(`[DELETE CALENDAR] Removed ${totalPuntualEvents} puntual events`);
 
         // Paso 3: Obtener todos los subjects y sus groups para limpiar junction tables
-        console.log(`[DELETE CALENDAR] Step 3: Getting subjects and groups...`);
         const subjectRepo = AppDataSource.getRepository(Subject);
         const subjects = await subjectRepo.find({
             where: { calendar: { id: calendarId } },
             relations: ['groups'],
             select: { id: true, groups: { id: true } }
         });
-        console.log(`[DELETE CALENDAR] Found ${subjects.length} subjects`);
 
         const groupIds = subjects.flatMap(s => s.groups.map(g => g.id));
-        console.log(`[DELETE CALENDAR] Found ${groupIds.length} groups to clean`);
 
-        // Paso 4: Limpiar las tablas junction de los grupos (CRÍTICO)
-        // TypeORM no limpia automáticamente las junction tables cuando hay ON DELETE NO ACTION
+        // Paso 4: Limpiar las tablas junction de los grupos (CRÃTICO)
+        // TypeORM no limpia automÃ¡ticamente las junction tables cuando hay ON DELETE NO ACTION
         // Debemos limpiarlas manualmente ANTES de eliminar los groups
         if (groupIds.length > 0) {
-            console.log(`[DELETE CALENDAR] Step 4: Cleaning junction tables manually...`);
 
             await AppDataSource
                 .createQueryBuilder()
@@ -408,7 +391,6 @@ export const deleteCalendar = async (req: AuditedRequest, res: Response) => {
                 .from('PUNTUAL_EVENTS_GROUPS')
                 .where('ID_GROUP IN (:...groupIds)', { groupIds })
                 .execute();
-            console.log(`[DELETE CALENDAR] Cleaned PUNTUAL_EVENTS_GROUPS junction table`);
 
             await AppDataSource
                 .createQueryBuilder()
@@ -416,22 +398,17 @@ export const deleteCalendar = async (req: AuditedRequest, res: Response) => {
                 .from('PERIODIC_EVENTS_GROUPS')
                 .where('ID_GROUP IN (:...groupIds)', { groupIds })
                 .execute();
-            console.log(`[DELETE CALENDAR] Cleaned PERIODIC_EVENTS_GROUPS junction table`);
         }
 
-        // Paso 5: Eliminar subjects (que eliminarán grupos en cascada)
-        console.log(`[DELETE CALENDAR] Step 5: Deleting subjects...`);
+        // Paso 5: Eliminar subjects (que eliminarÃ¡n grupos en cascada)
         if (subjects.length > 0) {
             await subjectRepo.remove(subjects);
-            console.log(`[DELETE CALENDAR] Removed ${subjects.length} subjects (and their groups via cascade)`);
         }
 
         // Paso 6: Eliminar el calendario
-        // La cascada automática eliminará: Day (ahora sin eventos), EventRequest, etc.
-        console.log(`[DELETE CALENDAR] Step 6: Deleting calendar...`);
+        // La cascada automÃ¡tica eliminarÃ¡: Day (ahora sin eventos), EventRequest, etc.
         await calendarRepo.remove(calendar);
 
-        console.log('[DELETE CALENDAR] Calendar deleted successfully');
 
         res.status(200).json({
             status: "success",
@@ -462,11 +439,11 @@ const upload = multer({
         }
     },
     limits: {
-        fileSize: 5 * 1024 * 1024 // 5MB límite
+        fileSize: 5 * 1024 * 1024 // 5MB lÃ­mite
     }
 });
 
-// Middleware para múltiples archivos
+// Middleware para mÃºltiples archivos
 export const uploadFiles = upload.array('files', 10);
 
 // Middleware para un solo archivo
@@ -577,7 +554,7 @@ export const getCalendarEvents = async (req: AuditedRequest, res: Response) => {
             return;
         }
 
-        // Obtener días lectivos
+        // Obtener dÃ­as lectivos
         const dayRepo = AppDataSource.getRepository(Day);
         const lectiveDays = await dayRepo.find({
             where: { calendar: { id }, lective: true }
@@ -627,7 +604,7 @@ export const getPendingRequestsAsEvents = async (req: AuditedRequest, res: Respo
     try {
         const { id } = req.params;
 
-        // Validar que el ID sea un UUID válido
+        // Validar que el ID sea un UUID vÃ¡lido
         if (!isValidUUID(id)) {
             res.status(400).json({
                 status: 'error',
@@ -664,7 +641,6 @@ export const getPendingRequestsAsEvents = async (req: AuditedRequest, res: Respo
             order: { createdAt: 'DESC' }
         });
 
-        console.log(`Found ${pendingRequests.length} pending requests for calendar ${id}`);
 
         const pendingEvents: any[] = [];
 
@@ -727,12 +703,12 @@ export const getPendingRequestsAsEvents = async (req: AuditedRequest, res: Respo
                         let displayEndTime = originalEvent.endTime;
 
                         if (request.requestType === 'REPLACE') {
-                            // REPLACE periódico: mostrar en la nueva fecha
+                            // REPLACE periÃ³dico: mostrar en la nueva fecha
                             displayDate = eventData.newEventDate;
                             displayStartTime = eventData.startTime || displayStartTime;
                             displayEndTime = eventData.endTime || displayEndTime;
                         } else {
-                            // EDIT o CANCEL periódico: mostrar en la primera ocurrencia lectiva del día de la semana
+                            // EDIT o CANCEL periÃ³dico: mostrar en la primera ocurrencia lectiva del dÃ­a de la semana
                             const targetWeekDay = (request.requestType === 'EDIT' && eventData.weekDay)
                                 ? eventData.weekDay
                                 : originalEvent.weekDay;
@@ -752,7 +728,7 @@ export const getPendingRequestsAsEvents = async (req: AuditedRequest, res: Respo
                                 order: { date: 'ASC' }
                             });
 
-                            // Encontrar la primera ocurrencia lectiva del día objetivo
+                            // Encontrar la primera ocurrencia lectiva del dÃ­a objetivo
                             const matchingDay = days.find(day =>
                                 day.lective && day.date.getDay() === targetDayNum
                             );
@@ -797,7 +773,7 @@ export const getPendingRequestsAsEvents = async (req: AuditedRequest, res: Respo
                 });
             }
 
-            // Procesar solicitudes PERIÓDICAS
+            // Procesar solicitudes PERIÃ“DICAS
             if (request.eventType === 'PERIODIC') {
                 const { startTime, endTime, groupIds, classroomIds, weekDays, frequency, affectedDates } = eventData;
 
@@ -868,7 +844,6 @@ export const getPendingRequestsAsEvents = async (req: AuditedRequest, res: Respo
             return a.startTime.localeCompare(b.startTime);
         });
 
-        console.log(`Generated ${pendingEvents.length} pending events from ${pendingRequests.length} requests`);
 
         res.status(200).json({
             status: 'success',
@@ -909,7 +884,7 @@ export const exportCalendar = async (req: AuditedRequest, res: Response) => {
     try {
         const { id } = req.params;
 
-        // Validar que el ID sea un UUID válido
+        // Validar que el ID sea un UUID vÃ¡lido
         if (!isValidUUID(id)) {
             res.status(400).json({
                 status: 'error',
@@ -942,9 +917,8 @@ export const exportCalendar = async (req: AuditedRequest, res: Response) => {
             return;
         }
 
-        console.log(`Exporting calendar ${id}`);
 
-        // Obtener todos los eventos periódicos y puntuales para saber qué aulas se usan
+        // Obtener todos los eventos periÃ³dicos y puntuales para saber quÃ© aulas se usan
         const periodicEvents = await periodicEventRepo.find({
             where: { calendar: { id } },
             relations: ['classrooms', 'groups', 'groups.subject']
@@ -955,7 +929,7 @@ export const exportCalendar = async (req: AuditedRequest, res: Response) => {
             relations: ['classrooms', 'groups', 'groups.subject', 'day']
         });
 
-        // Recopilar todas las classrooms únicas usadas en este calendario
+        // Recopilar todas las classrooms Ãºnicas usadas en este calendario
         const classroomIds = new Set<string>();
 
         periodicEvents.forEach(event => {
@@ -970,7 +944,7 @@ export const exportCalendar = async (req: AuditedRequest, res: Response) => {
             });
         });
 
-        // Recopilar todos los IDs de grupos únicos usados en este calendario
+        // Recopilar todos los IDs de grupos Ãºnicos usados en este calendario
         const groupIds = new Set<string>();
 
         periodicEvents.forEach(event => {
@@ -994,7 +968,7 @@ export const exportCalendar = async (req: AuditedRequest, res: Response) => {
             });
         }
 
-        // Recopilar todas las asignaturas únicas
+        // Recopilar todas las asignaturas Ãºnicas
         const subjectIds = new Set<string>();
         groups.forEach(group => {
             if (group.subject) {
@@ -1010,13 +984,9 @@ export const exportCalendar = async (req: AuditedRequest, res: Response) => {
             where: { calendar: { id: calendar.id } }
         });
 
-        console.log(`Found ${classrooms.length} classrooms used in this calendar`);
-        console.log(`Found ${allSubjectsOfCalendar.length} subjects in calendar`);
-        console.log(`Found ${groups.length} groups used in this calendar`);
-        console.log(`Groups with subject:`, groups.filter(g => g.subject).length);
 
         // Generar contenido de ubicaciones.txt
-        // Formato: "CódigoAula:URL_GIS" (sin https://, ordenado en orden ascendente por código)
+        // Formato: "CÃ³digoAula:URL_GIS" (sin https://, ordenado en orden ascendente por cÃ³digo)
         const ubicacionesContent = classrooms
             .sort((a, b) => a.code.localeCompare(b.code)) // Ordenar ascendente
             .map(classroom => {
@@ -1027,17 +997,16 @@ export const exportCalendar = async (req: AuditedRequest, res: Response) => {
             .join('\n');
 
         // Generar contenido de asignaturas.txt
-        // Formato: "Acrónimo:Nombre:Año:GruposTeoriaES:GruposSeminarioES:GruposLaboratorioES:GruposTeoriaEN:GruposSeminarioEN:GruposLaboratorioEN:GruposTutoriaGrupalES:GruposTutoriaGrupalEN:CódigoSIES"
-        // (12 campos, ordenado por acrónimo ascendente)
+        // Formato: "AcrÃ³nimo:Nombre:AÃ±o:GruposTeoriaES:GruposSeminarioES:GruposLaboratorioES:GruposTeoriaEN:GruposSeminarioEN:GruposLaboratorioEN:GruposTutoriaGrupalES:GruposTutoriaGrupalEN:CÃ³digoSIES"
+        // (12 campos, ordenado por acrÃ³nimo ascendente)
         // Contar solo los grupos que participan en eventos del calendario actual
         const asignaturasContent = allSubjectsOfCalendar
-            .sort((a: Subject, b: Subject) => a.acronym.localeCompare(b.acronym)) // Ordenar ascendente por acrónimo
+            .sort((a: Subject, b: Subject) => a.acronym.localeCompare(b.acronym)) // Ordenar ascendente por acrÃ³nimo
             .map((subject: Subject) => {
                 // Obtener los grupos de esta asignatura que participan en eventos del calendario
                 const subjectGroups = groups.filter(g => g.subject && g.subject.id === subject.id);
-                console.log(`Subject ${subject.acronym} (${subject.id}): ${subjectGroups.length} groups in calendar`);
 
-                // Contar grupos únicos (por número) por tipo y lenguaje
+                // Contar grupos Ãºnicos (por nÃºmero) por tipo y lenguaje
                 const countByTypeAndLanguage = (type: string, language: string) => {
                     return new Set(
                         subjectGroups
@@ -1059,7 +1028,7 @@ export const exportCalendar = async (req: AuditedRequest, res: Response) => {
             })
             .join('\n');
 
-        // Obtener todos los días del calendario ordenados por fecha
+        // Obtener todos los dÃ­as del calendario ordenados por fecha
         const days = await dayRepo.find({
             where: { calendar: { id } },
             order: { date: 'ASC' }
@@ -1081,8 +1050,8 @@ export const exportCalendar = async (req: AuditedRequest, res: Response) => {
             .join('\n');
 
         // Generar contenido de horarios.txt
-        // Formato: "Curso:Asignatura.Tipo.Grupo:DíaSemana:HoraComienzo:HoraFin:Aula:SemanasConClase:NúmeroTotalHoras"
-        // Ordenado primero por year ascendente, luego por acrónimo de asignatura
+        // Formato: "Curso:Asignatura.Tipo.Grupo:DÃ­aSemana:HoraComienzo:HoraFin:Aula:SemanasConClase:NÃºmeroTotalHoras"
+        // Ordenado primero por year ascendente, luego por acrÃ³nimo de asignatura
         const horariosContent = periodicEvents
             .filter(event => event.eventType === EVENT_TYPES.NORMAL)
             .sort((a, b) => {
@@ -1090,35 +1059,35 @@ export const exportCalendar = async (req: AuditedRequest, res: Response) => {
                 if (a.year !== b.year) {
                     return a.year - b.year;
                 }
-                // Dentro del mismo year, ordenar por acrónimo de asignatura
-                // Obtener el primer acrónimo de cada evento (si tiene grupos)
+                // Dentro del mismo year, ordenar por acrÃ³nimo de asignatura
+                // Obtener el primer acrÃ³nimo de cada evento (si tiene grupos)
                 const acronymA = a.groups.length > 0 && a.groups[0].subject ? a.groups[0].subject.acronym : '';
                 const acronymB = b.groups.length > 0 && b.groups[0].subject ? b.groups[0].subject.acronym : '';
                 return acronymA.localeCompare(acronymB);
             })
             .map(event => {
-                // Obtener información de los grupos y aulas asociadas
+                // Obtener informaciÃ³n de los grupos y aulas asociadas
                 const groupsInfo = event.groups.map(group => {
                     const subject = group.subject;
                     const groupTypeMapping: Record<string, string> = {
-                        'T': 'T',   // Teoría
+                        'T': 'T',   // TeorÃ­a
                         'S': 'S',   // Seminario
                         'L': 'L',   // Laboratorio
-                        'TG': 'TG'  // Tutoría Grupal
+                        'TG': 'TG'  // TutorÃ­a Grupal
                     };
                     const groupType = groupTypeMapping[group.type] || group.type;
                     const groupNumber = group.language === 'EN' ? `I-${group.number}` : `${group.number}`;
                     return `${subject.acronym}.${groupType}.${groupNumber}`;
                 }).join(',');
 
-                // Obtener información de aulas
+                // Obtener informaciÃ³n de aulas
                 const classroomsInfo = event.classrooms.map(classroom => classroom.code).join(',');
 
                 // Convertir startTime y endTime a formato H.MM (sin ceros a la izquierda)
                 const startTimeStr = formatTimeForExport(event.startTime.substring(0, 5));
                 const endTimeStr = formatTimeForExport(event.endTime.substring(0, 5));
 
-                // Usar el código del día directamente (L, M, X, J, V)
+                // Usar el cÃ³digo del dÃ­a directamente (L, M, X, J, V)
                 const dayCode = event.weekDay;
 
                 return `${event.year}:${groupsInfo}:${dayCode}:${startTimeStr}:${endTimeStr}:${classroomsInfo}:${event.eventCharacter}:${event.planifiedHours}`;
@@ -1128,10 +1097,10 @@ export const exportCalendar = async (req: AuditedRequest, res: Response) => {
         // Generar contenido de excepciones.txt
         // Formato: "Fecha:Asignatura.Tipo.Grupo:HoraInicio:HoraFin:Aula:Comentarios"
         // Para cancelados: HoraInicio=-1, HoraFin=HoraReal
-        // Organizadas por asignatura (orden alfabético), dentro de cada asignatura por fecha ascendente
-        // Con líneas vacías entre grupos de asignaturas
+        // Organizadas por asignatura (orden alfabÃ©tico), dentro de cada asignatura por fecha ascendente
+        // Con lÃ­neas vacÃ­as entre grupos de asignaturas
 
-        // Primero, procesar los eventos en líneas
+        // Primero, procesar los eventos en lÃ­neas
         const excepcionesLines = puntualEvents.filter(event => event.eventType === EVENT_TYPES.NORMAL).map(event => {
             // Convertir fecha a formato DD/MM/YYYY
             const date = new Date(event.day.date);
@@ -1140,28 +1109,28 @@ export const exportCalendar = async (req: AuditedRequest, res: Response) => {
             const yearStr = date.getFullYear();
             const dateFormatted = `${dayStr}/${monthStr}/${yearStr}`;
 
-            // Obtener información de los grupos
+            // Obtener informaciÃ³n de los grupos
             const groupsInfo = event.groups.map(group => {
                 const subject = group.subject;
                 const groupTypeMapping: Record<string, string> = {
-                    'T': 'T',   // Teoría
+                    'T': 'T',   // TeorÃ­a
                     'S': 'S',   // Seminario
                     'L': 'L',   // Laboratorio
-                    'TG': 'TG'  // Tutoría Grupal
+                    'TG': 'TG'  // TutorÃ­a Grupal
                 };
                 const groupType = groupTypeMapping[group.type] || group.type;
                 const groupNumber = group.language === 'EN' ? `I-${group.number}` : `${group.number}`;
                 return `${subject.acronym}.${groupType}.${groupNumber}`;
             }).join(',');
 
-            // Obtener información de aulas
+            // Obtener informaciÃ³n de aulas
             const classroomsInfo = event.classrooms.map(classroom => classroom.code).join(',');
 
             // Convertir startTime y endTime a formato H.MM (sin ceros a la izquierda)
             const startTimeStr = formatTimeForExport(event.startTime.substring(0, 5));
             const endTimeStr = formatTimeForExport(event.endTime.substring(0, 5));
 
-            // Determinar formato basado en si está cancelado o no
+            // Determinar formato basado en si estÃ¡ cancelado o no
             let horaInicio: string;
             let horaFin: string;
 
@@ -1175,7 +1144,7 @@ export const exportCalendar = async (req: AuditedRequest, res: Response) => {
                 horaFin = endTimeStr;
             }
 
-            // Obtener acrónimo de asignatura para ordenamiento
+            // Obtener acrÃ³nimo de asignatura para ordenamiento
             const acronym = event.groups.length > 0 && event.groups[0].subject ? event.groups[0].subject.acronym : '';
             const dateTimestamp = new Date(event.day.date).getTime();
 
@@ -1186,7 +1155,7 @@ export const exportCalendar = async (req: AuditedRequest, res: Response) => {
             };
         });
 
-        // Ordenar por acrónimo de asignatura, luego por fecha
+        // Ordenar por acrÃ³nimo de asignatura, luego por fecha
         excepcionesLines.sort((a, b) => {
             const acronymCompare = a.acronym.localeCompare(b.acronym);
             if (acronymCompare !== 0) {
@@ -1195,11 +1164,11 @@ export const exportCalendar = async (req: AuditedRequest, res: Response) => {
             return a.dateTimestamp - b.dateTimestamp;
         });
 
-        // Agrupar por acrónimo y agregar líneas vacías entre grupos
+        // Agrupar por acrÃ³nimo y agregar lÃ­neas vacÃ­as entre grupos
         const excepcionesContent = excepcionesLines
             .reduce((acc: string[], current, index) => {
                 if (index > 0 && excepcionesLines[index - 1].acronym !== current.acronym) {
-                    // Agregar línea vacía al cambiar de asignatura
+                    // Agregar lÃ­nea vacÃ­a al cambiar de asignatura
                     acc.push('');
                 }
                 acc.push(current.line);
@@ -1215,7 +1184,6 @@ export const exportCalendar = async (req: AuditedRequest, res: Response) => {
         const semester = calendar.semester;
         const zipFilename = `${degreeAcronym} ${courseStartYear}-${courseEndYear} s${semester}.zip`;
 
-        console.log(`Creating ZIP file: ${zipFilename}`);
 
         // Configurar headers para la descarga
         res.setHeader('Content-Type', 'application/zip');
@@ -1223,7 +1191,7 @@ export const exportCalendar = async (req: AuditedRequest, res: Response) => {
 
         // Crear el archivo ZIP
         const archive = archiver('zip', {
-            zlib: { level: 9 } // Nivel máximo de compresión
+            zlib: { level: 9 } // Nivel mÃ¡ximo de compresiÃ³n
         });
 
         // Manejar errores del archiver
@@ -1257,7 +1225,6 @@ export const exportCalendar = async (req: AuditedRequest, res: Response) => {
         // Finalizar el archivo
         await archive.finalize();
 
-        console.log(`ZIP file created successfully: ${zipFilename}`);
 
     } catch (error) {
         console.error('Error exporting calendar:', error);
@@ -1370,8 +1337,8 @@ export const createPuntualEvent = async (req: AuditedRequest, res: Response) => 
             return;
         }
 
-        // Validar que la fecha esté dentro del rango del calendario
-        // Normalizar todas las fechas a medianoche para comparación justa
+        // Validar que la fecha estÃ© dentro del rango del calendario
+        // Normalizar todas las fechas a medianoche para comparaciÃ³n justa
         const eventDateObj = new Date(eventDate);
         eventDateObj.setHours(0, 0, 0, 0);
 
@@ -1390,7 +1357,7 @@ export const createPuntualEvent = async (req: AuditedRequest, res: Response) => 
             return;
         }
 
-        // Buscar el día (no crear uno nuevo)
+        // Buscar el dÃ­a (no crear uno nuevo)
         let day = await dayRepo.findOne({
             where: {
                 date: eventDateObj,
@@ -1399,7 +1366,7 @@ export const createPuntualEvent = async (req: AuditedRequest, res: Response) => 
             relations: ['puntualEvents', 'puntualEvents.groups', 'puntualEvents.groups.subject', 'puntualEvents.classrooms']
         });
 
-        // Si el día no existe, no se puede crear el evento
+        // Si el dÃ­a no existe, no se puede crear el evento
         if (!day) {
             res.status(400).json({
                 status: 'error',
@@ -1409,7 +1376,7 @@ export const createPuntualEvent = async (req: AuditedRequest, res: Response) => 
             return;
         }
 
-        // Validar que el día sea un día lectivo
+        // Validar que el dÃ­a sea un dÃ­a lectivo
         if (!day.lective) {
             res.status(400).json({
                 status: 'error',
@@ -1423,12 +1390,7 @@ export const createPuntualEvent = async (req: AuditedRequest, res: Response) => 
         // A cancelled puntual event is just a "blocker" for a periodic event on that day;
         // it does not occupy any active slot, so it cannot conflict with anything.
         if (!cancelled) {
-            // Validación de conflictos: verificar si hay eventos en el mismo horario con el mismo grupo o aula
-            console.log('[Conflict Detection] Checking for conflicts');
-            console.log('[Conflict Detection] New event time:', startTime, '-', endTime);
-            console.log('[Conflict Detection] GroupIds:', groupIds);
-            console.log('[Conflict Detection] ClassroomIds:', classroomIds);
-            console.log('[Conflict Detection] Existing puntual events on this day:', day.puntualEvents?.length || 0);
+            // ValidaciÃ³n de conflictos: verificar si hay eventos en el mismo horario con el mismo grupo o aula
 
             // Helper to normalize time format (HH:mm:ss -> HH:mm or HH:mm -> HH:mm)
             const normalizeTime = (time: string) => time.substring(0, 5);
@@ -1457,11 +1419,9 @@ export const createPuntualEvent = async (req: AuditedRequest, res: Response) => 
                 return sharesGroup || sharesClassroom;
             });
 
-            console.log('[Conflict Detection] Puntual conflicts found:', conflictingPuntualEvents?.length || 0);
 
             // Check conflicts with active periodic events (excluding cancelled ones)
             const periodicEvents = await getActivePeriodicEventsForDay(calendarId, day.id, eventDateObj, day.dayCharacter);
-            console.log('[Conflict Detection] Active periodic events on this day:', periodicEvents.length);
 
             const conflictingPeriodicEvents = findPeriodicEventConflicts(
                 startTime,
@@ -1472,7 +1432,6 @@ export const createPuntualEvent = async (req: AuditedRequest, res: Response) => 
                 eventType
             );
 
-            console.log('[Conflict Detection] Periodic conflicts found:', conflictingPeriodicEvents.length);
 
             // Combine all conflicts
             const totalConflicts = (conflictingPuntualEvents?.length || 0) + conflictingPeriodicEvents.length;
@@ -1623,18 +1582,12 @@ export const deletePuntualEvent = async (req: AuditedRequest, res: Response) => 
             return;
         }
 
-        // VALIDACIÓN: Si es un evento cancelado simple, verificar que revertirlo no cause conflictos
-        // Al eliminar el evento cancelado, podría reaparecer un evento periódico en su lugar.
+        // VALIDACIÃ“N: Si es un evento cancelado simple, verificar que revertirlo no cause conflictos
+        // Al eliminar el evento cancelado, podrÃ­a reaparecer un evento periÃ³dico en su lugar.
         // Debemos validar que no exista otro evento puntual con el mismo grupo/aula en ese horario.
         if (puntualEvent.cancelled && !puntualEvent.replacementEventId) {
-            console.log('==============================================');
-            console.log('[Revert Cancellation] Validating conflicts before reverting simple cancellation...');
-            console.log(`[Revert Cancellation] Event ID: ${eventId}`);
-            console.log(`[Revert Cancellation] Event time: ${puntualEvent.startTime} - ${puntualEvent.endTime}`);
-            console.log(`[Revert Cancellation] Event groups: ${puntualEvent.groups?.map(g => g.number || g.id).join(', ')}`);
-            console.log(`[Revert Cancellation] Event classrooms: ${puntualEvent.classrooms?.map(c => c.code || c.id).join(', ')}`);
 
-            // Cargar el día con todos sus eventos puntuales
+            // Cargar el dÃ­a con todos sus eventos puntuales
             const day = await dayRepo
                 .createQueryBuilder('day')
                 .leftJoinAndSelect('day.puntualEvents', 'pe')
@@ -1645,22 +1598,19 @@ export const deletePuntualEvent = async (req: AuditedRequest, res: Response) => 
                 .getOne();
 
             if (day) {
-                console.log(`[Revert Cancellation] Day has ${day.puntualEvents?.length || 0} puntual events total`);
 
                 const normalizeTime = (time: string) => time.substring(0, 5);
                 const cancelledStart = normalizeTime(puntualEvent.startTime);
                 const cancelledEnd = normalizeTime(puntualEvent.endTime);
 
-                // Buscar eventos puntuales no cancelados que tendrían conflicto
+                // Buscar eventos puntuales no cancelados que tendrÃ­an conflicto
                 const conflictingEvents = day.puntualEvents?.filter(pe => {
                     // Excluir el evento cancelado que estamos por eliminar
                     if (pe.id === eventId) {
-                        console.log(`  Skip: is the cancelled event we're deleting (${pe.id})`);
                         return false;
                     }
                     // Solo eventos normales (no cancelados)
                     if (pe.cancelled) {
-                        console.log(`  Skip: is cancelled (${pe.id})`);
                         return false;
                     }
 
@@ -1670,7 +1620,6 @@ export const deletePuntualEvent = async (req: AuditedRequest, res: Response) => 
                     const hasTimeOverlap = peStart < cancelledEnd && peEnd > cancelledStart;
 
                     if (!hasTimeOverlap) {
-                        console.log(`  Skip ${pe.id}: no time overlap (${peStart}-${peEnd} vs ${cancelledStart}-${cancelledEnd})`);
                         return false;
                     }
 
@@ -1686,19 +1635,15 @@ export const deletePuntualEvent = async (req: AuditedRequest, res: Response) => 
                     );
                     const sharesClassroom = (sharedClassrooms?.length || 0) > 0;
 
-                    console.log(`  Check ${pe.id}: timeOverlap=true, sharesGroup=${sharesGroup}, sharesClassroom=${sharesClassroom}`);
                     if (sharesGroup) {
-                        console.log(`    Shared groups: ${sharedGroups?.map(g => g.number || g.id).join(', ')}`);
                     }
                     if (sharesClassroom) {
-                        console.log(`    Shared classrooms: ${sharedClassrooms?.map(c => c.code || c.id).join(', ')}`);
                     }
 
                     return sharesGroup || sharesClassroom;
                 });
 
                 if (conflictingEvents && conflictingEvents.length > 0) {
-                    console.log(`[Revert Cancellation] ❌ CONFLICT DETECTED with ${conflictingEvents.length} puntual events`);
 
                     const firstConflict = conflictingEvents[0];
                     const conflictGroups = puntualEvent.groups?.filter(cg =>
@@ -1721,8 +1666,6 @@ export const deletePuntualEvent = async (req: AuditedRequest, res: Response) => 
                         conflictData = { classrooms: conflictClassrooms.join(', ') };
                     }
 
-                    console.log(`[Revert Cancellation] Returning 409 error: ${messageKey} with data:`, conflictData);
-                    console.log('==============================================');
 
                     res.status(409).json({
                         status: 'error',
@@ -1738,14 +1681,12 @@ export const deletePuntualEvent = async (req: AuditedRequest, res: Response) => 
                 const cancelledGroupIds = puntualEvent.groups?.map(g => g.id) || [];
                 const cancelledClassroomIds = puntualEvent.classrooms?.map(c => c.id) || [];
 
-                console.log(`[Revert Cancellation] Checking conflicts with periodic events on ${day.date}...`);
                 const activePeriodicEvents = await getActivePeriodicEventsForDay(
                     calendarId,
                     day.id,
                     eventDateObj,
                     day.dayCharacter
                 );
-                console.log(`[Revert Cancellation] Found ${activePeriodicEvents.length} active periodic events on that day`);
 
                 const conflictingPeriodicEvents = findPeriodicEventConflicts(
                     puntualEvent.startTime,
@@ -1757,7 +1698,6 @@ export const deletePuntualEvent = async (req: AuditedRequest, res: Response) => 
                 );
 
                 if (conflictingPeriodicEvents.length > 0) {
-                    console.log(`[Revert Cancellation] ❌ CONFLICT DETECTED with ${conflictingPeriodicEvents.length} periodic events`);
 
                     const firstPeriodicConflict = conflictingPeriodicEvents[0];
                     const conflictPeriodicGroups = puntualEvent.groups?.filter(cg =>
@@ -1779,8 +1719,6 @@ export const deletePuntualEvent = async (req: AuditedRequest, res: Response) => 
                         periodicConflictData = { classrooms: conflictPeriodicClassrooms.join(', ') };
                     }
 
-                    console.log(`[Revert Cancellation] Returning 409 error: ${periodicMessageKey} with data:`, periodicConflictData);
-                    console.log('==============================================');
 
                     res.status(409).json({
                         status: 'error',
@@ -1790,8 +1728,6 @@ export const deletePuntualEvent = async (req: AuditedRequest, res: Response) => 
                     return;
                 }
 
-                console.log('[Revert Cancellation] ✓ No conflicts detected, proceeding with deletion');
-                console.log('==============================================');
             }
         }
 
@@ -1801,7 +1737,6 @@ export const deletePuntualEvent = async (req: AuditedRequest, res: Response) => 
 
         if (hasReplacement) {
             // CASO 2: Evento cancelado con reemplazo - borrar ambos eventos
-            console.log(`[Revert Cancellation] Event has replacement, deleting both events`);
 
             // Buscar el evento de reemplazo
             const replacementEvent = await puntualEventRepo.findOne({
@@ -1812,7 +1747,7 @@ export const deletePuntualEvent = async (req: AuditedRequest, res: Response) => 
                 console.warn(`[Revert Cancellation] Replacement event ${puntualEvent.replacementEventId} not found, deleting cancelled event only`);
             }
 
-            // Usar transacción para borrar ambos eventos atómicamente
+            // Usar transacciÃ³n para borrar ambos eventos atÃ³micamente
             const queryRunner = AppDataSource.createQueryRunner();
             await queryRunner.connect();
             await queryRunner.startTransaction();
@@ -1836,12 +1771,10 @@ export const deletePuntualEvent = async (req: AuditedRequest, res: Response) => 
 
                 // Borrar evento cancelado
                 await queryRunner.manager.remove(puntualEvent);
-                console.log(`[Revert Cancellation] Deleted cancelled event ${eventId}`);
 
                 // Borrar evento de reemplazo (si existe)
                 if (replacementEvent) {
                     await queryRunner.manager.remove(replacementEvent);
-                    console.log(`[Revert Cancellation] Deleted replacement event ${puntualEvent.replacementEventId}`);
                 }
 
                 await queryRunner.commitTransaction();
@@ -1864,7 +1797,6 @@ export const deletePuntualEvent = async (req: AuditedRequest, res: Response) => 
 
         } else {
             // CASO 1: Evento cancelado aislado (sin reemplazo) - borrar solo el cancelado
-            console.log(`[Revert Cancellation] Standalone cancelled event, deleting only cancelled event`);
 
             const userEmail = getUserEmailFromRequest(req);
 
@@ -1891,7 +1823,6 @@ export const deletePuntualEvent = async (req: AuditedRequest, res: Response) => 
                 await manager.remove(puntualEvent);
             });
 
-            console.log(`[Revert Cancellation] Deleted standalone cancelled event ${eventId}`);
 
             res.status(200).json({
                 status: 'success',
@@ -1993,7 +1924,6 @@ export const deletePeriodicEvent = async (req: AuditedRequest, res: Response) =>
                     group.updatedBy = userEmail;
                     group.updatedAt = new Date();
                     await transactionalEntityManager.save(group);
-                    console.log(`[Periodic Event Delete] Reset planified hours to 0 for group ${group.type}-${group.number} (no more periodic events)`);
                 }
             }
 
@@ -2009,7 +1939,6 @@ export const deletePeriodicEvent = async (req: AuditedRequest, res: Response) =>
 
                 // If this was the last event using this character, clean it up
                 if (remainingEventsWithCharacter === 0) {
-                    console.log(`[Character Cleanup] No more events using character '${eventCharacter}'. Cleaning up...`);
 
                     // 1. Remove character from Calendar.charactersInUse
                     const calendar = await transactionalEntityManager.findOne(Calendar, {
@@ -2027,7 +1956,6 @@ export const deletePeriodicEvent = async (req: AuditedRequest, res: Response) =>
                         calendar.updatedAt = new Date();
                         await transactionalEntityManager.save(calendar);
 
-                        console.log(`[Character Cleanup] Removed '${eventCharacter}' from Calendar.charactersInUse. Character is now available for reuse.`);
                     }
 
                     // 2. Remove character from Day.dayCharacter for all days in this calendar
@@ -2050,12 +1978,10 @@ export const deletePeriodicEvent = async (req: AuditedRequest, res: Response) =>
                         await transactionalEntityManager.save(day);
                     }
 
-                    console.log(`[Character Cleanup] Removed '${eventCharacter}' from ${daysWithCharacter.length} days' dayCharacter field`);
                 }
             }
         });
 
-        console.log(`[Periodic Event Delete] Deleted periodic event ${eventId} by ${userEmail}`);
 
         res.status(200).json({
             status: 'success',
@@ -2112,7 +2038,7 @@ export const updatePuntualEvent = async (req: AuditedRequest, res: Response) => 
         const eventDateObj = new Date(eventDate);
         eventDateObj.setHours(0, 0, 0, 0);
 
-        // Validar que la nueva fecha esté dentro del rango del calendario
+        // Validar que la nueva fecha estÃ© dentro del rango del calendario
         const calendarStartDate = new Date(calendar.start);
         calendarStartDate.setHours(0, 0, 0, 0);
 
@@ -2128,7 +2054,7 @@ export const updatePuntualEvent = async (req: AuditedRequest, res: Response) => 
             return;
         }
 
-        // Buscar el día de la nueva fecha
+        // Buscar el dÃ­a de la nueva fecha
         let newDay = await dayRepo.findOne({
             where: {
                 date: eventDateObj,
@@ -2146,7 +2072,7 @@ export const updatePuntualEvent = async (req: AuditedRequest, res: Response) => 
             return;
         }
 
-        // Validar que el día sea lectivo
+        // Validar que el dÃ­a sea lectivo
         if (!newDay.lective) {
             res.status(400).json({
                 status: 'error',
@@ -2156,12 +2082,7 @@ export const updatePuntualEvent = async (req: AuditedRequest, res: Response) => 
             return;
         }
 
-        // Validación de conflictos (excluyendo el evento actual)
-        console.log('[Conflict Detection - Update] Checking for conflicts');
-        console.log('[Conflict Detection - Update] Event being updated:', eventId);
-        console.log('[Conflict Detection - Update] New time:', startTime, '-', endTime);
-        console.log('[Conflict Detection - Update] New groupIds:', groupIds);
-        console.log('[Conflict Detection - Update] New classroomIds:', classroomIds);
+        // ValidaciÃ³n de conflictos (excluyendo el evento actual)
 
         // Helper to normalize time format (HH:mm:ss -> HH:mm or HH:mm -> HH:mm)
         const normalizeTime = (time: string) => time.substring(0, 5);
@@ -2188,11 +2109,9 @@ export const updatePuntualEvent = async (req: AuditedRequest, res: Response) => 
             return sharesGroup || sharesClassroom;
         });
 
-        console.log('[Conflict Detection - Update] Puntual conflicts found:', conflictingPuntualEvents?.length || 0);
 
         // Check conflicts with active periodic events (excluding cancelled ones)
         const periodicEvents = await getActivePeriodicEventsForDay(calendar.id, newDay.id, eventDateObj, newDay.dayCharacter);
-        console.log('[Conflict Detection - Update] Active periodic events on this day:', periodicEvents.length);
 
         const conflictingPeriodicEvents = findPeriodicEventConflicts(
             startTime,
@@ -2203,7 +2122,6 @@ export const updatePuntualEvent = async (req: AuditedRequest, res: Response) => 
             eventType
         );
 
-        console.log('[Conflict Detection - Update] Periodic conflicts found:', conflictingPeriodicEvents.length);
 
         // Combine all conflicts
         const totalConflicts = (conflictingPuntualEvents?.length || 0) + conflictingPeriodicEvents.length;
@@ -2349,7 +2267,7 @@ export const createPeriodicEvent = async (req: AuditedRequest, res: Response) =>
         // Determinar el eventCharacter a usar (del request o por defecto 'N')
         const finalEventCharacter = eventCharacter || EVENT_CHARACTERS.NORMAL;
 
-        // Validar que el eventCharacter sea válido del pool disponible
+        // Validar que el eventCharacter sea vÃ¡lido del pool disponible
         const allValidCharacters = AVAILABLE_CHARACTERS + EVENT_CHARACTERS.NORMAL + EVENT_CHARACTERS.PAR + EVENT_CHARACTERS.IMPAR;
         if (!allValidCharacters.includes(finalEventCharacter)) {
             res.status(400).json({
@@ -2360,7 +2278,7 @@ export const createPeriodicEvent = async (req: AuditedRequest, res: Response) =>
             return;
         }
 
-        // Verificar si se ha alcanzado el límite de caracteres
+        // Verificar si se ha alcanzado el lÃ­mite de caracteres
         if (!calendar.charactersInUse.includes(finalEventCharacter) && calendar.charactersInUse.length >= MAX_EVENT_TYPES) {
             res.status(400).json({
                 status: 'error',
@@ -2370,16 +2288,15 @@ export const createPeriodicEvent = async (req: AuditedRequest, res: Response) =>
             return;
         }
 
-        // Si el carácter no está en uso, agregarlo
+        // Si el carÃ¡cter no estÃ¡ en uso, agregarlo
         if (!calendar.charactersInUse.includes(finalEventCharacter)) {
             calendar.charactersInUse += finalEventCharacter;
             calendar.updatedBy = getUserEmailFromRequest(req);
             calendar.updatedAt = new Date();
             await calendarRepo.save(calendar);
-            console.log(`[Periodic Event Create] Added character '${finalEventCharacter}' to calendar charactersInUse: ${calendar.charactersInUse}`);
         }
 
-        // Obtener los grupos con su relación de subject y validar que pertenezcan al calendario
+        // Obtener los grupos con su relaciÃ³n de subject y validar que pertenezcan al calendario
         const groups = groupIds.length > 0
             ? await groupRepo.find({
                 where: {
@@ -2409,7 +2326,7 @@ export const createPeriodicEvent = async (req: AuditedRequest, res: Response) =>
         const userEmail = getUserEmailFromRequest(req);
 
         // Verificar conflictos: generar todos los eventos actuales del calendario y comprobar
-        // si el nuevo evento periódico colisionaría con alguno (puntual o periódico generado)
+        // si el nuevo evento periÃ³dico colisionarÃ­a con alguno (puntual o periÃ³dico generado)
         const allGeneratedEvents = await CalendarEventsService.generateCalendarEvents(calendarId);
 
         const normalizeTimeStr = (t: string) => t.substring(0, 5);
@@ -2420,7 +2337,7 @@ export const createPeriodicEvent = async (req: AuditedRequest, res: Response) =>
         const conflictos = allGeneratedEvents.filter((event: GeneratedCalendarEvent) => {
             if (event.cancelled) return false;
 
-            // Derivar el día de semana: los periódicos ya tienen weekDay, los puntuales no
+            // Derivar el dÃ­a de semana: los periÃ³dicos ya tienen weekDay, los puntuales no
             const eventWeekDay = event.weekDay ?? dayNumToCode[new Date(event.date).getDay()];
             if (eventWeekDay !== weekDay) return false;
 
@@ -2462,10 +2379,10 @@ export const createPeriodicEvent = async (req: AuditedRequest, res: Response) =>
             return;
         }
 
-        // Obtener el año del primer grupo (ya que todos pertenecen a la misma asignatura/año)
+        // Obtener el aÃ±o del primer grupo (ya que todos pertenecen a la misma asignatura/aÃ±o)
         const groupYear = groups.length > 0 && groups[0].subject ? groups[0].subject.year : new Date(calendar.start).getFullYear();
 
-        // Crear el evento periódico
+        // Crear el evento periÃ³dico
         const periodicEvent = periodicEventRepo.create({
             calendar: calendar,
             weekDay: weekDay,
@@ -2489,7 +2406,6 @@ export const createPeriodicEvent = async (req: AuditedRequest, res: Response) =>
                 group.updatedBy = userEmail;
                 group.updatedAt = new Date();
                 await groupRepo.save(group);
-                console.log(`[Periodic Event Create] Updated planified hours to ${planifiedHours} for group ${group.type}-${group.number}`);
 
                 // Update ALL PeriodicEvents associated with this group
                 const allPeriodicEventsForGroup = await periodicEventRepo
@@ -2507,7 +2423,6 @@ export const createPeriodicEvent = async (req: AuditedRequest, res: Response) =>
                     }
                 }
 
-                console.log(`[Periodic Event Create] Updated ${allPeriodicEventsForGroup.length} periodic events for group ${group.type}-${group.number}`);
             }
         }
 
@@ -2591,7 +2506,7 @@ export const createCustomPeriodicEvent = async (req: AuditedRequest, res: Respon
         // Determinar el eventCharacter a usar
         const finalEventCharacter = eventCharacter || (await import('@/constants/event-characters.constants').then(m => m.findAvailableCharacter(calendar.charactersInUse)));
 
-        // Validar que el eventCharacter sea válido del pool disponible
+        // Validar que el eventCharacter sea vÃ¡lido del pool disponible
         const allValidCharacters = AVAILABLE_CHARACTERS + EVENT_CHARACTERS.NORMAL + EVENT_CHARACTERS.PAR + EVENT_CHARACTERS.IMPAR;
         if (!allValidCharacters.includes(finalEventCharacter)) {
             res.status(400).json({
@@ -2602,7 +2517,7 @@ export const createCustomPeriodicEvent = async (req: AuditedRequest, res: Respon
             return;
         }
 
-        // Verificar si se ha alcanzado el límite de caracteres
+        // Verificar si se ha alcanzado el lÃ­mite de caracteres
         if (!calendar.charactersInUse.includes(finalEventCharacter) && calendar.charactersInUse.length >= MAX_EVENT_TYPES) {
             res.status(400).json({
                 status: 'error',
@@ -2664,13 +2579,12 @@ export const createCustomPeriodicEvent = async (req: AuditedRequest, res: Respon
             }
         }
 
-        // Si el carácter no está en uso, agregarlo
+        // Si el carÃ¡cter no estÃ¡ en uso, agregarlo
         if (!calendar.charactersInUse.includes(finalEventCharacter)) {
             calendar.charactersInUse += finalEventCharacter;
             calendar.updatedBy = getUserEmailFromRequest(req);
             calendar.updatedAt = new Date();
             await calendarRepo.save(calendar);
-            console.log(`[Custom Periodic Event Create] Added character '${finalEventCharacter}' to calendar charactersInUse: ${calendar.charactersInUse}`);
         }
 
         // Actualizar Days.dayCharacter para cada fecha afectada
@@ -2687,7 +2601,7 @@ export const createCustomPeriodicEvent = async (req: AuditedRequest, res: Respon
             });
 
             if (day && day.lective) {
-                // Agregar el nuevo carácter al dayCharacter existente si no está ya
+                // Agregar el nuevo carÃ¡cter al dayCharacter existente si no estÃ¡ ya
                 if (!day.dayCharacter.includes(finalEventCharacter)) {
                     day.dayCharacter += finalEventCharacter;
                     day.updatedBy = getUserEmailFromRequest(req);
@@ -2696,16 +2610,15 @@ export const createCustomPeriodicEvent = async (req: AuditedRequest, res: Respon
                     daysUpdated++;
                 }
 
-                // Registrar el día de la semana
+                // Registrar el dÃ­a de la semana
                 const dayOfWeek = date.getDay();
                 const weekDayLetter = ['D', 'L', 'M', 'X', 'J', 'V', 'S'][dayOfWeek];
                 weekDaysSet.add(weekDayLetter);
             }
         }
 
-        console.log(`[Custom Periodic Event Create] Updated ${daysUpdated} days with character '${finalEventCharacter}'`);
 
-        // Obtener los grupos con su relación de subject y validar que pertenezcan al calendario
+        // Obtener los grupos con su relaciÃ³n de subject y validar que pertenezcan al calendario
         const groups = groupIds.length > 0
             ? await groupRepo.find({
                 where: {
@@ -2734,10 +2647,10 @@ export const createCustomPeriodicEvent = async (req: AuditedRequest, res: Respon
         // Obtener usuario autenticado
         const userEmail = getUserEmailFromRequest(req);
 
-        // Obtener el año del primer grupo
+        // Obtener el aÃ±o del primer grupo
         const groupYear = groups.length > 0 && groups[0].subject ? groups[0].subject.year : new Date(calendar.start).getFullYear();
 
-        // Crear PeriodicEvent para cada día de la semana único
+        // Crear PeriodicEvent para cada dÃ­a de la semana Ãºnico
         const createdEvents = [];
         for (const weekDay of Array.from(weekDaysSet)) {
             const periodicEvent = periodicEventRepo.create({
@@ -2758,7 +2671,6 @@ export const createCustomPeriodicEvent = async (req: AuditedRequest, res: Respon
             createdEvents.push(savedEvent);
         }
 
-        console.log(`[Custom Periodic Event Create] Created ${createdEvents.length} periodic event(s) for weekDays: ${Array.from(weekDaysSet).join(', ')}`);
 
         // Update Group.planifiedHours for all groups in this event (solo NORMAL actualiza planifiedHours)
         if (!isSpecial) for (const group of groups) {
@@ -2767,7 +2679,6 @@ export const createCustomPeriodicEvent = async (req: AuditedRequest, res: Respon
                 group.updatedBy = userEmail;
                 group.updatedAt = new Date();
                 await groupRepo.save(group);
-                console.log(`[Custom Periodic Event Create] Updated planified hours to ${planifiedHours} for group ${group.type}-${group.number}`);
 
                 // Update ALL PeriodicEvents associated with this group
                 const allPeriodicEventsForGroup = await periodicEventRepo
@@ -2785,7 +2696,6 @@ export const createCustomPeriodicEvent = async (req: AuditedRequest, res: Respon
                     }
                 }
 
-                console.log(`[Custom Periodic Event Create] Updated ${allPeriodicEventsForGroup.length} periodic events for group ${group.type}-${group.number}`);
             }
         }
 
@@ -2845,7 +2755,7 @@ export const updatePeriodicEvent = async (req: AuditedRequest, res: Response) =>
         const classroomRepo = AppDataSource.getRepository(Classroom);
         const groupRepo = AppDataSource.getRepository(Group);
 
-        // Buscar el evento periódico con sus relaciones
+        // Buscar el evento periÃ³dico con sus relaciones
         const periodicEvent = await periodicEventRepo.findOne({
             where: { id: eventId },
             relations: ['groups', 'classrooms', 'calendar']
@@ -2865,7 +2775,7 @@ export const updatePeriodicEvent = async (req: AuditedRequest, res: Response) =>
             ? await classroomRepo.find({ where: { id: In(classroomIds) } })
             : [];
 
-        // Validación de conflictos antes de actualizar
+        // ValidaciÃ³n de conflictos antes de actualizar
         {
             const calendarId = periodicEvent.calendar.id;
             const newWeekDay = (weekDay !== undefined && weekDay !== null) ? weekDay : periodicEvent.weekDay;
@@ -2923,7 +2833,7 @@ export const updatePeriodicEvent = async (req: AuditedRequest, res: Response) =>
         // Obtener usuario autenticado
         const userEmail = getUserEmailFromRequest(req);
 
-        // Actualizar el evento periódico
+        // Actualizar el evento periÃ³dico
         periodicEvent.startTime = startTime;
         periodicEvent.endTime = endTime;
         periodicEvent.classrooms = classrooms;
@@ -2950,7 +2860,6 @@ export const updatePeriodicEvent = async (req: AuditedRequest, res: Response) =>
                     group.updatedBy = userEmail;
                     group.updatedAt = new Date();
                     await groupRepo.save(group);
-                    console.log(`[Periodic Event Update] Updated planified hours to ${planifiedHours} for group ${group.type}-${group.number}`);
 
                     // Update ALL PeriodicEvents associated with this group
                     const allPeriodicEventsForGroup = await periodicEventRepo
@@ -2968,7 +2877,6 @@ export const updatePeriodicEvent = async (req: AuditedRequest, res: Response) =>
                         }
                     }
 
-                    console.log(`[Periodic Event Update] Updated ${allPeriodicEventsForGroup.length} periodic events for group ${group.type}-${group.number}`);
                 }
             }
         }
@@ -3061,7 +2969,7 @@ export const updateCustomPeriodicEvent = async (req: AuditedRequest, res: Respon
             ? await classroomRepo.find({ where: { id: In(classroomIds) } })
             : [];
 
-        // Validación de conflictos antes de actualizar
+        // ValidaciÃ³n de conflictos antes de actualizar
         {
             const editingIds = new Set(periodicEvents.map((e: any) => e.id));
             const normalizeTimeStr = (t: string) => t.substring(0, 5);
@@ -3077,7 +2985,7 @@ export const updateCustomPeriodicEvent = async (req: AuditedRequest, res: Respon
 
                 const conflictos = allGeneratedEvents.filter((event: GeneratedCalendarEvent) => {
                     if (event.cancelled) return false;
-                    // Excluir los eventos que se están editando
+                    // Excluir los eventos que se estÃ¡n editando
                     if (event.type === 'periodic' && editingIds.has(event.periodicEventId ?? '')) return false;
 
                     const evWeekDay = event.weekDay ?? dayNumToCode[new Date(event.date).getDay()];
@@ -3143,7 +3051,6 @@ export const updateCustomPeriodicEvent = async (req: AuditedRequest, res: Respon
                         group.updatedBy = userEmail;
                         group.updatedAt = new Date();
                         await groupRepo.save(group);
-                        console.log(`[Custom Periodic Event Update] Updated planified hours to ${planifiedHours} for group ${group.type}-${group.number}`);
 
                         // Update ALL PeriodicEvents associated with this group
                         const allPeriodicEventsForGroup = await periodicEventRepo
@@ -3161,7 +3068,6 @@ export const updateCustomPeriodicEvent = async (req: AuditedRequest, res: Respon
                             }
                         }
 
-                        console.log(`[Custom Periodic Event Update] Updated ${allPeriodicEventsForGroup.length} periodic events for group ${group.type}-${group.number}`);
                     }
                 }
             }
@@ -3170,7 +3076,6 @@ export const updateCustomPeriodicEvent = async (req: AuditedRequest, res: Respon
             updatedCount++;
         }
 
-        console.log(`[Custom Periodic Event Update] Updated ${updatedCount} events with character '${eventCharacter}' in calendar ${calendarId}`);
 
         res.status(200).json({
             status: 'success',
@@ -3271,7 +3176,7 @@ export const replacePeriodicEvent = async (req: AuditedRequest, res: Response) =
         // Obtener usuario autenticado
         const userEmail = getUserEmailFromRequest(req);
 
-        // PASO 1: Buscar el día original
+        // PASO 1: Buscar el dÃ­a original
         const originalDateObj = new Date(originalDate);
         originalDateObj.setHours(0, 0, 0, 0);
 
@@ -3292,11 +3197,11 @@ export const replacePeriodicEvent = async (req: AuditedRequest, res: Response) =
             return;
         }
 
-        // PASO 2: Buscar el día del nuevo evento
+        // PASO 2: Buscar el dÃ­a del nuevo evento
         const newEventDateObj = new Date(newEventDate);
         newEventDateObj.setHours(0, 0, 0, 0);
 
-        // Validar que la fecha esté dentro del rango del calendario
+        // Validar que la fecha estÃ© dentro del rango del calendario
         const calendarStartDate = new Date(calendar.start);
         calendarStartDate.setHours(0, 0, 0, 0);
 
@@ -3329,7 +3234,7 @@ export const replacePeriodicEvent = async (req: AuditedRequest, res: Response) =
             return;
         }
 
-        // Validar que el día sea lectivo
+        // Validar que el dÃ­a sea lectivo
         if (!newDay.lective) {
             res.status(400).json({
                 status: 'error',
@@ -3406,7 +3311,7 @@ export const replacePeriodicEvent = async (req: AuditedRequest, res: Response) =
             return;
         }
 
-        // Obtener los datos originales del evento periódico para usarlos en el evento cancelado
+        // Obtener los datos originales del evento periÃ³dico para usarlos en el evento cancelado
         let originalGroups = groups;
         let originalClassrooms = classrooms;
 
@@ -3422,7 +3327,7 @@ export const replacePeriodicEvent = async (req: AuditedRequest, res: Response) =
             }
         }
 
-        // PASO 4: Crear transacción para ambas operaciones atómicas
+        // PASO 4: Crear transacciÃ³n para ambas operaciones atÃ³micas
         const queryRunner = AppDataSource.createQueryRunner();
         await queryRunner.connect();
         await queryRunner.startTransaction();
@@ -3442,10 +3347,9 @@ export const replacePeriodicEvent = async (req: AuditedRequest, res: Response) =
 
             await queryRunner.manager.save(replacementEvent);
 
-            console.log(`[Replace Event] Created replacement event at ${newEventDate} ${newStartTime}-${newEndTime}`);
 
             // PASO 2: Crear evento cancelado en la fecha original vinculado al reemplazo
-            // Usar los datos originales del evento periódico (no los nuevos del reemplazo)
+            // Usar los datos originales del evento periÃ³dico (no los nuevos del reemplazo)
             const cancelledEvent = puntualEventRepo.create({
                 day: originalDay,
                 startTime: originalStartTime,
@@ -3461,9 +3365,8 @@ export const replacePeriodicEvent = async (req: AuditedRequest, res: Response) =
 
             await queryRunner.manager.save(cancelledEvent);
 
-            console.log(`[Replace Event] Created cancelled event at ${originalDate} ${originalStartTime}-${originalEndTime} linked to replacement ${replacementEvent.id}`);
 
-            // Commit de la transacción
+            // Commit de la transacciÃ³n
             await queryRunner.commitTransaction();
 
             res.status(201).json({
@@ -3717,7 +3620,7 @@ export const duplicateCalendar = async (req: AuditedRequest, res: Response) => {
             holidayMap.set(dateKey, holiday.comment || '');
         });
 
-        // Crear Day records para cada día del calendario
+        // Crear Day records para cada dÃ­a del calendario
         const days: Day[] = [];
         const startDateNormalized = new Date(startDate);
         startDateNormalized.setHours(0, 0, 0, 0);
@@ -3779,10 +3682,9 @@ export const duplicateCalendar = async (req: AuditedRequest, res: Response) => {
             subjectMap.set(sourceSubject.id, savedSubject);
         }
 
-        console.log(`[Calendar Duplication] Duplicated ${sourceSubjects.length} subjects from source to target calendar`);
 
         // PASO 1: Duplicar grupos del calendario origen al calendario destino
-        // Los grupos ahora están relacionados con cada calendario específico
+        // Los grupos ahora estÃ¡n relacionados con cada calendario especÃ­fico
         const sourceGroups = await groupRepo.find({
             where: { calendar: { id: sourceCalendarId } },
             relations: ['subject']
@@ -3811,9 +3713,8 @@ export const duplicateCalendar = async (req: AuditedRequest, res: Response) => {
             groupMap.set(sourceGroup.id, savedGroup);
         }
 
-        console.log(`[Calendar Duplication] Duplicated ${sourceGroups.length} groups from source to target calendar`);
 
-        // PASO 2: Copiar solo eventos periódicos N, I, P del calendario fuente
+        // PASO 2: Copiar solo eventos periÃ³dicos N, I, P del calendario fuente
         const eventsToClone = sourceCalendar.periodicEvents.filter(event =>
             event.eventCharacter === EVENT_CHARACTERS.NORMAL ||
             event.eventCharacter === EVENT_CHARACTERS.PAR ||
@@ -3856,12 +3757,6 @@ export const duplicateCalendar = async (req: AuditedRequest, res: Response) => {
 
         await periodicEventRepo.save(clonedEvents);
 
-        console.log(`[Calendar Duplication] Duplicated calendar ${sourceCalendarId} to ${savedCalendar.id}`);
-        console.log(`[Calendar Duplication] Created ${days.length} days`);
-        console.log(`[Calendar Duplication] Duplicated ${sourceSubjects.length} subjects`);
-        console.log(`[Calendar Duplication] Duplicated ${sourceGroups.length} groups`);
-        console.log(`[Calendar Duplication] Cloned ${clonedEvents.length} periodic events (N, I, P only)`);
-        console.log(`[Calendar Duplication] Lective days: ${days.filter(d => d.lective).length}`);
 
         res.status(201).json({
             status: "success",

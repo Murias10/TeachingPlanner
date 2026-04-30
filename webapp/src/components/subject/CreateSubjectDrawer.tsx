@@ -1,14 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-    Drawer,
-    DrawerContent,
-    DrawerHeader,
-    DrawerTitle,
-    DrawerClose,
-    DrawerDescription
-} from "@/components/ui/drawer";
-import {
     Select,
     SelectTrigger,
     SelectValue,
@@ -17,7 +9,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
+import { FormDrawer } from "@/components/ui/FormDrawer";
 
 interface CreateSubjectDrawerProps {
     open: boolean;
@@ -49,133 +41,94 @@ export function CreateSubjectDrawer({ open, onOpenChange, onSave }: CreateSubjec
     };
 
     const handleSave = async () => {
-        if (!acronym || year === null || !name || !siesCode || !semester) {
-            return; // Validación básica
-        }
-
-        await onSave({
-            acronym,
-            year,
-            name,
-            siesCode,
-            semester
-        });
-
+        if (!acronym || year === null || !name || !siesCode || !semester) return;
+        await onSave({ acronym, year, name, siesCode, semester });
         resetForm();
     };
 
     const handleOpenChange = (newOpen: boolean) => {
-        if (!newOpen) {
-            resetForm();
-        }
+        if (!newOpen) resetForm();
         onOpenChange(newOpen);
     };
 
+    const isValid = !!(acronym && year !== null && name && siesCode && semester !== null);
+
     return (
-        <Drawer open={open} onOpenChange={handleOpenChange}>
-            <DrawerContent className="flex flex-col max-h-screen">
-                <DrawerHeader>
-                    <DrawerTitle>{t("drawer.subjects.create.title")}</DrawerTitle>
-                    <DrawerDescription>
-                        {t("drawer.subjects.create.description")}
-                    </DrawerDescription>
-                </DrawerHeader>
-
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                    <div className="space-y-2 max-w-sm mx-auto w-full">
-                        <Label htmlFor="subjects-name">{t("drawer.subjects.create.name")}</Label>
-                        <Input
-                            id="subjects-name"
-                            name="subjects-name"
-                            value={name}
-                            onChange={(e) => {
-                                const value = e.target.value;
-                                if (/^[A-ZÁÉÍÓÚÑ\s]*$/.test(value.toUpperCase())) {
-                                    setName(value);
-                                }
-                            }}
-                            placeholder="Ej: Introducción a la Programación"
-                        />
-                    </div>
-
-                    <div className="space-y-2 max-w-sm mx-auto w-full">
-                        <Label htmlFor="subjects-acronym">{t("drawer.subjects.create.acronym")}</Label>
-                        <Input
-                            id="subjects-acronym"
-                            name="subjects-acronym"
-                            value={acronym}
-                            onChange={(e) => {
-                                const value = e.target.value;
-                                if (/^[A-Za-z]{0,20}$/.test(value)) {
-                                    setAcronym(value);
-                                }
-                            }}
-                            placeholder="Ej: Est, IP, Calc"
-                        />
-                    </div>
-
-                    <div className="space-y-2 max-w-sm mx-auto w-full">
-                        <Label htmlFor="subjects-year">{t("drawer.subjects.create.year")}</Label>
-                        <Select
-                            onValueChange={(value) => setYear(Number(value))}
-                            value={year !== null ? String(year) : ""}
-                        >
-                            <SelectTrigger id="subjects-year" className="w-full">
-                                <SelectValue placeholder="Selecciona el año" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="0">{t("table.subjects.year.0")}</SelectItem>
-                                <SelectItem value="1">{t("table.subjects.year.1")}</SelectItem>
-                                <SelectItem value="2">{t("table.subjects.year.2")}</SelectItem>
-                                <SelectItem value="3">{t("table.subjects.year.3")}</SelectItem>
-                                <SelectItem value="4">{t("table.subjects.year.4")}</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    <div className="space-y-2 max-w-sm mx-auto w-full">
-                        <Label htmlFor="subject-semester">{t("drawer.subjects.create.semester")}</Label>
-                        <Select
-                            onValueChange={(value) => setSemester(Number(value))}
-                            value={semester !== null ? String(semester) : ""}
-                        >
-                            <SelectTrigger id="subject-semester" className="w-full">
-                                <SelectValue placeholder="Selecciona el semestre" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="1">{t("table.subjects.semester.1")}</SelectItem>
-                                <SelectItem value="2">{t("table.subjects.semester.2")}</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    <div className="space-y-2 max-w-sm mx-auto w-full">
-                        <Label htmlFor="subject-sies-code">{t("drawer.subjects.create.siesCode")}</Label>
-                        <Input
-                            id="subject-sies-code"
-                            name="subject-sies-code"
-                            value={siesCode}
-                            onChange={(e) => setSiesCode(e.target.value)}
-                            placeholder="Ej: GIISOF01-1-002"
-                            maxLength={20}
-                        />
-                    </div>
-                </div>
-
-                <div className="p-4 flex justify-end space-x-2 border-t">
-                    <DrawerClose asChild>
-                        <Button variant="outline" onClick={resetForm}>
-                            {t("drawer.subjects.create.cancel")}
-                        </Button>
-                    </DrawerClose>
-                    <Button
-                        onClick={handleSave}
-                        disabled={!acronym || year === null || !name || !siesCode || !semester}
-                    >
-                        {t("drawer.subjects.create.save")}
-                    </Button>
-                </div>
-            </DrawerContent>
-        </Drawer>
-    )
+        <FormDrawer
+            open={open}
+            onOpenChange={handleOpenChange}
+            title={t("drawer.subjects.create.title")}
+            description={t("drawer.subjects.create.description")}
+            onSave={handleSave}
+            onCancel={resetForm}
+            isValid={isValid}
+            saveLabel={t("drawer.subjects.create.save")}
+            cancelLabel={t("drawer.subjects.create.cancel")}
+        >
+            <div className="space-y-2 max-w-sm mx-auto w-full">
+                <Label htmlFor="subjects-name">{t("drawer.subjects.create.name")}</Label>
+                <Input
+                    id="subjects-name"
+                    name="subjects-name"
+                    value={name}
+                    onChange={(e) => {
+                        const value = e.target.value;
+                        if (/^[A-ZÁÉÍÓÚÑ\s]*$/.test(value.toUpperCase())) setName(value);
+                    }}
+                    placeholder="Ej: Introducción a la Programación"
+                />
+            </div>
+            <div className="space-y-2 max-w-sm mx-auto w-full">
+                <Label htmlFor="subjects-acronym">{t("drawer.subjects.create.acronym")}</Label>
+                <Input
+                    id="subjects-acronym"
+                    name="subjects-acronym"
+                    value={acronym}
+                    onChange={(e) => {
+                        const value = e.target.value;
+                        if (/^[A-Za-z]{0,20}$/.test(value)) setAcronym(value);
+                    }}
+                    placeholder="Ej: Est, IP, Calc"
+                />
+            </div>
+            <div className="space-y-2 max-w-sm mx-auto w-full">
+                <Label htmlFor="subjects-year">{t("drawer.subjects.create.year")}</Label>
+                <Select onValueChange={(value) => setYear(Number(value))} value={year !== null ? String(year) : ""}>
+                    <SelectTrigger id="subjects-year" className="w-full">
+                        <SelectValue placeholder="Selecciona el año" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="0">{t("table.subjects.year.0")}</SelectItem>
+                        <SelectItem value="1">{t("table.subjects.year.1")}</SelectItem>
+                        <SelectItem value="2">{t("table.subjects.year.2")}</SelectItem>
+                        <SelectItem value="3">{t("table.subjects.year.3")}</SelectItem>
+                        <SelectItem value="4">{t("table.subjects.year.4")}</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+            <div className="space-y-2 max-w-sm mx-auto w-full">
+                <Label htmlFor="subject-semester">{t("drawer.subjects.create.semester")}</Label>
+                <Select onValueChange={(value) => setSemester(Number(value))} value={semester !== null ? String(semester) : ""}>
+                    <SelectTrigger id="subject-semester" className="w-full">
+                        <SelectValue placeholder="Selecciona el semestre" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="1">{t("table.subjects.semester.1")}</SelectItem>
+                        <SelectItem value="2">{t("table.subjects.semester.2")}</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+            <div className="space-y-2 max-w-sm mx-auto w-full">
+                <Label htmlFor="subject-sies-code">{t("drawer.subjects.create.siesCode")}</Label>
+                <Input
+                    id="subject-sies-code"
+                    name="subject-sies-code"
+                    value={siesCode}
+                    onChange={(e) => setSiesCode(e.target.value)}
+                    placeholder="Ej: GIISOF01-1-002"
+                    maxLength={20}
+                />
+            </div>
+        </FormDrawer>
+    );
 }

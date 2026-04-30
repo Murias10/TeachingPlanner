@@ -1,17 +1,8 @@
-// components/classroom/EditClassroomDrawer.tsx
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import {
-    Drawer,
-    DrawerContent,
-    DrawerHeader,
-    DrawerTitle,
-    DrawerClose,
-    DrawerDescription
-} from "@/components/ui/drawer";
+import { FormDrawer } from "@/components/ui/FormDrawer";
 
 export interface EditClassroomFormData {
     classroomId: string;
@@ -40,7 +31,6 @@ export const EditClassroomDrawer = ({
     const [gisUrl, setGisUrl] = useState("");
     const [isLoading, setIsLoading] = useState(false);
 
-    // Reset form when drawer closes or classroomData changes
     useEffect(() => {
         if (open && classroomData) {
             setGisUrl(classroomData.gisUrl);
@@ -52,15 +42,9 @@ export const EditClassroomDrawer = ({
 
     const handleSave = async () => {
         if (!classroomData) return;
-
         setIsLoading(true);
-
         try {
-            await onSave({
-                classroomId: classroomData.id,
-                code: classroomData.code,
-                gisUrl: gisUrl.trim()
-            });
+            await onSave({ classroomId: classroomData.id, code: classroomData.code, gisUrl: gisUrl.trim() });
         } catch (error) {
             console.error('Error saving classroom:', error);
         } finally {
@@ -68,76 +52,38 @@ export const EditClassroomDrawer = ({
         }
     };
 
-    const handleClose = () => {
-        if (!isLoading) {
-            onOpenChange(false);
-        }
-    };
-
     const isFormValid = gisUrl.trim() !== "" && gisUrl.trim() !== classroomData?.gisUrl;
 
     return (
-        <Drawer open={open} onOpenChange={onOpenChange}>
-            <DrawerContent className="flex flex-col max-h-screen">
-                <DrawerHeader>
-                    <DrawerTitle>{t("drawer.classrooms.edit.title")}</DrawerTitle>
-                    <DrawerDescription>
-                        {t("drawer.classrooms.edit.description")}
-                    </DrawerDescription>
-                </DrawerHeader>
-
-                {/* Contenido desplazable */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-6">
-                    {/* Código de aula (desactivado) */}
-                    {classroomData && (
-                        <div className="space-y-3 max-w-sm mx-auto">
-                            <Label htmlFor="classroom-code">
-                                {t("drawer.classrooms.edit.code")}
-                            </Label>
-                            <Input
-                                id="classroom-code"
-                                value={classroomData.code}
-                                disabled={true}
-                                className="bg-muted"
-                            />
-                        </div>
-                    )}
-
-                    {/* Campo GIS URL */}
-                    <div className="space-y-3 max-w-sm mx-auto">
-                        <Label htmlFor="classroom-gis-url">
-                            {t("drawer.classrooms.edit.gisUrl")}
-                        </Label>
-                        <Input
-                            id="classroom-gis-url"
-                            type="text"
-                            value={gisUrl}
-                            onChange={(e) => setGisUrl(e.target.value)}
-                            placeholder={t("drawer.classrooms.edit.gisUrl.placeholder")}
-                            disabled={isLoading}
-                        />
-                    </div>
+        <FormDrawer
+            open={open}
+            onOpenChange={onOpenChange}
+            title={t("drawer.classrooms.edit.title")}
+            description={t("drawer.classrooms.edit.description")}
+            onSave={handleSave}
+            onCancel={() => { if (!isLoading) onOpenChange(false); }}
+            isValid={isFormValid}
+            isLoading={isLoading}
+            saveLabel={t("drawer.classrooms.edit.save")}
+            cancelLabel={t("drawer.classrooms.edit.cancel")}
+        >
+            {classroomData && (
+                <div className="space-y-3 max-w-sm mx-auto">
+                    <Label htmlFor="classroom-code">{t("drawer.classrooms.edit.code")}</Label>
+                    <Input id="classroom-code" value={classroomData.code} disabled className="bg-muted" />
                 </div>
-
-                {/* Botones */}
-                <div className="p-4 flex justify-end space-x-2 border-t">
-                    <DrawerClose asChild>
-                        <Button
-                            variant="outline"
-                            onClick={handleClose}
-                            disabled={isLoading}
-                        >
-                            {t("drawer.classrooms.edit.cancel")}
-                        </Button>
-                    </DrawerClose>
-                    <Button
-                        disabled={!isFormValid || isLoading}
-                        onClick={handleSave}
-                    >
-                        {t("drawer.classrooms.edit.save")}
-                    </Button>
-                </div>
-            </DrawerContent>
-        </Drawer>
+            )}
+            <div className="space-y-3 max-w-sm mx-auto">
+                <Label htmlFor="classroom-gis-url">{t("drawer.classrooms.edit.gisUrl")}</Label>
+                <Input
+                    id="classroom-gis-url"
+                    type="text"
+                    value={gisUrl}
+                    onChange={(e) => setGisUrl(e.target.value)}
+                    placeholder={t("drawer.classrooms.edit.gisUrl.placeholder")}
+                    disabled={isLoading}
+                />
+            </div>
+        </FormDrawer>
     );
 };

@@ -82,42 +82,29 @@ const SettingsPage = () => {
 
     // Handle Google OAuth callback params
     useEffect(() => {
-        console.log('[DEBUG] OAuth callback useEffect triggered')
-        console.log('[DEBUG] Current URL:', globalThis.location.href)
-        console.log('[DEBUG] searchParams object:', searchParams.toString())
-
         const googleConnectedParam = searchParams.get('google_connected')
         const googleError = searchParams.get('google_error')
 
-        console.log('[DEBUG] google_connected param:', googleConnectedParam)
-        console.log('[DEBUG] google_error param:', googleError)
-
         const handleOAuthCallback = async () => {
             if (googleConnectedParam === 'true') {
-                console.log('[DEBUG] Google connected === true, showing success alert')
                 triggerAlert({
                     title: t('success.title'),
                     description: t('settings.google.connectSuccess'),
                     variant: 'success'
                 })
-                console.log('[DEBUG] Reloading Google status from API...')
                 const status = await getStatus()
-                console.log('[DEBUG] Reloaded status:', status)
                 if (status) {
                     setGoogleConnected(status.connected)
                     setGoogleEmail(status.email)
                 }
                 setSearchParams({})
             } else if (googleError) {
-                console.log('[DEBUG] Google error detected:', googleError)
                 triggerAlert({
                     title: t('error.title'),
                     description: `${t('error.title')}: ${googleError}`,
                     variant: 'destructive'
                 })
                 setSearchParams({})
-            } else {
-                console.log('[DEBUG] No google_connected or google_error params found')
             }
         }
 

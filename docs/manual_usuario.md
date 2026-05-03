@@ -2,7 +2,19 @@
 
 ## Introduction
 
-TeachingPlanner is a web-based academic scheduling application that allows you to manage degrees, courses, semester calendars, and teaching events. The system recognises three user profiles, each with a different level of access:
+TeachingPlanner is a web-based academic scheduling application that allows you to manage degrees, courses, semester calendars, and a broad spectrum of events across five types:
+
+- **Class** — regular teaching session. Counts towards the group's planned teaching hours and is included in schedule exports. The following class types are available:
+  - Theory (T)
+  - Seminar (S)
+  - Laboratory (L)
+  - Group Tutorial (TG)
+- **Evaluation** *(displayed as EV· in the calendar)* — examination or formal assessment activity. Does not consume planned teaching hours. Can be assigned to multiple groups and classrooms simultaneously.
+- **Review** *(displayed as RE· in the calendar)* — exam review or post-assessment session. Same behaviour as Evaluation.
+- **Others** *(displayed as OT· in the calendar)* — any other activity requiring a room booking without consuming teaching hours: talks, workshops, open days, and similar events.
+- **Independent** — room reservation with no associated subject or group, used to block a classroom for non-academic purposes (e.g. maintenance, external bookings).
+
+Events may belong to subjects within any of the registered degree programmes or be entirely independent of any specific subject. The system recognises three user profiles, each with a different level of access:
 
 | Profile | Authentication | What they can do |
 |---------|---------------|------------------|
@@ -18,7 +30,7 @@ The guide is organised into common sections (accessible to all profiles) and rol
 
 ### 1.1 Welcome Screen
 
-When you open the application for the first time, the welcome screen is displayed.
+Open the application in your browser at **[planificador.ingenieriainformatica.uniovi.es](https://planificador.ingenieriainformatica.uniovi.es)**. The welcome screen is displayed.
 
 > **[IMAGE 1 — Welcome screen]**: screenshot of the `/` route, showing the central card with the title "Teaching Planner", the subtitle, and the two main buttons.
 
@@ -63,7 +75,15 @@ Enter the six-digit code from the email and click **Verify Code**. If the code i
 
 > **[IMAGE 5 — Recovery, step 3]**: screenshot of the third step, showing the new password and confirmation fields along with the requirements indicator.
 
-Enter and confirm your new password. The requirements indicator updates in real time. Once all requirements are satisfied, click **Update Password**. You will be redirected to the login form.
+Enter and confirm your new password. The requirements indicator updates in real time as you type, showing which conditions are already met. The password must satisfy all of the following requirements:
+
+- At least **8 characters** (and no more than 128).
+- At least one **uppercase letter** (A–Z).
+- At least one **lowercase letter** (a–z).
+- At least one **number** (0–9).
+- At least one **special character** (e.g. `!`, `@`, `#`, `$`, `%`, `&`, `*`).
+
+These requirements exist to ensure your account remains secure even if the system is exposed to automated attacks. Once all requirements are satisfied, click **Update Password**. You will be redirected to the login form.
 
 ---
 

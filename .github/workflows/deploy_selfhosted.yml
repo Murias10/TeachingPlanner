@@ -383,11 +383,11 @@ jobs:
       - name: 🛑 Detener servicios actuales
         run: |
           cd $HOME/TeachingPlanner
-          docker compose down || true
+          # docker compose down || true
 
           # ⚠️ ADVERTENCIA: Descomentar la siguiente línea BORRA todos los datos de las bases de datos
           # Útil para desarrollo/TFG cuando se necesita resetear el esquema completamente
-          # docker compose down -v || true
+          docker compose down -v || true
 
       - name: 🗑️ Limpiar imágenes Docker no utilizadas
         run: |

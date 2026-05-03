@@ -519,10 +519,15 @@ classDiagram
 
     class EventRequest {
         +string professorId
+        +string calendarId
+        +string eventType
         +string requestType
-        +string status
-        +string description
+        +string originalEventId
         +JSON eventData
+        +string status
+        +string reviewedBy
+        +Date reviewedAt
+        +string comments
     }
 
     class CalendarSync {
@@ -538,6 +543,15 @@ classDiagram
         +string userId
         +string googleCalendarId
         +string googleCalendarName
+    }
+
+    class ApiQuotaCounter {
+        +string apiKey
+        +number minuteCount
+        +number minuteWindowStart
+        +number dailyCount
+        +number dailyCalendarCreations
+        +number dailyWindowStart
     }
 
     AuditedEntity <|-- Degree
@@ -571,7 +585,9 @@ classDiagram
 
 - `CourseState` es un enumerado con tres valores que representan el ciclo de vida de un curso académico: `PLANIFICADO` (antes del inicio del semestre), `ACTIVO` (curso en curso) y `FINALIZADO` (semestre concluido). Este estado controla qué operaciones de edición están permitidas sobre el calendario asociado.
 
-- `SyncStatus` es un enumerado con los valores `IDLE`, `SYNCING`, `SUCCESS` y `ERROR`, que refleja el estado del último proceso de sincronización con Google Calendar para un par (usuario, calendario académico).
+- `SyncStatus` es un enumerado con los valores `IDLE`, `SYNCING`, `SUCCESS`, `ERROR` y `DELETING`, que refleja el estado del último proceso de sincronización con Google Calendar para un par (usuario, calendario académico). El estado `DELETING` se activa en el momento en que el usuario inicia la eliminación de un sync individual y permite que la interfaz muestre el estado correcto incluso si el usuario recarga la página mientras el borrado está en curso.
+
+- `ApiQuotaCounter` es una entidad de infraestructura (no de negocio) que persiste los contadores de cuota de la Google Calendar API entre reinicios del servidor. Su clave primaria `apiKey` identifica el sistema externo cuya cuota se monitoriza (valor `'google_calendar'`). Los campos `minuteCount`/`minuteWindowStart` implementan la ventana deslizante de 1 minuto; `dailyCount`, `dailyCalendarCreations` y `dailyWindowStart` controlan los límites diarios. Esta entidad no extiende `AuditedEntity` porque no es una entidad de negocio y no requiere trazabilidad de creación/modificación.
 
 - **Restricciones de unicidad del dominio** (invariantes de negocio implementadas como índices únicos en la base de datos):
   - `Calendar`: `UNIQUE(courseId, semester)` — un curso no puede tener dos calendarios del mismo semestre.
@@ -712,6 +728,10 @@ sequenceDiagram
 | `APPROVED` | Administrador aprueba; el cambio contenido en `eventData` se aplica sobre el evento original | — (estado terminal) |
 | `REJECTED` | Administrador rechaza; el evento original no se modifica | — (estado terminal) |
 
+El flujo de solicitudes implica dos rutas de la webapp:
+- `/degrees/.../solicitudes` (`SolicitudPage`): vista por semestre, accesible para ADMIN
+- `/my-requests` (`MyRequestsPage`): vista personal del profesor con todas sus solicitudes entre semestres, accesible para PROFESSOR; permite filtrar por estado y retirar solicitudes pendientes
+
 **Tipos de solicitud (`requestType`):**
 
 | Tipo | Descripción | `originalEventId` |
@@ -826,12 +846,12 @@ Los endpoints disponibles en `planner_service` para este flujo son:
 
 | Verbo | Ruta | Descripción |
 |---|---|---|
-| `POST` | `/calendar-sync/initialize` | Crea las entradas `CalendarSync` tras vincular Google (llamado desde `auth_service`) |
+| `GET` | `/calendar-sync/rate-limit-status` | Devuelve el estado actual de los contadores de cuota de la Google Calendar API (uso del minuto y del día, límites configurados). Requiere autenticación; no requiere rol específico |
+| `POST` | `/calendar-sync/initialize` | Crea las entradas `CalendarSync` tras vincular Google (llamado desde `auth_service`, uso interno) |
 | `GET` | `/calendar-sync` | Devuelve las configuraciones de sync del usuario autenticado |
 | `DELETE` | `/calendar-sync/:id` | Elimina un sync individual: limpia eventos de Google, elimina Google Calendar si queda vacío y borra el registro de BD |
 | `POST` | `/calendar-sync/:id/sync-now` | Dispara la sincronización real del calendario a Google Calendar |
-| `DELETE` | `/calendar-sync/user/all` | Elimina todas las entradas de sync del usuario (al desconectar Google) |
-| `DELETE` | `/calendar-sync/cleanup` | Endpoint interno: llamado desde `auth_service` durante la desconexión |
+| `DELETE` | `/calendar-sync/cleanup` | Endpoint interno: llamado desde `auth_service` durante la desconexión; elimina todos los syncs del usuario y limpia sus calendarios en Google |
 
 **Figura 5.9a — Eliminar sincronización individual**
 

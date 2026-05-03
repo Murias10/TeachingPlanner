@@ -138,7 +138,7 @@ cp .env.template .env
 
 | Variable | Description | Value |
 |---|---|---|
-| `WEBAPP_PORT` | External port exposed by Caddy | `80` in production, `3000` in development |
+| `WEBAPP_PORT` | External port of the Caddy container on the host (used for the `docker-compose.dev.yml` container only; the Vite development server runs independently on port 5173 and is not affected by this variable) | `80` |
 | `WEBAPP_HOST` | Webapp container name | `webapp` |
 | `DOMAIN` | Domain used by Caddy to serve the application. With `localhost` it serves over HTTP; with a real domain it enables HTTPS using the mounted certificate | `localhost` in development |
 | `SERVER_IP` | Public IP of the server, added to the CORS allowlist of `gateway_service`. Required when the application is accessed directly by IP (without a domain) | Server's public IP |
@@ -253,7 +253,7 @@ Open the browser at `http://localhost:5173`. The initial users are defined in `a
 | `uo290009` | Diego Murias Suárez | Administrator | uo290009@uniovi.es | `123456` |
 | `jrpp` | Juan Ramón Perez | Administrator | jrpp@uniovi.es | `123456` |
 | `falvarez` | Fernando Álvarez García | Administrator | falvarez@uniovi.es | `123456` |
-| `teacher` | Diego Murias Suárez | Teacher | teacher@uniovi.es | `123456` |
+| `teacher` | Diego Murias Suárez | Professor | teacher@uniovi.es | `123456` |
 
 It is recommended to change the initial passwords after the first login.
 

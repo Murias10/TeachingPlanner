@@ -15,13 +15,13 @@ El frontend es una aplicación de página única (*SPA*) construida con React 19
 ```mermaid
 graph TD
     subgraph "webapp/src/"
-        APP["App.tsx\n(Router principal — 17 rutas)"]
+        APP["App.tsx\n(Router principal — 18 rutas)"]
         MAIN["main.tsx\n(Entry point · QueryClient · i18n)"]
 
-        subgraph "pages/ — 19 páginas"
+        subgraph "pages/ — 20 páginas"
             PUB["Públicas sin layout\n/ · /login · /activate · /forgot-password"]
             LAYOUT_PUB["Públicas con layout\n/home · /degrees · /courses\n/calendar · /classrooms\n/groups · /subjects · /solicitudes"]
-            LAYOUT_PROT["Protegidas\n/users · /settings · /calendar-sync · /solicitudes"]
+            LAYOUT_PROT["Protegidas\n/users · /settings · /calendar-sync · /solicitudes · /my-requests"]
         end
 
         subgraph "components/ — por dominio"
@@ -83,7 +83,8 @@ graph TD
 | `/settings` | SettingsPage | **Protegido** |
 | `/calendar-sync` | CalendarSyncPage | **Protegido** |
 | `/users` | UserPage | **Protegido** |
-| `/solicitudes` | AllSolicitudesPage | **Protegido** |
+| `/solicitudes` | AllSolicitudesPage | **Protegido** (ADMIN) |
+| `/my-requests` | MyRequestsPage | **Protegido** (PROFESSOR) |
 | `*` | — | Redirección a `/` |
 
 ---
@@ -202,8 +203,9 @@ planner_service/src/
 │   ├── group.controller.ts
 │   ├── subject.controller.ts
 │   └── test.controller.ts        # Endpoint de limpieza para tests
-├── entities/              # 14 ficheros de entidad; 12 registradas en el DataSource (excluye audited.entity —clase abstracta— y request.entity —auxiliar no registrada—)
+├── entities/              # 15 ficheros de entidad; 13 registradas en el DataSource (excluye audited.entity —clase abstracta— y request.entity —auxiliar no registrada—)
 │   ├── audited.entity.ts         # Clase abstracta base (id, createdAt/By, updatedAt/By)
+│   ├── api-quota-counter.entity.ts  # Contadores globales de cuota de la Google Calendar API
 │   ├── calendar.entity.ts
 │   ├── calendar-sync.entity.ts
 │   ├── classroom.entity.ts
@@ -294,7 +296,7 @@ El sistema emplea dos bases de datos MariaDB 11 completamente independientes:
 | Base de datos | Servicio propietario | Entidades gestionadas |
 |---|---|---|
 | `management_database` | `auth_service`, `user_service` | `User` (autenticación y perfil de usuario) |
-| `planner_database` | `planner_service` | 12 entidades del dominio académico registradas en el DataSource |
+| `planner_database` | `planner_service` | 13 entidades del dominio académico registradas en el DataSource |
 
 Esta separación garantiza que un fallo o una migración en la base de datos de planificación no afecte a la autenticación, y viceversa.
 
@@ -361,7 +363,8 @@ npm run test:ci
 | `testTimeout` | `60000` ms | Tiempo de arranque de Testcontainers |
 | `forceExit` | `true` | Evita que Jest quede colgado tras destruir el contenedor |
 | `clearMocks` | `true` | Limpia mocks entre tests |
-| `coverageThreshold` | branches/functions/lines/statements ≥ **70%** | Objetivo de calidad |
+| `resetMocks` | `true` | Restablece estado de mocks entre tests |
+| `restoreMocks` | `true` | Restaura implementaciones originales entre tests |
 
 #### Casos de prueba
 
@@ -595,15 +598,15 @@ flowchart TD
     E9 -->|"No"| E10 --> FAIL2["❌ Pipeline fallido\n(merge bloqueado)"]
 ```
 
-**Servicios y puertos verificados en CI:**
+**Servicios y puertos verificados en CI** (script `webapp/scripts/wait-for-services.ts`):
 
-| Servicio | Puerto | Health check usado en `wait-for-services.ts` |
+| Servicio | Puerto | Health check |
 |---|---|---|
-| gateway_service | 8080 | `GET /api/degrees` |
-| planner_service | 5001 | `GET /degrees` |
-| user_service | 5002 | `GET /health` |
-| auth_service | 5003 | `GET /health` |
-| MariaDB (CI) | 3306 | `mariadb-admin ping` (health check Docker) |
+| gateway_service | 8080 | `GET http://localhost:8080/api/degrees` |
+| planner_service | 5001 | `GET http://localhost:5001/degrees` |
+| user_service | 5002 | `GET http://localhost:5002/health` |
+| auth_service | 5003 | `GET http://localhost:5003/health` |
+| MariaDB (CI) | 3306 | `mariadb-admin ping` (health check del servicio Docker) |
 
 **Bases de datos en CI:**
 - `planner_db_test` — entidades del dominio de planificación

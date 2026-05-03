@@ -183,9 +183,9 @@ Una vez configurado:
 1. Un usuario ADMIN debe ir a **Configuracion** en la webapp
 2. Click en **"Conectar con Google"**
 3. Autorizar el acceso a Google Calendar
-4. Ir a la pagina de **Calendarios**
-5. Seleccionar los calendarios que quiere sincronizar
-6. Usar el botón **Sincronizar** para lanzar la sincronización manualmente
+4. Ir a la pagina de **Calendarios** (Manage synchronisations)
+5. Usar el botón **Sincronizar ahora** para lanzar la sincronización manualmente
+6. Para eliminar una sincronización, pulsar el icono de papelera y confirmar en el modal
 
 ### Endpoints disponibles
 
@@ -197,6 +197,5 @@ Una vez configurado:
 | GET | `/api/auth/google/status` | Estado de conexion |
 | GET | `/api/calendar-sync` | Lista syncs del usuario |
 | POST | `/api/calendar-sync` | Crea nuevo sync |
-| DELETE | `/api/calendar-sync/:id` | Elimina sync |
-| PATCH | `/api/calendar-sync/:id/toggle` | Activa/desactiva sync |
+| DELETE | `/api/calendar-sync/:id` | Elimina sync individual: limpia eventos de Google, elimina Google Calendar si queda vacío |
 | POST | `/api/calendar-sync/:id/sync-now` | Sincroniza inmediatamente |

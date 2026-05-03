@@ -57,4 +57,7 @@ export class User {
 
   @Column('boolean', { name: 'GOOGLE_CALENDAR_SYNC_ENABLED', default: false })
   googleCalendarSyncEnabled!: boolean;
+
+  @Column('boolean', { name: 'GOOGLE_DISCONNECTING', default: false })
+  googleDisconnecting!: boolean;
 }

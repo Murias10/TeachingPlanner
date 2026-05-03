@@ -65,51 +65,36 @@ export const googleInitiate = (req: Request, res: Response, next: NextFunction) 
 
 export const googleCallback = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        console.log('[GATEWAY DEBUG] googleCallback invoked');
         const { code, state } = req.query;
-        console.log('[GATEWAY DEBUG] Query params - code:', code ? 'present' : 'missing', 'state:', state ? 'present' : 'missing');
 
         const queryParams = new URLSearchParams({
             code: code as string,
             state: state as string
         }).toString();
 
-        console.log('[GATEWAY DEBUG] Forwarding to auth_service:', `${SERVICES.AUTH}/auth/google/callback?${queryParams}`);
+        // maxRedirects: 0 — manual redirect handling so the browser follows the final location
         const response = await axios.get(`${SERVICES.AUTH}/auth/google/callback?${queryParams}`, {
             maxRedirects: 0,
             validateStatus: (status) => status >= 200 && status < 400
         });
 
-        console.log('[GATEWAY DEBUG] Auth service response status:', response.status);
-        console.log('[GATEWAY DEBUG] Auth service response headers:', response.headers);
-
-        // Si el auth service devolvió una redirección
         if (response.status >= 300 && response.status < 400) {
             const location = response.headers['location'];
-            console.log('[GATEWAY DEBUG] Redirect detected, location header:', location);
             if (location) {
-                console.log('[GATEWAY DEBUG] Redirecting browser to:', location);
                 res.redirect(location);
                 return;
             }
         }
 
-        // Si no es redirect, pasar la respuesta normal
-        console.log('[GATEWAY DEBUG] No redirect, sending response data');
         res.status(response.status).send(response.data);
     } catch (error: any) {
-        console.log('[GATEWAY DEBUG] Exception caught:', error.message);
-        // Manejar redirecciones de axios
         if (error.response && error.response.status >= 300 && error.response.status < 400) {
             const location = error.response.headers['location'];
-            console.log('[GATEWAY DEBUG] Redirect in error handler, location:', location);
             if (location) {
-                console.log('[GATEWAY DEBUG] Redirecting browser to (from error):', location);
                 res.redirect(location);
                 return;
             }
         }
-        console.log('[GATEWAY DEBUG] Passing error to next middleware');
         next(error);
     }
 };
@@ -139,10 +124,10 @@ export const getRateLimitStatus = (req: Request, res: Response, next: NextFuncti
         method: 'GET'
     });
 
-export const toggleCalendarSync = (req: Request, res: Response, next: NextFunction) =>
+export const deleteCalendarSync = (req: Request, res: Response, next: NextFunction) =>
     proxyRequest(req, res, next, {
-        url: `${SERVICES.PLANNER}/calendar-sync/${req.params.id}/toggle`,
-        method: 'PATCH'
+        url: `${SERVICES.PLANNER}/calendar-sync/${req.params.id}`,
+        method: 'DELETE'
     });
 
 export const syncNow = (req: Request, res: Response, next: NextFunction) =>

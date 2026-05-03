@@ -478,13 +478,13 @@ Go to **Settings** (click your avatar → **Settings**) and scroll to the **Goog
 - **Status badge**: shows whether a Google account is currently connected (green) or not (grey).
 - **Connect**: click **Connect** and follow Google's OAuth authorisation flow. Once authorised, the badge turns green and shows the linked Google account's email.
 - **Manage synchronisations**: appears when connected; clicking it navigates to the synchronisation page (section 5.11).
-- **Disconnect**: removes the Google account link. Existing synced calendars are not deleted from Google Calendar automatically.
+- **Disconnect**: removes the Google account link. All synced Google Calendars created by the system are deleted from Google Calendar automatically.
 
 ---
 
 ### 5.11 Google Calendar Synchronisation
 
-> **[IMAGE 44 — Synchronisation page]**: screenshot of `/calendar-sync`, showing the academic calendars table with the degree filter, the Active/Inactive toggle switch, the status badge, and the sync icon button.
+> **[IMAGE 44 — Synchronisation page]**: screenshot of `/calendar-sync`, showing the academic calendars table with the degree filter, the status badge, the sync icon button, and the delete button.
 
 > **[IMAGE 45 — Synchronisation in progress]**: screenshot of the sync icon button in its loading state and the progress bar showing "{N} / {Total} completed".
 
@@ -494,7 +494,7 @@ The table lists all academic calendars in the system. Use the **Filter by degree
 
 For each calendar:
 
-1. Toggle the **Active / Inactive** switch to enable or disable synchronisation for that calendar.
-2. Click the **sync icon** (tooltip: **Sync now**) to launch a manual synchronisation immediately. A progress bar will appear showing `{N} / {Total} completed` while the operation runs.
+1. Click the **sync icon** (tooltip: **Sync now**) to launch a manual synchronisation immediately. A progress bar will appear showing `{N} / {Total} completed` while the operation runs.
+2. Click the **trash icon** (tooltip: **Remove sync**) to remove the synchronisation for that calendar. A confirmation dialog will appear showing the degree name, academic year, and semester. On confirmation, the system removes all events belonging to that academic calendar from Google Calendar, deletes the Google Calendar for any classroom that becomes empty, and removes the row from the table. **This button only appears once the calendar has been synchronised at least once.**
 
-The **Status** column shows the result of the last synchronisation: *Inactive*, *Syncing*, *Success*, or *Error*. When synchronisation runs, the application creates Google Calendars for each classroom that has events in the academic calendar, distributing events by classroom location. The **Last synchronised** column shows when the most recent successful sync occurred, or *Never* if it has not been synced yet.
+The **Status** column shows the result of the last synchronisation: *Idle*, *Syncing*, *Success*, *Error*, or *Deleting* (while a removal is in progress). When synchronisation runs, the application creates Google Calendars for each classroom that has events in the academic calendar, distributing events by classroom location. The **Last synchronised** column shows when the most recent successful sync occurred, or *Never* if it has not been synced yet.

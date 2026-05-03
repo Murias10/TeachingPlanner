@@ -527,7 +527,6 @@ classDiagram
 
     class CalendarSync {
         +string userId
-        +boolean syncEnabled
         +SyncStatus syncStatus
         +Date lastSyncAt
         +string currentOperation
@@ -654,7 +653,7 @@ sequenceDiagram
     auth->>auth: Descifra state → userId; decodifica id_token
     auth->>db: UPDATE User (googleId, googleAccessToken cifrado, googleRefreshToken cifrado)
     auth->>planner: POST /calendar-sync/initialize {userId, userEmail}
-    planner->>db: INSERT CalendarSync por cada Calendar (syncEnabled=false)
+    planner->>db: INSERT CalendarSync por cada Calendar (syncStatus=IDLE)
     auth-->>webapp: Redirect a /settings?googleConnected=true
     webapp-->>Usuario: Confirmación de cuenta vinculada
 ```
@@ -815,13 +814,13 @@ El diseño se apoya en dos entidades nuevas del modelo de dominio y un servicio 
 
 1. **`GoogleClassroomCalendar`**: vincula cada `Classroom` del sistema con un `googleCalendarId` de la cuenta de Google del usuario. Cuando un usuario conecta su cuenta de Google, el sistema crea automáticamente un Google Calendar por cada aula registrada, de forma que los eventos de distintas aulas aparezcan en calendarios separados. Esto permite al profesorado suscribirse selectivamente solo a las aulas de su interés.
 
-2. **`CalendarSync`**: registra el estado de la sincronización para cada par (usuario, calendario académico). El campo `syncStatus` (enumerado `IDLE / SYNCING / SUCCESS / ERROR`) refleja el estado del último proceso de sincronización, y `currentOperation` proporciona una descripción textual del progreso que la interfaz web puede mostrar en tiempo real durante una sincronización activa. Los campos `totalCalendars` y `processedCalendars` permiten calcular un porcentaje de progreso.
+2. **`CalendarSync`**: registra el estado de la sincronización para cada par (usuario, calendario académico). El campo `syncStatus` (enumerado `IDLE / SYNCING / SUCCESS / ERROR / DELETING`) refleja el estado del último proceso de sincronización, y `currentOperation` proporciona una descripción textual del progreso que la interfaz web puede mostrar en tiempo real durante una sincronización activa. Los campos `totalCalendars` y `processedCalendars` permiten calcular un porcentaje de progreso. El estado `DELETING` se activa cuando el usuario elimina un sync individual y permite que la UI muestre el estado correcto incluso si el usuario recarga la página durante el proceso.
 
 3. **`GoogleCalendarService`** (`planner_service/src/services/google-calendar.service.ts`): contiene toda la lógica de comunicación con la Google Calendar API v3. Implementa la creación, actualización (upsert) y eliminación de eventos en Google Calendar, así como la gestión del refresco automático del `access_token` cuando ha expirado usando el `refresh_token` almacenado en la entidad `User`.
 
 #### Flujo de sincronización
 
-La sincronización con Google Calendar es **exclusivamente manual**: el usuario habilita los calendarios que desea sincronizar y después dispara la sincronización con el botón «Sincronizar ahora». El toggle de activación y la sincronización real son dos operaciones independientes.
+La sincronización con Google Calendar es **exclusivamente manual**: el usuario sincroniza cada calendario con el botón «Sincronizar ahora». Cuando el usuario ya no desea mantener un calendario sincronizado, lo elimina mediante el botón de papelera, que abre un modal de confirmación antes de ejecutar la acción. El botón de eliminar solo aparece si el calendario ha sido sincronizado al menos una vez (es decir, cuando `syncStatus` no es `IDLE` o existe `lastSyncAt`), dado que antes de la primera sincronización no hay datos en Google Calendar que limpiar.
 
 Los endpoints disponibles en `planner_service` para este flujo son:
 
@@ -829,12 +828,12 @@ Los endpoints disponibles en `planner_service` para este flujo son:
 |---|---|---|
 | `POST` | `/calendar-sync/initialize` | Crea las entradas `CalendarSync` tras vincular Google (llamado desde `auth_service`) |
 | `GET` | `/calendar-sync` | Devuelve las configuraciones de sync del usuario autenticado |
-| `PATCH` | `/calendar-sync/:id/toggle` | Activa o desactiva el flag `syncEnabled` (no sincroniza) |
+| `DELETE` | `/calendar-sync/:id` | Elimina un sync individual: limpia eventos de Google, elimina Google Calendar si queda vacío y borra el registro de BD |
 | `POST` | `/calendar-sync/:id/sync-now` | Dispara la sincronización real del calendario a Google Calendar |
 | `DELETE` | `/calendar-sync/user/all` | Elimina todas las entradas de sync del usuario (al desconectar Google) |
 | `DELETE` | `/calendar-sync/cleanup` | Endpoint interno: llamado desde `auth_service` durante la desconexión |
 
-**Figura 5.9a — Toggle: habilitar/deshabilitar sincronización**
+**Figura 5.9a — Eliminar sincronización individual**
 
 ```mermaid
 sequenceDiagram
@@ -842,15 +841,23 @@ sequenceDiagram
     participant webapp as webapp (React)
     participant gateway as gateway_service
     participant planner as planner_service
+    participant google as Google Calendar API
     participant db as planner_database
 
-    Admin->>webapp: Activa o desactiva el toggle de un Calendar
-    webapp->>gateway: PATCH /calendar-sync/:id/toggle
-    gateway->>planner: PATCH /calendar-sync/:id/toggle
-    planner->>db: UPDATE CalendarSync (syncEnabled = !syncEnabled)
-    planner-->>gateway: 200 {syncEnabled: true|false}
+    Admin->>webapp: Pulsa botón eliminar sync
+    webapp-->>Admin: Modal de confirmación
+    Admin->>webapp: Confirma eliminación
+    webapp->>gateway: DELETE /calendar-sync/:id
+    gateway->>planner: DELETE /calendar-sync/:id
+    planner->>auth: GET /auth/google/token/:userId (interno)
+    auth-->>planner: {accessToken}
+    planner->>db: UPDATE CalendarSync (syncStatus=DELETING)
+    planner->>google: DELETE eventos del calendario académico en cada Google Calendar del usuario
+    planner->>google: DELETE Google Calendar si queda vacío
+    planner->>db: DELETE CalendarSync
+    planner-->>gateway: 200 {success: true}
     gateway-->>webapp: 200 OK
-    webapp-->>Admin: Toggle actualizado
+    webapp-->>Admin: Fila desaparece de la tabla
 ```
 
 **Figura 5.9b — Sincronización manual con Google Calendar**
@@ -886,9 +893,13 @@ sequenceDiagram
 
 #### Control de cuotas de la Google Calendar API
 
-La Google Calendar API impone un límite de 600 peticiones por minuto por usuario. El servicio implementa un control de cuotas que limita el ritmo de envío a 400 peticiones por minuto (margen de seguridad del 33%), pausando automáticamente el proceso cuando se acerca al límite y reanudándolo tras la ventana temporal correspondiente.
+La Google Calendar API impone un límite de 600 peticiones por minuto a nivel de proyecto de Google Cloud (compartido entre todos los usuarios del sistema). El servicio implementa un control de cuotas que limita el ritmo de envío a 400 peticiones por minuto (margen de seguridad del 33%), pausando automáticamente cuando se acerca al límite y reanudando tras la ventana temporal correspondiente.
 
-En caso de error durante la sincronización (token expirado y no renovable, límite de cuota superado, error de red), el servicio actualiza `CalendarSync.syncStatus` a `ERROR` con el mensaje de error en `errorMessage`, permitiendo al administrador diagnosticar la causa desde la interfaz sin necesidad de consultar los logs del servidor.
+El contador de cuota es **global al servicio** — no por usuario individual — reflejando correctamente cómo Google aplica sus límites. Todas las operaciones que generan llamadas HTTP a Google pasan por `waitForRateLimit()`, incluyendo la creación y borrado de eventos, la creación y borrado de calendarios, y la limpieza de eventos al eliminar un sync individual. Esto garantiza que el widget de cuota de la interfaz muestra el uso real acumulado de todas las operaciones.
+
+Al desconectar la cuenta, el sistema obtiene un token válido mediante `getValidAccessToken()`, que refresca automáticamente el `access_token` usando el `refresh_token` si el primero está próximo a expirar o ya caducó. Esto garantiza que el borrado de calendarios funciona aunque el usuario lleve más de una hora sin sincronizar.
+
+En caso de error durante la sincronización o el borrado (token irrecuperable, cuota superada, error de red), el servicio actualiza `CalendarSync.syncStatus` a `ERROR` con el mensaje de error en `errorMessage`, permitiendo al administrador diagnosticar la causa desde la interfaz sin necesidad de consultar los logs del servidor.
 
 ---
 

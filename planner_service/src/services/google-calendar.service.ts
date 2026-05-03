@@ -216,40 +216,29 @@ export class GoogleCalendarService {
         const syncRepo = AppDataSource.getRepository(CalendarSync);
 
         try {
-            // Get all existing calendars
-            const calendars = await calendarRepo.find();
-            let count = 0;
+            const [calendars, existingSyncs] = await Promise.all([
+                calendarRepo.find(),
+                syncRepo.find({ where: { userId }, select: ['calendarId'] })
+            ]);
 
-            // Create CalendarSync entries for all calendars (initially disabled)
-            for (const calendar of calendars) {
-                try {
-                    // Check if already exists (idempotency)
-                    const existing = await syncRepo.findOne({
-                        where: { userId, calendarId: calendar.id }
-                    });
+            const existingIds = new Set(existingSyncs.map(s => s.calendarId));
+            const missing = calendars.filter(c => !existingIds.has(c.id));
 
-                    if (existing) {
-                        continue; // Skip if already exists
-                    }
-
-                    // Create sync entry (disabled by default)
-                    await syncRepo.save({
+            if (missing.length > 0) {
+                await syncRepo.save(
+                    missing.map(c => syncRepo.create({
                         userId,
-                        calendarId: calendar.id,
-                        syncEnabled: false,
+                        calendarId: c.id,
                         syncStatus: SyncStatus.IDLE,
                         createdBy: userEmail
-                    });
-
-                    count++;
-                } catch (error: any) {
-                    console.error(`Error creating sync for calendar ${calendar.id}:`, error);
-                }
+                    }))
+                );
             }
 
-            return { count };
-        } catch (error: any) {
-            throw new Error(`Failed to initialize calendar sync entries: ${error.message}`);
+            return { count: missing.length };
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            throw new Error(`Failed to initialize calendar sync entries: ${message}`);
         }
     }
 
@@ -309,24 +298,20 @@ export class GoogleCalendarService {
         const syncRepo = AppDataSource.getRepository(CalendarSync);
         const calendarRepo = AppDataSource.getRepository(Calendar);
 
-        // Auto-create missing CalendarSync entries for new calendars
-        const allCalendars = await calendarRepo.find();
-        for (const calendar of allCalendars) {
-            const existing = await syncRepo.findOne({
-                where: { userId, calendarId: calendar.id }
-            });
+        // Ensure every calendar has a CalendarSync entry for this user.
+        // Uses a single query to find missing ones instead of N individual lookups.
+        const [allCalendars, existingSyncs] = await Promise.all([
+            calendarRepo.find(),
+            syncRepo.find({ where: { userId }, select: ['calendarId'] })
+        ]);
 
-            if (!existing) {
-                // Create new CalendarSync entry for this calendar
-                const newSync = syncRepo.create({
-                    userId,
-                    calendarId: calendar.id,
-                    calendar,
-                    syncEnabled: false,
-                    syncStatus: SyncStatus.IDLE
-                });
-                await syncRepo.save(newSync);
-            }
+        const existingCalendarIds = new Set(existingSyncs.map(s => s.calendarId));
+        const missing = allCalendars.filter(c => !existingCalendarIds.has(c.id));
+
+        if (missing.length > 0) {
+            await syncRepo.save(
+                missing.map(calendar => syncRepo.create({ userId, calendarId: calendar.id, syncStatus: SyncStatus.IDLE }))
+            );
         }
 
         return await syncRepo.find({
@@ -334,9 +319,7 @@ export class GoogleCalendarService {
             relations: ['calendar', 'calendar.course', 'calendar.course.degree'],
             order: {
                 calendar: {
-                    course: {
-                        startYear: 'DESC'
-                    },
+                    course: { startYear: 'DESC' },
                     semester: 'ASC'
                 }
             }
@@ -344,43 +327,31 @@ export class GoogleCalendarService {
     }
 
     /**
-     * Toggle sync enabled status for an academic calendar
-     * When disabling, cleans up Google Calendar events
+     * Delete a single CalendarSync: marks as DELETING, cleans up Google Calendar events, then removes from DB
      */
-    static async toggleSyncEnabled(syncId: string, accessToken?: string): Promise<CalendarSync | null> {
+    static async deleteSingleSync(syncId: string, userId: string, accessToken?: string): Promise<boolean> {
         const syncRepo = AppDataSource.getRepository(CalendarSync);
 
         const sync = await syncRepo.findOne({
-            where: { id: syncId },
+            where: { id: syncId, userId },
             relations: ['calendar']
         });
-        if (!sync) return null;
+        if (!sync) return false;
 
-        const wasEnabled = sync.syncEnabled;
-        sync.syncEnabled = !sync.syncEnabled;
+        sync.syncStatus = SyncStatus.DELETING;
+        sync.currentOperation = 'Eliminando sincronización...';
+        await syncRepo.save(sync);
 
-        // If disabling a sync that was previously enabled, clean up Google Calendar events
-        if (wasEnabled && !sync.syncEnabled) {
-            // Reset status to IDLE when disabling
-            sync.syncStatus = SyncStatus.IDLE;
-            sync.errorMessage = undefined;
-            sync.lastSyncAt = undefined;
-            sync.totalCalendars = undefined;
-            sync.processedCalendars = undefined;
-            sync.currentOperation = undefined;
-
-            if (accessToken) {
-                console.log(`[SYNC] Disabling sync ${syncId}, cleaning up Google Calendar events...`);
-                try {
-                    await this.cleanupCalendarEvents(sync.calendar.id, sync.userId, accessToken);
-                } catch (error) {
-                    console.error('[SYNC] Error cleaning up calendar events:', error);
-                    // Continue with toggling even if cleanup fails
-                }
+        if (accessToken) {
+            try {
+                await this.cleanupCalendarEvents(sync.calendar.id, sync.userId, accessToken);
+            } catch (error) {
+                console.error('[DELETE SYNC] Error cleaning up calendar events:', error);
             }
         }
 
-        return await syncRepo.save(sync);
+        await syncRepo.remove(sync);
+        return true;
     }
 
     /**
@@ -405,6 +376,7 @@ export class GoogleCalendarService {
         for (const googleCal of userGoogleCalendars) {
             try {
                 // List all events in this Google Calendar
+                await this.waitForRateLimit();
                 const eventsResponse = await fetch(
                     `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(googleCal.googleCalendarId)}/events?maxResults=2500`,
                     {
@@ -423,72 +395,46 @@ export class GoogleCalendarService {
                 const eventsData = await eventsResponse.json();
                 const allEvents = eventsData.items || [];
 
-                // Filter events that belong to this academic calendar
-                const eventsToDelete = allEvents.filter((event: any) =>
-                    event.extendedProperties?.private?.academicCalendarId === academicCalendarId
+                const { toDelete: eventsToDelete, toKeep: eventsToKeep } = allEvents.reduce(
+                    (acc: { toDelete: any[]; toKeep: any[] }, event: any) => {
+                        const calId = event.extendedProperties?.private?.academicCalendarId;
+                        if (calId === academicCalendarId) acc.toDelete.push(event);
+                        else if (calId) acc.toKeep.push(event);
+                        return acc;
+                    },
+                    { toDelete: [], toKeep: [] }
                 );
 
-                // Filter events that belong to OTHER academic calendars
-                const eventsToKeep = allEvents.filter((event: any) =>
-                    event.extendedProperties?.private?.academicCalendarId &&
-                    event.extendedProperties.private.academicCalendarId !== academicCalendarId
-                );
+                console.log(`[CLEANUP] Calendar ${googleCal.classroom.code}: ${allEvents.length} total, ${eventsToDelete.length} to delete, ${eventsToKeep.length} to keep`);
 
-                console.log(`[CLEANUP] Calendar ${googleCal.classroom.code}: ${allEvents.length} total events, ${eventsToDelete.length} to delete, ${eventsToKeep.length} to keep`);
-
-                // Delete events from this academic calendar
+                // Delete events — each call goes through waitForRateLimit so the widget reflects real usage
                 for (const event of eventsToDelete) {
                     try {
+                        await this.waitForRateLimit();
                         const deleteResponse = await fetch(
                             `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(googleCal.googleCalendarId)}/events/${event.id}`,
                             {
                                 method: 'DELETE',
-                                headers: {
-                                    'Authorization': `Bearer ${accessToken}`
-                                }
+                                headers: { 'Authorization': `Bearer ${accessToken}` }
                             }
                         );
-
                         if (!deleteResponse.ok && deleteResponse.status !== 404) {
                             console.warn(`[CLEANUP] Failed to delete event ${event.id}: ${deleteResponse.status}`);
                         }
-
-                        // Rate limiting: 150ms between requests
-                        await new Promise(resolve => setTimeout(resolve, 150));
                     } catch (error) {
                         console.error(`[CLEANUP] Error deleting event ${event.id}:`, error);
                     }
                 }
 
-                // If no events remain from other calendars, delete the entire Google Calendar
-                if (eventsToKeep.length === 0 && eventsToDelete.length > 0) {
+                // If no events remain from other calendars, delete the entire Google Calendar.
+                // Reuses deleteGoogleCalendar which already handles waitForRateLimit.
+                if (eventsToKeep.length === 0) {
                     console.log(`[CLEANUP] Calendar ${googleCal.classroom.code} is now empty, deleting it...`);
-
-                    try {
-                        const deleteCalResponse = await fetch(
-                            `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(googleCal.googleCalendarId)}`,
-                            {
-                                method: 'DELETE',
-                                headers: {
-                                    'Authorization': `Bearer ${accessToken}`
-                                }
-                            }
-                        );
-
-                        if (deleteCalResponse.ok || deleteCalResponse.status === 404) {
-                            // Delete from our database
-                            await googleCalendarRepo.remove(googleCal);
-                            console.log(`[CLEANUP] Deleted empty Google Calendar ${googleCal.classroom.code}`);
-                        } else {
-                            console.warn(`[CLEANUP] Failed to delete Google Calendar ${googleCal.classroom.code}: ${deleteCalResponse.status}`);
-                        }
-                    } catch (error) {
-                        console.error(`[CLEANUP] Error deleting Google Calendar ${googleCal.classroom.code}:`, error);
-                    }
+                    await this.deleteGoogleCalendar(accessToken, googleCal.googleCalendarId);
+                    // Always remove from DB — if Google returns 404 the calendar is already gone
+                    await googleCalendarRepo.remove(googleCal);
+                    console.log(`[CLEANUP] Deleted Google Calendar ${googleCal.classroom.code}`);
                 }
-
-                // Rate limiting between calendars
-                await new Promise(resolve => setTimeout(resolve, 150));
             } catch (error) {
                 console.error(`[CLEANUP] Error processing calendar ${googleCal.classroom.code}:`, error);
             }
@@ -515,10 +461,6 @@ export class GoogleCalendarService {
 
         if (!sync) {
             return { success: false, message: 'Calendar sync not found' };
-        }
-
-        if (!sync.syncEnabled) {
-            return { success: false, message: 'Sync is disabled for this calendar' };
         }
 
         // Update status to syncing
@@ -679,10 +621,10 @@ export class GoogleCalendarService {
             // Update sync status - clear progress fields
             sync.lastSyncAt = new Date();
             sync.syncStatus = SyncStatus.SUCCESS;
-            sync.errorMessage = null as any;
-            sync.totalCalendars = null as any;
-            sync.processedCalendars = null as any;
-            sync.currentOperation = null as any;
+            sync.errorMessage = undefined;
+            sync.totalCalendars = undefined;
+            sync.processedCalendars = undefined;
+            sync.currentOperation = undefined;
             await syncRepo.save(sync);
 
             return {
@@ -693,9 +635,9 @@ export class GoogleCalendarService {
             // Update status to error - clear progress fields
             sync.syncStatus = SyncStatus.ERROR;
             sync.errorMessage = error.message || 'Unknown error during sync';
-            sync.totalCalendars = null as any;
-            sync.processedCalendars = null as any;
-            sync.currentOperation = null as any;
+            sync.totalCalendars = undefined;
+            sync.processedCalendars = undefined;
+            sync.currentOperation = undefined;
             await syncRepo.save(sync);
 
             return { success: false, message: sync.errorMessage || 'Unknown error' };
@@ -987,81 +929,6 @@ export class GoogleCalendarService {
             return deleteCount;
         } catch (error) {
             console.error('Error clearing academic calendar events:', error);
-            return 0;
-        }
-    }
-
-    /**
-     * Clear all events from a Google Calendar with strict rate limiting
-     */
-    private static async clearCalendarEvents(
-        accessToken: string,
-        googleCalendarId: string
-    ): Promise<number> {
-        try {
-            // Step 1: Get all events from the calendar
-            await this.waitForRateLimit();
-            const listUrl = `${this.GOOGLE_CALENDAR_API}/calendars/${encodeURIComponent(googleCalendarId)}/events?maxResults=2500`;
-            const listResponse = await fetch(listUrl, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (!listResponse.ok) {
-                console.error('Failed to list events:', await listResponse.text());
-                return 0;
-            }
-
-            const listData = await listResponse.json();
-            const events = listData.items || [];
-
-            if (events.length === 0) {
-                console.log('No events to clear');
-                return 0;
-            }
-
-            console.log(`Found ${events.length} events to delete (sequential processing)`);
-
-            // Step 2: Delete events sequentially with rate limiting
-            let deleteCount = 0;
-
-            for (let i = 0; i < events.length; i++) {
-                const event = events[i];
-
-                await this.waitForRateLimit();
-
-                try {
-                    const response = await fetch(
-                        `${this.GOOGLE_CALENDAR_API}/calendars/${encodeURIComponent(googleCalendarId)}/events/${event.id}`,
-                        {
-                            method: 'DELETE',
-                            headers: {
-                                'Authorization': `Bearer ${accessToken}`
-                            }
-                        }
-                    );
-
-                    if (response.ok || response.status === 410) {
-                        // 410 Gone means event was already deleted
-                        deleteCount++;
-                    }
-                } catch (error) {
-                    console.error(`Failed to delete event ${i + 1}/${events.length}:`, error);
-                }
-
-                // Log progress every 20 deletions
-                if ((i + 1) % 20 === 0 || i === events.length - 1) {
-                    console.log(`Delete progress: ${deleteCount}/${events.length} events deleted`);
-                }
-            }
-
-            console.log(`Successfully deleted ${deleteCount}/${events.length} events`);
-            return deleteCount;
-        } catch (error) {
-            console.error('Error clearing calendar events:', error);
             return 0;
         }
     }

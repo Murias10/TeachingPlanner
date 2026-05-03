@@ -96,8 +96,8 @@ const SettingsPage = () => {
             if (googleConnectedParam === 'true') {
                 console.log('[DEBUG] Google connected === true, showing success alert')
                 triggerAlert({
-                    title: t('success.title'),
-                    description: t('settings.google.connectSuccess'),
+                    title: t('settings.google.connectSuccessTitle'),
+                    description: t('settings.google.connectSuccessDescription'),
                     variant: 'success'
                 })
                 console.log('[DEBUG] Reloading Google status from API...')
@@ -111,8 +111,8 @@ const SettingsPage = () => {
             } else if (googleError) {
                 console.log('[DEBUG] Google error detected:', googleError)
                 triggerAlert({
-                    title: t('error.title'),
-                    description: `${t('error.title')}: ${googleError}`,
+                    title: t('settings.google.connectErrorTitle'),
+                    description: t('settings.google.connectErrorDescription'),
                     variant: 'destructive'
                 })
                 setSearchParams({})
@@ -142,6 +142,8 @@ const SettingsPage = () => {
             setIsLoadingGoogleStatus(false)
         }
     }, [user, getStatus])
+
+    const isGoogleButtonBusy = isGoogleLoading
 
     const handleProfileUpdate = async () => {
         if (!user) return
@@ -218,7 +220,7 @@ const SettingsPage = () => {
         if (result.success) {
             setGoogleConnected(false)
             setGoogleEmail(undefined)
-            triggerAlert({ title: t("success.title"), description: t("settings.google.disconnectSuccess"), variant: "success" })
+            triggerAlert({ title: t("settings.google.disconnectSuccessTitle"), description: t("settings.google.disconnectSuccessDescription"), variant: "success" })
         } else {
             triggerAlert({ title: t("error.title"), description: result.message || t("error.title"), variant: "destructive" })
         }
@@ -474,54 +476,53 @@ const SettingsPage = () => {
                             </div>
                         ) : (
                             <>
-                                {/* Connection status with color accent */}
+                                {/* Connection status + action buttons in one row */}
                                 <div className={cn(
-                                    "flex items-center rounded-lg border p-4 w-fit",
+                                    "flex items-center justify-between rounded-lg border p-4 w-full gap-4",
                                     googleConnected
                                         ? "bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800"
                                         : "bg-muted/40 border-border"
                                 )}>
-                                    <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-3 min-w-0">
                                         {googleConnected ? (
                                             <>
                                                 <CheckCircle2 className="size-5 text-green-600 dark:text-green-400 shrink-0" />
-                                                <div>
+                                                <div className="min-w-0">
                                                     <p className="font-medium text-sm">{t("settings.google.connected")}</p>
                                                     {googleEmail && (
-                                                        <p className="text-sm text-muted-foreground">{googleEmail}</p>
+                                                        <p className="text-sm text-muted-foreground truncate">{googleEmail}</p>
                                                     )}
                                                 </div>
                                             </>
                                         ) : (
                                             <>
                                                 <XCircle className="size-5 text-muted-foreground shrink-0" />
-                                                <div>
+                                                <div className="min-w-0">
                                                     <p className="font-medium text-sm">{t("settings.google.notConnected")}</p>
                                                     <p className="text-sm text-muted-foreground">{t("settings.google.notConnectedDescription")}</p>
                                                 </div>
                                             </>
                                         )}
                                     </div>
-                                </div>
 
-                                {/* Action buttons */}
-                                <div className="flex flex-wrap gap-2">
-                                    {googleConnected ? (
-                                        <>
-                                            <Button onClick={handleManageSyncs} variant="default">
-                                                {t("settings.google.manageButton")}
-                                            </Button>
-                                            <Button onClick={handleGoogleDisconnect} variant="outline" disabled={isGoogleLoading}>
+                                    <div className="flex flex-wrap gap-2 shrink-0">
+                                        {googleConnected ? (
+                                            <>
+                                                <Button onClick={handleManageSyncs} variant="default">
+                                                    {t("settings.google.manageButton")}
+                                                </Button>
+                                                <Button onClick={handleGoogleDisconnect} variant="outline" disabled={isGoogleButtonBusy}>
+                                                    {isGoogleButtonBusy && <Spinner />}
+                                                    {isGoogleButtonBusy ? t("settings.google.disconnecting") : t("settings.google.disconnectButton")}
+                                                </Button>
+                                            </>
+                                        ) : (
+                                            <Button onClick={handleGoogleConnect} variant="default" disabled={isGoogleLoading}>
                                                 {isGoogleLoading && <Spinner />}
-                                                {isGoogleLoading ? t("settings.google.disconnecting") : t("settings.google.disconnectButton")}
+                                                {isGoogleLoading ? t("settings.google.connecting") : t("settings.google.connectButton")}
                                             </Button>
-                                        </>
-                                    ) : (
-                                        <Button onClick={handleGoogleConnect} variant="default" disabled={isGoogleLoading}>
-                                            {isGoogleLoading && <Spinner />}
-                                            {isGoogleLoading ? t("settings.google.connecting") : t("settings.google.connectButton")}
-                                        </Button>
-                                    )}
+                                        )}
+                                    </div>
                                 </div>
 
                                 <Separator />
@@ -533,12 +534,9 @@ const SettingsPage = () => {
                                         <p className="text-sm font-semibold">{t("settings.google.howItWorks")}</p>
                                     </div>
                                     <ol className="text-sm text-muted-foreground space-y-1.5 list-decimal list-inside pl-1">
-                                        <li>{t("settings.google.step1")}</li>
-                                        <li>{t("settings.google.step2")}</li>
-                                        <li>{t("settings.google.step3")}</li>
-                                        <li>{t("settings.google.step4")}</li>
-                                        <li>{t("settings.google.step5")}</li>
-                                        <li>{t("settings.google.step6")}</li>
+                                        {(['step1','step2','step3','step4','step5','step6'] as const).map(step => (
+                                            <li key={step}>{t(`settings.google.${step}`)}</li>
+                                        ))}
                                     </ol>
                                     <div className="rounded-md border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-950/30">
                                         <p className="text-sm font-medium text-blue-900 dark:text-blue-100">

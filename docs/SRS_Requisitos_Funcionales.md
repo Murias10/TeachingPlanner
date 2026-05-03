@@ -229,8 +229,7 @@
 6. Sistema intercambia code por access_token y refresh_token
 7. Sistema almacena tokens encriptados en BD
 8. Sistema almacena Google ID y fecha de expiración
-9. Sistema activa flag `google_calendar_sync_enabled=true`
-10. Sistema confirma conexión exitosa
+9. Sistema confirma conexión exitosa
 
 **Salidas:**
 - Tokens de Google almacenados
@@ -1602,20 +1601,31 @@ A_inicio < B_fin AND A_fin > B_inicio
 **Proceso de Sincronización:**
 1. Administrador accede a `/calendar-sync`
 2. El sistema muestra el listado de calendarios académicos activos con su estado de sincronización
-3. Administrador activa la sincronización de un calendario (`toggle`)
-4. Administrador puede lanzar sincronización manual (`sync-now`)
-5. Sistema identifica todas las aulas con eventos en el calendario
-6. Para cada aula nueva: sistema crea un Google Calendar con nombre `[código aula]`
-7. Para cada evento periódico/puntual: sistema crea el evento en el Google Calendar del aula correspondiente
-8. Sistema actualiza el progreso en tiempo real: `totalCalendars`, `processedCalendars`, `currentOperation`
-9. Sistema almacena estado final: `SUCCESS` o `ERROR` con mensaje de error si aplica
-10. Sistema respeta límite de tasa de la API de Google (400 requests/min)
+3. Administrador lanza sincronización manual (`sync-now`) en el calendario deseado
+4. Sistema identifica todas las aulas con eventos en el calendario
+5. Para cada aula nueva: sistema crea un Google Calendar con nombre `[código aula]`
+6. Para cada evento periódico/puntual: sistema crea el evento en el Google Calendar del aula correspondiente
+7. Sistema actualiza el progreso en tiempo real: `totalCalendars`, `processedCalendars`, `currentOperation`
+8. Sistema almacena estado final: `SUCCESS` o `ERROR` con mensaje de error si aplica
+9. Sistema respeta límite de tasa de la API de Google (400 requests/min)
+
+**Proceso de Eliminación de un Sync Individual:**
+1. Administrador pulsa el botón de eliminar (icono papelera) en un calendario sincronizado
+2. El botón solo aparece si el calendario ha sido sincronizado al menos una vez (`syncStatus ≠ IDLE` o `lastSyncAt` existe)
+3. El sistema muestra un modal de confirmación con el nombre de la titulación, curso y semestre
+4. Administrador confirma la eliminación
+5. Sistema marca el sync como `DELETING` en base de datos (el estado persiste ante recargas de página)
+6. Sistema elimina los eventos del calendario académico de cada Google Calendar de aula afectado
+7. Si el Google Calendar de un aula queda sin eventos (incluso si ya estaba vacío), sistema lo elimina de Google y de la base de datos
+8. Sistema elimina el registro `CalendarSync` de la base de datos
+9. La fila desaparece de la tabla en la interfaz
 
 **Estados de Sincronización (`SyncStatus`):**
-- `IDLE`: Sin sincronización en curso
+- `IDLE`: Sin sincronización en curso (calendario nunca sincronizado)
 - `SYNCING`: Sincronización en progreso
-- `SUCCESS`: Última sincronización completada
+- `SUCCESS`: Última sincronización completada con éxito
 - `ERROR`: Última sincronización fallida (con mensaje de error)
+- `DELETING`: Eliminación del sync en curso
 
 **Datos Sincronizados en Google Calendar:**
 - Título del evento: Información de asignatura y grupo
@@ -1649,17 +1659,25 @@ A_inicio < B_fin AND A_fin > B_inicio
 
 ---
 
-#### RF-SYNC-04: Limpiar Google Calendars al Desconectar
+#### RF-SYNC-04: Limpiar Google Calendars al Desconectar o Eliminar Sync
 **Prioridad:** ALTA
-**Descripción:** Cuando un usuario desconecta su cuenta de Google, el sistema debe limpiar todos los Google Calendars de aulas que fueron creados por ese usuario.
+**Descripción:** El sistema limpia los Google Calendars de aulas en dos situaciones: cuando el usuario desconecta su cuenta de Google completa, o cuando elimina un sync individual desde la página de sincronización.
 
-**Proceso:**
+**Proceso al desconectar cuenta completa:**
 1. Usuario desconecta su cuenta de Google (RF-SYNC-01 proceso de desconexión)
-2. Sistema identifica todos los `GoogleClassroomCalendar` asociados al usuario
-3. Para cada Google Calendar de aula: sistema elimina o limpia los eventos de Google Calendar vía API
-4. Sistema elimina los registros `GoogleClassroomCalendar` de la base de datos
-5. Sistema elimina todos los `CalendarSync` del usuario
-6. Sistema elimina los tokens de Google del usuario
+2. Sistema obtiene un access_token válido mediante `getValidAccessToken()`, refrescándolo si es necesario
+3. Sistema identifica todos los `GoogleClassroomCalendar` asociados al usuario
+4. Para cada Google Calendar de aula: sistema borra el calendario completo vía API (borra todos sus eventos implícitamente) respetando el rate limiter global del servicio
+5. Sistema elimina los registros `GoogleClassroomCalendar` de la base de datos
+6. Sistema elimina todos los `CalendarSync` del usuario
+7. Sistema revoca el token OAuth en Google y elimina los tokens del usuario en BD
+
+**Proceso al eliminar un sync individual:**
+1. Sistema elimina los eventos del calendario académico uno a uno en cada Google Calendar de aula afectado, pasando cada llamada por el rate limiter global del servicio
+2. Si el Google Calendar de aula queda sin eventos de ningún otro calendario académico, sistema lo elimina de Google y de la base de datos — **incluso si el Google Calendar ya estaba vacío antes de la operación**
+3. Sistema elimina el registro `CalendarSync`
+
+**Nota sobre el rate limiter:** El límite de cuota de Google Calendar API se aplica a nivel de proyecto de Google Cloud (no por usuario individual). El sistema implementa un rate limiter global compartido entre todos los usuarios que contabiliza todas las operaciones de borrado e inserción. El widget de cuota en la interfaz refleja este uso acumulado real.
 
 ---
 

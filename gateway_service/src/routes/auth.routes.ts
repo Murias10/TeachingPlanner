@@ -1,5 +1,5 @@
 import express from 'express';
-import { login, validateToken, getProfile, logout, forgotPassword, verifyOTP, resetPassword, activateAccount, googleInitiate, googleCallback, googleDisconnect, googleStatus, getCalendarSyncs, getRateLimitStatus, toggleCalendarSync, syncNow, deleteAllUserCalendarSyncs } from '@/controllers/auth.controller';
+import { login, validateToken, getProfile, logout, forgotPassword, verifyOTP, resetPassword, activateAccount, googleInitiate, googleCallback, googleDisconnect, googleStatus, getCalendarSyncs, getRateLimitStatus, deleteCalendarSync, syncNow, deleteAllUserCalendarSyncs } from '@/controllers/auth.controller';
 
 const router = express.Router();
 
@@ -26,7 +26,7 @@ router.get('/auth/google/status', googleStatus);
 router.get('/calendar-sync', getCalendarSyncs);
 router.get('/calendar-sync/rate-limit-status', getRateLimitStatus);
 router.delete('/calendar-sync/user/all', deleteAllUserCalendarSyncs);
-router.patch('/calendar-sync/:id/toggle', toggleCalendarSync);
+router.delete('/calendar-sync/:id', deleteCalendarSync);
 router.post('/calendar-sync/:id/sync-now', syncNow);
 
 // Rutas protegidas

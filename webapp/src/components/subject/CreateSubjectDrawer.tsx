@@ -12,32 +12,33 @@ import { Label } from "@/components/ui/label";
 import { FormDrawer } from "@/components/ui/FormDrawer";
 
 interface CreateSubjectDrawerProps {
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
-    onSave: (formData: {
+    readonly open: boolean;
+    readonly onOpenChange: (open: boolean) => void;
+    readonly onSave: (formData: {
         acronym: string;
         year: number;
         name: string;
         siesCode: string;
         semester: number;
     }) => Promise<void>;
+    readonly semester?: number;
 }
 
-export function CreateSubjectDrawer({ open, onOpenChange, onSave }: CreateSubjectDrawerProps) {
+export function CreateSubjectDrawer({ open, onOpenChange, onSave, semester: fixedSemester }: CreateSubjectDrawerProps) {
     const { t } = useTranslation();
 
     const [acronym, setAcronym] = useState<string>("");
     const [year, setYear] = useState<number | null>(null);
     const [name, setName] = useState<string>("");
     const [siesCode, setSiesCode] = useState<string>("");
-    const [semester, setSemester] = useState<number | null>(null);
+    const [semester, setSemester] = useState<number | null>(fixedSemester ?? null);
 
     const resetForm = () => {
         setAcronym("");
         setYear(null);
         setName("");
         setSiesCode("");
-        setSemester(null);
+        setSemester(fixedSemester ?? null);
     };
 
     const handleSave = async () => {
@@ -108,15 +109,23 @@ export function CreateSubjectDrawer({ open, onOpenChange, onSave }: CreateSubjec
             </div>
             <div className="space-y-2 max-w-sm mx-auto w-full">
                 <Label htmlFor="subject-semester">{t("drawer.subjects.create.semester")}</Label>
-                <Select onValueChange={(value) => setSemester(Number(value))} value={semester !== null ? String(semester) : ""}>
-                    <SelectTrigger id="subject-semester" className="w-full">
-                        <SelectValue placeholder="Selecciona el semestre" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="1">{t("table.subjects.semester.1")}</SelectItem>
-                        <SelectItem value="2">{t("table.subjects.semester.2")}</SelectItem>
-                    </SelectContent>
-                </Select>
+                {fixedSemester === undefined ? (
+                    <Select onValueChange={(value) => setSemester(Number(value))} value={semester === null ? "" : String(semester)}>
+                        <SelectTrigger id="subject-semester" className="w-full">
+                            <SelectValue placeholder="Selecciona el semestre" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="1">{t("table.subjects.semester.1")}</SelectItem>
+                            <SelectItem value="2">{t("table.subjects.semester.2")}</SelectItem>
+                        </SelectContent>
+                    </Select>
+                ) : (
+                    <Input
+                        id="subject-semester"
+                        value={t(`table.subjects.semester.${fixedSemester}`)}
+                        disabled
+                    />
+                )}
             </div>
             <div className="space-y-2 max-w-sm mx-auto w-full">
                 <Label htmlFor="subject-sies-code">{t("drawer.subjects.create.siesCode")}</Label>

@@ -321,6 +321,7 @@ export default function SubjectPage() {
                 open={drawerOpen && !!calendarId}
                 onOpenChange={setDrawerOpen}
                 onSave={handleSave}
+                semester={semester ? Number(semester) : undefined}
             />
 
             <EditSubjectDrawer

@@ -5,7 +5,8 @@
         "error": "Error",
         "warning": "Warning",
         "close": "Close",
-        "delete": "Delete"
+        "delete": "Delete",
+        "cancel": "Cancel"
     },
     "sidebar": {
         "main": {
@@ -1596,8 +1597,12 @@
             "disconnectButton": "Disconnect",
             "connecting": "Connecting...",
             "connectButton": "Connect with Google Calendar",
-            "disconnectSuccess": "Google Calendar disconnected successfully",
-            "connectSuccess": "Google Calendar connected successfully",
+            "disconnectSuccessTitle": "Account disconnected",
+            "disconnectSuccessDescription": "Your Google account has been disconnected and events have been removed from Google Calendar.",
+            "connectSuccessTitle": "Google Calendar connected",
+            "connectSuccessDescription": "Your Google account is now connected. You can enable sync for your academic calendars from 'Manage Synchronizations'.",
+            "connectErrorTitle": "Connection failed",
+            "connectErrorDescription": "Could not connect your Google account. Please try again.",
             "howItWorks": "How does it work?",
             "step1": "Connect your Google account to authorize access. This will create sync entries for all your academic calendars",
             "step2": "Go to 'Manage Synchronizations' to enable or disable sync for each academic calendar",
@@ -1628,12 +1633,23 @@
             "description": "Synchronization is running"
         },
         "syncError": "Error syncing",
+        "semester": {
+            "1": "Semester 1",
+            "2": "Semester 2"
+        },
         "syncNow": "Sync now",
+        "deleteSync": "Remove sync",
+        "deleteError": "Error removing calendar sync",
+        "deleteDialog": {
+            "title": "Remove synchronization",
+            "description": "All events from the {{degreeName}} calendar, year {{courseName}}, {{semester}} will be removed from Google Calendar. This action cannot be undone."
+        },
         "status": {
             "idle": "Idle",
             "syncing": "Syncing",
             "success": "Success",
-            "error": "Error"
+            "error": "Error",
+            "deleting": "Deleting"
         },
         "card": {
             "title": "Academic Calendars",
@@ -1656,12 +1672,13 @@
             "disabled": "Inactive"
         },
         "progress": {
+            "starting": "Starting sync...",
             "syncing": "Syncing...",
             "completed": "completed"
         },
         "quota": {
-            "title": "Google Calendar API Usage",
-            "description": "Approximate estimate based on known Google Calendar API limits. Google does not publish exact quota values.",
+            "title": "Google Calendar API Usage (shared service)",
+            "description": "Limits are shared across all users of the system. Values are estimates based on known Google Calendar API limits — Google does not publish exact quota values.",
             "perMinute": "Calls this minute",
             "perDay": "Calls today",
             "calendarsCreated": "Calendars created today",

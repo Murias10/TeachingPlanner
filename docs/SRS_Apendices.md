@@ -160,13 +160,13 @@ classDiagram
         +UUID id
         +String userId
         +UUID calendarId
-        +Boolean syncEnabled
         +SyncStatus syncStatus
         +Int totalCalendars
         +Int processedCalendars
         +String currentOperation
         +DateTime lastSyncAt
         +String errorMessage
+        %% SyncStatus values: IDLE | SYNCING | SUCCESS | ERROR | DELETING
     }
 
     class GoogleClassroomCalendar {

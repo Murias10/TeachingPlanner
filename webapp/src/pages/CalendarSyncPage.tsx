@@ -3,20 +3,29 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { Spinner } from "@/components/ui/spinner";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
-import { useCalendarSync } from "@/hooks/google/useCalendarSync";
+import { useCalendarSync, SyncStatus, CALENDAR_SYNCS_QUERY_KEY } from "@/hooks/google/useCalendarSync";
 import { useRateLimitStatus } from "@/hooks/google/useRateLimitStatus";
 import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext";
 import { Navigate, useNavigate } from "react-router-dom";
-import { Calendar, RefreshCw, ArrowLeft, Settings, Info } from "lucide-react";
+import { Calendar, RefreshCw, ArrowLeft, Settings, Info, Trash2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDegrees } from "@/hooks/degree/useDegrees";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
     Select,
     SelectContent,
@@ -26,6 +35,12 @@ import {
 } from "@/components/ui/select";
 import { useTranslation } from "react-i18next";
 
+const DEFAULT_QUOTA = {
+    minute: { used: 0, limit: 400, windowResetInMs: 0 },
+    daily: { used: 0, estimatedLimit: 10000, resetInMs: 0 },
+    calendarsCreatedToday: { used: 0, estimatedLimit: 150 }
+} as const;
+
 const CalendarSyncPage = () => {
     const { t } = useTranslation();
     const { setItems } = useBreadcrumbContext();
@@ -33,12 +48,12 @@ const CalendarSyncPage = () => {
     const { triggerAlert } = useFloatingAlertContext();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
-    const { syncs, isSyncsLoading, toggleSync, syncNow, isLoading } = useCalendarSync();
+    const { syncs, isSyncsLoading, deleteSync, syncNow, isLoading } = useCalendarSync();
     const { rateLimitStatus } = useRateLimitStatus(syncs);
     const { data: degrees = [] } = useDegrees();
 
     const [selectedDegreeId, setSelectedDegreeId] = useState<string>("all");
-    const [syncsWithAccess, setSyncsWithAccess] = useState<Set<string>>(new Set());
+    const [syncToDelete, setSyncToDelete] = useState<{ id: string; degreeName: string; courseName: string; semester: string } | null>(null);
 
     useEffect(() => {
         setItems([
@@ -52,48 +67,32 @@ const CalendarSyncPage = () => {
         return syncs.filter(sync => sync.degreeId === selectedDegreeId);
     }, [syncs, selectedDegreeId]);
 
+    const semesterLabels = useMemo<Record<string, string>>(() => ({
+        '1': t('calendarSync.semester.1'),
+        '2': t('calendarSync.semester.2'),
+    }), [t]);
+
     if (user?.role !== 'ADMIN') {
         return <Navigate to="/degrees" replace />;
     }
 
-    const handleToggleSync = async (syncId: string) => {
-        const sync = syncs.find(s => s.id === syncId);
-        const isEnabling = !sync?.syncEnabled;
-
-        const result = await toggleSync(syncId);
+    const handleDeleteSync = async () => {
+        if (!syncToDelete) return;
+        const result = await deleteSync(syncToDelete.id);
+        setSyncToDelete(null);
         if (!result.success) {
             triggerAlert({
                 title: t("error.title"),
-                description: result.message || t("calendarSync.toggleError"),
+                description: result.message || t("calendarSync.deleteError"),
                 variant: "destructive"
-            });
-            return;
-        }
-
-        if (isEnabling) {
-            // Al activar, lanzar sincronización automáticamente
-            await handleSyncNow(syncId);
-        } else {
-            triggerAlert({
-                title: t("calendarSync.toggleDisabled.title"),
-                description: t("calendarSync.toggleDisabled.description"),
-                variant: "success"
             });
         }
     };
 
     const handleSyncNow = async (syncId: string) => {
-        setSyncsWithAccess(prev => new Set(prev).add(syncId));
+        const result = await syncNow(syncId, t("calendarSync.progress.starting"));
 
-        const result = await syncNow(syncId);
-
-        setSyncsWithAccess(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(syncId);
-            return newSet;
-        });
-
-        queryClient.invalidateQueries({ queryKey: ['rateLimitStatus'] });
+        queryClient.invalidateQueries({ queryKey: CALENDAR_SYNCS_QUERY_KEY });
 
         if (result.success) {
             triggerAlert({
@@ -112,10 +111,11 @@ const CalendarSyncPage = () => {
 
     const getSyncStatusBadge = (status: string) => {
         const statusMap: Record<string, { label: string; variant: "secondary" | "default" | "destructive" }> = {
-            'IDLE': { label: t("calendarSync.status.idle"), variant: 'secondary' },
-            'SYNCING': { label: t("calendarSync.status.syncing"), variant: 'default' },
-            'SUCCESS': { label: t("calendarSync.status.success"), variant: 'default' },
-            'ERROR': { label: t("calendarSync.status.error"), variant: 'destructive' }
+            [SyncStatus.IDLE]:     { label: t("calendarSync.status.idle"),     variant: 'secondary' },
+            [SyncStatus.SYNCING]:  { label: t("calendarSync.status.syncing"),  variant: 'default' },
+            [SyncStatus.SUCCESS]:  { label: t("calendarSync.status.success"),  variant: 'default' },
+            [SyncStatus.ERROR]:    { label: t("calendarSync.status.error"),    variant: 'destructive' },
+            [SyncStatus.DELETING]: { label: t("calendarSync.status.deleting"), variant: 'secondary' },
         };
 
         const config = statusMap[status] ?? { label: status, variant: 'secondary' as const };
@@ -144,11 +144,7 @@ const CalendarSyncPage = () => {
         );
     }
 
-    const quota = rateLimitStatus ?? {
-        minute: { used: 0, limit: 400, windowResetInMs: 0 },
-        daily: { used: 0, estimatedLimit: 10000, resetInMs: 0 },
-        calendarsCreatedToday: { used: 0, estimatedLimit: 150 }
-    };
+    const quota = rateLimitStatus ?? DEFAULT_QUOTA;
 
     return (
         <div className="p-6 space-y-6">
@@ -321,25 +317,15 @@ const CalendarSyncPage = () => {
                                                 </TableCell>
                                                 <TableCell className="text-right">
                                                     <div className="flex items-center justify-end gap-2">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="text-xs text-muted-foreground">
-                                                                {sync.syncEnabled ? t("calendarSync.table.enabled") : t("calendarSync.table.disabled")}
-                                                            </span>
-                                                            <Switch
-                                                                checked={sync.syncEnabled}
-                                                                onCheckedChange={() => handleToggleSync(sync.id)}
-                                                                disabled={isLoading || sync.syncStatus === 'SYNCING'}
-                                                            />
-                                                        </div>
                                                         <Tooltip>
                                                             <TooltipTrigger asChild>
                                                                 <Button
                                                                     variant="outline"
                                                                     size="icon"
                                                                     onClick={() => handleSyncNow(sync.id)}
-                                                                    disabled={isLoading || !sync.syncEnabled || sync.syncStatus === 'SYNCING' || syncsWithAccess.has(sync.id)}
+                                                                    disabled={isLoading || sync.syncStatus === SyncStatus.SYNCING || sync.syncStatus === SyncStatus.DELETING}
                                                                 >
-                                                                    {syncsWithAccess.has(sync.id) || sync.syncStatus === 'SYNCING' ? (
+                                                                    {sync.syncStatus === SyncStatus.SYNCING ? (
                                                                         <Spinner />
                                                                     ) : (
                                                                         <RefreshCw className="h-4 w-4" />
@@ -350,10 +336,31 @@ const CalendarSyncPage = () => {
                                                                 {t("calendarSync.syncNow")}
                                                             </TooltipContent>
                                                         </Tooltip>
+                                                        {(sync.syncStatus !== SyncStatus.IDLE || sync.lastSyncAt) && (
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        size="icon"
+                                                                        onClick={() => setSyncToDelete({ id: sync.id, degreeName: sync.degreeName, courseName: sync.courseName, semester: semesterLabels[sync.semester] ?? sync.semester })}
+                                                                        disabled={isLoading || sync.syncStatus === SyncStatus.SYNCING || sync.syncStatus === SyncStatus.DELETING}
+                                                                    >
+                                                                        {sync.syncStatus === SyncStatus.DELETING ? (
+                                                                            <Spinner />
+                                                                        ) : (
+                                                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                                                        )}
+                                                                    </Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>
+                                                                    {t("calendarSync.deleteSync")}
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        )}
                                                     </div>
                                                 </TableCell>
                                             </TableRow>
-                                            {sync.syncStatus === 'SYNCING' && sync.totalCalendars && (
+                                            {sync.syncStatus === SyncStatus.SYNCING && sync.totalCalendars && (
                                                 <TableRow key={`${sync.id}-progress`} className="bg-muted/50 hover:bg-muted/50">
                                                     <TableCell colSpan={6} className="py-4">
                                                         <div className="space-y-2">
@@ -381,6 +388,23 @@ const CalendarSyncPage = () => {
                     </div>
                 </CardContent>
             </Card>
+
+            <AlertDialog open={!!syncToDelete} onOpenChange={(open) => { if (!open) setSyncToDelete(null); }}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{t("calendarSync.deleteDialog.title")}</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {t("calendarSync.deleteDialog.description", { degreeName: syncToDelete?.degreeName, courseName: syncToDelete?.courseName, semester: syncToDelete?.semester })}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteSync}>
+                            {t("common.delete")}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 };

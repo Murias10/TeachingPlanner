@@ -2,7 +2,19 @@
 
 ## Introduction
 
-TeachingPlanner is a web-based academic scheduling application that allows you to manage degrees, courses, semester calendars, and teaching events. The system recognises three user profiles, each with a different level of access:
+TeachingPlanner is a web-based academic scheduling application that allows you to manage degrees, courses, semester calendars, and a broad spectrum of events across five types:
+
+- **Class** — regular teaching session. Counts towards the group's planned teaching hours and is included in schedule exports. The following class types are available:
+  - Theory (T)
+  - Seminar (S)
+  - Laboratory (L)
+  - Group Tutorial (TG)
+- **Evaluation** *(displayed as EV· in the calendar)* — examination or formal assessment activity. Does not consume planned teaching hours. Can be assigned to multiple groups and classrooms simultaneously.
+- **Review** *(displayed as RE· in the calendar)* — exam review or post-assessment session. Same behaviour as Evaluation.
+- **Others** *(displayed as OT· in the calendar)* — any other activity requiring a room booking without consuming teaching hours: talks, workshops, open days, and similar events.
+- **Independent** — room reservation with no associated subject or group, used to block a classroom for non-academic purposes (e.g. maintenance, external bookings).
+
+Events may belong to subjects within any of the registered degree programmes or be entirely independent of any specific subject. The system recognises three user profiles, each with a different level of access:
 
 | Profile | Authentication | What they can do |
 |---------|---------------|------------------|
@@ -18,7 +30,7 @@ The guide is organised into common sections (accessible to all profiles) and rol
 
 ### 1.1 Welcome Screen
 
-When you open the application for the first time, the welcome screen is displayed.
+Open the application in your browser at **[planificador.ingenieriainformatica.uniovi.es](https://planificador.ingenieriainformatica.uniovi.es)**. The welcome screen is displayed.
 
 > **[IMAGE 1 — Welcome screen]**: screenshot of the `/` route, showing the central card with the title "Teaching Planner", the subtitle, and the two main buttons.
 
@@ -36,6 +48,8 @@ If you already have an active session, this screen redirects you automatically t
 > **[IMAGE 2 — Login form]**: screenshot of the `/login` route, showing the form with the email and password fields.
 
 Enter your email address and password, then click **Sign in**. If the credentials are correct you will be redirected to the main screen.
+
+> **Note for university users:** use your institutional email address (e.g. `jrpp@uniovi.es`) together with the password you set when you activated your TeachingPlanner account. This is a **separate credential** from your general university network password — the two are independent. If you have never received an activation email, contact `jefaturaestudios.eii@uniovi.es` providing your full name so that the account setup process can be initiated for you.
 
 If you do not remember your password, click the **Forgot your password?** link below the form to start the recovery process (see section 1.3).
 
@@ -61,7 +75,15 @@ Enter the six-digit code from the email and click **Verify Code**. If the code i
 
 > **[IMAGE 5 — Recovery, step 3]**: screenshot of the third step, showing the new password and confirmation fields along with the requirements indicator.
 
-Enter and confirm your new password. The requirements indicator updates in real time. Once all requirements are satisfied, click **Update Password**. You will be redirected to the login form.
+Enter and confirm your new password. The requirements indicator updates in real time as you type, showing which conditions are already met. The password must satisfy all of the following requirements:
+
+- At least **8 characters** (and no more than 128).
+- At least one **uppercase letter** (A–Z).
+- At least one **lowercase letter** (a–z).
+- At least one **number** (0–9).
+- At least one **special character** (e.g. `!`, `@`, `#`, `$`, `%`, `&`, `*`).
+
+These requirements exist to ensure your account remains secure even if the system is exposed to automated attacks. Once all requirements are satisfied, click **Update Password**. You will be redirected to the login form.
 
 ---
 
@@ -119,14 +141,62 @@ The features described in this section are accessible to guests, professors, and
 
 > **[IMAGE 12 — Event details panel]**: screenshot of the side drawer that opens when clicking on a calendar event, showing the detailed information.
 
-The home page shows a calendar with all events from a selected active academic calendar. To use it:
+> **[IMAGE 11b — Calendar views and navigation bar]**: screenshot of the calendar header showing the five view buttons (Semana, Semana laboral, Día, Mes, Agenda) and the Previous / Today / Next navigation buttons alongside the current date range label.
 
-1. Use the **calendar selector** at the top to choose from the available *Activo* calendars. Each entry uses the format *ACRONYM - YYYY/YYYY - Semestre N* (e.g. `INFORM - 2024/2025 - Semestre 1`). Your selection is remembered between browser sessions.
-2. Expand the **filter panel** to narrow down the events displayed by group type, subject, classroom, language, and other criteria.
-3. Switch between **month, week, day, and agenda** views using the buttons in the calendar header.
-4. Click any event to open the **details panel** on the right, showing the full information for that event (subject, group, classroom, start and end time).
+> **[IMAGE 11c — Event tile detail]**: screenshot of a calendar event tile at a zoom level where the two lines of text are clearly readable: the subject–group identifier on the first line and the classroom code on the second (e.g. "Alg.L3 / L-11").
 
-Each subject is assigned a distinct colour that remains consistent throughout the application.
+> **[IMAGE 11d — Active filter chips]**: screenshot of the bottom strip of the filter panel showing several active filter chips (e.g. "Alg ×", "Alg.T1 ×", "Alg.L3 ×") and the real-time event counter "Mostrando X de Y eventos".
+
+The home page displays all events from a selected active academic calendar. The two core components of this page — the calendar itself and the filter panel — are described in detail below.
+
+#### Reading the calendar
+
+The **calendar selector** dropdown at the top of the page identifies the active calendar you are viewing. Each entry follows the format *ACRONYM - YYYY/YYYY - Semestre N* (e.g. `GIISOF01 - 2025/2026 - Semestre 2`); only calendars in *Activo* status are available here. Your selection is persisted between browser sessions.
+
+The current **date range** being displayed is shown in the calendar header, next to the navigation controls, so you always know which period you are looking at.
+
+Each **event** is rendered as a coloured block, with each subject assigned a distinct colour that remains consistent throughout the application. Inside the block, two lines of text allow you to identify the event at a glance without opening the detail panel:
+
+1. The **subject–group identifier** (e.g. `Alg.L3`) — tells you which subject and which specific group the event belongs to.
+2. The **classroom code** (e.g. `L-11`) — tells you the physical location where the session takes place.
+
+Click any event to open the **details side panel**, which shows the complete event information: full subject name, group, classroom, and exact start and end times.
+
+#### Navigating the calendar
+
+Five **view modes** are available via the buttons in the calendar header:
+
+| View | Description |
+|---|---|
+| **Semana** (Week) | All seven days of the selected week |
+| **Semana laboral** (Working week) | Monday to Friday only — useful for hiding weekends |
+| **Día** (Day) | A single day with hourly resolution |
+| **Mes** (Month) | A full month overview |
+| **Agenda** | A chronological list of upcoming events |
+
+Use the **Previous** and **Next** arrow buttons to move to the preceding or following period (week, day, or month, depending on the active view). Click **Hoy** (Today) to jump back to the period containing the current date at any time.
+
+#### Using the filter panel
+
+The filter panel is opened and closed with the **Filtros ▼** button in the left toolbar. When collapsed, it shows the number of currently active filters so you always know whether a filter is in effect.
+
+The following filters are available:
+
+| Filter | What it controls |
+|---|---|
+| **Curso** | Academic year of the calendar |
+| **Asignatura** | One or more subjects in the calendar |
+| **Tipo de grupo** | Group category: T (Theory), S (Seminar), L (Lab), TG (Group Tutorial) |
+| **Grupos** | Individual groups (e.g. `Alg.T1`, `Alg.L3`) |
+| **Aula** | A specific classroom or laboratory |
+| **Idioma** | Language of instruction |
+| **Tipo de Evento** | Event type: NORMAL, BLOCKER, REVISION, EVALUACION, OTRO |
+
+**Selecting values within a filter:** the Asignatura, Grupos, and Aula filters include a **text search box** — type any partial string to narrow the list in real time. Practical tip: in the Aula filter, typing `A` shows only standard classrooms; typing `L` shows only laboratories.
+
+**Combining filters:** all filters are **additive** (AND logic) — each additional selection further restricts the set of visible events. The header of the calendar shows a live counter, *"Mostrando X de Y eventos"*, reflecting how many events match the current combination of filters.
+
+**Managing active filters:** active filter selections appear as **chips** in the strip at the bottom of the filter panel. Click the `×` on any chip to remove that specific filter. The **Limpiar filtros** (Clear filters) button removes all active filters at once and restores the full event set.
 
 ---
 
@@ -145,7 +215,7 @@ Click **Degrees** in the sidebar to access the full list of available degrees. C
 When you open a degree, the list of its academic courses is displayed. Each course corresponds to an academic year (e.g. 2024/2025) and can have up to two semesters, each with its own calendar.
 
 - Each semester row shows a **Semestre 1** / **Semestre 2** button. Click it to open the calendar for that semester. Additional icon buttons on the same row lead to the Subjects and Groups pages.
-- Each course shows a colour-coded **Status** badge: *Planificado* (yellow — course defined but not yet started), *Activo* (blue — currently running), or *Finalizado* (green — course completed). Guests can only see courses in *Activo* status; Planificado and Finalizado courses are hidden from unauthenticated users.
+- Each course shows a colour-coded **Status** badge: *Planificado* (blue — course defined but not yet started), *Activo* (green — currently running), or *Finalizado* (grey — course completed). Guests can only see courses in *Activo* status; Planificado and Finalizado courses are hidden from unauthenticated users.
 
 ---
 
@@ -163,13 +233,17 @@ Click **Classrooms** in the sidebar to see all classrooms available in the syste
 
 > **[IMAGE 17 — Filter panel expanded]**: screenshot of the filter panel open inside the calendar, showing the available filtering options (group, classroom, subject, event type, language).
 
-The semester calendar shows all planned events for that period. Features available to all profiles:
+> **[IMAGE 16b — Semester calendar toolbar]**: screenshot of the toolbar specific to the semester calendar, showing the "Importar excepciones", "Exportar .csv" and "Exportar .txt" buttons alongside the filter toggle.
 
-- Switch between **month, week, day, and agenda** views.
-- Open the **filter panel** to show only the events you need.
-- Click any event to view its details in a side panel.
-- Use **Export .csv** in the toolbar to download the currently visible events as a CSV file in Google Calendar format.
-- Use **Export .txt** in the toolbar to download the calendar in the application's native TXT format.
+The semester calendar displays all planned events for the selected academic semester. Its calendar view and filter panel work **identically** to those described in section 3.1 — the same five view modes (Semana, Semana laboral, Día, Mes, Agenda), the same navigation controls (Previous / Today / Next), the same event tile format (subject–group on the first line, classroom on the second), the same filter types, and the same chip-based active filter management all apply here.
+
+The only differences with respect to the home calendar are:
+
+- There is **no calendar selector dropdown**: the semester is determined by the navigation path you followed (Degree → Course → Semester), so the calendar is already fixed to that specific period.
+- The toolbar includes **three additional buttons** exclusive to this view:
+  - **Importar excepciones** — load a `.txt` file with one-off exceptions (cancelled classes, make-up sessions) that modify the existing recurring event pattern.
+  - **Exportar .csv** — download the currently visible events as a CSV file formatted for import into Google Calendar or other calendar applications.
+  - **Exportar .txt** — download the full calendar in the application's native TXT format.
 
 ---
 
@@ -199,26 +273,59 @@ As a professor, you cannot modify the calendar directly. Instead, you submit **r
 
 #### CREATE request — add a new event
 
-1. Navigate to the **semester calendar** where you want to add the event.
-2. Click the **Create request** (*Crear solicitud*) button in the toolbar, or click and drag on an empty time slot to pre-fill the date and time.
-3. Choose the event type (**one-off** for a single session or **recurring** for a repeating event) and fill in the required fields (date or recurrence pattern, start and end time, classroom, and group).
-4. Click **Send request** (*Enviar solicitud*). The request is registered with **Pending** status until the administrator reviews it.
+> **[IMAGE 21c — Request form with all fields]**: screenshot of the "Solicitar evento" dialog fully filled in, showing the Frecuencia selector set to "No se repite", the date picker and start/end time dropdowns, the Asignatura combobox with a subject selected, the Tipo de evento and Tipo de grupo fields that appear after selecting a subject, the Grupo selector, the Aula (opcional) dropdown, and the Comentario text area with an example justification.
+
+There are two ways to open the **"Solicitar evento"** dialog:
+
+**Option 1 — toolbar button:** navigate to the semester calendar and click the **Crear solicitud** button in the toolbar. The dialog opens with all fields empty.
+
+**Option 2 — click and drag on the calendar:** navigate to the target day, click on the desired start time slot, and drag the cursor down to the end time before releasing. The dialog opens with the date, start time, and end time already filled in based on your selection. This is the fastest method when you already know the exact time slot.
+
+> **[IMAGE 21e — Click-and-drag time selection]**: screenshot of the calendar showing a grey shaded selection rectangle being drawn from 18:00 to 20:00 on a given day, indicating the drag-to-create gesture in progress.
+
+Once the dialog is open, fill in the following fields:
+
+- **Frecuencia** *(Frequency)*: for a one-off make-up or extra session, select *No se repite*. To request a new recurring class, choose the appropriate recurrence pattern from the dropdown.
+- **Fecha y Horario** *(Date and Time)*: select the date using the calendar picker, then set the start time and end time independently using the hour and minute selectors.
+- **Asignatura** *(Subject)*: type any part of the subject name to search; select from the filtered list. Once a subject is selected, two additional fields appear automatically:
+  - *Tipo de evento*: leave this set to **Clase** for ordinary teaching sessions.
+  - *Tipo de grupo*: choose the group category — **Teoría** (T), **Seminario** (S), **Laboratorio** (L), or **Tutoría Grupal** (TG). Note that laboratory groups (L) and group tutorial groups (TG) are managed separately from theory and seminar groups.
+- **Grupo**: once a subject and group type are selected, this dropdown lists the available groups (e.g. `Alg.L3`). Select the specific group for which you are requesting the session.
+- **Aula** *(Classroom, optional)*: select the preferred classroom from the dropdown. This is a preference — the administrator may assign a different room when approving the request if the one you selected is unavailable.
+- **Comentario** *(Comment, optional but strongly recommended)*: use this field to justify the request clearly. The administrator uses this justification to evaluate and approve the request; an unclear or missing comment significantly increases the risk of rejection. Examples of good comments: *"Recuperación de la clase del 12 de octubre (festivo)"*, *"Adelanto de clase de teoría para sincronizar con los grupos de prácticas de laboratorio"*, *"Recuperación de la última clase del semestre antes del 1 de mayo"*.
+
+A **summary line** at the bottom of the dialog (e.g. *"No se repite — 09:00–10:00"*) reflects the recurrence and time settings in real time, allowing you to verify the key data before submitting.
+
+Click **Solicitar** to submit. The request is registered with **Pending** status and sent to the administrator's review queue.
+
+> **Note — planned hours limit:** the system automatically enforces the planned-hours budget configured for each subject and group type. If a CREATE request would cause the total scheduled hours to exceed that budget, it will not be accepted. Should this occur, contact the administrator to review the planned-hours configuration for the group concerned.
 
 #### EDIT, CANCEL, and REPLACE requests — modify an existing event
 
-> **[IMAGE 21b — Event context menu for professors]**: screenshot of the context menu that appears when a professor clicks on an existing calendar event, showing the edit, replace, and cancel request options.
+> **[IMAGE 21b — Event context menu for professors]**: screenshot of the context menu that appears when a professor right-clicks on an existing calendar event, showing the "Ver detalles", "Solicitar editar serie de eventos", "Solicitar reemplazar evento" and "Solicitar cancelar" options.
 
-Click any existing event on the calendar to open its context menu. The following options are available:
+**Right-click** any existing event on the calendar to open its context menu. (On touch devices, a long press opens the same menu.) The following options are available:
 
-- **Request edit** (*Solicitar edición*): propose a change to the time, date, or classroom of an existing event. For recurring events, the option reads *Solicitar editar serie de eventos*. Fill in the updated details and click **Send request** to submit.
-- **Request replacement** (*Solicitar reemplazo*): substitute a single occurrence of a recurring event with a different one-off session. Specify the new date, times, and preferred classroom; the original occurrence is shown read-only for reference. Confirm with **Request replacement** (*Solicitar reemplazo*).
-- **Request cancellation** (*Solicitar cancelación*): request removal of an event from the calendar. This option appears in red as a destructive action. An optional comment field lets you explain the reason. Confirm with **Send cancellation request** (*Enviar solicitud de cancelación*).
+- **Request edit** (*Solicitar editar serie de eventos*): propose a change to the time, date, or classroom of an existing recurring event. Fill in the updated details and click **Send request** to submit. For one-off events, the option reads *Solicitar edición*.
+- **Request replacement** (*Solicitar reemplazar evento*): substitute a single occurrence of a recurring event with a different one-off session.
 
-All four request types are sent to the administrator's review queue and follow the approval workflow described in sections 5.7 and 5.8.
+  > **[IMAGE 21d — Replace request dialog with summary block]**: screenshot of the "Solicitar reemplazo de evento" dialog showing the three sections: the original event block (read-only) at the top, the new date/time/classroom fields in the middle, and the "Resumen de la solicitud" block at the bottom displaying both action lines.
+
+  The replacement dialog is divided into three sections: (1) the **original event** block, shown read-only, with the subject, groups, classrooms, date, and exact time of the occurrence that will be cancelled; (2) the **new event** fields where you set the new date, start time, end time, and preferred classroom; and (3) a **"Resumen de la solicitud"** block at the bottom that automatically summarises the two actions that will be taken on approval — for example, *"El evento del 08/04/2026 a las 15:00 será cancelado"* and *"Se solicitará un nuevo evento el 16/04/2026 de 13:00 – 15:00. Aula solicitada: L-11"* — so you can review the full impact of the request before confirming. Click **Solicitar reemplazo** to submit.
+
+- **Request cancellation** (*Solicitar cancelar*): request removal of a specific occurrence from the calendar. This option appears in red as a destructive action. The dialog shows the event details (type, date, groups, and classroom) read-only, and provides a **Comentario** field for the cancellation reason — fill this in as clearly as possible to facilitate approval. Confirm with **Solicitar cancelación**.
+
+All request types are sent to the administrator's review queue and follow the approval workflow described in sections 5.7 and 5.8.
 
 ---
 
 ### 4.2 Tracking Your Own Requests
+
+After submitting any type of request (CREATE, REPLACE, or CANCEL), a **confirmation notification** appears in the bottom-right corner of the screen.
+
+> **[IMAGE 22c — Submission confirmation toast]**: screenshot of the bottom-right toast notification showing the "Solicitud enviada" header and the body text "Tu solicitud de evento ha sido enviada para aprobación", with the dismiss × button.
+
+This toast confirms that the request has been registered and is now pending administrator review. You can continue working normally while you wait.
 
 You can follow the status of your submitted requests in two ways:
 
@@ -226,9 +333,13 @@ You can follow the status of your submitted requests in two ways:
 
 > **[IMAGE 22 — Pending request on calendar]**: screenshot of the calendar showing an event with reduced opacity and a dashed grey border indicating it is pending approval.
 
-Submitted CREATE requests appear on the calendar with reduced opacity and a dashed grey border to indicate they are awaiting review. Once approved they become regular events; if rejected they disappear from the calendar.
+Submitted CREATE requests appear on the calendar with reduced opacity and a dashed grey border to indicate they are awaiting review. Once the administrator has reviewed the request, the calendar updates automatically on your next visit or page refresh:
 
-To withdraw a pending CREATE request, click it to open its context menu and select **Eliminar solicitud** (Delete request). This permanently removes the request. Only pending requests can be withdrawn this way.
+- Events from **rejected** requests disappear from the calendar entirely.
+- Events from **approved** requests appear with the same full-colour visual style as all other scheduled events.
+- If the request was a **replacement**, the original occurrence is additionally displayed with a cancelled style (greyed out), making it clear that it has been superseded by the newly approved event.
+
+To withdraw a pending CREATE request before it is reviewed, right-click it on the calendar to open its context menu and select **Eliminar solicitud** (Delete request). This permanently removes the request. Only pending requests can be withdrawn this way.
 
 **On the My Requests page:**
 
@@ -364,7 +475,7 @@ From the **Classrooms** page an administrator can:
 
 - **Create** a classroom by clicking **Create classroom** → enter the classroom code and, optionally, the GIS URL for its location.
 - **Edit** a classroom by clicking its edit icon.
-- **Delete** a classroom. Deleting a classroom automatically removes all events in the system that were assigned to it.
+- **Delete** a classroom. If the classroom has no events, it is deleted immediately. If it has associated events, a confirmation dialog appears warning you that all events assigned to that classroom will also be permanently deleted; you must confirm to proceed.
 
 ---
 
@@ -478,13 +589,13 @@ Go to **Settings** (click your avatar → **Settings**) and scroll to the **Goog
 - **Status badge**: shows whether a Google account is currently connected (green) or not (grey).
 - **Connect**: click **Connect** and follow Google's OAuth authorisation flow. Once authorised, the badge turns green and shows the linked Google account's email.
 - **Manage synchronisations**: appears when connected; clicking it navigates to the synchronisation page (section 5.11).
-- **Disconnect**: removes the Google account link. Existing synced calendars are not deleted from Google Calendar automatically.
+- **Disconnect**: removes the Google account link. All synced Google Calendars created by the system are deleted from Google Calendar automatically.
 
 ---
 
 ### 5.11 Google Calendar Synchronisation
 
-> **[IMAGE 44 — Synchronisation page]**: screenshot of `/calendar-sync`, showing the academic calendars table with the degree filter, the Active/Inactive toggle switch, the status badge, and the sync icon button.
+> **[IMAGE 44 — Synchronisation page]**: screenshot of `/calendar-sync`, showing the academic calendars table with the degree filter, the status badge, the sync icon button, and the delete button.
 
 > **[IMAGE 45 — Synchronisation in progress]**: screenshot of the sync icon button in its loading state and the progress bar showing "{N} / {Total} completed".
 
@@ -494,7 +605,7 @@ The table lists all academic calendars in the system. Use the **Filter by degree
 
 For each calendar:
 
-1. Toggle the **Active / Inactive** switch to enable or disable synchronisation for that calendar.
-2. Click the **sync icon** (tooltip: **Sync now**) to launch a manual synchronisation immediately. A progress bar will appear showing `{N} / {Total} completed` while the operation runs.
+1. Click the **sync icon** (tooltip: **Sync now**) to launch a manual synchronisation immediately. A progress bar will appear showing `{N} / {Total} completed` while the operation runs.
+2. Click the **trash icon** (tooltip: **Remove sync**) to remove the synchronisation for that calendar. A confirmation dialog will appear showing the degree name, academic year, and semester. On confirmation, the system removes all events belonging to that academic calendar from Google Calendar, deletes the Google Calendar for any classroom that becomes empty, and removes the row from the table. **This button only appears once the calendar has been synchronised at least once.**
 
-The **Status** column shows the result of the last synchronisation: *Inactive*, *Syncing*, *Success*, or *Error*. When synchronisation runs, the application creates Google Calendars for each classroom that has events in the academic calendar, distributing events by classroom location. The **Last synchronised** column shows when the most recent successful sync occurred, or *Never* if it has not been synced yet.
+The **Status** column shows the result of the last synchronisation: *Idle*, *Syncing*, *Success*, *Error*, or *Deleting* (while a removal is in progress). When synchronisation runs, the application creates Google Calendars for each classroom that has events in the academic calendar, distributing events by classroom location. The **Last synchronised** column shows when the most recent successful sync occurred, or *Never* if it has not been synced yet.

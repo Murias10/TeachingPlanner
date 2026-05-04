@@ -31,7 +31,10 @@ export class GoogleOAuthService {
         this.clientId = process.env.GOOGLE_CLIENT_ID || '';
         this.clientSecret = process.env.GOOGLE_CLIENT_SECRET || '';
         this.redirectUri = process.env.GOOGLE_REDIRECT_URI || '';
-        this.encryptionKey = process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex');
+        if (!process.env.ENCRYPTION_KEY) {
+            throw new Error('ENCRYPTION_KEY environment variable is required');
+        }
+        this.encryptionKey = process.env.ENCRYPTION_KEY;
     }
 
     getAuthorizationUrl(userId: string): string {
@@ -111,7 +114,8 @@ export class GoogleOAuthService {
             const response = await fetch(`${plannerServiceUrl}/calendar-sync/initialize`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'x-internal-service': 'auth_service'
                 },
                 body: JSON.stringify({
                     userId,
@@ -136,16 +140,11 @@ export class GoogleOAuthService {
                 return { success: false, message: 'User not found' };
             }
 
-            let accessToken: string | null = null;
+            user.googleDisconnecting = true;
+            await this.userRepository.save(user);
 
-            // Decrypt access token if exists (we'll need it to delete Google Calendars)
-            if (user.googleAccessToken) {
-                try {
-                    accessToken = this.decrypt(user.googleAccessToken);
-                } catch (decryptError) {
-                    console.warn('Failed to decrypt access token:', decryptError);
-                }
-            }
+            // Get a valid (possibly refreshed) access token to delete Google Calendars
+            const accessToken = await this.getValidAccessToken(userId);
 
             // Delete calendar syncs and Google Calendars via planner_service
             if (accessToken) {
@@ -154,7 +153,8 @@ export class GoogleOAuthService {
                     const response = await fetch(`${plannerServiceUrl}/calendar-sync/cleanup`, {
                         method: 'DELETE',
                         headers: {
-                            'Content-Type': 'application/json'
+                            'Content-Type': 'application/json',
+                            'x-internal-service': 'auth_service'
                         },
                         body: JSON.stringify({
                             userId,
@@ -185,12 +185,12 @@ export class GoogleOAuthService {
                 }
             }
 
-            // Clear Google fields - using null instead of undefined for proper DB persistence
-            user.googleAccessToken = null as any;
-            user.googleRefreshToken = null as any;
-            user.googleId = null as any;
-            user.googleTokenExpiry = null as any;
+            user.googleAccessToken = undefined;
+            user.googleRefreshToken = undefined;
+            user.googleId = undefined;
+            user.googleTokenExpiry = undefined;
             user.googleCalendarSyncEnabled = false;
+            user.googleDisconnecting = false;
 
             await this.userRepository.save(user);
 
@@ -201,27 +201,29 @@ export class GoogleOAuthService {
         }
     }
 
-    async getGoogleStatus(userId: string): Promise<{ connected: boolean; email?: string; syncEnabled: boolean }> {
+    async getGoogleStatus(userId: string): Promise<{ connected: boolean; email?: string; syncEnabled: boolean; disconnecting: boolean }> {
         try {
             const user = await this.userRepository.findOne({ where: { id: userId } });
             if (!user) {
-                return { connected: false, syncEnabled: false };
+                return { connected: false, syncEnabled: false, disconnecting: false };
+            }
+
+            if (user.googleDisconnecting) {
+                return { connected: true, syncEnabled: false, disconnecting: true };
             }
 
             if (!user.googleId || !user.googleAccessToken) {
-                return { connected: false, syncEnabled: false };
+                return { connected: false, syncEnabled: false, disconnecting: false };
             }
-
-            // Check if token is still valid
-            const isTokenValid = user.googleTokenExpiry && new Date() < user.googleTokenExpiry;
 
             return {
                 connected: true,
-                syncEnabled: user.googleCalendarSyncEnabled
+                syncEnabled: user.googleCalendarSyncEnabled,
+                disconnecting: false
             };
         } catch (error) {
             console.error('Error getting Google status:', error);
-            return { connected: false, syncEnabled: false };
+            return { connected: false, syncEnabled: false, disconnecting: false };
         }
     }
 
@@ -370,8 +372,11 @@ export class GoogleOAuthService {
 
     private decrypt(encryptedText: string): string {
         const parts = encryptedText.split(':');
-        const iv = Buffer.from(parts[0], 'hex');
-        const encrypted = parts[1];
+        if (parts.length !== 2 || !parts[0] || !parts[1]) {
+            throw new Error('Invalid encrypted token format');
+        }
+        const [ivHex, encrypted] = parts;
+        const iv = Buffer.from(ivHex, 'hex');
         const key = Buffer.from(this.encryptionKey.slice(0, 32).padEnd(32, '0'));
         const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
         let decrypted = decipher.update(encrypted, 'hex', 'utf8');

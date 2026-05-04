@@ -72,6 +72,7 @@ export const googleCallback = async (req: Request, res: Response, next: NextFunc
             state: state as string
         }).toString();
 
+        // maxRedirects: 0 — manual redirect handling so the browser follows the final location
         const response = await axios.get(`${SERVICES.AUTH}/auth/google/callback?${queryParams}`, {
             maxRedirects: 0,
             validateStatus: (status) => status >= 200 && status < 400
@@ -123,10 +124,10 @@ export const getRateLimitStatus = (req: Request, res: Response, next: NextFuncti
         method: 'GET'
     });
 
-export const toggleCalendarSync = (req: Request, res: Response, next: NextFunction) =>
+export const deleteCalendarSync = (req: Request, res: Response, next: NextFunction) =>
     proxyRequest(req, res, next, {
-        url: `${SERVICES.PLANNER}/calendar-sync/${req.params.id}/toggle`,
-        method: 'PATCH'
+        url: `${SERVICES.PLANNER}/calendar-sync/${req.params.id}`,
+        method: 'DELETE'
     });
 
 export const syncNow = (req: Request, res: Response, next: NextFunction) =>

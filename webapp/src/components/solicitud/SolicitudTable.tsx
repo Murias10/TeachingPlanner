@@ -62,7 +62,7 @@ export function SolicitudTable({ solicitudes, onReject, onReview, onDelete }: So
         getSortedRowModel: getSortedRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
-        initialState: { pagination: { pageSize: 10 } },
+        initialState: { pagination: { pageSize: 8 } },
     })
 
     return (
@@ -144,7 +144,7 @@ export function SolicitudTable({ solicitudes, onReject, onReview, onDelete }: So
                                 </TableCell>
                             </TableRow>
                         )}
-                        {Array.from({ length: Math.max(0, 10 - Math.max(1, table.getRowModel().rows.length)) }).map((_, idx) => (
+                        {Array.from({ length: Math.max(0, 8 - Math.max(1, table.getRowModel().rows.length)) }).map((_, idx) => (
                             <TableRow key={`empty-${idx}`} className={`h-[53px] ${((table.getRowModel().rows.length + idx) % 2 === 0) ? 'bg-background' : 'bg-muted/30'}`}>
                                 <TableCell colSpan={table.getAllColumns().length}>&nbsp;</TableCell>
                             </TableRow>

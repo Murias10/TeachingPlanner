@@ -922,7 +922,7 @@ La estrategia de pruebas de TeachingPlanner se articula en tres niveles compleme
 - Duplicación de código y complejidad ciclomática.
 
 **Qué queda excluido del análisis:**
-- `webapp/src/components/ui/**`: componentes de UI basados en shadcn/ui, generados automáticamente y no mantenidos directamente.
+- `webapp/src/components/ui/**`: incluye dos categorías — (a) los 37 primitivos de Radix UI generados automáticamente via shadcn/ui y no modificados directamente, y (b) `DataTable.tsx` y `FormDrawer.tsx`, componentes genéricos del proyecto de mantenimiento manual que también quedan excluidos por el patrón `ui/**`.
 - Directorios `dist/`, `build/`, `coverage/` y todos los ficheros de test (`*.test.ts`, `*.spec.ts`).
 
 ---

@@ -33,11 +33,11 @@ graph TD
             COMP_SUBJ["subject/"]
             COMP_USR["user/"]
             COMP_SOL["solicitud/ · event-request/"]
-            COMP_UI["ui/ (Radix UI primitives)"]
+            COMP_UI["ui/\n(Radix UI primitives · DataTable·T· · FormDrawer)"]
             COMP_CMN["common/ · AppLayout · app-sidebar"]
         end
 
-        subgraph "hooks/ — ~40 hooks por dominio"
+        subgraph "hooks/ — hooks por dominio"
             H_CAL["calendar/ · course/ · degree/"]
             H_REST["classroom/ · group/ · subject/\nuser/ · event-request/"]
         end
@@ -63,6 +63,15 @@ graph TD
     H_REST --> SVC
     CTX --> SVC
 ```
+
+**Componentes genéricos en `ui/`:**
+
+Además de los 37 primitivos de Radix UI (generados con shadcn/ui y no modificados directamente), la carpeta `components/ui/` alberga dos componentes de proyecto de mantenimiento manual:
+
+| Componente | Descripción | Usos directos |
+|---|---|---|
+| `DataTable<T>` | Tabla genérica con TanStack React Table: filtrado por columna, visibilidad de columnas, ordenación, paginación (10 filas/página) y selección múltiple opcional. Reemplaza la lógica de ~40 líneas repetida en 5 tablas idénticas (Classroom, Course, Degree, Subject, User). | 5 tablas de dominio |
+| `FormDrawer` | Drawer de formulario genérico con header i18n, área de contenido desplazable y footer con botones Cancel/Save (deshabilitados según `isValid` e `isLoading`). Reemplaza el shell repetido en 10 drawers de creación/edición. | 10 drawers de dominio |
 
 **Rutas de la aplicación:**
 

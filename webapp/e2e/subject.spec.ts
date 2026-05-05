@@ -151,9 +151,13 @@ async function createSubject(page: Page, data: { name: string; acronym: string; 
   await page.getByRole('option', { name: new RegExp(`^${data.year}`, 'i') }).first().click();
 
   // Seleccionar semestre usando getByLabel en lugar de ID
+  // Si el campo está disabled, el semestre ya viene fijado desde la URL (ej: /semester/1/subjects)
   const semesterSelect = page.getByLabel(/semestre|semester/i);
-  await semesterSelect.click();
-  await page.getByRole('option', { name: new RegExp(`${data.semester}`, 'i') }).first().click();
+  const semesterDisabled = await semesterSelect.isDisabled();
+  if (!semesterDisabled) {
+    await semesterSelect.click();
+    await page.getByRole('option', { name: new RegExp(`${data.semester}`, 'i') }).first().click();
+  }
 
   // Llenar código SIES
   const siesField = page.getByLabel(/sies code|código sies/i);

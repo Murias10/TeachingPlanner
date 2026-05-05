@@ -570,23 +570,23 @@ test('should create new degree successfully', async ({ page }) => {
 
 ---
 
-### 6.2.3 Ejecución automática en CI/CD — GitHub Actions
+### 6.2.3 Ejecución en CI/CD — GitHub Actions
 
-Los tests se ejecutan automáticamente en **GitHub Actions** cada vez que se abre, actualiza o reabre un *pull request*. El workflow se define en `.github/workflows/tests.yml` y consta de dos jobs secuenciales:
+Los tests se ejecutan en **GitHub Actions** como parte de los workflows de despliegue, activados manualmente desde la pestaña *Actions* del repositorio. No existe un workflow independiente para tests: tanto `deploy_azure.yml` como `deploy_selfhosted.yml` incluyen los jobs `unit-tests` y `e2e-tests` directamente. Al lanzar cualquiera de estos workflows, el responsable selecciona mediante checkboxes qué jobs ejecutar, pudiendo optar por ejecutar únicamente los tests, solo el despliegue, o el pipeline completo.
 
 ```mermaid
 flowchart TD
-    PR["Pull Request\n(opened · synchronize · reopened)"]
+    Dispatch["workflow_dispatch\n(manual — pestaña Actions de GitHub)"]
 
-    subgraph "Job 1: unit-tests"
+    subgraph "Job 1: unit-tests (opcional)"
         U1["Checkout código"]
-        U2["Setup Node.js 20\n(CI — las imágenes Docker de producción usan Node.js 23)"]
+        U2["Setup Node.js 20"]
         U3["npm ci — planner_service"]
         U4["npm run test:ci\nJest + Testcontainers MariaDB 11.2"]
         U5{{"¿Tests OK?"}}
     end
 
-    subgraph "Job 2: e2e-tests (needs: unit-tests)"
+    subgraph "Job 2: e2e-tests (opcional, needs: unit-tests)"
         E1["Levantar MariaDB 11\nplanner_db_test + management_db_test"]
         E2["npm ci — todos los servicios"]
         E3["npm run build — 4 servicios"]
@@ -599,12 +599,12 @@ flowchart TD
         E10["Upload artifacts\n(screenshots · vídeos · HTML report)\nRetención: 7 días"]
     end
 
-    PR --> U1 --> U2 --> U3 --> U4 --> U5
+    Dispatch --> U1 --> U2 --> U3 --> U4 --> U5
     U5 -->|"Sí"| E1
-    U5 -->|"No"| FAIL1["❌ Pipeline fallido\n(merge bloqueado)"]
+    U5 -->|"No"| FAIL1["❌ Tests fallidos"]
     E1 --> E2 --> E3 --> E4 --> E5 --> E6 --> E7 --> E8 --> E9
-    E9 -->|"Sí"| OK["✅ Pipeline superado\n(merge permitido)"]
-    E9 -->|"No"| E10 --> FAIL2["❌ Pipeline fallido\n(merge bloqueado)"]
+    E9 -->|"Sí"| OK["✅ Tests superados"]
+    E9 -->|"No"| E10 --> FAIL2["❌ Tests fallidos"]
 ```
 
 **Servicios y puertos verificados en CI** (script `webapp/scripts/wait-for-services.ts`):

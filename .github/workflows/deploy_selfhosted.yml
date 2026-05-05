@@ -11,7 +11,6 @@
 #   4. deploy               → Despliega en VM self-hosted (depende de build-and-push)
 #
 # TRIGGERS:
-#   - Push a la rama 'main'
 #   - Ejecución manual desde GitHub (workflow_dispatch)
 #
 # SECRETS REQUERIDOS:
@@ -34,10 +33,24 @@ name: Deploy to Self-Hosted VM
 # TRIGGERS: Cuándo se ejecuta este workflow
 # -----------------------------------------------------------------------------
 on:
-  push:
-    branches:
-      - main  # Despliegue automático en cada push a main
-  workflow_dispatch:  # Permite ejecución manual desde la UI de GitHub
+  workflow_dispatch:  # Solo ejecución manual desde la UI de GitHub
+    inputs:
+      run_unit_tests:
+        description: '🧪 Ejecutar Tests Unitarios'
+        type: boolean
+        default: true
+      run_e2e_tests:
+        description: '🔗 Ejecutar Tests E2E'
+        type: boolean
+        default: true
+      run_build:
+        description: '🐳 Build & Push Docker Images'
+        type: boolean
+        default: true
+      run_deploy:
+        description: '🚀 Desplegar en Self-Hosted VM'
+        type: boolean
+        default: true
 
 # -----------------------------------------------------------------------------
 # JOBS: Definición de trabajos
@@ -51,6 +64,7 @@ jobs:
   # ---------------------------------------------------------------------------
   unit-tests:
     name: 🧪 Tests Unitarios
+    if: ${{ inputs.run_unit_tests }}
     runs-on: ubuntu-latest
     steps:
       - name: 📥 Clonar el repositorio
@@ -84,6 +98,10 @@ jobs:
   e2e-tests:
     name: 🔗 Tests E2E
     needs: [unit-tests]
+    if: |
+      always() &&
+      inputs.run_e2e_tests == true &&
+      (needs.unit-tests.result == 'success' || needs.unit-tests.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -226,6 +244,10 @@ jobs:
   build-and-push-images:
     name: 🐳 Build & Push Images
     needs: [e2e-tests]
+    if: |
+      always() &&
+      inputs.run_build == true &&
+      (needs.e2e-tests.result == 'success' || needs.e2e-tests.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
       contents: read    # Para clonar el repositorio
@@ -340,6 +362,10 @@ jobs:
   deploy:
     name: 🚀 Deploy to Self-Hosted
     needs: [build-and-push-images]
+    if: |
+      always() &&
+      inputs.run_deploy == true &&
+      (needs.build-and-push-images.result == 'success' || needs.build-and-push-images.result == 'skipped')
     runs-on: self-hosted  # Se ejecuta en el runner auto-hospedado de la VM
 
     steps:

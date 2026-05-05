@@ -443,11 +443,11 @@ The CI/CD pipeline is split into two parts:
 
 ```mermaid
 flowchart TD
-    Push["git push origin main"]
+    Dispatch["workflow_dispatch\n(manual — GitHub Actions UI)"]
 
-    Push --> StdRunner
+    Dispatch --> StdRunner
 
-    subgraph StdRunner["ubuntu-latest runner"]
+    subgraph StdRunner["ubuntu-latest runner (optional jobs via checkboxes)"]
         T1["1. Unit tests"]
         T2["2. E2E tests"]
         T3["3. Build and push images to GHCR"]
@@ -591,14 +591,20 @@ Follow **Step 4 of section 7.1.6** to create the `SSL_CERT` and `SSL_KEY` secret
 
 ### Step 7 — Trigger the first deployment
 
-The workflow `.github/workflows/deploy_selfhosted.yml` is triggered automatically on every push to the `main` branch:
+The workflow `.github/workflows/deploy_selfhosted.yml` is triggered manually from the GitHub Actions interface. No push to `main` is needed or will trigger the workflow automatically.
 
-```bash
-# From the local development machine
-git add .
-git commit -m "chore: configure self-hosted deployment"
-git push origin main
-```
+To start a deployment:
+
+1. Go to the repository on GitHub → **Actions** → **Deploy to Self-Hosted VM**
+2. Click **Run workflow**
+3. Select which jobs to run using the checkboxes:
+   - 🧪 **Run Unit Tests** (default: enabled)
+   - 🔗 **Run E2E Tests** (default: enabled)
+   - 🐳 **Build & Push Docker Images** (default: enabled)
+   - 🚀 **Deploy to Self-Hosted VM** (default: enabled)
+4. Click **Run workflow** to confirm
+
+This design is intentional: no `push` to `main` triggers an automatic deployment, ensuring the decision to deploy is always explicit. For the first deployment, leave all checkboxes enabled to run the full pipeline.
 
 The workflow runs the following stages:
 

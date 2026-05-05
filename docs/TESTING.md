@@ -462,9 +462,14 @@ page.locator('//div[@class="container"]//button[1]')
 
 ### Configuración
 
-Los tests E2E se ejecutan automáticamente en GitHub Actions cuando:
-- Se hace push a la rama `master`
-- Se abre, actualiza o reabre un Pull Request
+Los tests se ejecutan en GitHub Actions como parte de los workflows de despliegue, activados manualmente desde la interfaz de GitHub Actions. Al lanzar cualquiera de los dos workflows (`deploy_azure.yml` o `deploy_selfhosted.yml`), se presentan checkboxes para elegir qué jobs ejecutar:
+
+- 🧪 Ejecutar Tests Unitarios
+- 🔗 Ejecutar Tests E2E
+- 🐳 Build & Push Docker Images
+- 🚀 Desplegar en VM
+
+Es posible ejecutar únicamente los tests (sin build ni despliegue), o desplegar sin ejecutar tests si se confía en que ya pasaron previamente.
 
 ### Arquitectura en CI
 
@@ -484,8 +489,8 @@ GitHub Actions Workflow
 ### Archivos de Configuración
 
 - **`.env.ci`** - Variables de entorno específicas para CI
-- **`webapp/scripts/wait-for-services.sh`** - Script que espera servicios ready
-- **`.github/workflows/tests.yml`** - Workflow de GitHub Actions
+- **`webapp/scripts/wait-for-services.ts`** - Script que espera que los servicios estén listos
+- **`.github/workflows/deploy_azure.yml`** y **`.github/workflows/deploy_selfhosted.yml`** - Workflows de GitHub Actions
 
 ### Variables de Entorno en CI
 
@@ -651,7 +656,8 @@ TeachingPlanner/
 │       └── seed-test-user.ts
 │
 ├── .github/workflows/
-│   └── tests.yml                         # Workflow CI/CD
+│   ├── deploy_azure.yml                  # Workflow CI/CD — Azure VM
+│   └── deploy_selfhosted.yml             # Workflow CI/CD — Self-hosted VM
 │
 ├── .env.ci                                # Config para CI
 │

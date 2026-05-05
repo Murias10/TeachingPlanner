@@ -109,8 +109,8 @@ graph TB
     end
 
     subgraph "CI/CD — GitHub Actions"
-        ci_test["Workflow: tests.yml\npull_request → unit-tests → e2e-tests"]
-        ci_deploy["Workflow: deploy_azure.yml\ndispatch → build → push GHCR → SSH deploy"]
+        ci_deploy_azure["Workflow: deploy_azure.yml\ndispatch (manual) → tests → build → SSH deploy"]
+        ci_deploy_self["Workflow: deploy_selfhosted.yml\ndispatch (manual) → tests → build → self-hosted deploy"]
     end
 
     subgraph "Azure VM — Docker Engine"
@@ -144,22 +144,24 @@ graph TB
     caddy --> vol_c
     auth_node -->|"OAuth/SMTP"| google_ext
     plan_node -->|"Calendar API"| google_ext
-    ci_deploy -->|"docker pull"| caddy
-    ci_deploy -->|"docker pull"| gw_node
-    ci_test --> ci_deploy
-    ghcr --> ci_deploy
+    ci_deploy_azure -->|"docker pull"| caddy
+    ci_deploy_azure -->|"docker pull"| gw_node
+    ci_deploy_self -->|"docker pull"| caddy
+    ci_deploy_self -->|"docker pull"| gw_node
+    ghcr --> ci_deploy_azure
+    ghcr --> ci_deploy_self
 ```
 
-**Pipeline CI/CD (cuatro etapas secuenciales):**
+**Pipeline CI/CD (cuatro jobs opcionales):**
 
-El proceso de despliegue a producción se articula en cuatro etapas dependientes entre sí, definidas en los ficheros de GitHub Actions:
+El proceso de despliegue a producción se articula en cuatro jobs configurables, definidos en dos ficheros de GitHub Actions: `deploy_azure.yml` (VM pública en Azure, acceso por SSH) y `deploy_selfhosted.yml` (VM en red privada de la universidad, runner auto-hospedado). Ambos workflows comparten la misma estructura:
 
-1. **`unit-tests`** (workflow `tests.yml`, trigger: `pull_request`): ejecuta los tests de integración de `planner_service` con Jest 30 y Testcontainers sobre Node.js 23.
-2. **`e2e-tests`** (depende de `unit-tests`): levanta todos los servicios backend en background, arranca la base de datos MariaDB como servicio Docker, siembra un usuario administrador de prueba y ejecuta los tests Playwright en Chromium.
-3. **`docker-push`** (workflow `deploy_azure.yml`, trigger: `workflow_dispatch` — manual): construye las imágenes Docker de todos los servicios usando `node:23-alpine` como base y las publica en `ghcr.io/murias10/teachingplanner/<servicio>`.
-4. **`deploy`** (depende de `docker-push`): accede a la Azure VM por SSH, ejecuta `docker compose pull` para descargar las nuevas imágenes y `docker compose up -d` para reiniciar los servicios afectados con tiempo de inactividad mínimo.
+1. **`unit-tests`** (opcional): ejecuta los tests de integración de `planner_service` con Jest 30 y Testcontainers sobre Node.js 20.
+2. **`e2e-tests`** (opcional, depende de `unit-tests`): levanta todos los servicios backend en background, arranca la base de datos MariaDB como servicio Docker, siembra un usuario administrador de prueba y ejecuta los tests Playwright en Chromium.
+3. **`build-and-push-images`** (opcional): construye las imágenes Docker de todos los servicios y las publica en `ghcr.io/murias10/teachingplanner/<servicio>`.
+4. **`deploy`** (opcional): en `deploy_azure.yml`, accede a la Azure VM por SSH y ejecuta `docker compose pull` + `docker compose up -d`; en `deploy_selfhosted.yml`, el job se ejecuta directamente en el runner instalado en la VM de la universidad y realiza las mismas operaciones sin conexión SSH entrante.
 
-El hecho de que el despliegue a producción sea siempre un `workflow_dispatch` (activación manual) es una decisión deliberada: ningún `push` a `main` desencadena un despliegue automático, garantizando que la decisión de poner en producción siempre sea consciente. En la práctica, el responsable accede a la pestaña *Actions* del repositorio en GitHub, selecciona el workflow `deploy_azure.yml` y pulsa *Run workflow*; los pasos operativos detallados se recogen en el [Manual de Instalación](./manual_instalacion.md).
+Ambos workflows se activan exclusivamente mediante `workflow_dispatch` (activación manual) desde la pestaña *Actions* del repositorio en GitHub. Al iniciar la ejecución, el responsable selecciona mediante checkboxes qué jobs desea ejecutar, permitiendo combinaciones como ejecutar solo los tests, solo el build, o el pipeline completo. Ningún `push` a `main` desencadena un despliegue automático, garantizando que la decisión de poner en producción sea siempre consciente y deliberada. Los pasos operativos detallados se recogen en el [Manual de Instalación](./manual_instalacion.md).
 
 **Aspectos relevantes del despliegue en producción:**
 
@@ -1014,7 +1016,7 @@ Los ficheros de test se encuentran en `planner_service/src/__tests__/integration
 
 **Estrategia de aislamiento de datos:** el endpoint `POST /test/reset-database` garantiza que cada suite de tests comienza con una base de datos limpia. Los tests dentro de cada suite se ejecutan secuencialmente para evitar condiciones de carrera sobre los datos. En el entorno de CI, Playwright se configura con `workers: 1` para evitar conflictos entre suites paralelas sobre la base de datos compartida.
 
-**Infraestructura de ejecución en CI** (workflow `tests.yml`, job `e2e-tests`):
+**Infraestructura de ejecución en CI** (job `e2e-tests` de los workflows de despliegue):
 1. Se levanta MariaDB 11 como servicio Docker con credenciales de test.
 2. Se crean las dos bases de datos de test (`planner_db_test`, `management_db_test`).
 3. Se compilan y arrancan en background los cuatro servicios backend con `NODE_ENV=test`.
@@ -1037,7 +1039,7 @@ Los ficheros de test se encuentran en `planner_service/src/__tests__/integration
 | Entorno | Descripción | Activación |
 |---|---|---|
 | **Desarrollo local** | Todos los servicios levantados con `docker-compose.dev.yml` o manualmente; BD limpiada antes de cada ejecución E2E con `npm run test:e2e:clean` | Manual |
-| **Integración continua (CI)** | GitHub Actions con MariaDB como servicio Docker; servicios backend compilados y arrancados en background; seed de usuario de prueba; Playwright en `workers: 1` | Automática en cada `pull_request` |
+| **Integración continua (CI)** | GitHub Actions con MariaDB como servicio Docker; servicios backend compilados y arrancados en background; seed de usuario de prueba; Playwright en `workers: 1` | Manual desde la UI de GitHub Actions (`workflow_dispatch`) |
 | **Análisis de calidad (SonarQube)** | Instancia SonarQube local levantada con `docker-compose.sonarqube.yml`; análisis ejecutado con `sonar-scanner` tras la generación de informes LCOV por Jest | Manual, tras ejecución de tests de integración |
 
 La implementación detallada de los scripts, casos de prueba y resultados obtenidos se describe en el **Capítulo 6**.

@@ -150,11 +150,9 @@ async function createSubject(page: Page, data: { name: string; acronym: string; 
   await yearSelect.click();
   await page.getByRole('option', { name: new RegExp(`^${data.year}`, 'i') }).first().click();
 
-  // Seleccionar semestre usando getByLabel en lugar de ID
-  // Si el campo está disabled, el semestre ya viene fijado desde la URL (ej: /semester/1/subjects)
+  // El semestre viene prefijado desde la URL cuando el Select está disabled
   const semesterSelect = page.getByLabel(/semestre|semester/i);
-  const semesterDisabled = await semesterSelect.isDisabled();
-  if (!semesterDisabled) {
+  if (await semesterSelect.isEnabled()) {
     await semesterSelect.click();
     await page.getByRole('option', { name: new RegExp(`${data.semester}`, 'i') }).first().click();
   }
@@ -298,8 +296,6 @@ test.describe('Subject Management', () => {
     await acronymField.pressSequentially(uniqueAcronym, { delay: 50 });
     await page.getByLabel(/año|year/i).click();
     await page.getByRole('option', { name: /1/i }).first().click();
-    await page.getByLabel(/semestre|semester/i).click();
-    await page.getByRole('option', { name: /1/i }).first().click();
     await page.getByLabel(/sies code|código sies/i).fill(`IPRB01-1-${Date.now().toString().slice(-3)}`);
 
     const saveButton = page.getByRole('button', { name: /guardar|save/i }).last();
@@ -425,9 +421,6 @@ test.describe('Subject Management', () => {
     await page.getByRole('option', { name: /1/i }).first().click();
     await expect(saveButton).toBeDisabled();
 
-    const semesterSelect = page.getByLabel(/semestre|semester/i);
-    await semesterSelect.click();
-    await page.getByRole('option', { name: /1/i }).first().click();
     await expect(saveButton).toBeDisabled();
 
     // Llenar SIES code - ahora debe habilitarse

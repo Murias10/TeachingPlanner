@@ -24,7 +24,7 @@ export function CourseTable({ courses, deleteCourse, deleteCalendar, createCalen
         <DataTable
             data={courses}
             columns={columns}
-            filterColumn="name"
+            filterColumn="course"
             filterPlaceholder={t("table.courses.filter.placeholder")}
             noResultsText={t("table.courses.no.results")}
             totalLabel={t("table.courses.title").toLowerCase()}

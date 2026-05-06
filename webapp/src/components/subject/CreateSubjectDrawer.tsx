@@ -109,23 +109,19 @@ export function CreateSubjectDrawer({ open, onOpenChange, onSave, semester: fixe
             </div>
             <div className="space-y-2 max-w-sm mx-auto w-full">
                 <Label htmlFor="subject-semester">{t("drawer.subjects.create.semester")}</Label>
-                {fixedSemester === undefined ? (
-                    <Select onValueChange={(value) => setSemester(Number(value))} value={semester === null ? "" : String(semester)}>
-                        <SelectTrigger id="subject-semester" className="w-full">
-                            <SelectValue placeholder="Selecciona el semestre" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="1">{t("table.subjects.semester.1")}</SelectItem>
-                            <SelectItem value="2">{t("table.subjects.semester.2")}</SelectItem>
-                        </SelectContent>
-                    </Select>
-                ) : (
-                    <Input
-                        id="subject-semester"
-                        value={t(`table.subjects.semester.${fixedSemester}`)}
-                        disabled
-                    />
-                )}
+                <Select
+                    onValueChange={(value) => setSemester(Number(value))}
+                    value={semester === null ? "" : String(semester)}
+                    disabled={fixedSemester !== undefined}
+                >
+                    <SelectTrigger id="subject-semester" className="w-full">
+                        <SelectValue placeholder="Selecciona el semestre" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="1">{t("table.subjects.semester.1")}</SelectItem>
+                        <SelectItem value="2">{t("table.subjects.semester.2")}</SelectItem>
+                    </SelectContent>
+                </Select>
             </div>
             <div className="space-y-2 max-w-sm mx-auto w-full">
                 <Label htmlFor="subject-sies-code">{t("drawer.subjects.create.siesCode")}</Label>

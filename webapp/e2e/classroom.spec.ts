@@ -293,7 +293,7 @@ test.describe('Classroom Management', () => {
      */
 
     // Crear aula (en un test real, aquí crearías también eventos)
-    const classroomCode = `WITH-EVENTS-${Date.now()}`;
+    const classroomCode = `WITH-EVENTS-${Date.now().toString().slice(-8)}`;
 
     await clickCreateButton(page);
     await page.getByLabel(/código|code/i).fill(classroomCode);
@@ -311,8 +311,6 @@ test.describe('Classroom Management', () => {
     createdIds.push(eventsData.data.classroom.id);
 
     await expectSuccessAlert(page, ALERT_MESSAGES.CREATED);
-
-    // Esperar a que el drawer se cierre y la tabla se actualice
     await page.waitForLoadState('networkidle');
 
     // Buscar la fila en la tabla
@@ -386,8 +384,9 @@ test.describe('Classroom Management', () => {
 
   test('should filter classrooms by code', async ({ page }) => {
     // Crear dos aulas con códigos diferentes
-    const code1 = `FILTER-A-${Date.now()}`;
-    const code2 = `FILTER-B-${Date.now()}`;
+    const ts = Date.now().toString().slice(-9);
+    const code1 = `FA-${ts}`;
+    const code2 = `FB-${ts}`;
 
     // Crear primera aula
     await clickCreateButton(page);
@@ -406,8 +405,6 @@ test.describe('Classroom Management', () => {
     createdIds.push(filter1Data.data.classroom.id);
 
     await expectSuccessAlert(page, ALERT_MESSAGES.CREATED);
-
-    // Esperar a que el drawer se cierre y la tabla se actualice
     await page.waitForLoadState('networkidle');
 
     // Crear segunda aula
@@ -427,8 +424,6 @@ test.describe('Classroom Management', () => {
     createdIds.push(filter2Data.data.classroom.id);
 
     await expectSuccessAlert(page, ALERT_MESSAGES.CREATED);
-
-    // Esperar a que el drawer se cierre y la tabla se actualice
     await page.waitForLoadState('networkidle');
 
     // Buscar el input de filtro y filtrar por el código completo del primero

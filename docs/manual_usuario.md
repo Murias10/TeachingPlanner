@@ -143,26 +143,43 @@ The features described in this section are accessible to guests, professors, and
 
 > **[IMAGE 11b — Calendar views and navigation bar]**: screenshot of the calendar header showing the five view buttons (Semana, Semana laboral, Día, Mes, Agenda) and the Previous / Today / Next navigation buttons alongside the current date range label.
 
-> **[IMAGE 11c — Event tile detail]**: screenshot of a calendar event tile at a zoom level where the two lines of text are clearly readable: the subject–group identifier on the first line and the classroom code on the second (e.g. "Alg.L3 / L-11").
-
-> **[IMAGE 11d — Active filter chips]**: screenshot of the bottom strip of the filter panel showing several active filter chips (e.g. "Alg ×", "Alg.T1 ×", "Alg.L3 ×") and the real-time event counter "Mostrando X de Y eventos".
-
 The home page displays all events from a selected active academic calendar. The two core components of this page — the calendar itself and the filter panel — are described in detail below.
 
 #### Reading the calendar
 
-The **calendar selector** dropdown at the top of the page identifies the active calendar you are viewing. Each entry follows the format *ACRONYM - YYYY/YYYY - Semestre N* (e.g. `GIISOF01 - 2025/2026 - Semestre 2`); only calendars in *Activo* status are available here. Your selection is persisted between browser sessions.
+The **calendar selector** dropdown at the top of the page identifies the active calendar you are viewing. Each entry follows the format *ACRONYM - YYYY/YYYY - Semestre N* (e.g. `GIISOF01 - 2025/2026 - Semestre 2`); only calendars in *Activo* status are available here. Your selection is persisted between browser sessions. The degree acronym (e.g. `GIISOF01`) and the academic year (e.g. `2025/2026`) are part of this selector label, so this is where you read which degree and semester you are looking at.
 
 The current **date range** being displayed is shown in the calendar header, next to the navigation controls, so you always know which period you are looking at.
 
+> **[IMAGE 11c — Event tile detail]**: screenshot of a calendar event tile at a zoom level where the two lines of text are clearly readable: the subject–group identifier on the first line and the classroom code on the second (e.g. "Alg.L3 / L-11").
+
 Each **event** is rendered as a coloured block, with each subject assigned a distinct colour that remains consistent throughout the application. Inside the block, two lines of text allow you to identify the event at a glance without opening the detail panel:
 
-1. The **subject–group identifier** (e.g. `Alg.L3`) — tells you which subject and which specific group the event belongs to.
-2. The **classroom code** (e.g. `L-11`) — tells you the physical location where the session takes place.
+1. The **subject–group identifier** (e.g. `Alg.L3`) — tells you which subject and which specific group the event belongs to. Non-standard event types are identified by a short prefix before the identifier:
+   - *(no prefix)* — regular class session
+   - `EV ·` — Evaluation (exam or formal assessment)
+   - `RE ·` — Review (post-assessment session)
+   - `OT ·` — Others (talk, workshop, or similar activity)
+   - `IND` — Independent room reservation (no subject or group)
+2. The **classroom code and start time** (e.g. `09:00 · L-11`) — tells you when the session starts and the physical location where it takes place.
+
+Events can appear in three visual states:
+
+| State | Appearance | Meaning |
+|---|---|---|
+| **Normal** | Full colour, solid border | Scheduled and confirmed |
+| **Pending** | Reduced opacity, dashed grey border | A professor's request awaiting administrator approval |
+| **Cancelled** | Grey colour, strikethrough text | Occurrence cancelled; shown for reference |
+
+**Days with no scheduled teaching** (non-teaching days or holidays) are displayed with a light grey background so they are immediately distinguishable from regular days.
+
+**Hover tooltip**: moving the mouse cursor over any event shows a tooltip with the full subject name, event type, duration in hours, and the list of classrooms assigned to that occurrence — useful when the event tile is too small to show all the detail.
 
 Click any event to open the **details side panel**, which shows the complete event information: full subject name, group, classroom, and exact start and end times.
 
 #### Navigating the calendar
+
+When you open the calendar, the **initial date** is set automatically: if today's date falls within the calendar's range, the view centres on the current week; otherwise it opens on the first day of the calendar period.
 
 Five **view modes** are available via the buttons in the calendar header:
 
@@ -170,33 +187,54 @@ Five **view modes** are available via the buttons in the calendar header:
 |---|---|
 | **Semana** (Week) | All seven days of the selected week |
 | **Semana laboral** (Working week) | Monday to Friday only — useful for hiding weekends |
-| **Día** (Day) | A single day with hourly resolution |
-| **Mes** (Month) | A full month overview |
-| **Agenda** | A chronological list of upcoming events |
+| **Día** (Day) | A single day with hourly resolution; the time grid runs from **09:00 to 21:00** |
+| **Mes** (Month) | A full month overview showing events as compact tiles |
+| **Agenda** | A chronological list of upcoming events with full date and time detail |
 
-Use the **Previous** and **Next** arrow buttons to move to the preceding or following period (week, day, or month, depending on the active view). Click **Hoy** (Today) to jump back to the period containing the current date at any time.
+In the **Semana**, **Semana laboral**, and **Día** views the time grid spans **09:00 to 21:00**, covering the full range of possible class hours.
+
+Use the **Previous** and **Next** arrow buttons to move to the preceding or following period (week, day, or month, depending on the active view). Click **Hoy** (Today) to jump back to the period containing the current date at any time. Navigation is restricted to the date range of the selected calendar: you cannot scroll beyond its start or end dates.
 
 #### Using the filter panel
 
-The filter panel is opened and closed with the **Filtros ▼** button in the left toolbar. When collapsed, it shows the number of currently active filters so you always know whether a filter is in effect.
+> **[IMAGE 11d — Active filter chips]**: screenshot of the bottom strip of the filter panel showing several active filter chips (e.g. "Alg ×", "Alg.T1 ×", "Alg.L3 ×") and the real-time event counter "Mostrando X de Y eventos".
 
-The following filters are available:
+The filter panel is opened and closed with the **Filtros ▼** button in the left toolbar. When collapsed, a badge on the button shows the total number of currently active filter values, so you always know at a glance whether any filtering is in effect.
 
-| Filter | What it controls |
-|---|---|
-| **Curso** | Academic year of the calendar |
-| **Asignatura** | One or more subjects in the calendar |
-| **Tipo de grupo** | Group category: T (Theory), S (Seminar), L (Lab), TG (Group Tutorial) |
-| **Grupos** | Individual groups (e.g. `Alg.T1`, `Alg.L3`) |
-| **Aula** | A specific classroom or laboratory |
-| **Idioma** | Language of instruction |
-| **Tipo de Evento** | Event type: NORMAL, BLOCKER, REVISION, EVALUACION, OTRO |
+**Available filters:**
 
-**Selecting values within a filter:** the Asignatura, Grupos, and Aula filters include a **text search box** — type any partial string to narrow the list in real time. Practical tip: in the Aula filter, typing `A` shows only standard classrooms; typing `L` shows only laboratories.
+| Filter | What it controls | Selection control |
+|---|---|---|
+| **Curso** | Academic year of the subject group (1st, 2nd, 3rd, 4th year, or Elective) | Multiple checkboxes |
+| **Asignatura** | One or more subjects in the calendar | Checkboxes + text search |
+| **Tipo de grupo** | Group category: T (Theory), S (Seminar), L (Lab), TG (Group Tutorial) | Multiple checkboxes |
+| **Grupos** | Individual groups (e.g. `Alg.T1`, `Alg.L3`) | Checkboxes + text search |
+| **Aula** | A specific classroom or laboratory | Checkboxes + text search |
+| **Idioma** | Language of instruction (Español / Inglés) | Multiple checkboxes |
+| **Tipo de Evento** | Event type: Normal, Cancelled, Evaluation, Review, Others | Multiple checkboxes |
 
-**Combining filters:** all filters are **additive** (AND logic) — each additional selection further restricts the set of visible events. The header of the calendar shows a live counter, *"Mostrando X de Y eventos"*, reflecting how many events match the current combination of filters.
+**Selecting values within a filter:**
 
-**Managing active filters:** active filter selections appear as **chips** in the strip at the bottom of the filter panel. Click the `×` on any chip to remove that specific filter. The **Limpiar filtros** (Clear filters) button removes all active filters at once and restores the full event set.
+Each filter category has a header you can click to **expand or collapse** it independently. Inside each expanded category:
+
+- **Tick the checkboxes** next to the values you want. You can select as many values as needed within a category.
+- When a category contains more than eight options, a **text search box** appears automatically at the top of the list — type any partial string to narrow the list in real time. Practical tip: in the **Aula** filter, typing `A` shows only standard classrooms; typing `L` shows only laboratories.
+- The **Seleccionar todo** (Select all) and **Deseleccionar** (Clear) shortcut buttons at the top of each category let you tick or untick all options in that category with a single click.
+- Options that would return **no events** if selected are shown greyed out, preventing you from choosing combinations that yield an empty calendar.
+
+**Combining filters:**
+
+- **Between categories — AND logic:** selecting values in more than one category further restricts the visible events. For example, choosing *Asignatura: Álgebra* AND *Aula: L-11* shows only Álgebra events that take place in L-11.
+- **Within a category — OR logic:** selecting multiple values within the same category broadens the result. Choosing *Grupos: Alg.T1* and *Grupos: Alg.L3* shows events belonging to either group.
+- **Automatic cascade:** the filter categories are linked in a hierarchy — `Curso → Asignatura → Tipo de grupo → Grupos`. When you narrow a higher-level filter, the options in dependent filters that no longer match are automatically removed from your selection. The **Idioma** filter is also linked to **Grupos** in the same way. This prevents you from ending up in a state where a lower-level filter refers to groups that are no longer visible.
+
+The calendar header shows a live counter, *"Mostrando X de Y eventos"*, reflecting how many events match the current combination of filters.
+
+**Managing active filters:**
+
+Active filter selections appear as **chips** in the strip at the bottom of the filter panel. Click the `×` on any chip to remove that individual value. The **Limpiar filtros** (Clear filters) button removes all active filters at once and restores the full event set.
+
+**Persistence:** your filter selections are **saved automatically** in your browser between sessions. The next time you open the application you will find the same filters already in place, so you do not need to re-configure them each time.
 
 ---
 
@@ -235,7 +273,7 @@ Click **Classrooms** in the sidebar to see all classrooms available in the syste
 
 > **[IMAGE 16b — Semester calendar toolbar]**: screenshot of the toolbar specific to the semester calendar, showing the "Importar excepciones", "Exportar .csv" and "Exportar .txt" buttons alongside the filter toggle.
 
-The semester calendar displays all planned events for the selected academic semester. Its calendar view and filter panel work **identically** to those described in section 3.1 — the same five view modes (Semana, Semana laboral, Día, Mes, Agenda), the same navigation controls (Previous / Today / Next), the same event tile format (subject–group on the first line, classroom on the second), the same filter types, and the same chip-based active filter management all apply here.
+The semester calendar displays all planned events for the selected academic semester. Its calendar view and filter panel work **identically** to those described in section 3.1 — the same five view modes (Semana, Semana laboral, Día, Mes, Agenda), the same navigation controls (Previous / Today / Next), the same event tile format (subject–group identifier with type prefix on the first line, start time and classroom on the second), the same visual states (normal, pending, cancelled), the same hover tooltip, the same seven filter types with their search boxes, cascade behaviour, and chip-based active filter management, and the same automatic persistence of filter selections between sessions all apply here.
 
 The only differences with respect to the home calendar are:
 

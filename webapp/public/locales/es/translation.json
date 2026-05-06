@@ -1697,6 +1697,8 @@
         "page": {
             "title": "Solicitudes de Eventos",
             "subtitle": "Semestre {{semester}} • {{degree}} • {{startYear}}-{{endYear}}",
+            "allTitle": "Todas las Solicitudes",
+            "allSubtitle": "Gestión centralizada de solicitudes de eventos de todas las titulaciones",
             "loading": "Cargando solicitudes...",
             "error": "No se pudieron cargar las solicitudes",
             "filters": {
@@ -1747,7 +1749,19 @@
                 "cancel": "Cancelar",
                 "approve": "Aprobar",
                 "approving": "Aprobando...",
-                "loading": "Cargando información de la solicitud..."
+                "loading": "Cargando información de la solicitud...",
+                "groupsPlaceholder": "Seleccionar grupos",
+                "groupsSearch": "Buscar grupo...",
+                "groupsNotFound": "No se encontraron grupos.",
+                "groupPlaceholder": "Seleccionar grupo",
+                "dayPlaceholder": "Seleccionar día",
+                "subjectPlaceholder": "Seleccionar asignatura",
+                "subjectSearch": "Buscar asignatura...",
+                "subjectNotFound": "No se encontraron asignaturas.",
+                "groupTypePlaceholder": "Seleccionar tipo de grupo",
+                "classroomsPlaceholder": "Seleccionar aulas",
+                "patternPlaceholder": "Seleccionar patrón",
+                "commentPlaceholder": "Añade un comentario sobre este evento..."
             },
             "reject": {
                 "title": "Rechazar solicitud",
@@ -1756,9 +1770,13 @@
                 "eventType": "Tipo de evento",
                 "requestDate": "Fecha de solicitud",
                 "comments": "Comentarios",
-                "commentsPlaceholder": "Proporciona un comentario sobre el motivo del rechazo...",
+                "commentsPlaceholder": "Añade un comentario explicando el motivo del rechazo...",
+                "commentsLabel": "Comentarios (opcional)",
+                "commentsHint": "El profesor podrá ver estos comentarios",
+                "confirmMessage": "¿Estás seguro de que deseas rechazar esta solicitud? Esta acción no se puede deshacer.",
                 "cancel": "Cancelar",
-                "reject": "Rechazar",
+                "reject": "Rechazar solicitud",
+                "rejecting": "Rechazando...",
                 "processing": "Procesando..."
             }
         },
@@ -1833,7 +1851,32 @@
             "newData": "Datos nuevos",
             "noChanges": "No se realizarán cambios",
             "save": "Guardar cambios",
-            "saving": "Guardando..."
+            "saving": "Guardando...",
+            "dialogTitle": "Solicitar editar evento",
+            "dialogDescription": "Diálogo para solicitar la edición de un evento",
+            "originalEvent": "Evento original",
+            "type": "Tipo",
+            "schedule": "Horario",
+            "groups": "Grupos",
+            "classrooms": "Aulas",
+            "punctual": "Puntual",
+            "periodic": "Periódico",
+            "dateLabel": "Fecha",
+            "datePlaceholder": "Fecha",
+            "weekDayLabel": "Día de la semana",
+            "dayPlaceholder": "Seleccionar día",
+            "weekdays": {
+                "L": "Lunes",
+                "M": "Martes",
+                "X": "Miércoles",
+                "J": "Jueves",
+                "V": "Viernes"
+            },
+            "scheduleLabel": "Horario",
+            "commentLabel": "Comentario",
+            "commentPlaceholder": "Añade un comentario sobre este cambio...",
+            "sending": "Enviando...",
+            "submit": "Solicitar edición"
         },
         "cancel": {
             "title": "Solicitar cancelación de evento",
@@ -1848,7 +1891,19 @@
             "reasonPlaceholder": "Explica por qué quieres cancelar este evento...",
             "cancel": "Cancelar",
             "send": "Enviar solicitud de cancelación",
-            "sending": "Enviando..."
+            "sending": "Enviando...",
+            "dialogTitle": "Solicitar cancelar evento",
+            "dialogDescription": "Diálogo para solicitar la cancelación de un evento",
+            "eventToCancel": "Evento a cancelar",
+            "type": "Tipo",
+            "schedule": "Horario",
+            "groups": "Grupos",
+            "classrooms": "Aulas",
+            "punctual": "Puntual",
+            "periodic": "Periódico",
+            "commentLabel": "Comentario",
+            "commentPlaceholder": "Motivo de la cancelación...",
+            "submit": "Solicitar cancelación"
         },
         "replace": {
             "title": "Solicitar reemplazo de evento",

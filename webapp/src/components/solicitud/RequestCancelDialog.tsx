@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useTranslation } from 'react-i18next';
 import { XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -40,6 +41,7 @@ export default function RequestCancelDialog({
   event,
   isSubmitting = false
 }: RequestCancelDialogProps) {
+  const { t } = useTranslation();
   const [comment, setComment] = useState('');
 
   useEffect(() => {
@@ -73,31 +75,31 @@ export default function RequestCancelDialog({
             <div className="p-2 bg-destructive/10 rounded-lg">
               <XCircle className="w-5 h-5 text-destructive" />
             </div>
-            <DialogTitle className="text-lg font-semibold">Solicitar cancelar evento</DialogTitle>
+            <DialogTitle className="text-lg font-semibold">{t("solicitud.cancel.dialogTitle")}</DialogTitle>
           </div>
-          <DialogDescription className="hidden">Diálogo para solicitar la cancelación de un evento</DialogDescription>
+          <DialogDescription className="hidden">{t("solicitud.cancel.dialogDescription")}</DialogDescription>
         </DialogHeader>
 
         <div className="overflow-y-auto flex-1 px-6 py-3">
           <div className="space-y-3">
             {/* Info del evento (read-only) */}
             <div className="p-3 bg-accent/20 rounded-md border border-primary/20">
-              <p className="text-xs font-semibold text-muted-foreground mb-1">Evento a cancelar</p>
+              <p className="text-xs font-semibold text-muted-foreground mb-1">{t("solicitud.cancel.eventToCancel")}</p>
               <div className="grid grid-cols-2 gap-2 text-xs">
-                <div><span className="text-muted-foreground">Tipo:</span> {isPuntual ? 'Puntual' : 'Periódico'}</div>
-                <div><span className="text-muted-foreground">Horario:</span> {normalizeTime(event.startTime)} - {normalizeTime(event.endTime)}</div>
+                <div><span className="text-muted-foreground">{t("solicitud.cancel.type")}:</span> {isPuntual ? t("solicitud.cancel.punctual") : t("solicitud.cancel.periodic")}</div>
+                <div><span className="text-muted-foreground">{t("solicitud.cancel.schedule")}:</span> {normalizeTime(event.startTime)} - {normalizeTime(event.endTime)}</div>
                 {event.date && (
-                  <div><span className="text-muted-foreground">Fecha:</span> {format(parseISO(event.date), 'dd/MM/yyyy', { locale: es })}</div>
+                  <div><span className="text-muted-foreground">{t("solicitud.cancel.date")}:</span> {format(parseISO(event.date), 'dd/MM/yyyy', { locale: es })}</div>
                 )}
                 {event.groups.length > 0 && (
                   <div className="col-span-2">
-                    <span className="text-muted-foreground">Grupos:</span>{' '}
+                    <span className="text-muted-foreground">{t("solicitud.cancel.groups")}:</span>{' '}
                     {event.groups.map(g => `${g.type}.${g.language === 'EN' ? 'I-' : ''}${g.number}`).join(', ')}
                   </div>
                 )}
                 {event.classrooms.length > 0 && (
                   <div className="col-span-2">
-                    <span className="text-muted-foreground">Aulas:</span>{' '}
+                    <span className="text-muted-foreground">{t("solicitud.cancel.classrooms")}:</span>{' '}
                     {event.classrooms.map(c => c.code).join(', ')}
                   </div>
                 )}
@@ -107,11 +109,11 @@ export default function RequestCancelDialog({
             {/* Comentario */}
             <div className="space-y-1">
               <Label htmlFor="cancel-comment" className="text-xs font-semibold">
-                Comentario
+                {t("solicitud.cancel.commentLabel")}
               </Label>
               <Textarea
                 id="cancel-comment"
-                placeholder="Motivo de la cancelación..."
+                placeholder={t("solicitud.cancel.commentPlaceholder")}
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 className="h-20 text-xs resize-none"
@@ -123,10 +125,10 @@ export default function RequestCancelDialog({
         {/* Buttons */}
         <div className="flex gap-2 justify-end px-6 pb-6 border-t pt-4">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting} className="h-8 text-xs">
-            Cancelar
+            {t("common.cancel")}
           </Button>
           <Button onClick={handleSave} disabled={isSubmitting || !comment.trim()} variant="destructive" className="h-8 text-xs">
-            {isSubmitting ? 'Enviando...' : 'Solicitar cancelación'}
+            {isSubmitting ? t("solicitud.cancel.sending") : t("solicitud.cancel.submit")}
           </Button>
         </div>
       </DialogContent>

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pencil, ChevronDownIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -51,6 +52,7 @@ export default function RequestEditDialog({
   lectiveDates = new Set(),
   isSubmitting = false
 }: RequestEditDialogProps) {
+  const { t } = useTranslation();
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('10:00');
   const [eventDate, setEventDate] = useState('');
@@ -101,28 +103,28 @@ export default function RequestEditDialog({
             <div className="p-2 bg-accent rounded-lg">
               <Pencil className="w-5 h-5" />
             </div>
-            <DialogTitle className="text-lg font-semibold">Solicitar editar evento</DialogTitle>
+            <DialogTitle className="text-lg font-semibold">{t("solicitud.edit.dialogTitle")}</DialogTitle>
           </div>
-          <DialogDescription className="hidden">Diálogo para solicitar la edición de un evento</DialogDescription>
+          <DialogDescription className="hidden">{t("solicitud.edit.dialogDescription")}</DialogDescription>
         </DialogHeader>
 
         <div className="overflow-y-auto flex-1 px-6 py-3">
           <div className="space-y-3">
             {/* Info del evento original (read-only) */}
             <div className="p-3 bg-accent/20 rounded border border-primary/20">
-              <p className="text-xs font-semibold text-muted-foreground mb-1">Evento original</p>
+              <p className="text-xs font-semibold text-muted-foreground mb-1">{t("solicitud.edit.originalEvent")}</p>
               <div className="grid grid-cols-2 gap-2 text-xs">
-                <div><span className="text-muted-foreground">Tipo:</span> {isPuntual ? 'Puntual' : 'Periódico'}</div>
-                <div><span className="text-muted-foreground">Horario:</span> {normalizeTime(event.startTime)} - {normalizeTime(event.endTime)}</div>
+                <div><span className="text-muted-foreground">{t("solicitud.edit.type")}:</span> {isPuntual ? t("solicitud.edit.punctual") : t("solicitud.edit.periodic")}</div>
+                <div><span className="text-muted-foreground">{t("solicitud.edit.schedule")}:</span> {normalizeTime(event.startTime)} - {normalizeTime(event.endTime)}</div>
                 {event.groups.length > 0 && (
                   <div className="col-span-2">
-                    <span className="text-muted-foreground">Grupos:</span>{' '}
+                    <span className="text-muted-foreground">{t("solicitud.edit.groups")}:</span>{' '}
                     {event.groups.map(g => `${g.type}.${g.language === 'EN' ? 'I-' : ''}${g.number}`).join(', ')}
                   </div>
                 )}
                 {event.classrooms.length > 0 && (
                   <div className="col-span-2">
-                    <span className="text-muted-foreground">Aulas:</span>{' '}
+                    <span className="text-muted-foreground">{t("solicitud.edit.classrooms")}:</span>{' '}
                     {event.classrooms.map(c => c.code).join(', ')}
                   </div>
                 )}
@@ -132,13 +134,13 @@ export default function RequestEditDialog({
             {/* Fecha (solo puntual) */}
             {isPuntual && (
               <div className="space-y-1">
-                <Label className="text-xs font-semibold">Fecha</Label>
+                <Label className="text-xs font-semibold">{t("solicitud.edit.dateLabel")}</Label>
                 <Popover modal={true} open={openEventDate} onOpenChange={setOpenEventDate}>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="h-8 px-3 text-xs justify-between font-normal w-full">
                       {eventDate && !isNaN(new Date(eventDate).getTime())
                         ? format(new Date(eventDate), 'dd/MM/yyyy', { locale: es })
-                        : 'Fecha'}
+                        : t("solicitud.edit.datePlaceholder")}
                       <ChevronDownIcon className="w-3 h-3" />
                     </Button>
                   </PopoverTrigger>
@@ -158,17 +160,17 @@ export default function RequestEditDialog({
             {/* Día de la semana (solo periódico) */}
             {!isPuntual && (
               <div className="space-y-1">
-                <Label className="text-xs font-semibold">Día de la semana</Label>
+                <Label className="text-xs font-semibold">{t("solicitud.edit.weekDayLabel")}</Label>
                 <Select value={weekDay} onValueChange={setWeekDay}>
                   <SelectTrigger className="h-8 text-xs w-full">
-                    <SelectValue placeholder="Seleccionar día" />
+                    <SelectValue placeholder={t("solicitud.edit.dayPlaceholder")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="L">Lunes</SelectItem>
-                    <SelectItem value="M">Martes</SelectItem>
-                    <SelectItem value="X">Miércoles</SelectItem>
-                    <SelectItem value="J">Jueves</SelectItem>
-                    <SelectItem value="V">Viernes</SelectItem>
+                    <SelectItem value="L">{t("solicitud.edit.weekdays.L")}</SelectItem>
+                    <SelectItem value="M">{t("solicitud.edit.weekdays.M")}</SelectItem>
+                    <SelectItem value="X">{t("solicitud.edit.weekdays.X")}</SelectItem>
+                    <SelectItem value="J">{t("solicitud.edit.weekdays.J")}</SelectItem>
+                    <SelectItem value="V">{t("solicitud.edit.weekdays.V")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -176,7 +178,7 @@ export default function RequestEditDialog({
 
             {/* Horario */}
             <div className="space-y-1">
-              <Label className="text-xs font-semibold">Horario</Label>
+              <Label className="text-xs font-semibold">{t("solicitud.edit.scheduleLabel")}</Label>
               <div className="flex gap-2">
                 <Popover open={openStartTime} onOpenChange={setOpenStartTime} modal={true}>
                   <PopoverTrigger asChild>
@@ -214,10 +216,10 @@ export default function RequestEditDialog({
 
             {/* Comentario */}
             <div className="space-y-1">
-              <Label htmlFor="edit-comment" className="text-xs font-semibold">Comentario</Label>
+              <Label htmlFor="edit-comment" className="text-xs font-semibold">{t("solicitud.edit.commentLabel")}</Label>
               <Textarea
                 id="edit-comment"
-                placeholder="Añade un comentario sobre este cambio..."
+                placeholder={t("solicitud.edit.commentPlaceholder")}
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 className="h-20 text-xs resize-none"
@@ -229,10 +231,10 @@ export default function RequestEditDialog({
         {/* Buttons */}
         <div className="flex gap-2 justify-end px-6 pb-6 border-t pt-4">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting} className="h-8 text-xs">
-            Cancelar
+            {t("common.cancel")}
           </Button>
           <Button onClick={handleSave} disabled={isSubmitting} className="h-8 text-xs">
-            {isSubmitting ? 'Enviando...' : 'Solicitar'}
+            {isSubmitting ? t("solicitud.edit.sending") : t("solicitud.edit.submit")}
           </Button>
         </div>
       </DialogContent>

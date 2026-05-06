@@ -55,6 +55,7 @@ const GroupSelectorField: React.FC<GroupSelectorFieldProps> = ({
   selectedIds,
   onChangeIds,
 }) => {
+  const { t } = useTranslation();
   const sortedOptions = [...groups]
     .sort((a, b) =>
       formatGroupLabel(a, subjectAcronym).localeCompare(formatGroupLabel(b, subjectAcronym))
@@ -70,9 +71,9 @@ const GroupSelectorField: React.FC<GroupSelectorFieldProps> = ({
         values={selectedIds}
         onValuesChange={onChangeIds}
         options={sortedOptions}
-        placeholder="Seleccionar grupos"
-        searchPlaceholder="Buscar grupo..."
-        emptyMessage="No se encontraron grupos."
+        placeholder={t("requests.dialog.approve.groupsPlaceholder")}
+        searchPlaceholder={t("requests.dialog.approve.groupsSearch")}
+        emptyMessage={t("requests.dialog.approve.groupsNotFound")}
         disabled={true}
       />
     );
@@ -84,9 +85,9 @@ const GroupSelectorField: React.FC<GroupSelectorFieldProps> = ({
         value={selectedIds[0] || ''}
         onValueChange={(value) => onChangeIds(value ? [value] : [])}
         options={sortedOptions}
-        placeholder="Seleccionar grupo"
-        searchPlaceholder="Buscar grupo..."
-        emptyMessage="No se encontraron grupos."
+        placeholder={t("requests.dialog.approve.groupPlaceholder")}
+        searchPlaceholder={t("requests.dialog.approve.groupsSearch")}
+        emptyMessage={t("requests.dialog.approve.groupsNotFound")}
         disabled={true}
       />
     );
@@ -99,7 +100,7 @@ const GroupSelectorField: React.FC<GroupSelectorFieldProps> = ({
       disabled={true}
     >
       <SelectTrigger className="h-8 text-xs w-full">
-        <SelectValue placeholder="Seleccionar grupo" />
+        <SelectValue placeholder={t("requests.dialog.approve.groupPlaceholder")} />
       </SelectTrigger>
       <SelectContent>
         {sortedOptions.map(option => (
@@ -449,14 +450,14 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                     onValueChange={(value) => setConfig({ ...config, weekDays: [value as WeekDay] })}
                   >
                     <SelectTrigger className="h-8 px-3 text-xs font-normal flex-1">
-                      <SelectValue placeholder="Seleccionar día" />
+                      <SelectValue placeholder={t("requests.dialog.approve.dayPlaceholder")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="L">Lunes</SelectItem>
-                      <SelectItem value="M">Martes</SelectItem>
-                      <SelectItem value="X">Miércoles</SelectItem>
-                      <SelectItem value="J">Jueves</SelectItem>
-                      <SelectItem value="V">Viernes</SelectItem>
+                      <SelectItem value="L">{t("solicitud.edit.weekdays.L")}</SelectItem>
+                      <SelectItem value="M">{t("solicitud.edit.weekdays.M")}</SelectItem>
+                      <SelectItem value="X">{t("solicitud.edit.weekdays.X")}</SelectItem>
+                      <SelectItem value="J">{t("solicitud.edit.weekdays.J")}</SelectItem>
+                      <SelectItem value="V">{t("solicitud.edit.weekdays.V")}</SelectItem>
                     </SelectContent>
                   </Select>
                 )}
@@ -558,15 +559,15 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                     value: subject.id,
                     label: subject.name
                   }))}
-                  placeholder="Seleccionar asignatura"
-                  searchPlaceholder="Buscar asignatura..."
-                  emptyMessage="No se encontraron asignaturas."
+                  placeholder={t("requests.dialog.approve.subjectPlaceholder")}
+                  searchPlaceholder={t("requests.dialog.approve.subjectSearch")}
+                  emptyMessage={t("requests.dialog.approve.subjectNotFound")}
                   disabled={true}
                 />
               ) : (
                 <Select value={config.subjectId || ''} onValueChange={handleSubjectChange} disabled={true}>
                   <SelectTrigger className="h-8 text-xs w-full">
-                    <SelectValue placeholder="Seleccionar asignatura" />
+                    <SelectValue placeholder={t("requests.dialog.approve.subjectPlaceholder")} />
                   </SelectTrigger>
                   <SelectContent>
                     {subjects.sort((a, b) => a.name.localeCompare(b.name)).map((subject) => (
@@ -602,7 +603,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                 <Label className="text-xs font-semibold">Tipo de Grupo</Label>
                 <Select value={groupType} onValueChange={(value) => setGroupType(value)}>
                   <SelectTrigger className="h-8 text-xs w-full">
-                    <SelectValue placeholder="Seleccionar tipo de grupo" />
+                    <SelectValue placeholder={t("requests.dialog.approve.groupTypePlaceholder")} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="T">Teoría</SelectItem>
@@ -654,9 +655,9 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                       value: classroom.id,
                       label: classroom.code
                     }))}
-                    placeholder="Seleccionar aulas"
-                    searchPlaceholder="Buscar aula..."
-                    emptyMessage="No se encontraron aulas."
+                    placeholder={t("requests.dialog.approve.classroomsPlaceholder")}
+                    searchPlaceholder={t("requests.dialog.approve.classroomSearch")}
+                    emptyMessage={t("requests.dialog.approve.classroomNotFound")}
                   />
                 ) : classrooms.length > 8 ? (
                   <SearchableSelect
@@ -668,9 +669,9 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                       value: classroom.id,
                       label: classroom.code
                     }))}
-                    placeholder="Seleccionar aula"
-                    searchPlaceholder="Buscar aula..."
-                    emptyMessage="No se encontraron aulas."
+                    placeholder={t("requests.dialog.approve.classroomPlaceholder")}
+                    searchPlaceholder={t("requests.dialog.approve.classroomSearch")}
+                    emptyMessage={t("requests.dialog.approve.classroomNotFound")}
                   />
                 ) : (
                   <Select
@@ -680,7 +681,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                     }}
                   >
                     <SelectTrigger className="h-8 text-xs w-full">
-                      <SelectValue placeholder="Seleccionar aula" />
+                      <SelectValue placeholder={t("requests.dialog.approve.classroomPlaceholder")} />
                     </SelectTrigger>
                     <SelectContent>
                       {classrooms.sort((a, b) => a.code.localeCompare(b.code)).map((classroom) => (
@@ -705,7 +706,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                   step="0.5"
                   value={config.planifiedHours || ''}
                   onChange={(e) => setConfig({ ...config, planifiedHours: parseFloat(e.target.value) || 0 })}
-                  placeholder="Ej: 30"
+                  placeholder={t("requests.dialog.approve.planifiedHoursPlaceholder")}
                   className="h-8 text-xs"
                 />
               </div>
@@ -780,7 +781,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                       onValueChange={(value: MonthlyPatternType) => setConfig({ ...config, monthlyPatternType: value })}
                     >
                       <SelectTrigger className="h-8 text-xs w-full">
-                        <SelectValue placeholder="Seleccionar patrón" />
+                        <SelectValue placeholder={t("requests.dialog.approve.patternPlaceholder")} />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="day-of-month">{monthlyPatternLabels.dayOfMonth}</SelectItem>
@@ -818,7 +819,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                             variant="ghost"
                             className="h-7 px-2 text-xs flex-1 justify-between font-normal"
                           >
-                            {config.endsOnDate ? format(new Date(config.endsOnDate), 'dd/MM/yyyy', { locale: es }) : 'Seleccionar fecha'}
+                            {config.endsOnDate ? format(new Date(config.endsOnDate), 'dd/MM/yyyy', { locale: es }) : t("solicitud.create.datePlaceholder")}
                             <ChevronDownIcon className="w-3 h-3" />
                           </Button>
                         </PopoverTrigger>
@@ -877,7 +878,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                 <Label htmlFor="comment" className="text-xs font-semibold">Comentario (opcional)</Label>
                 <Textarea
                   id="comment"
-                  placeholder="Añade un comentario sobre este evento..."
+                  placeholder={t("requests.dialog.approve.commentPlaceholder")}
                   value={config.comment}
                   onChange={(e) => setConfig({ ...config, comment: e.target.value })}
                   className="h-20 text-xs resize-none"
@@ -895,14 +896,14 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
             disabled={isSubmitting}
             className="h-8 text-xs"
           >
-            Cancelar
+            {t("requests.dialog.approve.cancel")}
           </Button>
           <Button
             onClick={() => calendarId && onApprove(config)}
             disabled={!isFormValid || isSubmitting}
             className="h-8 text-xs"
           >
-            {isSubmitting ? 'Aprobando...' : 'Aprobar solicitud'}
+            {isSubmitting ? t("requests.dialog.approve.approving") : t("requests.dialog.approve.approve")}
           </Button>
         </div>
       </DialogContent>

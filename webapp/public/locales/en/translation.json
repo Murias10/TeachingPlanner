@@ -1698,6 +1698,8 @@
         "page": {
             "title": "Event Requests",
             "subtitle": "Semester {{semester}} • {{degree}} • {{startYear}}-{{endYear}}",
+            "allTitle": "All Requests",
+            "allSubtitle": "Centralized management of event requests from all degrees",
             "loading": "Loading requests...",
             "error": "Could not load requests",
             "filters": {
@@ -1748,7 +1750,19 @@
                 "cancel": "Cancel",
                 "approve": "Approve",
                 "approving": "Approving...",
-                "loading": "Loading request information..."
+                "loading": "Loading request information...",
+                "groupsPlaceholder": "Select groups",
+                "groupsSearch": "Search group...",
+                "groupsNotFound": "No groups found.",
+                "groupPlaceholder": "Select group",
+                "dayPlaceholder": "Select day",
+                "subjectPlaceholder": "Select subject",
+                "subjectSearch": "Search subject...",
+                "subjectNotFound": "No subjects found.",
+                "groupTypePlaceholder": "Select group type",
+                "classroomsPlaceholder": "Select classrooms",
+                "patternPlaceholder": "Select pattern",
+                "commentPlaceholder": "Add a comment about this event..."
             },
             "reject": {
                 "title": "Reject request",
@@ -1757,9 +1771,13 @@
                 "eventType": "Event type",
                 "requestDate": "Request date",
                 "comments": "Comments",
-                "commentsPlaceholder": "Provide a comment about the reason for rejection...",
+                "commentsPlaceholder": "Add a comment explaining the reason for rejection...",
+                "commentsLabel": "Comments (optional)",
+                "commentsHint": "The professor will be able to see these comments",
+                "confirmMessage": "Are you sure you want to reject this request? This action cannot be undone.",
                 "cancel": "Cancel",
-                "reject": "Reject",
+                "reject": "Reject request",
+                "rejecting": "Rejecting...",
                 "processing": "Processing..."
             }
         },
@@ -1834,7 +1852,32 @@
             "newData": "New data",
             "noChanges": "No changes will be made",
             "save": "Save changes",
-            "saving": "Saving..."
+            "saving": "Saving...",
+            "dialogTitle": "Request event edit",
+            "dialogDescription": "Dialog to request the editing of an event",
+            "originalEvent": "Original event",
+            "type": "Type",
+            "schedule": "Schedule",
+            "groups": "Groups",
+            "classrooms": "Classrooms",
+            "punctual": "Punctual",
+            "periodic": "Periodic",
+            "dateLabel": "Date",
+            "datePlaceholder": "Date",
+            "weekDayLabel": "Day of the week",
+            "dayPlaceholder": "Select day",
+            "weekdays": {
+                "L": "Monday",
+                "M": "Tuesday",
+                "X": "Wednesday",
+                "J": "Thursday",
+                "V": "Friday"
+            },
+            "scheduleLabel": "Schedule",
+            "commentLabel": "Comment",
+            "commentPlaceholder": "Add a comment about this change...",
+            "sending": "Sending...",
+            "submit": "Request edit"
         },
         "cancel": {
             "title": "Request event cancellation",
@@ -1849,7 +1892,19 @@
             "reasonPlaceholder": "Explain why you want to cancel this event...",
             "cancel": "Cancel",
             "send": "Send cancellation request",
-            "sending": "Sending..."
+            "sending": "Sending...",
+            "dialogTitle": "Request event cancellation",
+            "dialogDescription": "Dialog to request the cancellation of an event",
+            "eventToCancel": "Event to cancel",
+            "type": "Type",
+            "schedule": "Schedule",
+            "groups": "Groups",
+            "classrooms": "Classrooms",
+            "punctual": "Punctual",
+            "periodic": "Periodic",
+            "commentLabel": "Comment",
+            "commentPlaceholder": "Reason for cancellation...",
+            "submit": "Request cancellation"
         },
         "replace": {
             "title": "Request event replacement",

@@ -60,14 +60,16 @@ const AllSolicitudesPage = () => {
         setIsLoading(false);
     }, [listarSolicitudes, triggerAlert]);
 
-    // Cargar solicitudes al montar el componente
     useEffect(() => {
         setItems([
             { label: t("breadcrumb.home"), href: "/degrees", shortLabel: t("breadcrumb.home") },
             { label: t("breadcrumb.requests"), href: "", icon: ClipboardList },
         ]);
+    }, [setItems, t]);
+
+    useEffect(() => {
         cargarSolicitudes('PENDING');
-    }, [setItems, t, cargarSolicitudes]);
+    }, [cargarSolicitudes]);
 
     // Protección: Solo ADMIN puede acceder
     if (user?.role !== 'ADMIN') {
@@ -199,10 +201,10 @@ const AllSolicitudesPage = () => {
                 {/* Header */}
                 <div className="px-6 py-5 border-b bg-background">
                     <h1 className="text-2xl font-semibold text-foreground mb-1">
-                        Todas las Solicitudes
+                        {t("requests.page.allTitle")}
                     </h1>
                     <p className="text-sm text-muted-foreground">
-                        Gestión centralizada de solicitudes de eventos de todas las titulaciones
+                        {t("requests.page.allSubtitle")}
                     </p>
                 </div>
 
@@ -219,10 +221,10 @@ const AllSolicitudesPage = () => {
                                 }}
                                 size="sm"
                             >
-                                {status === 'PENDING' && 'Pendientes'}
-                                {status === 'APPROVED' && 'Aprobadas'}
-                                {status === 'REJECTED' && 'Rechazadas'}
-                                {status === 'all' && 'Todas'}
+                                {status === 'PENDING' && t("requests.page.filters.pending")}
+                                {status === 'APPROVED' && t("requests.page.filters.approved")}
+                                {status === 'REJECTED' && t("requests.page.filters.rejected")}
+                                {status === 'all' && t("requests.page.filters.all")}
                             </Button>
                         ))}
                     </div>
@@ -230,7 +232,7 @@ const AllSolicitudesPage = () => {
                         onClick={() => cargarSolicitudes(statusFilter)}
                         disabled={isLoading}
                         className="p-2 rounded-md hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Actualizar solicitudes"
+                        title={t("requests.page.refresh")}
                     >
                         <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
                     </button>

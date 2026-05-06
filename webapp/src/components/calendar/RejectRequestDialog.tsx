@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { XCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -20,6 +21,7 @@ const RejectRequestDialog: React.FC<RejectRequestDialogProps> = ({
     onReject,
     isSubmitting
 }) => {
+    const { t } = useTranslation();
     const [comments, setComments] = useState<string>('');
 
     // Reset state when dialog opens
@@ -41,32 +43,32 @@ const RejectRequestDialog: React.FC<RejectRequestDialogProps> = ({
                         <div className="p-2 bg-destructive/10 rounded-lg">
                             <XCircle className="w-5 h-5 text-destructive" />
                         </div>
-                        <DialogTitle className="text-lg font-semibold">Rechazar solicitud</DialogTitle>
+                        <DialogTitle className="text-lg font-semibold">{t("requests.dialog.reject.title")}</DialogTitle>
                     </div>
                     <DialogDescription className="hidden">
-                        Diálogo para rechazar una solicitud de evento
+                        {t("requests.dialog.reject.description")}
                     </DialogDescription>
                 </DialogHeader>
 
                 <div className="overflow-y-auto flex-1 px-6 py-3">
                     <div className="space-y-3">
                         <p className="text-sm text-muted-foreground">
-                            ¿Estás seguro de que deseas rechazar esta solicitud? Esta acción no se puede deshacer.
+                            {t("requests.dialog.reject.confirmMessage")}
                         </p>
 
                         <div className="space-y-1">
                             <Label htmlFor="reject-comments" className="text-xs font-semibold">
-                                Comentarios (opcional)
+                                {t("requests.dialog.reject.commentsLabel")}
                             </Label>
                             <Textarea
                                 id="reject-comments"
-                                placeholder="Añade un comentario explicando el motivo del rechazo..."
+                                placeholder={t("requests.dialog.reject.commentsPlaceholder")}
                                 value={comments}
                                 onChange={(e) => setComments(e.target.value)}
                                 className="min-h-24 text-xs resize-none"
                             />
                             <p className="text-xs text-muted-foreground">
-                                El profesor podrá ver estos comentarios
+                                {t("requests.dialog.reject.commentsHint")}
                             </p>
                         </div>
                     </div>
@@ -80,7 +82,7 @@ const RejectRequestDialog: React.FC<RejectRequestDialogProps> = ({
                         disabled={isSubmitting}
                         className="h-8 text-xs"
                     >
-                        Cancelar
+                        {t("requests.dialog.reject.cancel")}
                     </Button>
                     <Button
                         variant="destructive"
@@ -88,7 +90,7 @@ const RejectRequestDialog: React.FC<RejectRequestDialogProps> = ({
                         disabled={isSubmitting}
                         className="h-8 text-xs"
                     >
-                        {isSubmitting ? 'Rechazando...' : 'Rechazar solicitud'}
+                        {isSubmitting ? t("requests.dialog.reject.rejecting") : t("requests.dialog.reject.reject")}
                     </Button>
                 </div>
             </DialogContent>

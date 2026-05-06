@@ -165,25 +165,21 @@ async function createSubject(page: Page, data: { name: string; acronym: string; 
   const saveButton = dialog.getByRole('button', { name: /guardar|save/i });
   await expect(saveButton).toBeEnabled({ timeout: 2000 });
 
-  // Registrar el listener del refetch (GET) ANTES del click para no perdernos la respuesta
-  const refetchPromise = page.waitForResponse(
-    r => r.url().includes('/subjects/calendar/') && r.request().method() === 'GET',
-    { timeout: 15000 }
-  );
-
   await Promise.all([
     page.waitForResponse(r =>
       r.url().includes('/subject') &&
-      r.request().method() === 'POST'
+      !r.url().includes('/calendar') &&
+      r.request().method() === 'POST' &&
+      r.status() === 201
     ),
     saveButton.click(),
   ]);
 
-  // Esperar el refetch de React Query (GET subjects/calendar/:id)
-  await refetchPromise;
-
-  // Esperar que el drawer se cierre (implica que el POST retornó éxito)
+  // Esperar que el drawer se cierre
   await expect(dialog).not.toBeVisible({ timeout: 5000 });
+
+  // Esperar que la tabla se actualice
+  await page.waitForLoadState('networkidle');
 
   // Usar el filtro de búsqueda para verificar que el subject se creó
   const filterInput = page.getByPlaceholder(/buscar|filter|search/i);

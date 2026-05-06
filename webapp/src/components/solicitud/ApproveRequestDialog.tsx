@@ -347,6 +347,16 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
 
   const isReviewOrEval = isReviewOrEvalEventType(selectedEventType);
 
+  const dateTimeLabel = (() => {
+    if (config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd') {
+      return t("requests.dialog.approve.dayAndTime");
+    }
+    if (config.frequency === 'custom') {
+      return t("requests.dialog.approve.startDateAndTime");
+    }
+    return t("requests.dialog.approve.dateAndTime");
+  })();
+
   // Filter available groups based on selected subject and group type
   const availableGroups = useMemo(() => {
     if (!config.subjectId || !subjectsWithGroups.length) return [];
@@ -385,7 +395,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
             <div className="p-2 bg-accent rounded-lg">
               <CheckCircle2 className="w-5 h-5" />
             </div>
-            <DialogTitle className="text-lg font-semibold">Revisar solicitud</DialogTitle>
+            <DialogTitle className="text-lg font-semibold">{t("requests.dialog.approve.reviewTitle")}</DialogTitle>
           </div>
           <DialogDescription className="hidden">Diálogo para revisar y aprobar una solicitud de evento</DialogDescription>
         </DialogHeader>
@@ -394,26 +404,24 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
           <div className="space-y-3">
             {/* Frequency Selection */}
             <div className="space-y-1">
-              <Label className="text-xs font-semibold">Frecuencia</Label>
+              <Label className="text-xs font-semibold">{t("requests.dialog.approve.frequencyLabel")}</Label>
               <Select value={config.frequency} onValueChange={(value) => setConfig({ ...config, frequency: value as FrequencyType })}>
                 <SelectTrigger className="h-8 text-xs w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="no-repeat">No se repite</SelectItem>
-                  <SelectItem value="weekly">Semanalmente</SelectItem>
-                  <SelectItem value="biweekly-even">Quincenal (Semanas Pares)</SelectItem>
-                  <SelectItem value="biweekly-odd">Quincenal (Semanas Impares)</SelectItem>
-                  <SelectItem value="custom">Personalizado</SelectItem>
+                  <SelectItem value="no-repeat">{t("requests.dialog.approve.frequency.noRepeat")}</SelectItem>
+                  <SelectItem value="weekly">{t("requests.dialog.approve.frequency.weekly")}</SelectItem>
+                  <SelectItem value="biweekly-even">{t("requests.dialog.approve.frequency.biweeklyEven")}</SelectItem>
+                  <SelectItem value="biweekly-odd">{t("requests.dialog.approve.frequency.biweeklyOdd")}</SelectItem>
+                  <SelectItem value="custom">{t("requests.dialog.approve.frequency.custom")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             {/* Date and Time Selection Row */}
             <div className="space-y-1">
-              <Label className="text-xs font-semibold">
-                {config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd' ? 'Día y Horario' : config.frequency === 'custom' ? 'Fecha Inicio y Horario' : 'Fecha y Horario'}
-              </Label>
+              <Label className="text-xs font-semibold">{dateTimeLabel}</Label>
               <div className="flex gap-2">
                 {/* Date Picker - Only for puntual (no-repeat) */}
                 {config.frequency === 'no-repeat' && (
@@ -422,7 +430,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                       <Button variant="outline" className="h-8 px-3 text-xs justify-between font-normal flex-1">
                         {config.eventDate && !isNaN(new Date(config.eventDate).getTime())
                           ? format(new Date(config.eventDate), 'dd/MM/yyyy', { locale: es })
-                          : 'Fecha'}
+                          : t("requests.dialog.approve.datePlaceholder")}
                         <ChevronDownIcon className="w-3 h-3" />
                       </Button>
                     </PopoverTrigger>
@@ -469,7 +477,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                       <Button variant="outline" className="h-8 px-3 text-xs justify-between font-normal flex-1">
                         {config.customStartDate && !isNaN(new Date(config.customStartDate).getTime())
                           ? format(new Date(config.customStartDate), 'dd/MM/yyyy', { locale: es })
-                          : 'Fecha'}
+                          : t("requests.dialog.approve.datePlaceholder")}
                         <ChevronDownIcon className="w-3 h-3" />
                       </Button>
                     </PopoverTrigger>
@@ -542,14 +550,14 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
 
             {/* Subject Selection - Always visible */}
             <div className="space-y-1">
-              <Label className="text-xs font-semibold">Asignatura</Label>
+              <Label className="text-xs font-semibold">{t("requests.dialog.approve.subjectLabel")}</Label>
               {isLoadingSubjects ? (
                 <div className="h-8 text-xs flex items-center text-muted-foreground">
-                  Cargando asignaturas...
+                  {t("requests.dialog.approve.loadingSubjects")}
                 </div>
               ) : subjects.length === 0 ? (
                 <div className="h-8 text-xs flex items-center text-muted-foreground">
-                  No hay asignaturas disponibles
+                  {t("requests.dialog.approve.noSubjectsAvailable")}
                 </div>
               ) : subjects.length > 8 ? (
                 <SearchableSelect
@@ -585,7 +593,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
             <div className="flex gap-2">
               {/* Tipo de Evento */}
               <div className="space-y-1 flex-1">
-                <Label className="text-xs font-semibold">Tipo de Evento</Label>
+                <Label className="text-xs font-semibold">{t("requests.dialog.approve.eventTypeLabel")}</Label>
                 <Select value={selectedEventType} onValueChange={handleEventTypeChange}>
                   <SelectTrigger className="h-8 text-xs w-full">
                     <SelectValue />
@@ -600,16 +608,16 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
 
               {/* Tipo de Grupo (T/S/L/TG) — siempre visible cuando hay asignatura */}
               <div className="space-y-1 flex-1">
-                <Label className="text-xs font-semibold">Tipo de Grupo</Label>
+                <Label className="text-xs font-semibold">{t("requests.dialog.approve.groupTypeLabel")}</Label>
                 <Select value={groupType} onValueChange={(value) => setGroupType(value)}>
                   <SelectTrigger className="h-8 text-xs w-full">
                     <SelectValue placeholder={t("requests.dialog.approve.groupTypePlaceholder")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="T">Teoría</SelectItem>
-                    <SelectItem value="S">Seminario</SelectItem>
-                    <SelectItem value="L">Laboratorio</SelectItem>
-                    <SelectItem value="TG">Tutorías Grupales</SelectItem>
+                    <SelectItem value="T">{t("requests.dialog.approve.groupTypes.theory")}</SelectItem>
+                    <SelectItem value="S">{t("requests.dialog.approve.groupTypes.seminar")}</SelectItem>
+                    <SelectItem value="L">{t("requests.dialog.approve.groupTypes.lab")}</SelectItem>
+                    <SelectItem value="TG">{t("requests.dialog.approve.groupTypes.tutorial")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -620,14 +628,14 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
             <div className="grid grid-cols-2 gap-2">
               {/* Groups Selection */}
               <div className="space-y-1">
-                <Label className="text-xs font-semibold">{isReviewOrEval ? 'Grupos' : 'Grupo'}</Label>
+                <Label className="text-xs font-semibold">{isReviewOrEval ? t("requests.dialog.approve.groups") : t("requests.dialog.approve.group")}</Label>
                 {!config.subjectId ? (
                   <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
-                    Selecciona una asignatura primero
+                    {t("requests.dialog.approve.selectSubjectFirst")}
                   </div>
                 ) : availableGroups.length === 0 ? (
                   <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
-                    Sin grupos disponibles
+                    {t("requests.dialog.approve.noGroupsAvailable")}
                   </div>
                 ) : (
                   <GroupSelectorField
@@ -642,10 +650,10 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
 
               {/* Classrooms Selection */}
               <div className="space-y-1">
-                <Label className="text-xs font-semibold">{isSpecialEventType(selectedEventType) ? 'Aulas' : 'Aula'}</Label>
+                <Label className="text-xs font-semibold">{isSpecialEventType(selectedEventType) ? t("requests.dialog.approve.classrooms") : t("requests.dialog.approve.classroom")}</Label>
                 {classrooms.length === 0 ? (
                   <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
-                    Cargando aulas...
+                    {t("requests.dialog.approve.classroomLoading")}
                   </div>
                 ) : isSpecialEventType(selectedEventType) ? (
                   <MultiSelect
@@ -698,7 +706,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
             {/* Planified Hours - Only visible for periodic NORMAL events with a group selected */}
             {!isSpecialEventType(selectedEventType) && (config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd' || config.frequency === 'custom') && config.groupIds && config.groupIds.length > 0 && (
               <div className="space-y-2">
-                <Label htmlFor="planified-hours" className="text-xs font-semibold">Horas Planificadas</Label>
+                <Label htmlFor="planified-hours" className="text-xs font-semibold">{t("requests.dialog.approve.planifiedHours")}</Label>
                 <Input
                   id="planified-hours"
                   type="number"
@@ -717,7 +725,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
               <div className="space-y-3 p-3 border border-primary/20 rounded bg-accent/20">
                 {/* Frequency Unit Selection */}
                 <div className="space-y-1">
-                  <Label className="text-xs font-semibold">Repetir cada</Label>
+                  <Label className="text-xs font-semibold">{t("requests.dialog.approve.repeatEvery")}</Label>
                   <div className="flex gap-2">
                     <Input
                       type="number"
@@ -735,13 +743,13 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="day">
-                          {config.interval === 1 ? 'día' : 'días'}
+                          {config.interval === 1 ? t("requests.dialog.approve.units.day") : t("requests.dialog.approve.units.days")}
                         </SelectItem>
                         <SelectItem value="week">
-                          {config.interval === 1 ? 'semana' : 'semanas'}
+                          {config.interval === 1 ? t("requests.dialog.approve.units.week") : t("requests.dialog.approve.units.weeks")}
                         </SelectItem>
                         <SelectItem value="month">
-                          {config.interval === 1 ? 'mes' : 'meses'}
+                          {config.interval === 1 ? t("requests.dialog.approve.units.month") : t("requests.dialog.approve.units.months")}
                         </SelectItem>
                       </SelectContent>
                     </Select>
@@ -751,7 +759,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                 {/* Weekday Selection for weekly custom */}
                 {config.customFrequencyUnit === 'week' && (
                   <div className="space-y-2">
-                    <Label className="text-xs font-semibold">Días</Label>
+                    <Label className="text-xs font-semibold">{t("requests.dialog.approve.daysLabel")}</Label>
                     <div className="grid grid-cols-5 gap-1">
                       {WEEK_DAYS.filter(day => day.value !== 'S' && day.value !== 'D').map((day) => (
                         <Button
@@ -775,7 +783,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                 {/* Month Pattern Selection - Only for monthly custom frequency */}
                 {config.customFrequencyUnit === 'month' && (
                   <div className="space-y-2">
-                    <Label className="text-xs font-semibold">Patrón Mensual</Label>
+                    <Label className="text-xs font-semibold">{t("requests.dialog.approve.monthlyPattern")}</Label>
                     <Select
                       value={config.monthlyPatternType || 'day-of-month'}
                       onValueChange={(value: MonthlyPatternType) => setConfig({ ...config, monthlyPatternType: value })}
@@ -793,7 +801,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
 
                 {/* Finalización */}
                 <div className="space-y-2">
-                  <Label className="text-xs font-semibold">Finaliza</Label>
+                  <Label className="text-xs font-semibold">{t("requests.dialog.approve.endsLabel")}</Label>
                   <RadioGroup
                     value={config.endsType}
                     onValueChange={(value: EndsType) => setConfig({ ...config, endsType: value })}
@@ -803,7 +811,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                       }`}>
                       <RadioGroupItem value="never" id="never" />
                       <Label htmlFor="never" className="text-xs cursor-pointer m-0 flex-1">
-                        Nunca
+                        {t("requests.dialog.approve.endsNever")}
                       </Label>
                     </div>
 
@@ -811,7 +819,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                       }`}>
                       <RadioGroupItem value="on" id="on" />
                       <Label htmlFor="on" className="text-xs cursor-pointer m-0">
-                        El
+                        {t("requests.dialog.approve.endsOn")}
                       </Label>
                       <Popover open={openEndsOnDate} onOpenChange={setOpenEndsOnDate}>
                         <PopoverTrigger asChild disabled={config.endsType !== 'on'}>
@@ -852,7 +860,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                       }`}>
                       <RadioGroupItem value="after" id="after" />
                       <Label htmlFor="after" className="text-xs cursor-pointer m-0">
-                        Después de
+                        {t("requests.dialog.approve.endsAfter")}
                       </Label>
                       <Input
                         type="number"
@@ -865,7 +873,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
                         disabled={config.endsType !== 'after'}
                         className="h-7 w-16 text-xs"
                       />
-                      <span className="text-xs">ocurrencias</span>
+                      <span className="text-xs">{t("requests.dialog.approve.occurrences")}</span>
                     </div>
                   </RadioGroup>
                 </div>
@@ -875,7 +883,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
             {/* Comment Field */}
             {config.frequency === 'no-repeat' && (
               <div className="space-y-1">
-                <Label htmlFor="comment" className="text-xs font-semibold">Comentario (opcional)</Label>
+                <Label htmlFor="comment" className="text-xs font-semibold">{t("requests.dialog.approve.commentLabel")}</Label>
                 <Textarea
                   id="comment"
                   placeholder={t("requests.dialog.approve.commentPlaceholder")}

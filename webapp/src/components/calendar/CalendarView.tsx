@@ -1368,7 +1368,13 @@ export default function CalendarView({ calendarId, headerSlot, isQuickAccess }: 
                                     eventTimeRangeFormat: () => '',
                                     agendaTimeRangeFormat: () => '',
                                     selectRangeFormat: () => '',
-                                    dayHeaderFormat: (date: Date) => moment(date).format('ddd DD'),
+                                    dayHeaderFormat: (date: Date) => {
+                                        const lang = i18n.language.split('-')[0];
+                                        if (lang === 'es') {
+                                            return moment(date).format('ddd D [de] MMM');
+                                        }
+                                        return moment(date).format('ddd, MMM D');
+                                    },
                                     dayRangeHeaderFormat: ({ start, end }: { start: Date; end: Date }) =>
                                         `${moment(start).format('MMMM DD')} – ${moment(end).format('DD')}`,
                                     monthHeaderFormat: (date: Date) => moment(date).format('MMMM YYYY')

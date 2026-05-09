@@ -9,7 +9,7 @@ import {
     SelectItem
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { RequiredLabel } from "@/components/ui/RequiredLabel";
 import { FormDrawer } from "@/components/ui/FormDrawer";
 
 export interface EditSubjectFormData {
@@ -80,7 +80,6 @@ export function EditSubjectDrawer({ open, onOpenChange, onSave, subjectData }: E
             name !== subjectData.name ||
             acronym !== subjectData.acronym ||
             year !== subjectData.year ||
-            semester !== subjectData.semester ||
             siesCode !== subjectData.siesCode
         );
 
@@ -98,7 +97,7 @@ export function EditSubjectDrawer({ open, onOpenChange, onSave, subjectData }: E
             cancelLabel={t("drawer.subjects.edit.cancel")}
         >
             <div className="space-y-2 max-w-sm mx-auto w-full">
-                <Label htmlFor="edit-subject-name">{t("drawer.subjects.edit.name")}</Label>
+                <RequiredLabel htmlFor="edit-subject-name" required>{t("drawer.subjects.edit.name")}</RequiredLabel>
                 <Input
                     id="edit-subject-name"
                     name="edit-subject-name"
@@ -112,7 +111,7 @@ export function EditSubjectDrawer({ open, onOpenChange, onSave, subjectData }: E
                 />
             </div>
             <div className="space-y-2 max-w-sm mx-auto w-full">
-                <Label htmlFor="edit-subject-acronym">{t("drawer.subjects.edit.acronym")}</Label>
+                <RequiredLabel htmlFor="edit-subject-acronym" required>{t("drawer.subjects.edit.acronym")}</RequiredLabel>
                 <Input
                     id="edit-subject-acronym"
                     name="edit-subject-acronym"
@@ -126,7 +125,7 @@ export function EditSubjectDrawer({ open, onOpenChange, onSave, subjectData }: E
                 />
             </div>
             <div className="space-y-2 max-w-sm mx-auto w-full">
-                <Label htmlFor="edit-subject-year">{t("drawer.subjects.edit.year")}</Label>
+                <RequiredLabel htmlFor="edit-subject-year" required>{t("drawer.subjects.edit.year")}</RequiredLabel>
                 <Select onValueChange={(value) => setYear(Number(value))} value={year !== null ? String(year) : ""} disabled={isLoading}>
                     <SelectTrigger id="edit-subject-year" className="w-full">
                         <SelectValue placeholder="Selecciona el año" />
@@ -141,9 +140,9 @@ export function EditSubjectDrawer({ open, onOpenChange, onSave, subjectData }: E
                 </Select>
             </div>
             <div className="space-y-2 max-w-sm mx-auto w-full">
-                <Label htmlFor="edit-subject-semester">{t("drawer.subjects.edit.semester")}</Label>
-                <Select onValueChange={(value) => setSemester(Number(value))} value={semester !== null ? String(semester) : ""} disabled={isLoading}>
-                    <SelectTrigger id="edit-subject-semester" className="w-full">
+                <RequiredLabel htmlFor="edit-subject-semester">{t("drawer.subjects.edit.semester")}</RequiredLabel>
+                <Select value={semester !== null ? String(semester) : ""} disabled>
+                    <SelectTrigger id="edit-subject-semester" className="w-full bg-muted">
                         <SelectValue placeholder="Selecciona el semestre" />
                     </SelectTrigger>
                     <SelectContent>
@@ -153,7 +152,7 @@ export function EditSubjectDrawer({ open, onOpenChange, onSave, subjectData }: E
                 </Select>
             </div>
             <div className="space-y-2 max-w-sm mx-auto w-full">
-                <Label htmlFor="edit-subject-sies-code">{t("drawer.subjects.edit.siesCode")}</Label>
+                <RequiredLabel htmlFor="edit-subject-sies-code" required>{t("drawer.subjects.edit.siesCode")}</RequiredLabel>
                 <Input
                     id="edit-subject-sies-code"
                     name="edit-subject-sies-code"

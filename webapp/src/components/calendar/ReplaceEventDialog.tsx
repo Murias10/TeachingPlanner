@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Replace, ChevronDownIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { RequiredLabel } from '@/components/ui/RequiredLabel';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -147,7 +148,7 @@ const ReplaceEventDialog: React.FC<ReplaceEventDialogProps> = ({
 
             {/* Nueva fecha y horario */}
             <div className="space-y-1">
-              <Label className="text-xs font-semibold">Nueva Fecha y Horario</Label>
+              <RequiredLabel required className="text-xs font-semibold">Nueva Fecha y Horario</RequiredLabel>
               <div className="flex gap-2">
                 {/* Date Selection */}
                 <Popover open={openDatePicker} onOpenChange={setOpenDatePicker} modal={true}>
@@ -255,7 +256,7 @@ const ReplaceEventDialog: React.FC<ReplaceEventDialogProps> = ({
 
               {/* Aulas (editable) */}
               <div className="space-y-1">
-                <Label className="text-xs font-semibold">Aula</Label>
+                <RequiredLabel required className="text-xs font-semibold">Aula</RequiredLabel>
                 {classrooms.length === 0 ? (
                   <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
                     Cargando aulas...

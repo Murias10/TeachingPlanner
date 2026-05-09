@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RequiredLabel } from "@/components/ui/RequiredLabel";
 import { Button } from "@/components/ui/button";
 import {
     Select,
@@ -32,7 +33,6 @@ export function SolicitudEventoDrawer({
     onSave,
     calendars
 }: SolicitudEventoDrawerProps) {
-
     const [calendarId, setCalendarId] = useState("");
     const [eventType, setEventType] = useState("PUNTUAL");
     const [startTime, setStartTime] = useState("");
@@ -49,21 +49,6 @@ export function SolicitudEventoDrawer({
     const [loading, setLoading] = useState(false);
 
     const handleSave = async () => {
-        if (!calendarId || !startTime || !endTime) {
-            alert("Por favor completa los campos obligatorios");
-            return;
-        }
-
-        if (eventType === "PUNTUAL" && !dayId) {
-            alert("Para eventos puntuales, selecciona una fecha");
-            return;
-        }
-
-        if (eventType === "PERIODIC" && !eventCharacter) {
-            alert("Para eventos periódicos, selecciona el tipo de evento");
-            return;
-        }
-
         setLoading(true);
         try {
             const eventData = eventType === "PUNTUAL"
@@ -102,7 +87,7 @@ export function SolicitudEventoDrawer({
                 {/* Contenido desplazable */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
                     <div className="space-y-2 max-w-sm mx-auto w-full">
-                        <Label htmlFor="calendar-select">Calendario *</Label>
+                        <RequiredLabel htmlFor="calendar-select" required>Calendario</RequiredLabel>
                         <Select value={calendarId} onValueChange={setCalendarId}>
                             <SelectTrigger id="calendar-select">
                                 <SelectValue placeholder="Selecciona un calendario" />
@@ -118,7 +103,7 @@ export function SolicitudEventoDrawer({
                     </div>
 
                     <div className="space-y-2 max-w-sm mx-auto w-full">
-                        <Label htmlFor="event-type">Tipo de Evento *</Label>
+                        <RequiredLabel htmlFor="event-type" required>Tipo de Evento</RequiredLabel>
                         <Select value={eventType} onValueChange={setEventType}>
                             <SelectTrigger id="event-type">
                                 <SelectValue />
@@ -132,7 +117,7 @@ export function SolicitudEventoDrawer({
 
                     {eventType === "PUNTUAL" && (
                         <div className="space-y-2 max-w-sm mx-auto w-full">
-                            <Label htmlFor="day-id">Fecha del Evento *</Label>
+                            <RequiredLabel htmlFor="day-id" required>Fecha del Evento</RequiredLabel>
                             <Input
                                 id="day-id"
                                 type="date"
@@ -145,7 +130,7 @@ export function SolicitudEventoDrawer({
 
                     {eventType === "PERIODIC" && (
                         <div className="space-y-2 max-w-sm mx-auto w-full">
-                            <Label htmlFor="week-day">Día de la Semana *</Label>
+                            <RequiredLabel htmlFor="week-day" required>Día de la Semana</RequiredLabel>
                             <Select value={weekDay} onValueChange={setWeekDay}>
                                 <SelectTrigger id="week-day">
                                     <SelectValue />
@@ -165,7 +150,7 @@ export function SolicitudEventoDrawer({
 
                     {eventType === "PERIODIC" && (
                         <div className="space-y-2 max-w-sm mx-auto w-full">
-                            <Label htmlFor="event-char">Tipo de Evento *</Label>
+                            <RequiredLabel htmlFor="event-char" required>Tipo de Evento</RequiredLabel>
                             <Select value={eventCharacter} onValueChange={setEventCharacter}>
                                 <SelectTrigger id="event-char">
                                     <SelectValue placeholder="Selecciona tipo" />
@@ -182,7 +167,7 @@ export function SolicitudEventoDrawer({
                     )}
 
                     <div className="space-y-2 max-w-sm mx-auto w-full">
-                        <Label htmlFor="start-time">Hora Inicio *</Label>
+                        <RequiredLabel htmlFor="start-time" required>Hora Inicio</RequiredLabel>
                         <Input
                             id="start-time"
                             type="time"
@@ -192,7 +177,7 @@ export function SolicitudEventoDrawer({
                     </div>
 
                     <div className="space-y-2 max-w-sm mx-auto w-full">
-                        <Label htmlFor="end-time">Hora Fin *</Label>
+                        <RequiredLabel htmlFor="end-time" required>Hora Fin</RequiredLabel>
                         <Input
                             id="end-time"
                             type="time"

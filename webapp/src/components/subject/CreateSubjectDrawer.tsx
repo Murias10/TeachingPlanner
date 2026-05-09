@@ -8,7 +8,7 @@ import {
     SelectItem
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { RequiredLabel } from "@/components/ui/RequiredLabel";
 import { FormDrawer } from "@/components/ui/FormDrawer";
 
 interface CreateSubjectDrawerProps {
@@ -67,7 +67,7 @@ export function CreateSubjectDrawer({ open, onOpenChange, onSave, semester: fixe
             cancelLabel={t("drawer.subjects.create.cancel")}
         >
             <div className="space-y-2 max-w-sm mx-auto w-full">
-                <Label htmlFor="subjects-name">{t("drawer.subjects.create.name")}</Label>
+                <RequiredLabel htmlFor="subjects-name" required>{t("drawer.subjects.create.name")}</RequiredLabel>
                 <Input
                     id="subjects-name"
                     name="subjects-name"
@@ -80,7 +80,7 @@ export function CreateSubjectDrawer({ open, onOpenChange, onSave, semester: fixe
                 />
             </div>
             <div className="space-y-2 max-w-sm mx-auto w-full">
-                <Label htmlFor="subjects-acronym">{t("drawer.subjects.create.acronym")}</Label>
+                <RequiredLabel htmlFor="subjects-acronym" required>{t("drawer.subjects.create.acronym")}</RequiredLabel>
                 <Input
                     id="subjects-acronym"
                     name="subjects-acronym"
@@ -93,7 +93,7 @@ export function CreateSubjectDrawer({ open, onOpenChange, onSave, semester: fixe
                 />
             </div>
             <div className="space-y-2 max-w-sm mx-auto w-full">
-                <Label htmlFor="subjects-year">{t("drawer.subjects.create.year")}</Label>
+                <RequiredLabel htmlFor="subjects-year" required>{t("drawer.subjects.create.year")}</RequiredLabel>
                 <Select onValueChange={(value) => setYear(Number(value))} value={year !== null ? String(year) : ""}>
                     <SelectTrigger id="subjects-year" className="w-full">
                         <SelectValue placeholder="Selecciona el año" />
@@ -108,7 +108,7 @@ export function CreateSubjectDrawer({ open, onOpenChange, onSave, semester: fixe
                 </Select>
             </div>
             <div className="space-y-2 max-w-sm mx-auto w-full">
-                <Label htmlFor="subject-semester">{t("drawer.subjects.create.semester")}</Label>
+                <RequiredLabel htmlFor="subject-semester" required={fixedSemester === undefined}>{t("drawer.subjects.create.semester")}</RequiredLabel>
                 <Select
                     onValueChange={(value) => setSemester(Number(value))}
                     value={semester === null ? "" : String(semester)}
@@ -124,7 +124,7 @@ export function CreateSubjectDrawer({ open, onOpenChange, onSave, semester: fixe
                 </Select>
             </div>
             <div className="space-y-2 max-w-sm mx-auto w-full">
-                <Label htmlFor="subject-sies-code">{t("drawer.subjects.create.siesCode")}</Label>
+                <RequiredLabel htmlFor="subject-sies-code" required>{t("drawer.subjects.create.siesCode")}</RequiredLabel>
                 <Input
                     id="subject-sies-code"
                     name="subject-sies-code"

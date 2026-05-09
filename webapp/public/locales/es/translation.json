@@ -6,7 +6,9 @@
         "warning": "Advertencia",
         "close": "Cerrar",
         "delete": "Eliminar",
-        "cancel": "Cancelar"
+        "cancel": "Cancelar",
+        "requiredFields": "Campos obligatorios",
+        "requiredFieldsMissing": "Por favor, completa todos los campos marcados con *"
     },
     "sidebar": {
         "main": {
@@ -1459,6 +1461,29 @@
             "sendEmailDescription": "El usuario recibirá un email con un enlace para activar su cuenta",
             "save": "Guardar usuario",
             "cancel": "Cancelar"
+        },
+        "edit": {
+            "title": "Editar Usuario",
+            "description": "Actualiza los datos del usuario {{email}}",
+            "unioviUser": "Usuario Uniovi",
+            "unioviUserPlaceholder": "ej: uo123456",
+            "name": "Nombre",
+            "namePlaceholder": "Nombre del usuario",
+            "firstSurname": "Primer Apellido",
+            "firstSurnamePlaceholder": "Primer apellido",
+            "secondSurname": "Segundo Apellido",
+            "secondSurnamePlaceholder": "Segundo apellido",
+            "email": "Email",
+            "role": "Rol",
+            "rolePlaceholder": "Selecciona un rol",
+            "roleAdmin": "Acceso completo al sistema",
+            "roleProfessor": "Solicitar creación y cancelación de eventos",
+            "save": "Actualizar usuario",
+            "saving": "Actualizando...",
+            "cancel": "Cancelar",
+            "success": "Usuario actualizado exitosamente",
+            "noChanges": "No se ha realizado ningún cambio",
+            "allFieldsRequired": "Todos los campos son obligatorios"
         },
         "import": {
             "title": "Importar Usuarios",

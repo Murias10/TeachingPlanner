@@ -9,6 +9,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { RequiredLabel } from "@/components/ui/RequiredLabel";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FormDrawer } from "@/components/ui/FormDrawer";
@@ -42,32 +43,19 @@ export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDr
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
-    const validateForm = () => {
-        if (!formData.name.trim()) {
-            triggerAlert({ title: t("common.error"), description: t("users.validation.name.required"), variant: "destructive" });
-            return false;
-        }
-        if (!formData.firstSurname.trim()) {
-            triggerAlert({ title: t("common.error"), description: t("users.validation.surnames.required"), variant: "destructive" });
-            return false;
-        }
-        if (!formData.secondSurname.trim()) {
-            triggerAlert({ title: t("common.error"), description: t("users.validation.surnames.required"), variant: "destructive" });
-            return false;
-        }
-        if (!formData.email.trim()) {
-            triggerAlert({ title: t("common.error"), description: t("users.validation.email.required"), variant: "destructive" });
-            return false;
-        }
-        if (!isValidEmail(formData.email)) {
-            triggerAlert({ title: t("common.error"), description: t("users.validation.email.invalid"), variant: "destructive" });
-            return false;
-        }
-        return true;
-    };
+    const isFormValid =
+        !!formData.unioviUser.trim() &&
+        !!formData.name.trim() &&
+        !!formData.firstSurname.trim() &&
+        !!formData.secondSurname.trim() &&
+        !!formData.email.trim();
 
     const handleSubmit = async () => {
-        if (!validateForm()) return;
+        if (!isFormValid) return;
+        if (!isValidEmail(formData.email)) {
+            triggerAlert({ title: t("common.error"), description: t("users.validation.email.invalid"), variant: "destructive" });
+            return;
+        }
         setIsSubmitting(true);
         const result = await createUser(formData);
         if (result.success) {
@@ -92,13 +80,13 @@ export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDr
             description={t("users.create.description")}
             onSave={handleSubmit}
             onCancel={() => {}}
-            isValid={!isSubmitting}
+            isValid={isFormValid && !isSubmitting}
             isLoading={isSubmitting}
             saveLabel={isSubmitting ? `${t("users.create.save")}...` : t("users.create.save")}
             cancelLabel={t("users.create.cancel")}
         >
             <div className="space-y-2 max-w-sm mx-auto w-full">
-                <Label htmlFor="unioviUser">{t("users.create.unioviUser")}</Label>
+                <RequiredLabel htmlFor="unioviUser" required>{t("users.create.unioviUser")}</RequiredLabel>
                 <Input
                     id="unioviUser"
                     placeholder={t("users.create.unioviUserPlaceholder")}
@@ -108,7 +96,7 @@ export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDr
                 />
             </div>
             <div className="space-y-2 max-w-sm mx-auto w-full">
-                <Label htmlFor="name">{t("users.create.name")}</Label>
+                <RequiredLabel htmlFor="name" required>{t("users.create.name")}</RequiredLabel>
                 <Input
                     id="name"
                     placeholder={t("users.create.namePlaceholder")}
@@ -118,7 +106,7 @@ export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDr
                 />
             </div>
             <div className="space-y-2 max-w-sm mx-auto w-full">
-                <Label htmlFor="firstSurname">{t("users.create.firstSurname")}</Label>
+                <RequiredLabel htmlFor="firstSurname" required>{t("users.create.firstSurname")}</RequiredLabel>
                 <Input
                     id="firstSurname"
                     placeholder={t("users.create.firstSurnamePlaceholder")}
@@ -128,7 +116,7 @@ export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDr
                 />
             </div>
             <div className="space-y-2 max-w-sm mx-auto w-full">
-                <Label htmlFor="secondSurname">{t("users.create.secondSurname")}</Label>
+                <RequiredLabel htmlFor="secondSurname" required>{t("users.create.secondSurname")}</RequiredLabel>
                 <Input
                     id="secondSurname"
                     placeholder={t("users.create.secondSurnamePlaceholder")}
@@ -138,7 +126,7 @@ export function CreateUserDrawer({ open, onOpenChange, onSuccess }: CreateUserDr
                 />
             </div>
             <div className="space-y-2 max-w-sm mx-auto w-full">
-                <Label htmlFor="email">{t("users.create.email")}</Label>
+                <RequiredLabel htmlFor="email" required>{t("users.create.email")}</RequiredLabel>
                 <Input
                     id="email"
                     type="email"

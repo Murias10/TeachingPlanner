@@ -5,6 +5,7 @@ import { Replace, ChevronDownIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { RequiredLabel } from '@/components/ui/RequiredLabel';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -144,7 +145,7 @@ export default function RequestReplaceDialog({
 
             {/* Nueva Fecha y Horario */}
             <div className="space-y-1">
-              <Label className="text-xs font-semibold">{t('solicitud.replace.newDateTime')}</Label>
+              <RequiredLabel required className="text-xs font-semibold">{t('solicitud.replace.newDateTime')}</RequiredLabel>
               <div className="flex gap-2">
                 {/* Selector de fecha */}
                 <Popover modal={true} open={openNewEventDate} onOpenChange={setOpenNewEventDate}>
@@ -278,9 +279,9 @@ export default function RequestReplaceDialog({
 
             {/* Comentario (obligatorio) */}
             <div className="space-y-1">
-              <Label htmlFor="replace-comment" className="text-xs font-semibold">
+              <RequiredLabel htmlFor="replace-comment" required className="text-xs font-semibold">
                 {t('solicitud.replace.comment')}
-              </Label>
+              </RequiredLabel>
               <Textarea
                 id="replace-comment"
                 placeholder={t('solicitud.replace.commentPlaceholder')}

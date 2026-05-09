@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Label } from "@/components/ui/label";
+import { RequiredLabel } from "@/components/ui/RequiredLabel";
 import { Badge } from "@/components/ui/badge";
 import { Info } from "lucide-react";
 import {
@@ -81,9 +82,9 @@ export const CreateCourseDrawer = ({
             cancelLabel={t("drawer.courses.create.cancel")}
         >
             <div className="space-y-2 max-w-sm mx-auto">
-                <Label htmlFor="course-start-end-year">
+                <RequiredLabel htmlFor="course-start-end-year" required>
                     {t("drawer.courses.create.start.end.year.title")}
-                </Label>
+                </RequiredLabel>
                 <Select value={selectedYearRange} onValueChange={setSelectedYearRange} disabled={isLoading}>
                     <SelectTrigger className="w-full">
                         <SelectValue placeholder={t("drawer.courses.create.start.end.year.placeholder")} />

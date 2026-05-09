@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { RequiredLabel } from "@/components/ui/RequiredLabel"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Link, useNavigate } from "react-router-dom"
 import { useAuth } from "@/contexts/AuthContext"
@@ -90,7 +91,7 @@ export function LoginForm({
           <form onSubmit={handleSubmit}>
             <div className="flex flex-col gap-6">
               <div className="grid gap-3">
-                <Label htmlFor="email">{t('login.emailLabel')}</Label>
+                <RequiredLabel htmlFor="email" required>{t('login.emailLabel')}</RequiredLabel>
                 <Input
                   id="email"
                   name="email"
@@ -105,7 +106,7 @@ export function LoginForm({
 
               <div className="grid gap-3">
                 <div className="flex items-center">
-                  <Label htmlFor="password">{t('login.passwordLabel')}</Label>
+                  <RequiredLabel htmlFor="password" required>{t('login.passwordLabel')}</RequiredLabel>
                   <Link
                     to="/forgot-password"
                     className="ml-auto inline-block text-sm underline-offset-4 hover:underline"

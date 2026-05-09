@@ -6,7 +6,9 @@
         "warning": "Warning",
         "close": "Close",
         "delete": "Delete",
-        "cancel": "Cancel"
+        "cancel": "Cancel",
+        "requiredFields": "Required fields",
+        "requiredFieldsMissing": "Please complete all fields marked with *"
     },
     "sidebar": {
         "main": {
@@ -1464,6 +1466,30 @@
             "save": "Save user",
             "cancel": "Cancel"
         },
+        "edit": {
+            "title": "Edit User",
+            "description": "Update the details of user {{email}}",
+            "unioviUser": "Uniovi user",
+            "unioviUserPlaceholder": "e.g: uo123456",
+            "name": "Name",
+            "namePlaceholder": "User's name",
+            "firstSurname": "First surname",
+            "firstSurnamePlaceholder": "First surname",
+            "secondSurname": "Second surname",
+            "secondSurnamePlaceholder": "Second surname",
+            "email": "Email",
+            "role": "Role",
+            "rolePlaceholder": "Select a role",
+            "roleAdmin": "Full system access",
+            "roleProfessor": "Request event creation and cancellation",
+            "save": "Update user",
+
+            "saving": "Updating...",
+            "cancel": "Cancel",
+            "success": "User updated successfully",
+            "noChanges": "No changes were made",
+            "allFieldsRequired": "All fields are required"
+        },
         "import": {
             "title": "Import users",
             "description": "Upload an Excel file with users to import",
@@ -1556,7 +1582,7 @@
             "role": "Role",
             "roleAdmin": "Full system access",
             "roleProfessor": "Request event creation and cancellation",
-            "unioviUser": "Uniovi User",
+            "unioviUser": "Uniovi user",
             "email": "Email",
             "name": "Name",
             "firstSurname": "First Surname",

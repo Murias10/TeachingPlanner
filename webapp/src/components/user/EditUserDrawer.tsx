@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
     Select,
     SelectContent,
@@ -7,6 +8,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { RequiredLabel } from "@/components/ui/RequiredLabel";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { FormDrawer } from "@/components/ui/FormDrawer";
@@ -15,6 +17,7 @@ import { useFloatingAlertContext } from "@/contexts/useFloatingAlertContext";
 import { User } from "@/types/auth.types";
 
 export interface EditUserFormData {
+    unioviUser: string;
     name: string;
     firstSurname: string;
     secondSurname: string;
@@ -22,16 +25,18 @@ export interface EditUserFormData {
 }
 
 interface EditUserDrawerProps {
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
-    user?: User;
-    onSuccess?: () => void;
+    readonly open: boolean;
+    readonly onOpenChange: (open: boolean) => void;
+    readonly user?: User;
+    readonly onSuccess?: () => void;
 }
 
 export function EditUserDrawer({ open, onOpenChange, user, onSuccess }: EditUserDrawerProps) {
+    const { t } = useTranslation();
     const { updateUser } = useUpdateUser();
     const { triggerAlert } = useFloatingAlertContext();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [unioviUser, setUnioviUser] = useState("");
     const [name, setName] = useState("");
     const [firstSurname, setFirstSurname] = useState("");
     const [secondSurname, setSecondSurname] = useState("");
@@ -39,6 +44,7 @@ export function EditUserDrawer({ open, onOpenChange, user, onSuccess }: EditUser
 
     useEffect(() => {
         if (user) {
+            setUnioviUser(user.unioviUser ?? "");
             setName(user.name);
             setFirstSurname(user.firstSurname);
             setSecondSurname(user.secondSurname);
@@ -46,21 +52,22 @@ export function EditUserDrawer({ open, onOpenChange, user, onSuccess }: EditUser
         }
     }, [user, open]);
 
+    const isFormValid =
+        !!unioviUser.trim() && !!name.trim() && !!firstSurname.trim() && !!secondSurname.trim() &&
+        !!user && (
+            unioviUser !== (user.unioviUser ?? "") ||
+            name !== user.name ||
+            firstSurname !== user.firstSurname ||
+            secondSurname !== user.secondSurname ||
+            role !== user.role
+        );
+
     const handleSubmit = async () => {
-        if (!user) return;
-
-        if (!name.trim() || !firstSurname.trim() || !secondSurname.trim()) {
-            triggerAlert({ title: "Error", description: "Todos los campos son obligatorios", variant: "destructive" });
-            return;
-        }
-
-        if (name === user.name && firstSurname === user.firstSurname && secondSurname === user.secondSurname && role === user.role) {
-            triggerAlert({ title: "Advertencia", description: "No se ha realizado ningún cambio", variant: "default" });
-            return;
-        }
+        if (!user || !isFormValid) return;
 
         setIsSubmitting(true);
         const result = await updateUser(user.id, {
+            unioviUser: unioviUser.trim(),
             name: name.trim(),
             firstSurname: firstSurname.trim(),
             secondSurname: secondSurname.trim(),
@@ -68,11 +75,11 @@ export function EditUserDrawer({ open, onOpenChange, user, onSuccess }: EditUser
         });
 
         if (result.success) {
-            triggerAlert({ title: "Éxito", description: "Usuario actualizado exitosamente", variant: "success" });
+            triggerAlert({ title: t("common.success"), description: t("users.edit.success"), variant: "success" });
             onOpenChange(false);
             onSuccess?.();
         } else {
-            triggerAlert({ title: "Error", description: result.message, variant: "destructive" });
+            triggerAlert({ title: t("common.error"), description: result.message, variant: "destructive" });
         }
         setIsSubmitting(false);
     };
@@ -83,67 +90,71 @@ export function EditUserDrawer({ open, onOpenChange, user, onSuccess }: EditUser
         <FormDrawer
             open={open}
             onOpenChange={onOpenChange}
-            title="Editar Usuario"
-            description={`Actualiza los datos del usuario ${user.email}`}
+            title={t("users.edit.title")}
+            description={t("users.edit.description", { email: user.email })}
             onSave={handleSubmit}
             onCancel={() => {}}
-            isValid={!isSubmitting}
+            isValid={isFormValid}
             isLoading={isSubmitting}
-            saveLabel={isSubmitting ? "Actualizando..." : "Actualizar Usuario"}
-            cancelLabel="Cancelar"
+            saveLabel={isSubmitting ? t("users.edit.saving") : t("users.edit.save")}
+            cancelLabel={t("users.edit.cancel")}
         >
-            {user.unioviUser && (
-                <div className="space-y-2 max-w-sm mx-auto w-full">
-                    <Label>Usuario Uniovi</Label>
-                    <div className="p-2 bg-muted rounded text-sm">{user.unioviUser}</div>
-                </div>
-            )}
+            <div className="space-y-2 max-w-sm mx-auto w-full">
+                <RequiredLabel htmlFor="unioviUser" required>{t("users.edit.unioviUser")}</RequiredLabel>
+                <Input
+                    id="unioviUser"
+                    value={unioviUser}
+                    onChange={(e) => setUnioviUser(e.target.value)}
+                    disabled={isSubmitting}
+                    placeholder={t("users.edit.unioviUserPlaceholder")}
+                />
+            </div>
             <div className="space-y-2 max-w-sm mx-auto w-full">
                 <Label>Email</Label>
                 <div className="p-2 bg-muted rounded text-sm">{user.email}</div>
             </div>
             <div className="space-y-2 max-w-sm mx-auto w-full">
-                <Label htmlFor="name">Nombre *</Label>
+                <RequiredLabel htmlFor="name" required>{t("users.edit.name")}</RequiredLabel>
                 <Input
                     id="name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     disabled={isSubmitting}
-                    placeholder="Nombre del usuario"
+                    placeholder={t("users.edit.namePlaceholder")}
                 />
             </div>
             <div className="space-y-2 max-w-sm mx-auto w-full">
-                <Label htmlFor="firstSurname">Primer Apellido *</Label>
+                <RequiredLabel htmlFor="firstSurname" required>{t("users.edit.firstSurname")}</RequiredLabel>
                 <Input
                     id="firstSurname"
                     value={firstSurname}
                     onChange={(e) => setFirstSurname(e.target.value)}
                     disabled={isSubmitting}
-                    placeholder="Primer apellido"
+                    placeholder={t("users.edit.firstSurnamePlaceholder")}
                 />
             </div>
             <div className="space-y-2 max-w-sm mx-auto w-full">
-                <Label htmlFor="secondSurname">Segundo Apellido *</Label>
+                <RequiredLabel htmlFor="secondSurname" required>{t("users.edit.secondSurname")}</RequiredLabel>
                 <Input
                     id="secondSurname"
                     value={secondSurname}
                     onChange={(e) => setSecondSurname(e.target.value)}
                     disabled={isSubmitting}
-                    placeholder="Segundo apellido"
+                    placeholder={t("users.edit.secondSurnamePlaceholder")}
                 />
             </div>
             <div className="space-y-2 max-w-sm mx-auto w-full">
-                <Label htmlFor="role">Rol *</Label>
+                <RequiredLabel htmlFor="role" required>{t("users.edit.role")}</RequiredLabel>
                 <Select value={role} onValueChange={setRole}>
                     <SelectTrigger id="role" disabled={isSubmitting} className="w-full">
-                        <SelectValue placeholder="Selecciona un rol">
+                        <SelectValue placeholder={t("users.edit.rolePlaceholder")}>
                             {role && (
                                 <div className="flex items-center gap-2">
                                     <Badge className={role === "ADMIN" ? "bg-red-100 text-red-800" : "bg-blue-100 text-blue-800"}>
                                         {role}
                                     </Badge>
                                     <span className="text-sm text-muted-foreground">
-                                        {role === "ADMIN" ? "Acceso completo al sistema" : "Solicitar creación y cancelación de eventos"}
+                                        {role === "ADMIN" ? t("users.edit.roleAdmin") : t("users.edit.roleProfessor")}
                                     </span>
                                 </div>
                             )}
@@ -155,7 +166,7 @@ export function EditUserDrawer({ open, onOpenChange, user, onSuccess }: EditUser
                                 <Badge className="bg-red-100 text-red-800">ADMIN</Badge>
                                 <div className="flex flex-col">
                                     <span className="font-medium">ADMIN</span>
-                                    <span className="text-xs text-muted-foreground">Acceso completo al sistema</span>
+                                    <span className="text-xs text-muted-foreground">{t("users.edit.roleAdmin")}</span>
                                 </div>
                             </div>
                         </SelectItem>
@@ -164,7 +175,7 @@ export function EditUserDrawer({ open, onOpenChange, user, onSuccess }: EditUser
                                 <Badge className="bg-blue-100 text-blue-800">PROFESSOR</Badge>
                                 <div className="flex flex-col">
                                     <span className="font-medium">PROFESSOR</span>
-                                    <span className="text-xs text-muted-foreground">Solicitar creación y cancelación de eventos</span>
+                                    <span className="text-xs text-muted-foreground">{t("users.edit.roleProfessor")}</span>
                                 </div>
                             </div>
                         </SelectItem>

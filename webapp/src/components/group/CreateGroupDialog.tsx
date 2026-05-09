@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { RequiredLabel } from '@/components/ui/RequiredLabel';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Subject } from '@/types/Subject';
@@ -102,9 +103,9 @@ const CreateGroupDialog: React.FC<CreateGroupDialogProps> = ({ open, onOpenChang
                     {/* Subject Selection - solo mostrar si no hay preselección */}
                     {!preSelectedSubjectId && (
                         <div className="space-y-2">
-                            <Label htmlFor="subject" className="text-sm font-medium">
+                            <RequiredLabel htmlFor="subject" required className="text-sm font-medium">
                                 Asignatura
-                            </Label>
+                            </RequiredLabel>
                             <SearchableSelect
                                 value={subjectId}
                                 onValueChange={setSubjectId}
@@ -138,9 +139,9 @@ const CreateGroupDialog: React.FC<CreateGroupDialogProps> = ({ open, onOpenChang
                     <div className="grid grid-cols-2 gap-4">
                         {/* Group Type */}
                         <div className="space-y-2">
-                            <Label htmlFor="type" className="text-sm font-medium">
+                            <RequiredLabel htmlFor="type" required className="text-sm font-medium">
                                 Tipo de grupo
-                            </Label>
+                            </RequiredLabel>
                             <Select value={type} onValueChange={setType}>
                                 <SelectTrigger id="type" className="w-full">
                                     <SelectValue placeholder="Selecciona el tipo" />
@@ -156,9 +157,9 @@ const CreateGroupDialog: React.FC<CreateGroupDialogProps> = ({ open, onOpenChang
 
                         {/* Language */}
                         <div className="space-y-2">
-                            <Label htmlFor="language" className="text-sm font-medium">
+                            <RequiredLabel htmlFor="language" required className="text-sm font-medium">
                                 Idioma
-                            </Label>
+                            </RequiredLabel>
                             <Select value={language} onValueChange={setLanguage}>
                                 <SelectTrigger id="language" className="w-full">
                                     <SelectValue placeholder="Selecciona el idioma" />
@@ -189,7 +190,11 @@ const CreateGroupDialog: React.FC<CreateGroupDialogProps> = ({ open, onOpenChang
                     <Button variant="outline" onClick={handleCancel} className="w-full sm:w-auto">
                         Cancelar
                     </Button>
-                    <Button onClick={handleSave} disabled={!isFormValid} className="w-full sm:w-auto">
+                    <Button
+                        onClick={handleSave}
+                        disabled={!isFormValid}
+                        className="w-full sm:w-auto"
+                    >
                         Crear grupo
                     </Button>
                 </DialogFooter>

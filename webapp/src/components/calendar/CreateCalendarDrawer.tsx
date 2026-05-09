@@ -5,6 +5,7 @@ import { format, addYears, isSaturday, isSunday, isValid, isBefore, isAfter, sta
 import { es } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { RequiredLabel } from "@/components/ui/RequiredLabel";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
@@ -609,9 +610,9 @@ export const CreateCalendarDrawer = ({
                                         <div className="grid grid-cols-2 gap-3">
                                             {/* Date Picker para fecha de inicio */}
                                             <div className="space-y-1.5">
-                                                <Label className="text-xs font-semibold">
+                                                <RequiredLabel required className="text-xs font-semibold">
                                                     {t("drawer.calendar.create.tabs.manual.start.date")}
-                                                </Label>
+                                                </RequiredLabel>
                                                 <Popover modal={true} open={startDateOpen} onOpenChange={setStartDateOpen}>
                                                     <PopoverTrigger asChild>
                                                         <Button
@@ -644,9 +645,9 @@ export const CreateCalendarDrawer = ({
 
                                             {/* Date Picker para fecha de fin */}
                                             <div className="space-y-1.5">
-                                                <Label className="text-xs font-semibold">
+                                                <RequiredLabel required className="text-xs font-semibold">
                                                     {t("drawer.calendar.create.tabs.manual.end.date")}
-                                                </Label>
+                                                </RequiredLabel>
                                                 <Popover modal={true} open={endDateOpen} onOpenChange={setEndDateOpen}>
                                                     <PopoverTrigger asChild>
                                                         <Button
@@ -916,7 +917,7 @@ export const CreateCalendarDrawer = ({
                                         </div>
 
                                         <div className="space-y-2">
-                                            <Label className="text-xs font-semibold">Calendario origen</Label>
+                                            <RequiredLabel required className="text-xs font-semibold">Calendario origen</RequiredLabel>
                                             <Select value={selectedSourceCalendarId} onValueChange={setSelectedSourceCalendarId}>
                                                 <SelectTrigger className="w-full">
                                                     <SelectValue placeholder="Selecciona un calendario..." />
@@ -951,7 +952,7 @@ export const CreateCalendarDrawer = ({
                                         <div className="grid grid-cols-2 gap-3">
                                             {/* Start Date Picker */}
                                             <div className="space-y-1.5">
-                                                <Label className="text-xs font-semibold">Fecha de inicio</Label>
+                                                <RequiredLabel required className="text-xs font-semibold">Fecha de inicio</RequiredLabel>
                                                 <Popover modal={true} open={duplicateStartDateOpen} onOpenChange={setDuplicateStartDateOpen}>
                                                     <PopoverTrigger asChild>
                                                         <Button
@@ -984,7 +985,7 @@ export const CreateCalendarDrawer = ({
 
                                             {/* End Date Picker */}
                                             <div className="space-y-1.5">
-                                                <Label className="text-xs font-semibold">Fecha de fin</Label>
+                                                <RequiredLabel required className="text-xs font-semibold">Fecha de fin</RequiredLabel>
                                                 <Popover modal={true} open={duplicateEndDateOpen} onOpenChange={setDuplicateEndDateOpen}>
                                                     <PopoverTrigger asChild>
                                                         <Button

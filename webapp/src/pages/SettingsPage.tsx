@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { useBreadcrumbContext } from "@/contexts/useBreadcrumbContext"
 import { useAuth } from "@/contexts/AuthContext"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
+import { RequiredLabel } from "@/components/ui/RequiredLabel"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -44,6 +44,20 @@ const SettingsPage = () => {
     const [newPassword, setNewPassword] = useState("")
     const [confirmPassword, setConfirmPassword] = useState("")
     const [isUpdatingPassword, setIsUpdatingPassword] = useState(false)
+
+    const isProfileFormValid =
+        !!unioviUser.trim() &&
+        !!name.trim() &&
+        !!firstSurname.trim() &&
+        !!secondSurname.trim() &&
+        !!email.trim() &&
+        !!user && (
+            unioviUser !== (user.unioviUser || "") ||
+            name !== user.name ||
+            firstSurname !== user.firstSurname ||
+            secondSurname !== user.secondSurname ||
+            email !== user.email
+        )
 
     const passwordValidation = validatePassword(newPassword)
     const passwordsMatch = newPassword === confirmPassword
@@ -130,41 +144,19 @@ const SettingsPage = () => {
         }
     }, [user, getStatus])
 
-    const isGoogleButtonBusy = isGoogleLoading
-
     const handleProfileUpdate = async () => {
-        if (!user) return
-        if (!name.trim() || !firstSurname.trim() || !secondSurname.trim() || !email.trim()) {
-            triggerAlert({ title: t("error.title"), description: t("settings.profile.allFieldsRequired"), variant: "destructive" })
-            return
-        }
-        if (
-            name === user.name &&
-            firstSurname === user.firstSurname &&
-            secondSurname === user.secondSurname &&
-            email === user.email &&
-            unioviUser === (user.unioviUser || "")
-        ) {
-            triggerAlert({ title: t("warning.title"), description: t("settings.profile.noChanges"), variant: "default" })
-            return
-        }
-        setIsUpdatingProfile(true)
-        const result = await updateUser(user.id, {
+        if (!user || !isProfileFormValid) return
+        const trimmed = {
             name: name.trim(),
             firstSurname: firstSurname.trim(),
             secondSurname: secondSurname.trim(),
             email: email.trim(),
             unioviUser: unioviUser.trim() || undefined
-        })
+        }
+        setIsUpdatingProfile(true)
+        const result = await updateUser(user.id, trimmed)
         if (result.success) {
-            updateUserInContext({
-                ...user,
-                name: name.trim(),
-                firstSurname: firstSurname.trim(),
-                secondSurname: secondSurname.trim(),
-                email: email.trim(),
-                unioviUser: unioviUser.trim() || undefined
-            })
+            updateUserInContext({ ...user, ...trimmed })
             triggerAlert({ title: t("success.title"), description: t("settings.profile.success"), variant: "success" })
         } else {
             triggerAlert({ title: t("error.title"), description: result.message, variant: "destructive" })
@@ -270,10 +262,9 @@ const SettingsPage = () => {
                             {/* Row 1: name + firstSurname */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="name">
+                                    <RequiredLabel htmlFor="name" required>
                                         {t("settings.profile.name")}
-                                        <span className="text-destructive ml-0.5">{t("settings.profile.requiredField")}</span>
-                                    </Label>
+                                    </RequiredLabel>
                                     <Input
                                         id="name"
                                         value={name}
@@ -283,10 +274,9 @@ const SettingsPage = () => {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="firstSurname">
+                                    <RequiredLabel htmlFor="firstSurname" required>
                                         {t("settings.profile.firstSurname")}
-                                        <span className="text-destructive ml-0.5">{t("settings.profile.requiredField")}</span>
-                                    </Label>
+                                    </RequiredLabel>
                                     <Input
                                         id="firstSurname"
                                         value={firstSurname}
@@ -300,10 +290,9 @@ const SettingsPage = () => {
                             {/* Row 2: secondSurname + email */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="secondSurname">
+                                    <RequiredLabel htmlFor="secondSurname" required>
                                         {t("settings.profile.secondSurname")}
-                                        <span className="text-destructive ml-0.5">{t("settings.profile.requiredField")}</span>
-                                    </Label>
+                                    </RequiredLabel>
                                     <Input
                                         id="secondSurname"
                                         value={secondSurname}
@@ -313,10 +302,9 @@ const SettingsPage = () => {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="email">
+                                    <RequiredLabel htmlFor="email" required>
                                         {t("settings.profile.email")}
-                                        <span className="text-destructive ml-0.5">{t("settings.profile.requiredField")}</span>
-                                    </Label>
+                                    </RequiredLabel>
                                     <Input
                                         id="email"
                                         type="email"
@@ -330,7 +318,7 @@ const SettingsPage = () => {
 
                             {/* Row 3: unioviUser full width */}
                             <div className="space-y-2">
-                                <Label htmlFor="unioviUser">{t("settings.profile.unioviUser")}</Label>
+                                <RequiredLabel htmlFor="unioviUser" required>{t("settings.profile.unioviUser")}</RequiredLabel>
                                 <Input
                                     id="unioviUser"
                                     value={unioviUser}
@@ -344,7 +332,7 @@ const SettingsPage = () => {
                         <Separator />
 
                         <div className="flex justify-end">
-                            <Button onClick={handleProfileUpdate} disabled={isUpdatingProfile}>
+                            <Button onClick={handleProfileUpdate} disabled={isUpdatingProfile || !isProfileFormValid}>
                                 {isUpdatingProfile && <Spinner />}
                                 {isUpdatingProfile ? t("settings.profile.updating") : t("settings.profile.updateButton")}
                             </Button>
@@ -368,10 +356,9 @@ const SettingsPage = () => {
                     <CardContent className="flex flex-col flex-1 gap-4">
                         <div className="space-y-4 flex-1">
                             <div className="space-y-2">
-                                <Label htmlFor="currentPassword">
+                                <RequiredLabel htmlFor="currentPassword" required>
                                     {t("settings.password.current")}
-                                    <span className="text-destructive ml-0.5">{t("settings.profile.requiredField")}</span>
-                                </Label>
+                                </RequiredLabel>
                                 <Input
                                     id="currentPassword"
                                     type="password"
@@ -383,10 +370,9 @@ const SettingsPage = () => {
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="newPassword">
+                                <RequiredLabel htmlFor="newPassword" required>
                                     {t("settings.password.new")}
-                                    <span className="text-destructive ml-0.5">{t("settings.profile.requiredField")}</span>
-                                </Label>
+                                </RequiredLabel>
                                 <Input
                                     id="newPassword"
                                     type="password"
@@ -404,10 +390,9 @@ const SettingsPage = () => {
                             )}
 
                             <div className="space-y-2">
-                                <Label htmlFor="confirmPassword">
+                                <RequiredLabel htmlFor="confirmPassword" required>
                                     {t("settings.password.confirm")}
-                                    <span className="text-destructive ml-0.5">{t("settings.profile.requiredField")}</span>
-                                </Label>
+                                </RequiredLabel>
                                 <Input
                                     id="confirmPassword"
                                     type="password"
@@ -498,9 +483,9 @@ const SettingsPage = () => {
                                                 <Button onClick={handleManageSyncs} variant="default">
                                                     {t("settings.google.manageButton")}
                                                 </Button>
-                                                <Button onClick={handleGoogleDisconnect} variant="outline" disabled={isGoogleButtonBusy}>
-                                                    {isGoogleButtonBusy && <Spinner />}
-                                                    {isGoogleButtonBusy ? t("settings.google.disconnecting") : t("settings.google.disconnectButton")}
+                                                <Button onClick={handleGoogleDisconnect} variant="outline" disabled={isGoogleLoading}>
+                                                    {isGoogleLoading && <Spinner />}
+                                                    {isGoogleLoading ? t("settings.google.disconnecting") : t("settings.google.disconnectButton")}
                                                 </Button>
                                             </>
                                         ) : (

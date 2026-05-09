@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { RequiredLabel } from "@/components/ui/RequiredLabel";
 import { FormDrawer } from "@/components/ui/FormDrawer";
 
 interface CreateClassroomDrawerProps {
@@ -46,7 +46,7 @@ export function CreateClassroomDrawer({ open, onOpenChange, onSave }: CreateClas
             cancelLabel={t("drawer.classrooms.create.cancel")}
         >
             <div className="space-y-2 max-w-sm mx-auto">
-                <Label htmlFor="classroom-code">{t("drawer.classrooms.create.code")}</Label>
+                <RequiredLabel htmlFor="classroom-code" required>{t("drawer.classrooms.create.code")}</RequiredLabel>
                 <Input
                     id="classroom-code"
                     name="classroom-code"
@@ -57,7 +57,7 @@ export function CreateClassroomDrawer({ open, onOpenChange, onSave }: CreateClas
                 />
             </div>
             <div className="space-y-2 max-w-sm mx-auto">
-                <Label htmlFor="classroom-gis-url">{t("drawer.classrooms.create.gisUrl")}</Label>
+                <RequiredLabel htmlFor="classroom-gis-url" required>{t("drawer.classrooms.create.gisUrl")}</RequiredLabel>
                 <Input
                     id="classroom-gis-url"
                     name="classroom-gis-url"

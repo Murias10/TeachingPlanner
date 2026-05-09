@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { RequiredLabel } from "@/components/ui/RequiredLabel";
 import { FormDrawer } from "@/components/ui/FormDrawer";
 
 export interface EditDegreeFormData {
@@ -70,7 +70,7 @@ export function EditDegreeDrawer({ open, onOpenChange, onSave, degreeData }: Edi
             cancelLabel={t("drawer.degrees.edit.cancel")}
         >
             <div className="space-y-2 max-w-sm mx-auto w-full">
-                <Label htmlFor="edit-degree-name">{t("drawer.degrees.edit.name")}</Label>
+                <RequiredLabel htmlFor="edit-degree-name" required>{t("drawer.degrees.edit.name")}</RequiredLabel>
                 <Input
                     id="edit-degree-name"
                     name="edit-degree-name"
@@ -87,7 +87,7 @@ export function EditDegreeDrawer({ open, onOpenChange, onSave, degreeData }: Edi
                 />
             </div>
             <div className="space-y-2 max-w-sm mx-auto w-full">
-                <Label htmlFor="edit-degree-acronym">{t("drawer.degrees.edit.acronym")}</Label>
+                <RequiredLabel htmlFor="edit-degree-acronym" required>{t("drawer.degrees.edit.acronym")}</RequiredLabel>
                 <Input
                     id="edit-degree-acronym"
                     name="edit-degree-acronym"

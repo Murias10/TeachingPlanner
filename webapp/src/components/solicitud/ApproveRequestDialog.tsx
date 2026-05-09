@@ -8,6 +8,7 @@ import { SearchableSelect } from '@/components/ui/searchable-select';
 import { MultiSelect } from '@/components/ui/multi-select';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { RequiredLabel } from '@/components/ui/RequiredLabel';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -376,6 +377,8 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
     [config, selectedEventType]
   );
 
+  const isBlocker = !config.subjectId;
+
   const handleEventTypeChange = (value: string) => {
     setSelectedEventType(value);
     setConfig(prev => ({ ...prev, groupIds: [], classroomIds: [] }));
@@ -421,7 +424,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
 
             {/* Date and Time Selection Row */}
             <div className="space-y-1">
-              <Label className="text-xs font-semibold">{dateTimeLabel}</Label>
+              <RequiredLabel required className="text-xs font-semibold">{dateTimeLabel}</RequiredLabel>
               <div className="flex gap-2">
                 {/* Date Picker - Only for puntual (no-repeat) */}
                 {config.frequency === 'no-repeat' && (
@@ -550,7 +553,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
 
             {/* Subject Selection - Always visible */}
             <div className="space-y-1">
-              <Label className="text-xs font-semibold">{t("requests.dialog.approve.subjectLabel")}</Label>
+              <RequiredLabel required={!isBlocker} className="text-xs font-semibold">{t("requests.dialog.approve.subjectLabel")}</RequiredLabel>
               {isLoadingSubjects ? (
                 <div className="h-8 text-xs flex items-center text-muted-foreground">
                   {t("requests.dialog.approve.loadingSubjects")}
@@ -593,7 +596,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
             <div className="flex gap-2">
               {/* Tipo de Evento */}
               <div className="space-y-1 flex-1">
-                <Label className="text-xs font-semibold">{t("requests.dialog.approve.eventTypeLabel")}</Label>
+                <RequiredLabel required={!isBlocker} className="text-xs font-semibold">{t("requests.dialog.approve.eventTypeLabel")}</RequiredLabel>
                 <Select value={selectedEventType} onValueChange={handleEventTypeChange}>
                   <SelectTrigger className="h-8 text-xs w-full">
                     <SelectValue />
@@ -608,7 +611,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
 
               {/* Tipo de Grupo (T/S/L/TG) — siempre visible cuando hay asignatura */}
               <div className="space-y-1 flex-1">
-                <Label className="text-xs font-semibold">{t("requests.dialog.approve.groupTypeLabel")}</Label>
+                <RequiredLabel required={!isBlocker} className="text-xs font-semibold">{t("requests.dialog.approve.groupTypeLabel")}</RequiredLabel>
                 <Select value={groupType} onValueChange={(value) => setGroupType(value)}>
                   <SelectTrigger className="h-8 text-xs w-full">
                     <SelectValue placeholder={t("requests.dialog.approve.groupTypePlaceholder")} />
@@ -628,7 +631,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
             <div className="grid grid-cols-2 gap-2">
               {/* Groups Selection */}
               <div className="space-y-1">
-                <Label className="text-xs font-semibold">{isReviewOrEval ? t("requests.dialog.approve.groups") : t("requests.dialog.approve.group")}</Label>
+                <RequiredLabel required={!isBlocker} className="text-xs font-semibold">{isReviewOrEval ? t("requests.dialog.approve.groups") : t("requests.dialog.approve.group")}</RequiredLabel>
                 {!config.subjectId ? (
                   <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
                     {t("requests.dialog.approve.selectSubjectFirst")}
@@ -650,7 +653,7 @@ const ApproveRequestDialog: React.FC<ApproveRequestDialogProps> = ({
 
               {/* Classrooms Selection */}
               <div className="space-y-1">
-                <Label className="text-xs font-semibold">{isSpecialEventType(selectedEventType) ? t("requests.dialog.approve.classrooms") : t("requests.dialog.approve.classroom")}</Label>
+                <RequiredLabel required className="text-xs font-semibold">{isSpecialEventType(selectedEventType) ? t("requests.dialog.approve.classrooms") : t("requests.dialog.approve.classroom")}</RequiredLabel>
                 {classrooms.length === 0 ? (
                   <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
                     {t("requests.dialog.approve.classroomLoading")}

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Label } from "@/components/ui/label";
+import { RequiredLabel } from "@/components/ui/RequiredLabel";
 import { Input } from "@/components/ui/input";
 import { FormDrawer } from "@/components/ui/FormDrawer";
 
@@ -74,7 +75,7 @@ export const EditClassroomDrawer = ({
                 </div>
             )}
             <div className="space-y-3 max-w-sm mx-auto">
-                <Label htmlFor="classroom-gis-url">{t("drawer.classrooms.edit.gisUrl")}</Label>
+                <RequiredLabel htmlFor="classroom-gis-url" required>{t("drawer.classrooms.edit.gisUrl")}</RequiredLabel>
                 <Input
                     id="classroom-gis-url"
                     type="text"

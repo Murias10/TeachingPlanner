@@ -8,6 +8,7 @@ import { SearchableSelect } from '@/components/ui/searchable-select';
 import { MultiSelect } from '@/components/ui/multi-select';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { RequiredLabel } from '@/components/ui/RequiredLabel';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -471,9 +472,9 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
 
             {/* Date, Start Time, End Time in same row */}
             <div className="space-y-1">
-              <Label className="text-xs font-semibold">
+              <RequiredLabel required className="text-xs font-semibold">
                 {isCustomPeriodicEvent ? 'Horario' : (config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd') ? 'Día y Horario' : config.frequency === 'custom' ? 'Fecha Inicio y Horario' : 'Fecha y Horario'}
-              </Label>
+              </RequiredLabel>
               <div className="flex gap-2">
                 {/* Date Selection - for no-repeat */}
                 {!isCustomPeriodicEvent && config.frequency === 'no-repeat' && (
@@ -609,7 +610,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
 
             {/* Subject Selection - Always visible */}
             <div className="space-y-1">
-              <Label className="text-xs font-semibold">Asignatura</Label>
+              <RequiredLabel required={!isBlocker} className="text-xs font-semibold">Asignatura</RequiredLabel>
               {isLoadingSubjects ? (
                 <div className="h-8 text-xs flex items-center text-muted-foreground">
                   Cargando asignaturas...
@@ -644,7 +645,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
             <div className="flex gap-2">
               {/* Tipo de Evento */}
               <div className="space-y-1 flex-1">
-                <Label className="text-xs font-semibold">Tipo de Evento</Label>
+                <RequiredLabel required={!isBlocker} className="text-xs font-semibold">Tipo de Evento</RequiredLabel>
                 <Select value={selectedEventType} onValueChange={(value) => setSelectedEventType(value)}>
                   <SelectTrigger className="h-8 text-xs w-full">
                     <SelectValue />
@@ -660,7 +661,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
               {/* Tipo de Grupo (T/S/L/TG) — oculto cuando no hay asignatura */}
               {!isBlocker && (
                 <div className="space-y-1 flex-1">
-                  <Label className="text-xs font-semibold">Tipo de Grupo</Label>
+                  <RequiredLabel required={!isBlocker} className="text-xs font-semibold">Tipo de Grupo</RequiredLabel>
                   <Select value={groupType} onValueChange={(value) => setGroupType(value)}>
                     <SelectTrigger className="h-8 text-xs w-full">
                       <SelectValue placeholder="Seleccionar tipo de grupo" />
@@ -682,7 +683,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
               {/* Groups Selection — oculto para BLOCKER */}
               {!isBlocker && (
               <div className="space-y-1">
-                <Label className="text-xs font-semibold">{isReviewOrEval ? 'Grupos' : 'Grupo'}</Label>
+                <RequiredLabel required={!isBlocker} className="text-xs font-semibold">{isReviewOrEval ? 'Grupos' : 'Grupo'}</RequiredLabel>
                 {!config.subjectId ? (
                   <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
                     Selecciona una asignatura primero
@@ -759,7 +760,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
 
               {/* Classrooms Selection - MultiSelect for special types, single select for NORMAL */}
               <div className={`space-y-1${isBlocker ? ' col-span-2' : ''}`}>
-                <Label className="text-xs font-semibold">{isSpecialEventType(effectiveEventType) ? 'Aulas' : 'Aula'}</Label>
+                <RequiredLabel required className="text-xs font-semibold">{isSpecialEventType(effectiveEventType) ? 'Aulas' : 'Aula'}</RequiredLabel>
                 {availableClassrooms.length === 0 ? (
                   <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
                     Cargando aulas...

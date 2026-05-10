@@ -77,18 +77,18 @@ Ubuntu 22.04 LTS (or later) is recommended as the server operating system. Ports
 
 ---
 
-## 7.1.4 Obtaining the source code
+## 7.1.4 Local development environment
+
+The typical development workflow combines Docker Compose for microservices and databases with the Vite development server for the webapp. This separation allows frontend code changes to be reflected instantly in the browser via hot-module replacement (HMR) without rebuilding or restarting any container. If a microservice is modified, only that container needs to be rebuilt.
+
+> **Note on source code**: cloning the repository is only required for the local development environment. In the VM deployment scenarios (sections 7.1.5 and 7.1.6), the source code is never used on the server — Docker images are built by GitHub Actions and published to GHCR, and the server only needs the `.env` file and the Docker Compose configuration, both of which are set up without cloning the repository.
+
+### Step 0 — Clone the repository
 
 ```bash
 git clone https://github.com/murias10/teachingplanner.git
 cd TeachingPlanner
 ```
-
----
-
-## 7.1.5 Local development environment
-
-The typical development workflow combines Docker Compose for microservices and databases with the Vite development server for the webapp. This separation allows frontend code changes to be reflected instantly in the browser via hot-module replacement (HMR) without rebuilding or restarting any container. If a microservice is modified, only that container needs to be rebuilt.
 
 ### Step 1 — Configure environment variables
 
@@ -259,7 +259,7 @@ It is recommended to change the initial passwords after the first login.
 
 ---
 
-## 7.1.6 Deployment on a publicly accessible virtual machine
+## 7.1.5 Deployment on a publicly accessible virtual machine
 
 This scenario applies to any VM accessible from the internet (Azure, AWS, VPS, etc.). The GitHub Actions pipeline connects to the server via SSH, downloads the pre-built images from GitHub Container Registry (GHCR), and starts them with Docker Compose.
 
@@ -428,7 +428,7 @@ All services should show status `Up`. Access the application from the browser at
 
 ---
 
-## 7.1.7 Deployment on a virtual machine in a private network (self-hosted)
+## 7.1.6 Deployment on a virtual machine in a private network (self-hosted)
 
 ### Why a self-hosted runner is needed
 
@@ -468,7 +468,7 @@ flowchart TD
 
 ### Step 1 — Prepare the virtual machine
 
-Follow **Step 1 of section 7.1.6** (install Ubuntu 22.04+, Docker Engine, and configure the firewall).
+Follow **Step 1 of section 7.1.5** (install Ubuntu 22.04+, Docker Engine, and configure the firewall).
 
 ### Step 2 — Install the self-hosted GitHub Actions runner
 
@@ -546,7 +546,7 @@ chmod 600 .env
 nano .env
 ```
 
-In addition to the common production variables described in section 7.1.6, adjust the following for the self-hosted environment with the university domain:
+In addition to the common production variables described in section 7.1.5, adjust the following for the self-hosted environment with the university domain:
 
 | Variable | Value |
 |---|---|
@@ -556,7 +556,7 @@ In addition to the common production variables described in section 7.1.6, adjus
 
 ### Step 4 — Generate the SSL certificate
 
-For the initial phase without official certificates, follow the self-signed certificate generation procedure in **Step 3 of section 7.1.6**, replacing `<DOMAIN>` and `<SERVER_IP>` with the university environment values.
+For the initial phase without official certificates, follow the self-signed certificate generation procedure in **Step 3 of section 7.1.5**, replacing `<DOMAIN>` and `<SERVER_IP>` with the university environment values.
 
 #### Official certificates (GEANT TLS)
 
@@ -587,7 +587,7 @@ The credentials are stored in `~/.docker/config.json` and the runner will use th
 
 ### Step 6 — Upload the certificates as GitHub secrets
 
-Follow **Step 4 of section 7.1.6** to create the `SSL_CERT` and `SSL_KEY` secrets and the `REPOSITORY_NAME` variable. The secrets `AZURE_SSH_PRIVATE_KEY`, `AZURE_VM_IP`, and `AZURE_VM_USER` are **not needed** in this scenario (the runner runs on the VM itself).
+Follow **Step 4 of section 7.1.5** to create the `SSL_CERT` and `SSL_KEY` secrets and the `REPOSITORY_NAME` variable. The secrets `AZURE_SSH_PRIVATE_KEY`, `AZURE_VM_IP`, and `AZURE_VM_USER` are **not needed** in this scenario (the runner runs on the VM itself).
 
 ### Step 7 — Trigger the first deployment
 

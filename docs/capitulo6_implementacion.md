@@ -1,30 +1,30 @@
-# Capítulo 6 — IMPLEMENTACIÓN
+# Chapter 6 — IMPLEMENTATION
 
 ---
 
-## 6.1 Estructura de la Aplicación
+## 6.1 Application Structure
 
-La arquitectura general del sistema, incluyendo el diagrama de bloques de componentes y el diagrama de despliegue, se ha descrito en el **§5.1 del Capítulo 5**. En este apartado se describe la organización interna del código de cada componente siguiendo la vista de cajas blancas del estándar ARC42 (*Building Block View, Nivel 2*).
+The overall system architecture, including the component block diagram and the deployment diagram, has been described in **§5.1 of Chapter 5**. This section describes the internal code organisation of each component following the white-box view of the ARC42 standard (*Building Block View, Level 2*).
 
 ---
 
-### 6.1.1 webapp — Aplicación frontend
+### 6.1.1 webapp — Frontend application
 
-El frontend es una aplicación de página única (*SPA*) construida con React 19 y TypeScript. Su estructura interna sigue una organización por dominio funcional, lo que facilita la localización y mantenimiento de cada módulo.
+The frontend is a single-page application (*SPA*) built with React 19 and TypeScript. Its internal structure follows an organisation by functional domain, which facilitates the location and maintenance of each module.
 
 ```mermaid
 graph TD
     subgraph "webapp/src/"
-        APP["App.tsx\n(Router principal — 18 rutas)"]
+        APP["App.tsx\n(Main router — 17 routes)"]
         MAIN["main.tsx\n(Entry point · QueryClient · i18n)"]
 
-        subgraph "pages/ — 20 páginas"
-            PUB["Públicas sin layout\n/ · /login · /activate · /forgot-password"]
-            LAYOUT_PUB["Públicas con layout\n/home · /degrees · /courses\n/calendar · /classrooms\n/groups · /subjects · /solicitudes"]
-            LAYOUT_PROT["Protegidas\n/users · /settings · /calendar-sync · /solicitudes · /my-requests"]
+        subgraph "pages/ — 20 pages"
+            PUB["Public without layout\n/ · /login · /activate · /forgot-password"]
+            LAYOUT_PUB["Public with layout\n/home · /degrees · /courses\n/calendar · /classrooms\n/groups · /subjects · /solicitudes"]
+            LAYOUT_PROT["Protected\n/users · /settings · /calendar-sync · /solicitudes · /my-requests"]
         end
 
-        subgraph "components/ — por dominio"
+        subgraph "components/ — by domain"
             COMP_CAL["calendar/"]
             COMP_CLASS["classroom/"]
             COMP_COURSE["course/"]
@@ -37,12 +37,12 @@ graph TD
             COMP_CMN["common/ · AppLayout · app-sidebar"]
         end
 
-        subgraph "hooks/ — hooks por dominio"
+        subgraph "hooks/ — hooks by domain"
             H_CAL["calendar/ · course/ · degree/"]
             H_REST["classroom/ · group/ · subject/\nuser/ · event-request/"]
         end
 
-        subgraph "Infraestructura"
+        subgraph "Infrastructure"
             CTX["contexts/\nAuthContext.tsx"]
             SVC["services/\nauth.services.ts"]
             I18N["i18n/ · types/ · utils/\nconfig/ · constants/"]
@@ -64,110 +64,115 @@ graph TD
     CTX --> SVC
 ```
 
-**Componentes genéricos en `ui/`:**
+**Generic components in `ui/`:**
 
-Además de los 37 primitivos de Radix UI (generados con shadcn/ui y no modificados directamente), la carpeta `components/ui/` alberga dos componentes de proyecto de mantenimiento manual:
+The `components/ui/` folder contains 40 files: **32 Radix UI primitives** generated with shadcn/ui (not directly modified) and **8 project-owned components** maintained manually. The three most relevant for the form architecture are:
 
-| Componente | Descripción | Usos directos |
+| Component | Description | Direct uses |
 |---|---|---|
-| `DataTable<T>` | Tabla genérica con TanStack React Table: filtrado por columna, visibilidad de columnas, ordenación, paginación (10 filas/página) y selección múltiple opcional. Reemplaza la lógica de ~40 líneas repetida en 5 tablas idénticas (Classroom, Course, Degree, Subject, User). | 5 tablas de dominio |
-| `FormDrawer` | Drawer de formulario genérico con header i18n, área de contenido desplazable y footer con botones Cancel/Save (deshabilitados según `isValid` e `isLoading`). Reemplaza el shell repetido en 10 drawers de creación/edición. | 10 drawers de dominio |
+| `DataTable<T>` | Generic table with TanStack React Table: column filtering, column visibility, sorting, pagination (10 rows/page) and optional multi-selection. Replaces the ~40 lines of repeated logic across 5 identical tables (Classroom, Course, Degree, Subject, User). | 5 domain tables |
+| `FormDrawer` | Generic form drawer with i18n header, scrollable content area and footer with Cancel/Save buttons (disabled according to `isValid` and `isLoading`). Replaces the repeated shell across 10 creation/editing drawers. | 10 domain drawers |
+| `RequiredLabel` | Wraps a `<label>` adding a red asterisk and `(required)` text accessible to screen readers. Standardises the visual marking of required fields across project forms. | Creation/editing forms |
 
-**Rutas de la aplicación:**
+The five additional project-owned components (`spinner.tsx`, `time-picker.tsx`, `searchable-select.tsx`, `password-requirements.tsx`, `multi-select.tsx`) encapsulate input controls that have no direct equivalent in the shadcn/ui library.
 
-| Ruta | Componente | Acceso |
+**Application routes:**
+
+| Route | Component | Access |
 |---|---|---|
-| `/` | Start | Público |
-| `/login` | LoginPage | Público |
-| `/forgot-password` | ForgotPasswordPage | Público |
-| `/activate` | ActivatePage | Público |
-| `/home` | HomePage | Con layout |
-| `/degrees` | DegreePage | Con layout |
-| `/degrees/:acronym/courses` | CoursePage | Con layout |
-| `/degrees/:acronym/courses/:startYear/:endYear/semester/:semester/calendar` | CalendarPage | Con layout |
-| `/degrees/:acronym/courses/.../solicitudes` | SolicitudPage | Con layout |
-| `/degrees/:acronym/courses/.../groups` | GroupPage | Con layout |
-| `/degrees/:acronym/courses/.../subjects` | SubjectPage | Con layout |
-| `/classrooms` | ClassroomPage | Con layout |
-| `/settings` | SettingsPage | **Protegido** |
-| `/calendar-sync` | CalendarSyncPage | **Protegido** |
-| `/users` | UserPage | **Protegido** |
-| `/solicitudes` | AllSolicitudesPage | **Protegido** (ADMIN) |
-| `/my-requests` | MyRequestsPage | **Protegido** (PROFESSOR) |
-| `*` | — | Redirección a `/` |
+| `/` | Start | Public |
+| `/login` | LoginPage | Public |
+| `/forgot-password` | ForgotPasswordPage | Public |
+| `/activate` | ActivatePage | Public |
+| `/home` | HomePage | With layout |
+| `/degrees` | DegreePage | With layout |
+| `/degrees/:acronym/courses` | CoursePage | With layout |
+| `/degrees/:acronym/courses/:startYear/:endYear/semester/:semester/calendar` | CalendarPage | With layout |
+| `/degrees/:acronym/courses/.../solicitudes` | SolicitudPage | With layout |
+| `/degrees/:acronym/courses/.../groups` | GroupPage | With layout |
+| `/degrees/:acronym/courses/.../subjects` | SubjectPage | With layout |
+| `/classrooms` | ClassroomPage | With layout |
+| `/settings` | SettingsPage | **Protected** |
+| `/calendar-sync` | CalendarSyncPage | **Protected** |
+| `/users` | UserPage | **Protected** |
+| `/solicitudes` | AllSolicitudesPage | **Protected** (ADMIN) |
+| `/my-requests` | MyRequestsPage | **Protected** (PROFESSOR) |
+| `*` | — | Redirect to `/` |
+
+> **Note:** the files `webapp/src/pages/LogsPage.tsx` and `webapp/src/pages/ReportPage.tsx` exist in the source code but have no registered route in `App.tsx`. They are pages under development pending inclusion in the router.
 
 ---
 
 ### 6.1.2 gateway_service — API Gateway
 
-El gateway actúa como único punto de entrada externo para el backend. Su estructura es deliberadamente simple: no contiene lógica de negocio ni acceso a base de datos.
+The gateway acts as the sole external entry point for the backend. Its structure is deliberately simple: it contains no business logic or database access.
 
 ```
 gateway_service/src/
-├── app.ts                        # Inicialización Express, CORS, Multer, registro de rutas
-├── index.ts                      # Punto de entrada (listen)
+├── app.ts                        # Express initialisation, CORS, Multer, route registration
+├── index.ts                      # Entry point (listen)
 ├── config/
-│   └── services.ts               # URLs base de los servicios internos
+│   └── services.ts               # Base URLs of the internal services
 ├── controllers/
-│   ├── auth.controller.ts        # Proxy hacia auth_service
-│   ├── planner.controller.ts     # Proxy hacia planner_service (mayor volumen de endpoints)
-│   ├── user.controller.ts        # Proxy hacia user_service
-│   └── status.controller.ts     # Endpoint de salud /status
+│   ├── auth.controller.ts        # Proxy to auth_service
+│   ├── planner.controller.ts     # Proxy to planner_service (largest volume of endpoints)
+│   ├── user.controller.ts        # Proxy to user_service
+│   └── status.controller.ts      # Health endpoint /status
 ├── routes/
 │   ├── auth.routes.ts
 │   ├── planner.routes.ts
 │   ├── user.routes.ts
 │   └── status.routes.ts
 └── utils/
-    └── proxy.ts                  # Abstracción de la llamada HTTP saliente (Axios)
+    └── proxy.ts                  # Abstraction of the outgoing HTTP call (Axios)
 ```
 
 ---
 
-### 6.1.3 auth_service — Servicio de autenticación
+### 6.1.3 auth_service — Authentication service
 
-Gestiona la identidad de los usuarios: registro, activación, login con JWT, integración con Google OAuth y reseteo de contraseñas.
+Manages user identity: registration, activation, JWT login, Google OAuth integration and password reset.
 
 ```
 auth_service/src/
 ├── app.ts · index.ts · env.ts
 ├── config/
-│   └── data-source.ts            # Conexión TypeORM → management_database
+│   └── data-source.ts            # TypeORM connection → management_database
 ├── controllers/
 │   └── auth.controller.ts
 ├── entities/
-│   └── user.entity.ts            # Entidad User (gestión DB compartida con user_service)
+│   └── user.entity.ts            # User entity (shared DB management with user_service)
 ├── middleware/
-│   ├── auth.middleware.ts        # Validación JWT entrante
-│   └── validate.middleware.ts   # Validación de cuerpo de petición con Zod
+│   ├── auth.middleware.ts        # Incoming JWT validation
+│   └── validate.middleware.ts    # Request body validation with Zod
 ├── routes/
 │   └── auth.routes.ts            # POST /login /validate /logout /forgot-password /verify-otp /reset-password /activate · GET /profile · GET+POST /google/*
 ├── schemas/
-│   └── auth.schemas.ts           # Esquemas Zod de validación
+│   └── auth.schemas.ts           # Zod validation schemas
 ├── services/
-│   ├── auth.service.ts           # Lógica de autenticación principal
-│   ├── email.service.ts          # Envío de correos (activación, reseteo)
-│   ├── google-oauth.service.ts  # Integración Google OAuth 2.0
+│   ├── auth.service.ts           # Main authentication logic
+│   ├── email.service.ts          # Email sending (activation, reset)
+│   ├── google-oauth.service.ts   # Google OAuth 2.0 integration
 │   └── password-reset.service.ts
 ├── scripts/
-│   └── seed-database.ts          # Script de inicialización de datos
+│   └── seed-database.ts          # Data initialisation script
 ├── types/
 │   └── auth.types.ts
 └── utils/
-    └── jwt.ts                    # Generación y verificación de tokens JWT
+    └── jwt.ts                    # JWT token generation and verification
 ```
 
 ---
 
-### 6.1.4 user_service — Servicio de gestión de usuarios
+### 6.1.4 user_service — User management service
 
-Gestiona el ciclo de vida de los usuarios (alta, baja, modificación, consulta) y permite la importación masiva desde ficheros **Excel (XLSX)**. La creación de usuarios incluye validación de formato de email (schema Zod) y detección de email duplicado: si el email ya existe en la base de datos, el servicio devuelve **HTTP 409** con un mensaje de error localizado (ES/EN).
+Manages the user lifecycle (creation, deletion, modification, query) and allows bulk import from **Excel (XLSX)** files. User creation includes email format validation (Zod schema) and duplicate email detection: if the email already exists in the database, the service returns **HTTP 409** with a localised error message (ES/EN).
 
 ```
 user_service/src/
 ├── app.ts · index.ts · env.ts
 ├── config/
-│   ├── data-source.ts            # Conexión TypeORM → management_database
+│   ├── data-source.ts            # TypeORM connection → management_database
 │   └── email.config.ts
 ├── controllers/
 │   └── user.controller.ts
@@ -177,12 +182,12 @@ user_service/src/
 │   ├── error.middleware.ts
 │   └── validate.middleware.ts
 ├── routes/
-│   └── user.routes.ts            # CRUD + importación masiva
+│   └── user.routes.ts            # CRUD + bulk import
 ├── schemas/
 │   └── user.schemas.ts
-├── service/                      # Nota: carpeta en singular
+├── service/                      # Note: singular folder name
 │   ├── user.service.ts
-│   ├── user-import.service.ts   # Procesamiento de Excel/XLSX (importación masiva)
+│   ├── user-import.service.ts    # Excel/XLSX processing (bulk import)
 │   └── email.service.ts
 ├── types/
 │   └── user.types.ts
@@ -192,18 +197,18 @@ user_service/src/
 
 ---
 
-### 6.1.5 planner_service — Servicio de planificación (núcleo de negocio)
+### 6.1.5 planner_service — Scheduling service (business core)
 
-Es el componente más complejo del sistema. Gestiona todas las entidades del dominio académico y expone 9 grupos de rutas.
+It is the most complex component of the system. It manages all academic domain entities and exposes 9 route groups.
 
 ```
 planner_service/src/
 ├── app.ts · index.ts · env.ts
 ├── config/
-│   └── data-source.ts            # Conexión TypeORM → planner_database
+│   └── data-source.ts            # TypeORM connection → planner_database
 ├── constants/
 │   └── event-characters.constants.ts
-├── controllers/           # 8 controladores
+├── controllers/           # 8 controllers
 │   ├── calendar.controller.ts
 │   ├── classroom.controller.ts
 │   ├── course.controller.ts
@@ -211,10 +216,10 @@ planner_service/src/
 │   ├── event-request.controller.ts
 │   ├── group.controller.ts
 │   ├── subject.controller.ts
-│   └── test.controller.ts        # Endpoint de limpieza para tests
-├── entities/              # 15 ficheros de entidad; 13 registradas en el DataSource (excluye audited.entity —clase abstracta— y request.entity —auxiliar no registrada—)
-│   ├── audited.entity.ts         # Clase abstracta base (id, createdAt/By, updatedAt/By)
-│   ├── api-quota-counter.entity.ts  # Contadores globales de cuota de la Google Calendar API
+│   └── test.controller.ts        # Cleanup endpoint for tests
+├── entities/              # 15 entity files; 13 registered in the DataSource (excludes audited.entity —abstract class— and request.entity —unregistered auxiliary—)
+│   ├── audited.entity.ts         # Abstract base class (id, createdAt/By, updatedAt/By)
+│   ├── api-quota-counter.entity.ts  # Global counters for Google Calendar API quota
 │   ├── calendar.entity.ts
 │   ├── calendar-sync.entity.ts
 │   ├── classroom.entity.ts
@@ -231,7 +236,7 @@ planner_service/src/
 ├── middleware/
 │   ├── auth.middleware.ts
 │   └── require-role.middleware.ts
-├── routes/                # 9 ficheros de rutas
+├── routes/                # 9 route files
 │   ├── calendar.routes.ts
 │   ├── calendar-sync.routes.ts
 │   ├── classrooms.routes.ts
@@ -241,48 +246,50 @@ planner_service/src/
 │   ├── group.routes.ts
 │   ├── subject.routes.ts
 │   └── test.routes.ts
-├── services/              # 7 servicios
-│   ├── calendar-events.service.ts    # Expansión de eventos periódicos a fechas concretas
+├── services/              # 7 services
+│   ├── calendar-events.service.ts    # Expansion of recurring events to concrete dates; round-robin algorithm for groups with shared hours
 │   ├── calendar-formatting.service.ts
 │   ├── calendar-import.service.ts
 │   ├── calendar-repository.service.ts
 │   ├── event-request.service.ts
-│   ├── google-calendar.service.ts    # Comunicación con Google Calendar API v3
-│   └── validation.service.ts         # Validación de UUIDs y existencia de entidades
+│   ├── google-calendar.service.ts    # Communication with Google Calendar API v3
+│   └── validation.service.ts         # UUID validation and entity existence checks
 ├── utils/
-│   └── conflict-detection.utils.ts  # Detección de conflictos de horario (grupo/aula) en 6 operaciones
+│   └── conflict-detection.utils.ts  # Schedule conflict detection (group/classroom) across 6 operations
 └── __tests__/
     ├── setup/
-    │   └── testDatabase.ts       # Setup/teardown de Testcontainers
+    │   └── testDatabase.ts       # Testcontainers setup/teardown
     └── integration/
         ├── calendar.delete.test.ts
         └── classroom.delete.test.ts
 ```
 
-El siguiente diagrama ilustra la arquitectura interna en capas de `planner_service`:
+The `calendar-events.service.ts` service deserves special mention for its complexity. Its public method `generateCalendarEvents(calendarId)` combines one-off and recurring events into a chronologically sorted list. For recurring events of type `N` (Normal) with `planifiedHours` configured, it implements a **round-robin algorithm**: it distributes each teaching week's sessions equitably among all groups sharing a hours budget, so that no group accumulates more sessions than another before the group's total budget is exhausted. This mechanism guarantees that the count of delivered hours respects the academic contract defined in `Group.planifiedHours`.
+
+The following diagram illustrates the internal layered architecture of `planner_service`:
 
 ```mermaid
 graph LR
-    subgraph "Entrada"
-        REQ["Petición HTTP\n(desde gateway)"]
+    subgraph "Input"
+        REQ["HTTP Request\n(from gateway)"]
     end
 
-    subgraph "Capa de presentación"
+    subgraph "Presentation layer"
         MW["middleware/\nauth + require-role"]
         RT["routes/ (9)"]
         CT["controllers/ (8)"]
     end
 
-    subgraph "Capa de negocio"
+    subgraph "Business layer"
         SV["services/ (7)"]
     end
 
-    subgraph "Capa de datos"
-        EN["entities/ (14)"]
+    subgraph "Data layer"
+        EN["entities/ (15)"]
         DS["config/data-source.ts"]
     end
 
-    subgraph "Externo"
+    subgraph "External"
         DB[("planner_database\nMariaDB 11")]
         GCAL["Google Calendar API"]
     end
@@ -296,118 +303,145 @@ graph LR
     SV --> GCAL
 ```
 
+**Calendar controller endpoints** (`calendar.controller.ts`):
+
+The calendar controller is the most extensive in the system, with 20 endpoints covering the full management of the academic calendar and its events:
+
+| Verb | Route | Required role | Description |
+|---|---|---|---|
+| `GET` | `/calendars/active` | — | Active calendars in the system |
+| `GET` | `/calendar/:id` | — | Calendar details |
+| `GET` | `/calendar/:id/days` | — | Calendar days with their one-off events |
+| `GET` | `/calendar/:id/events` | — | All expanded events of the calendar |
+| `GET` | `/calendar/:id/pending-requests` | ADMIN or PROFESSOR | Pending requests represented as events |
+| `GET` | `/calendar/:id/export` | — | Exports the calendar to a ZIP file with TXT files |
+| `POST` | `/calendar` | ADMIN | Creates a new empty calendar |
+| `POST` | `/calendar/import` | ADMIN | Creates a calendar from an Excel file |
+| `POST` | `/calendar/:calendarId/import-exceptions` | ADMIN | Imports exceptions (public holidays, special days) |
+| `POST` | `/calendar/duplicate` | ADMIN | Duplicates an existing calendar |
+| `POST` | `/calendar/puntual-event` | ADMIN | Creates a one-off event |
+| `POST` | `/calendar/periodic-event` | ADMIN | Creates a standard recurring event (N/P/I) |
+| `POST` | `/calendar/custom-periodic-event` | ADMIN | Creates a recurring event with a custom character |
+| `POST` | `/calendar/replace-event` | ADMIN | Cancels a recurring event and creates its replacement |
+| `PUT` | `/calendar/puntual-event/:eventId` | ADMIN | Edits a one-off event |
+| `PUT` | `/calendar/periodic-event/:eventId` | ADMIN | Edits a standard recurring event |
+| `PUT` | `/calendar/custom-periodic-event` | ADMIN | Edits a recurring event with a custom character |
+| `DELETE` | `/calendar/puntual-event/:eventId` | ADMIN | Deletes a one-off event |
+| `DELETE` | `/calendar/periodic-event/:eventId` | ADMIN | Deletes a recurring event |
+| `DELETE` | `/calendar/:id` | ADMIN | Deletes a calendar and all its dependent entities |
+
 ---
 
-### 6.1.6 Bases de datos
+### 6.1.6 Databases
 
-El sistema emplea dos bases de datos MariaDB 11 completamente independientes:
+The system uses two completely independent MariaDB 11 databases:
 
-| Base de datos | Servicio propietario | Entidades gestionadas |
+| Database | Owning service | Managed entities |
 |---|---|---|
-| `management_database` | `auth_service`, `user_service` | `User` (autenticación y perfil de usuario) |
-| `planner_database` | `planner_service` | 13 entidades del dominio académico registradas en el DataSource |
+| `management_database` | `auth_service`, `user_service` | `User` (authentication and user profile) |
+| `planner_database` | `planner_service` | 13 academic domain entities registered in the DataSource |
 
-Esta separación garantiza que un fallo o una migración en la base de datos de planificación no afecte a la autenticación, y viceversa.
-
----
-
-### 6.1.7 Vista de despliegue — Resumen textual
-
-Véase el **§5.1.3** del Capítulo 5 para el diagrama UML de despliegue completo. A continuación se recogen los aspectos más relevantes desde el punto de vista de la implementación:
-
-- Cada componente dispone de su propio `Dockerfile` (7 en total). La imagen de `webapp` utiliza **Caddy** como servidor web con soporte HTTPS automático.
-- En el entorno de desarrollo, todos los servicios se levantan con `docker-compose.dev.yml`, que monta los directorios fuente como volúmenes para permitir hot-reload.
-- En producción (Azure VM), `docker-compose.azure.yml` utiliza imágenes preconstruidas publicadas en GitHub Container Registry con la convención `ghcr.io/murias10/teachingplanner/{servicio}:latest`. Solo `gateway_service` (puerto 8080) y `webapp` (443/80) son accesibles desde el exterior.
-- El pipeline de CI/CD (GitHub Actions) ejecuta los tests en cada *pull request* antes de autorizar el merge. El mecanismo de despliegue manual (`workflow_dispatch`) y su justificación se describen en **§5.1.3**.
+This separation guarantees that a failure or migration in the scheduling database does not affect authentication, and vice versa.
 
 ---
 
-## 6.2 Implementación de las Pruebas
+### 6.1.7 Deployment view — Textual summary
 
-La estrategia y el diseño de las pruebas (qué se prueba y por qué) se han definido en el **§5.3 del Capítulo 5**. Este apartado describe la implementación concreta: herramientas, scripts, casos de prueba con su resultado esperado y el mecanismo de integración continua.
+See **§5.1.3** of Chapter 5 for the complete UML deployment diagram. The most relevant aspects from the implementation perspective are:
+
+- Each component has its own `Dockerfile` (7 in total). The `webapp` image uses **Caddy** as the web server with automatic HTTPS support.
+- In the development environment, all services are started with `docker-compose.dev.yml`, which mounts the source directories as volumes to allow hot-reload.
+- In production (Azure VM), `docker-compose.azure.yml` uses pre-built images published in GitHub Container Registry following the convention `ghcr.io/murias10/teachingplanner/{service}:latest`. Only `gateway_service` (port 8080) and `webapp` (443/80) are accessible from the outside.
+- The CI/CD pipeline (GitHub Actions) runs tests on each *pull request* before authorising the merge. The manual deployment mechanism (`workflow_dispatch`) and its justification are described in **§5.1.3**.
 
 ---
 
-### 6.2.1 Tests de integración — Jest + Testcontainers
+## 6.2 Test Implementation
 
-#### Infraestructura
+The testing strategy and design (what is tested and why) have been defined in **§5.3 of Chapter 5**. This section describes the concrete implementation: tools, scripts, test cases with their expected results and the continuous integration mechanism.
 
-Los tests de integración se ubican en `planner_service/src/__tests__/integration/` y se ejecutan con **Jest 30** y soporte TypeScript mediante `ts-jest`. La peculiaridad de esta suite es el uso de **Testcontainers** (`@testcontainers/mariadb 11.2`): antes de que comience la suite, se levanta automáticamente un contenedor MariaDB efímero con una base de datos `test_planner_db` en la que TypeORM sincroniza el esquema completo (`synchronize: true`). Al finalizar, el contenedor se destruye.
+---
 
-El ciclo de vida de cada suite es:
+### 6.2.1 Integration tests — Jest + Testcontainers
+
+#### Infrastructure
+
+The integration tests are located in `planner_service/src/__tests__/integration/` and run with **Jest 30** and TypeScript support via `ts-jest`. The distinctive feature of this suite is the use of **Testcontainers** (`@testcontainers/mariadb 11.2`): before the suite begins, an ephemeral MariaDB container is automatically started with a `test_planner_db` database where TypeORM synchronises the full schema (`synchronize: true`). Upon completion, the container is destroyed.
+
+The lifecycle of each suite is:
 
 ```
-beforeAll  → setupTestDatabase()   — levanta contenedor MariaDB 11.2 (timeout: 120 s)
-afterEach  → cleanDatabase()       — elimina todos los registros entre tests
-afterAll   → teardownTestDatabase() — destruye el contenedor
+beforeAll  → setupTestDatabase()    — starts MariaDB 11.2 container (timeout: 120 s)
+afterEach  → cleanDatabase()        — deletes all records between tests
+afterAll   → teardownTestDatabase() — destroys the container
 ```
 
-#### Scripts de ejecución
+#### Execution scripts
 
 ```bash
 cd planner_service
 
-# Ejecutar todos los tests
+# Run all tests
 npm test
 
-# Con informe de cobertura (genera coverage/lcov-report/index.html)
+# With coverage report (generates coverage/lcov-report/index.html)
 npm run test:coverage
 
-# Solo tests de integración
+# Integration tests only
 npm run test:integration
 
-# Modo watch (durante el desarrollo)
+# Watch mode (during development)
 npm run test:watch
 
-# Modo CI (--ci --coverage --maxWorkers=2)
+# CI mode (--ci --coverage --maxWorkers=2)
 npm run test:ci
 ```
 
-**Configuración relevante de `jest.config.js`:**
+**Relevant `jest.config.js` configuration:**
 
-| Parámetro | Valor | Motivo |
+| Parameter | Value | Reason |
 |---|---|---|
-| `preset` | `ts-jest` | Soporte TypeScript |
-| `testEnvironment` | `node` | Entorno Node.js (no DOM) |
-| `testTimeout` | `60000` ms | Tiempo de arranque de Testcontainers |
-| `forceExit` | `true` | Evita que Jest quede colgado tras destruir el contenedor |
-| `clearMocks` | `true` | Limpia mocks entre tests |
-| `resetMocks` | `true` | Restablece estado de mocks entre tests |
-| `restoreMocks` | `true` | Restaura implementaciones originales entre tests |
+| `preset` | `ts-jest` | TypeScript support |
+| `testEnvironment` | `node` | Node.js environment (not DOM) |
+| `testTimeout` | `60000` ms | Testcontainers startup time |
+| `forceExit` | `true` | Prevents Jest from hanging after destroying the container |
+| `clearMocks` | `true` | Clears mocks between tests |
+| `resetMocks` | `true` | Resets mock state between tests |
+| `restoreMocks` | `true` | Restores original implementations between tests |
 
-#### Casos de prueba
+#### Test cases
 
-**Fichero: `calendar.delete.test.ts`**
+**File: `calendar.delete.test.ts`**
 
-| ID | Descripción | Precondición | Resultado esperado |
+| ID | Description | Precondition | Expected result |
 |---|---|---|---|
-| TC-INT-01 | Eliminación en cascada de Calendar con entidades dependientes | Calendar con 1 Subject, 1 Group, 2 Days, 1 PuntualEvent y 1 PeriodicEvent | Calendar, Subject, Group, Days, PuntualEvent y PeriodicEvent eliminados; Degree y Course permanecen |
-| TC-INT-02 | Eliminación de Calendar sin entidades dependientes | Calendar vacío (sin eventos, sin grupos, sin días) | Calendar eliminado; Degree y Course permanecen |
+| TC-INT-01 | Cascade deletion of Calendar with dependent entities | Calendar with 1 Subject, 1 Group, 2 Days, 1 PuntualEvent and 1 PeriodicEvent | Calendar, Subject, Group, Days, PuntualEvent and PeriodicEvent deleted; Degree and Course remain |
+| TC-INT-02 | Deletion of Calendar with no dependent entities | Empty Calendar (no events, no groups, no days) | Calendar deleted; Degree and Course remain |
 
-**Fichero: `classroom.delete.test.ts`**
+**File: `classroom.delete.test.ts`**
 
-| ID | Descripción | Precondición | Resultado esperado |
+| ID | Description | Precondition | Expected result |
 |---|---|---|---|
-| TC-INT-03 | Eliminación forzada de Classroom con eventos (`force=true`) | Classroom con 1 PuntualEvent y 1 PeriodicEvent asociados | Classroom y ambos eventos eliminados; Group y Calendar permanecen |
-| TC-INT-04 | Rechazo de eliminación cuando `force=false` y hay eventos | Classroom con 1 PuntualEvent asociado | Classroom no eliminada; `totalRelatedEvents > 0` y `force === false` (lógica de 409 Conflict verificada) |
-| TC-INT-05 | Eliminación de Classroom sin eventos | Classroom sin eventos asociados | Classroom eliminada; `count() === 0` |
-| TC-INT-06 | Unicidad del código de aula — duplicado rechazado | Classroom con código `UNIQUE-CODE` ya existente | `classroomRepo.save(classroom2)` lanza excepción |
-| TC-INT-07 | Creación de dos Classrooms con códigos distintos | BD vacía | Ambos registros creados; `count() === 2` |
+| TC-INT-03 | Forced deletion of Classroom with events (`force=true`) | Classroom with 1 PuntualEvent and 1 PeriodicEvent associated | Classroom and both events deleted; Group and Calendar remain |
+| TC-INT-04 | Rejection of deletion when `force=false` and events exist | Classroom with 1 associated PuntualEvent | Classroom not deleted; `totalRelatedEvents > 0` and `force === false` (409 Conflict logic verified) |
+| TC-INT-05 | Deletion of Classroom with no events | Classroom with no associated events | Classroom deleted; `count() === 0` |
+| TC-INT-06 | Classroom code uniqueness — duplicate rejected | Classroom with code `UNIQUE-CODE` already existing | `classroomRepo.save(classroom2)` throws an exception |
+| TC-INT-07 | Creation of two Classrooms with different codes | Empty database | Both records created; `count() === 2` |
 
-A continuación se muestra un fragmento representativo del test TC-INT-01, que ilustra la pauta *Arrange–Act–Assert* empleada:
+The following is a representative fragment of test TC-INT-01, illustrating the *Arrange–Act–Assert* pattern used:
 
 ```typescript
-// ARRANGE: crear estructura completa
+// ARRANGE: create full structure
 const calendar = await calendarRepo.save(
   calendarRepo.create({ start: new Date('2024-09-01'), end: new Date('2025-01-31'), semester: 1, course })
 );
-// ... (creación de Subject, Group, Days, PuntualEvent, PeriodicEvent)
+// ... (creation of Subject, Group, Days, PuntualEvent, PeriodicEvent)
 
-// ACT: eliminar en cascada (replicando la lógica del controlador)
+// ACT: cascade deletion (replicating the controller logic)
 await periodicEventRepo.remove(periodicEvents);
 await puntualEventRepo.remove(day.puntualEvents);
 await groupRepo.remove(groups);
-await calendarRepo.remove(calendar);   // CASCADE elimina Subject y Day
+await calendarRepo.remove(calendar);   // CASCADE deletes Subject and Day
 
 // ASSERT
 expect(await calendarRepo.count()).toBe(0);
@@ -415,141 +449,144 @@ expect(await subjectRepo.count()).toBe(0);
 expect(await groupRepo.count()).toBe(0);
 expect(await puntualEventRepo.count()).toBe(0);
 expect(await periodicEventRepo.count()).toBe(0);
-// Degree y Course NO deben ser eliminados
+// Degree and Course must NOT be deleted
 expect(await degreeRepo.count()).toBe(1);
 expect(await courseRepo.count()).toBe(1);
 ```
 
-#### Generación del informe de cobertura
+#### Coverage report generation
 
 ```bash
 npm run test:coverage
-# Informe HTML disponible en: planner_service/coverage/lcov-report/index.html
+# HTML report available at: planner_service/coverage/lcov-report/index.html
 ```
 
 ---
 
-### 6.2.2 Tests end-to-end — Playwright
+### 6.2.2 End-to-end tests — Playwright
 
-#### Infraestructura
+#### Infrastructure
 
-Los tests E2E se ubican en `webapp/e2e/` y se ejecutan con **Playwright 1.58** sobre Chromium. Antes de cada ejecución se recomienda limpiar la base de datos de planificación mediante el endpoint `POST /test/reset-database`, disponible únicamente cuando `NODE_ENV=development` o `NODE_ENV=test`. Este endpoint elimina en cascada los registros de 9 tablas: `EventRequests`, `PuntualEvents`, `PeriodicEvents`, `Calendars`, `Groups`, `Subjects`, `Classrooms`, `Courses` y `Degrees`.
+The E2E tests are located in `webapp/e2e/` and run with **Playwright 1.58** on Chromium. Before each run it is recommended to clean the scheduling database via the `POST /test/reset-database` endpoint, available only when `NODE_ENV=development` or `NODE_ENV=test`. This endpoint cascade-deletes records from 9 tables: `EventRequests`, `PuntualEvents`, `PeriodicEvents`, `Calendars`, `Groups`, `Subjects`, `Classrooms`, `Courses` and `Degrees`.
 
-La motivación de esta limpieza previa es garantizar la determinación de los tests: sin ella, registros de ejecuciones anteriores pueden causar fallos por paginación, nombres duplicados o estado inconsistente.
+The motivation for this prior cleanup is to guarantee test determinism: without it, records from previous runs can cause failures due to pagination, duplicate names or inconsistent state.
 
-**Requisitos previos para la ejecución local:**
-1. Todos los servicios backend en ejecución: `auth_service` (5003), `gateway_service` (8080), `planner_service` (5001), `user_service` (5002).
-2. Usuario de prueba creado (`npm run seed:test-user` en `user_service`): `admin@test.com` / `Admin123!` con rol `ROLE_ADMIN`.
-3. `NODE_ENV=development` en el fichero `.env`.
+**Prerequisites for local execution:**
+1. All backend services running: `auth_service` (5003), `gateway_service` (8080), `planner_service` (5001), `user_service` (5002).
+2. Test user created (`npm run seed:test-user` in `user_service`): `admin@test.com` / `Admin123!` with role `ROLE_ADMIN`.
+3. `NODE_ENV=development` in the `.env` file.
 
-#### Scripts de ejecución
+#### Execution scripts
 
 ```bash
 cd webapp
 
-# Limpiar BD y ejecutar tests (recomendado)
-npm run test:e2e:clean
+# Clean database and run tests (recommended for local development)
+npm run test:e2e:clean       # equivalent to: npm run clean:test-db && playwright test
 
-# Ejecutar sin limpiar BD
+# Run without cleaning database
 npm run test:e2e
 
-# Solo limpiar BD
+# Clean database only
 npm run clean:test-db
 
-# Modo UI interactivo de Playwright
+# CI mode (cleans DB + tests + html,github reporter)
+npm run test:e2e:ci          # equivalent to: npm run clean:test-db && playwright test --reporter=html,github
+
+# Playwright interactive UI mode
 npm run test:e2e:ui
 
-# Modo debug paso a paso
+# Step-by-step debug mode
 npm run test:e2e:debug
 
-# Ver informe HTML de la última ejecución
+# View HTML report of the last run
 npm run test:e2e:report
 ```
 
-**Configuración relevante de `playwright.config.ts`:**
+**Relevant `playwright.config.ts` configuration:**
 
-| Parámetro | Desarrollo | CI |
+| Parameter | Development | CI |
 |---|---|---|
 | `baseURL` | `http://localhost:5173` | `http://localhost:5173` |
 | `retries` | 0 | 2 |
-| `workers` | ilimitado (paralelo) | 1 (secuencial) |
-| `screenshot` | Solo en fallo | Solo en fallo |
-| `video` | Solo en fallo | Solo en fallo |
-| `trace` | En primer reintento | En primer reintento |
+| `workers` | unlimited (parallel) | 1 (sequential) |
+| `screenshot` | On failure only | On failure only |
+| `video` | On failure only | On failure only |
+| `trace` | On first retry | On first retry |
 | `devServer timeout` | 120 s | 120 s |
 
-#### Casos de prueba
+#### Test cases
 
 **Suite: `auth.spec.ts` — 6 tests**
 
-| ID | Nombre del test | Verificación principal |
+| ID | Test name | Main verification |
 |---|---|---|
-| TC-E2E-01 | should display login form | URL `/login`; visibilidad de campos email, contraseña y botón |
-| TC-E2E-02 | should show validation error for empty fields | Envío sin rellenar campos; permanece en `/login` |
-| TC-E2E-03 | should show error for incorrect credentials | Email/contraseña erróneos; mensaje de error visible |
-| TC-E2E-04 | should login successfully with valid credentials | Login con `admin@test.com`; redirección a `/home` |
-| TC-E2E-05 | should navigate to different pages after login | Navegación a `/classrooms` y `/degrees` sin pérdida de sesión |
-| TC-E2E-06 | should logout successfully | Clic en logout; redirección a `/` |
+| TC-E2E-01 | should display login form | URL `/login`; visibility of email, password and button fields |
+| TC-E2E-02 | should show validation error for empty fields | Submission without filling fields; remains on `/login` |
+| TC-E2E-03 | should show error for incorrect credentials | Wrong email/password; error message visible |
+| TC-E2E-04 | should login successfully with valid credentials | Login with `admin@test.com`; redirect to `/home` |
+| TC-E2E-05 | should navigate to different pages after login | Navigation to `/classrooms` and `/degrees` without session loss |
+| TC-E2E-06 | should logout successfully | Click on logout; redirect to `/` |
 
 **Suite: `classroom.spec.ts` — 8 tests**
 
-| ID | Nombre del test | Verificación principal |
+| ID | Test name | Main verification |
 |---|---|---|
-| TC-E2E-07 | should display classrooms list | URL `/classrooms`; cabeceras de tabla correctas |
-| TC-E2E-08 | should create new classroom successfully | Creación con código `TEST-{timestamp}`; alerta "Classroom created"; fila visible en tabla |
-| TC-E2E-09 | should show error when creating classroom with duplicate code | Segundo aula con mismo código; mensaje de error |
-| TC-E2E-10 | should edit classroom successfully | Campo `code` de solo lectura; actualización de GIS URL; alerta "Classroom edited" |
-| TC-E2E-11 | should delete classroom without events | Diálogo de confirmación; alerta "Classroom deleted"; fila eliminada de tabla |
-| TC-E2E-12 | should delete classroom with related events (force delete) | Diálogo con advertencia de eventos en cascada; eliminación forzada |
-| TC-E2E-13 | should cancel delete operation | Clic en "Cancelar"; aula permanece en la tabla |
-| TC-E2E-14 | should filter classrooms by code | Filtro por código; solo se muestra la fila correspondiente |
+| TC-E2E-07 | should display classrooms list | URL `/classrooms`; correct table headers |
+| TC-E2E-08 | should create new classroom successfully | Creation with code `TEST-{timestamp}`; "Classroom created" alert; row visible in table |
+| TC-E2E-09 | should show error when creating classroom with duplicate code | Second classroom with same code; error message |
+| TC-E2E-10 | should edit classroom successfully | `code` field read-only; GIS URL updated; "Classroom edited" alert |
+| TC-E2E-11 | should delete classroom without events | Confirmation dialog; "Classroom deleted" alert; row removed from table |
+| TC-E2E-12 | should delete classroom with related events (force delete) | Dialog with cascade events warning; forced deletion |
+| TC-E2E-13 | should cancel delete operation | Click "Cancel"; classroom remains in the table |
+| TC-E2E-14 | should filter classrooms by code | Filter by code; only the corresponding row is shown |
 
 **Suite: `course.spec.ts` — 9 tests**
 
-| ID | Nombre del test | Verificación principal |
+| ID | Test name | Main verification |
 |---|---|---|
-| TC-E2E-15 | should display courses list | Listado de cursos de la titulación |
-| TC-E2E-16 | should create new course successfully | Creación con año inicio/fin únicos; confirmación visible |
-| TC-E2E-17 | should show error when creating course with duplicate year | Mismo año académico; mensaje de error |
-| TC-E2E-18 | should edit course state successfully | Cambio de estado; alerta de confirmación |
-| TC-E2E-19 | should delete course successfully | Diálogo de confirmación; curso eliminado |
-| TC-E2E-20 | should cancel delete operation | Clic en cancelar; curso permanece |
-| TC-E2E-21 | should filter courses by academic year | Filtro funcional por año |
-| TC-E2E-22 | should validate required fields in create form | Botón de guardado deshabilitado si faltan campos |
-| TC-E2E-23 | should have default state as PLANIFICADO | Estado inicial `PLANIFICADO` al crear nuevo curso |
+| TC-E2E-15 | should display courses list | Listing of academic year courses |
+| TC-E2E-16 | should create new course successfully | Creation with unique start/end year; confirmation visible |
+| TC-E2E-17 | should show error when creating course with duplicate year | Same academic year; error message |
+| TC-E2E-18 | should edit course state successfully | State change; confirmation alert |
+| TC-E2E-19 | should delete course successfully | Confirmation dialog; course deleted |
+| TC-E2E-20 | should cancel delete operation | Click cancel; course remains |
+| TC-E2E-21 | should filter courses by academic year | Functional filter by year |
+| TC-E2E-22 | should validate required fields in create form | Save button disabled if fields are missing |
+| TC-E2E-23 | should have default state as PLANIFICADO | Initial state `PLANIFICADO` when creating a new academic year |
 
 **Suite: `degree.spec.ts` — 9 tests**
 
-| ID | Nombre del test | Verificación principal |
+| ID | Test name | Main verification |
 |---|---|---|
-| TC-E2E-24 | should display degrees list | URL `/degrees`; cabeceras nombre y acrónimo |
-| TC-E2E-25 | should create new degree successfully | Creación con nombre y acrónimo únicos; alerta "Degree created" |
-| TC-E2E-26 | should show error when creating degree with duplicate acronym | Acrónimo duplicado; mensaje de error |
-| TC-E2E-27 | should edit degree successfully | Modificación de nombre y acrónimo; alerta "Degree updated" |
-| TC-E2E-28 | should delete degree successfully | Diálogo con advertencia de cascada sobre cursos/asignaturas; alerta "Degree deleted" |
-| TC-E2E-29 | should cancel delete operation | Clic en cancelar; titulación permanece |
-| TC-E2E-30 | should filter degrees by name | Filtro funcional; solo muestra la titulación buscada |
-| TC-E2E-31 | should validate required fields in create form | Botón deshabilitado con campos vacíos o parcialmente rellenos |
-| TC-E2E-32 | should enforce uppercase on acronym field | Entrada en minúscula `abc` → convertida a `ABC` |
+| TC-E2E-24 | should display degrees list | URL `/degrees`; name and acronym headers |
+| TC-E2E-25 | should create new degree successfully | Creation with unique name and acronym; "Degree created" alert |
+| TC-E2E-26 | should show error when creating degree with duplicate acronym | Duplicate acronym; error message |
+| TC-E2E-27 | should edit degree successfully | Name and acronym modification; "Degree updated" alert |
+| TC-E2E-28 | should delete degree successfully | Dialog with cascade warning over academic years/subjects; "Degree deleted" alert |
+| TC-E2E-29 | should cancel delete operation | Click cancel; degree programme remains |
+| TC-E2E-30 | should filter degrees by name | Functional filter; shows only the searched degree programme |
+| TC-E2E-31 | should validate required fields in create form | Button disabled with empty or partially filled fields |
+| TC-E2E-32 | should enforce uppercase on acronym field | Lowercase input `abc` → converted to `ABC` |
 
 **Suite: `subject.spec.ts` — 10 tests**
 
-| ID | Nombre del test | Verificación principal |
+| ID | Test name | Main verification |
 |---|---|---|
-| TC-E2E-33 | should display subjects list | Listado de asignaturas del calendario |
-| TC-E2E-34 | should create new subject successfully | Creación con acrónimo y código SIES únicos; confirmación |
-| TC-E2E-35 | should show error when creating subject with duplicate acronym | Acrónimo duplicado; mensaje de error |
-| TC-E2E-36 | should edit subject successfully | Modificación de campos; alerta de confirmación |
-| TC-E2E-37 | should delete subject successfully | Diálogo de confirmación; asignatura eliminada |
-| TC-E2E-38 | should cancel delete operation | Clic en cancelar; asignatura permanece |
-| TC-E2E-39 | should validate required fields in create form | Botón deshabilitado si faltan campos obligatorios |
-| TC-E2E-40 | should enforce uppercase on name field | Nombre de asignatura convertido a mayúsculas automáticamente |
-| TC-E2E-41 | should display correct year options (0–4) | Selector de año muestra opciones del 0 al 4 |
-| TC-E2E-42 | should delete multiple subjects in bulk | Selección múltiple y borrado en masa; todos los registros seleccionados eliminados |
+| TC-E2E-33 | should display subjects list | Listing of calendar subjects |
+| TC-E2E-34 | should create new subject successfully | Creation with unique acronym and SIES code; confirmation |
+| TC-E2E-35 | should show error when creating subject with duplicate acronym | Duplicate acronym; error message |
+| TC-E2E-36 | should edit subject successfully | Field modification; confirmation alert |
+| TC-E2E-37 | should delete subject successfully | Confirmation dialog; subject deleted |
+| TC-E2E-38 | should cancel delete operation | Click cancel; subject remains |
+| TC-E2E-39 | should validate required fields in create form | Button disabled if required fields are missing |
+| TC-E2E-40 | should enforce uppercase on name field | Subject name automatically converted to uppercase |
+| TC-E2E-41 | should display correct year options (0–4) | Year selector shows options from 0 to 4 |
+| TC-E2E-42 | should delete multiple subjects in bulk | Multiple selection and bulk deletion; all selected records deleted |
 
-**Total: 42 tests E2E** (6 + 8 + 9 + 9 + 10).
+**Total: 42 E2E tests** (6 + 8 + 9 + 9 + 10).
 
-A continuación se muestra un fragmento representativo de un test E2E (creación de titulación), que ilustra el uso de selectores semánticos y la estrategia de datos únicos basada en *timestamp*:
+The following is a representative fragment of an E2E test (degree programme creation), illustrating the use of semantic selectors and the timestamp-based unique data strategy:
 
 ```typescript
 test('should create new degree successfully', async ({ page }) => {
@@ -570,71 +607,73 @@ test('should create new degree successfully', async ({ page }) => {
 
 ---
 
-### 6.2.3 Ejecución en CI/CD — GitHub Actions
+### 6.2.3 CI/CD execution — GitHub Actions
 
-Los tests se ejecutan en **GitHub Actions** como parte de los workflows de despliegue, activados manualmente desde la pestaña *Actions* del repositorio. No existe un workflow independiente para tests: tanto `deploy_azure.yml` como `deploy_selfhosted.yml` incluyen los jobs `unit-tests` y `e2e-tests` directamente. Al lanzar cualquiera de estos workflows, el responsable selecciona mediante checkboxes qué jobs ejecutar, pudiendo optar por ejecutar únicamente los tests, solo el despliegue, o el pipeline completo.
+Tests run on **GitHub Actions** as part of the deployment workflows, triggered manually from the *Actions* tab of the repository. There is no independent workflow for tests: both `deploy_azure.yml` and `deploy_selfhosted.yml` include the `unit-tests` and `e2e-tests` jobs directly. When launching either of these workflows, the responsible person selects via checkboxes which jobs to run, being able to choose to run only the tests, only the deployment, or the full pipeline.
 
 ```mermaid
 flowchart TD
-    Dispatch["workflow_dispatch\n(manual — pestaña Actions de GitHub)"]
+    Dispatch["workflow_dispatch\n(manual — GitHub Actions tab)"]
 
-    subgraph "Job 1: unit-tests (opcional)"
-        U1["Checkout código"]
+    subgraph "Job 1: unit-tests (optional)"
+        U1["Checkout code"]
         U2["Setup Node.js 20"]
         U3["npm ci — planner_service"]
         U4["npm run test:ci\nJest + Testcontainers MariaDB 11.2"]
-        U5{{"¿Tests OK?"}}
+        U5{{"Tests OK?"}}
     end
 
-    subgraph "Job 2: e2e-tests (opcional, needs: unit-tests)"
-        E1["Levantar MariaDB 11\nplanner_db_test + management_db_test"]
-        E2["npm ci — todos los servicios"]
-        E3["npm run build — 4 servicios"]
-        E4["Levantar servicios en background\ngw:8080 · planner:5001 · user:5002 · auth:5003"]
+    subgraph "Job 2: e2e-tests (optional, needs: unit-tests)"
+        E1["Start MariaDB 11\nplanner_db_test + management_db_test"]
+        E2["npm ci — all services"]
+        E3["npm run build — 4 services"]
+        E4["Start services in background\ngw:8080 · planner:5001 · user:5002 · auth:5003"]
         E5["wait-for-services.ts\n(timeout 120 s)"]
-        E6["npm run seed:ci — user_service\n(crea admin@test.com)"]
+        E6["npm run seed:ci — user_service\n(creates admin@test.com)"]
         E7["npx playwright install chromium"]
-        E8["npm run test:e2e:ci\n42 tests Playwright"]
-        E9{{"¿Tests OK?"}}
-        E10["Upload artifacts\n(screenshots · vídeos · HTML report)\nRetención: 7 días"]
+        E8["npm run test:e2e:ci\n42 Playwright tests"]
+        E9{{"Tests OK?"}}
+        E10["Upload artifacts\n(screenshots · videos · HTML report)\nRetention: 7 days"]
     end
 
     Dispatch --> U1 --> U2 --> U3 --> U4 --> U5
-    U5 -->|"Sí"| E1
-    U5 -->|"No"| FAIL1["❌ Tests fallidos"]
+    U5 -->|"Yes"| E1
+    U5 -->|"No"| FAIL1["❌ Tests failed"]
     E1 --> E2 --> E3 --> E4 --> E5 --> E6 --> E7 --> E8 --> E9
-    E9 -->|"Sí"| OK["✅ Tests superados"]
-    E9 -->|"No"| E10 --> FAIL2["❌ Tests fallidos"]
+    E9 -->|"Yes"| OK["✅ Tests passed"]
+    E9 -->|"No"| E10 --> FAIL2["❌ Tests failed"]
 ```
 
-**Servicios y puertos verificados en CI** (script `webapp/scripts/wait-for-services.ts`):
+**Services and ports verified in CI** (script `webapp/scripts/wait-for-services.ts`):
 
-| Servicio | Puerto | Health check |
+The script accesses each service directly by its port (without going through the gateway), since in CI all services run on `localhost`:
+
+| Service | Port | Health check (direct access) |
 |---|---|---|
 | gateway_service | 8080 | `GET http://localhost:8080/api/degrees` |
 | planner_service | 5001 | `GET http://localhost:5001/degrees` |
 | user_service | 5002 | `GET http://localhost:5002/health` |
 | auth_service | 5003 | `GET http://localhost:5003/health` |
-| MariaDB (CI) | 3306 | `mariadb-admin ping` (health check del servicio Docker) |
+| MariaDB (CI) | 3306 | `mariadb-admin ping` (Docker service health check) |
 
-**Bases de datos en CI:**
-- `planner_db_test` — entidades del dominio de planificación
-- `management_db_test` — entidades de usuario y autenticación
+**Databases in CI:**
+- `planner_db_test` — scheduling domain entities
+- `management_db_test` — user and authentication entities
 
-**Artefactos generados en caso de fallo:**
-- Informe HTML de Playwright (`playwright-report/`)
-- Capturas de pantalla de los tests fallidos
-- Vídeos de las ejecuciones fallidas
-- Logs de los servicios backend
+**Artefacts generated on failure:**
+- Playwright HTML report (`playwright-report/`)
+- Screenshots of failed tests
+- Videos of failed runs
+- Backend service logs
 
-Los artefactos se conservan durante **7 días** y son accesibles desde la pestaña *Actions* del repositorio → workflow fallido → sección *Artifacts*.
+Artefacts are retained for **7 days** and are accessible from the *Actions* tab of the repository → failed workflow → *Artifacts* section.
 
-**Tiempos estimados de ejecución en CI:**
+**Estimated CI execution times:**
 
-| Fase | Tiempo estimado |
+| Phase | Estimated time |
 |---|---|
-| Setup MariaDB + instalación de dependencias + compilación | ~3–4 minutos |
-| Arranque de servicios y espera | ~30–60 segundos |
-| Tests de integración (Jest + Testcontainers) | ~30–60 segundos |
-| Tests E2E (42 tests Playwright) | ~2–3 minutos |
-| **Total** | **~6–8 minutos** |
+| MariaDB setup + dependency installation + compilation | ~3–4 minutes |
+| Service startup and wait | ~30–60 seconds |
+| Integration tests (Jest + Testcontainers) | ~30–60 seconds |
+| E2E tests (42 Playwright tests) | ~2–3 minutes |
+| **Total** | **~6–8 minutes** |

@@ -1,62 +1,64 @@
-# Capítulo 5 — DISEÑO
+# Chapter 5 — DESIGN
 
 ---
 
-## 5.1 Diseño de la Arquitectura
+## 5.1 Architecture Design
 
-### 5.1.1 Introducción y justificación arquitectónica
+### 5.1.1 Introduction and architectural rationale
 
-TeachingPlanner se ha diseñado siguiendo una **arquitectura de microservicios con patrón API Gateway**, estilo definido formalmente por Newman [1] como la descomposición de un sistema en servicios pequeños, desplegables de forma independiente, con fronteras de dominio bien definidas y comunicación a través de interfaces ligeras (HTTP/REST). Esta elección no responde únicamente a tendencias tecnológicas, sino a necesidades concretas derivadas del análisis de requisitos:
+TeachingPlanner has been designed following a **microservices architecture with an API Gateway pattern**, a style formally defined by Newman [1] as the decomposition of a system into small, independently deployable services with well-defined domain boundaries and communication through lightweight interfaces (HTTP/REST). This choice does not stem solely from technological trends, but from concrete requirements identified during the analysis phase: the need to evolve authentication and scheduling independently, to scale the most computationally intensive service in isolation, and to deploy changes with minimal operational risk. Three driving factors justify this decision:
 
-- **Separación de dominios**: la lógica de autenticación y gestión de usuarios es estructuralmente independiente de la lógica de planificación académica. Aislarlas en servicios con bases de datos propias elimina el acoplamiento entre ciclos de cambio que evolucionan a ritmos distintos.
-- **Escalabilidad independiente**: el servicio de planificación (`planner_service`) es el más exigente computacionalmente —genera calendarios completos con expansión de eventos periódicos, exportaciones y sincronizaciones— y puede escalar de forma autónoma sin replicar los servicios de autenticación.
-- **Despliegue continuo y bajo riesgo**: cada microservicio se conteneriza y publica por separado; el despliegue de un cambio en `auth_service` no requiere reiniciar `planner_service`, lo que reduce la ventana de riesgo operacional.
+- **Domain separation**: authentication and user management logic is structurally independent from academic scheduling logic. Isolating them into services with their own databases eliminates coupling between change cycles that evolve at different rates; modifying the password-reset flow, for instance, does not risk regressions in calendar generation.
+- **Independent scalability**: the scheduling service (`planner_service`) is the most computationally demanding component — it generates complete calendars with recurring event expansion, handles export and Google Calendar synchronisation — and can scale autonomously without replicating the authentication services, which have comparatively low and uniform load.
+- **Continuous, low-risk deployment**: each microservice is containerised and published as an independent image; deploying a change to `auth_service` does not require restarting `planner_service`, which reduces the operational risk window and shortens the mean time to recovery in case of failure.
 
-Para fundamentar la elección de tecnologías específicas, la Tabla 5.1 resume las principales decisiones arquitectónicas adoptadas frente a las alternativas evaluadas.
+To justify the choice of specific technologies within this architectural style, Table 5.1 summarises the main decisions made and the alternatives that were evaluated before reaching them.
 
-**Tabla 5.1 — Decisiones arquitectónicas (ADR simplificado)**
+**Table 5.1 — Architectural decisions (simplified ADR)**
 
-| Decisión | Alternativa considerada | Motivo de la elección |
+| Decision | Alternative considered | Reason for the choice |
 |---|---|---|
-| Microservicios vs. monolito | Monolito modular (NestJS) | Aislamiento de fallos y escalado independiente del servicio de planificación; el monolito habría acoplado los ciclos de despliegue de autenticación y planificación |
-| MariaDB relacional vs. NoSQL | MongoDB | El modelo de datos académico (calendarios, grupos, asignaturas, eventos) presenta relaciones fuertes con restricciones de integridad referencial y unicidad que encajan naturalmente en un esquema relacional |
-| Caddy vs. Nginx para TLS | Nginx con Let's Encrypt manual | Caddy gestiona automáticamente la obtención y renovación de certificados TLS vía ACME, eliminando la configuración manual de certbot y los cron de renovación |
-| Vite vs. Next.js para el frontend | Next.js (SSR) | La aplicación requiere autenticación previa para toda funcionalidad; el rendering en servidor no aporta valor en SPA privadas, y Vite ofrece un ciclo de desarrollo más rápido |
+| Microservices vs. monolith | Modular monolith (NestJS) | Fault isolation and independent scaling of the scheduling service; the monolith would have coupled the deployment cycles of authentication and scheduling |
+| Relational MariaDB vs. NoSQL | MongoDB | The academic data model (calendars, groups, subjects, events) has strong relationships with referential integrity and uniqueness constraints that naturally fit a relational schema |
+| Caddy vs. Nginx for TLS | Nginx with manual Let's Encrypt | Caddy automatically manages TLS certificate issuance and renewal via ACME, eliminating the manual certbot configuration and renewal cron jobs |
+| React SPA (Vite) vs. Next.js SSR | Next.js with server-side rendering | All application routes require prior authentication; SSR provides no value for a fully private SPA, and Vite's build pipeline offers a significantly faster development feedback cycle with no server infrastructure overhead |
+
+The resulting component decomposition is described in detail in the following section.
 
 ---
 
-### 5.1.2 Diagrama de bloques — Vista de componentes
+### 5.1.2 Block diagram — Component view
 
-El sistema se divide en **siete componentes desplegables**: una aplicación frontend (`webapp`), un API Gateway (`gateway_service`), tres servicios backend (`auth_service`, `user_service`, `planner_service`) y dos bases de datos relacionales (`management_database`, `planner_database`). El diagrama de la Figura 5.1 muestra los componentes y sus relaciones de comunicación.
+The system is divided into **seven deployable components**: a frontend application (`webapp`), an API Gateway (`gateway_service`), three backend services (`auth_service`, `user_service`, `planner_service`) and two relational databases (`management_database`, `planner_database`). Figure 5.1 shows the components and their communication relationships.
 
-**Figura 5.1 — Diagrama de bloques del sistema**
+**Figure 5.1 — System block diagram**
 
 ```mermaid
 graph TD
-    Browser["🌐 Navegador Web\n(Cliente)"]
+    Browser["🌐 Web Browser\n(Client)"]
 
-    subgraph "Capa de Presentación"
+    subgraph "Presentation Layer"
         webapp["webapp\nReact 19 + TypeScript\nVite 6 · Tailwind CSS 4 · Radix UI"]
     end
 
-    subgraph "Capa de API"
-        gateway["gateway_service\nExpress 5 + TypeScript\nAPI Gateway · Puerto 8080"]
+    subgraph "API Layer"
+        gateway["gateway_service\nExpress 5 + TypeScript\nAPI Gateway · Port 8080"]
     end
 
-    subgraph "Capa de Servicios"
-        auth["auth_service\nExpress 5 + JWT + bcrypt\nGoogle OAuth · Puerto 5003"]
-        user["user_service\nExpress 5 + TypeORM\nImportación Excel/XLSX · Puerto 5002"]
-        planner["planner_service\nExpress 5 + TypeORM\nGoogle Calendar API · archiver · Puerto 5001"]
+    subgraph "Services Layer"
+        auth["auth_service\nExpress 5 + JWT + bcrypt\nGoogle OAuth · Port 5003"]
+        user["user_service\nExpress 5 + TypeORM\nExcel/XLSX import · Port 5002"]
+        planner["planner_service\nExpress 5 + TypeORM\nGoogle Calendar API · archiver · Port 5001"]
     end
 
-    subgraph "Capa de Persistencia"
+    subgraph "Persistence Layer"
         mgmt_db[("management_database\nMariaDB 11")]
         planner_db[("planner_database\nMariaDB 11")]
     end
 
-    subgraph "Servicios Externos"
+    subgraph "External Services"
         google["Google APIs\n(OAuth 2.0 · Calendar API)"]
-        smtp["Servidor SMTP\n(Envío de correos)"]
+        smtp["SMTP Server\n(Email delivery)"]
     end
 
     Browser -->|"HTTPS"| webapp
@@ -74,36 +76,36 @@ graph TD
     user -->|"SMTP"| smtp
 ```
 
-**Descripción de los componentes:**
+**Component descriptions:**
 
-| Componente | Responsabilidad principal | Tecnología clave |
+| Component | Main responsibility | Key technology |
 |---|---|---|
-| `webapp` | Interfaz de usuario SPA; visualización de calendarios, titulaciones, aulas y solicitudes de cambio | React 19, TypeScript, Vite 6, Tailwind CSS 4, Radix UI, TanStack Query |
-| `gateway_service` | Punto de entrada único para todas las peticiones del frontend; enruta y reenvía peticiones HTTP a los servicios internos; gestiona CORS y carga de ficheros multiparte | Express 5, TypeScript, Axios, Multer |
-| `auth_service` | Autenticación mediante JWT; registro y activación de cuentas; integración con Google OAuth 2.0; reseteo de contraseñas con OTP por correo | Express 5, TypeORM, bcrypt, jsonwebtoken, Nodemailer |
-| `user_service` | Gestión CRUD de usuarios; control de roles (`ADMIN`, `PROFESSOR`); importación masiva desde ficheros Excel (XLSX) | Express 5, TypeORM, xlsx |
-| `planner_service` | Núcleo de negocio: gestión de calendarios, titulaciones, cursos, asignaturas, grupos, aulas, eventos periódicos y puntuales; solicitudes de cambio; sincronización con Google Calendar; importación/exportación Excel; auditoría de operaciones | Express 5, TypeORM, xlsx, archiver |
-| `management_database` | Almacén relacional para usuarios y credenciales; compartido entre `auth_service` y `user_service` | MariaDB 11 |
-| `planner_database` | Almacén relacional para toda la información académica; uso exclusivo de `planner_service` | MariaDB 11 |
+| `webapp` | SPA user interface; display of calendars, degree programmes, classrooms and change requests | React 19, TypeScript, Vite 6, Tailwind CSS 4, Radix UI, TanStack Query |
+| `gateway_service` | Single entry point for all frontend requests; routes and forwards HTTP requests to internal services; manages CORS and multipart file uploads | Express 5, TypeScript, Axios, Multer |
+| `auth_service` | JWT authentication; account registration and activation; Google OAuth 2.0 integration; password reset with OTP via email | Express 5, TypeORM, bcrypt, jsonwebtoken, Nodemailer |
+| `user_service` | User CRUD management; role control (`ADMIN`, `PROFESSOR`); bulk import from Excel (XLSX) files | Express 5, TypeORM, xlsx |
+| `planner_service` | Business core of the system: manages calendars, degree programmes, academic years, subjects, groups, classrooms, recurring events and one-off events; processes change requests from teaching staff; synchronises academic calendars with Google Calendar; handles Excel import/export and generates ZIP archives; audits all write operations | Express 5, TypeORM, xlsx, archiver |
+| `management_database` | Relational store for users and credentials; shared between `auth_service` and `user_service` | MariaDB 11 |
+| `planner_database` | Relational store for all academic information; exclusive use of `planner_service` | MariaDB 11 |
 
-**Perímetro de exposición pública:** únicamente `gateway_service` (puerto 8080) y `webapp` (puertos 80/443) son accesibles desde el exterior. Los tres servicios backend (`auth_service`, `user_service`, `planner_service`) y ambas bases de datos se encuentran en la red interna Docker `app_network` y no tienen ningún puerto expuesto al host ni a Internet. Esta decisión de diseño limita la superficie de ataque: cualquier petición al backend debe pasar obligatoriamente por el gateway, donde se aplica la política CORS y se gestionan los ficheros multiparte.
+**Public exposure perimeter:** a key security property of this decomposition is that only `gateway_service` (port 8080) and `webapp` (ports 80/443) are accessible from the outside. The three backend services (`auth_service`, `user_service`, `planner_service`) and both databases reside in the internal Docker network `app_network` and have no port exposed to the host or the Internet. This design decision limits the attack surface: any request to the backend must pass through the gateway, where the CORS policy is enforced and multipart files are handled.
 
 ---
 
-### 5.1.3 Diagrama de despliegue
+### 5.1.3 Deployment diagram
 
-El sistema se despliega mediante contenedores Docker orquestados con Docker Compose. Se mantienen tres perfiles de despliegue:
+The system is deployed using Docker containers orchestrated with Docker Compose. Three deployment profiles are maintained:
 
-- **Desarrollo local** (`docker-compose.dev.yml`): compilación desde código fuente, puertos expuestos en el host, volúmenes de hot-reload.
-- **Producción en Azure VM** (`docker-compose.azure.yml`): imágenes preconstruidas publicadas en GitHub Container Registry (`ghcr.io/murias10/teachingplanner`), exposición pública únicamente del gateway y del frontend, red interna para el resto de servicios.
-- **Análisis de calidad** (`docker-compose.sonarqube.yml`): instancia local de SonarQube para análisis estático del código.
+- **Local development** (`docker-compose.dev.yml`): compilation from source, ports exposed on the host, hot-reload volumes.
+- **Production on Azure VM** (`docker-compose.azure.yml`): pre-built images published in GitHub Container Registry (`ghcr.io/murias10/teachingplanner`), public exposure limited to the gateway and the frontend, internal network for the rest of the services.
+- **Quality analysis** (`docker-compose.sonarqube.yml`): local SonarQube instance for static code analysis.
 
-**Figura 5.2 — Diagrama de despliegue**
+**Figure 5.2 — Deployment diagram**
 
 ```mermaid
 graph TB
     subgraph "Internet"
-        client["👤 Usuario\n(Navegador)"]
+        client["👤 User\n(Browser)"]
         ghcr["GitHub Container Registry\nghcr.io/murias10/teachingplanner"]
         google_ext["Google APIs\n(OAuth · Calendar)"]
     end
@@ -114,17 +116,17 @@ graph TB
     end
 
     subgraph "Azure VM — Docker Engine"
-        subgraph "Red Docker: app_network"
-            caddy["webapp (Caddy)\n:443 / :80\nHTTPS automático"]
-            gw_node["gateway_service\n:8080 (público)"]
-            auth_node["auth_service\n:5003 (interno)"]
-            user_node["user_service\n:5002 (interno)"]
-            plan_node["planner_service\n:5001 (interno)"]
-            mgmt_node[("management_database\nMariaDB 11\ninterno")]
-            plan_db_node[("planner_database\nMariaDB 11\ninterno")]
+        subgraph "Docker network: app_network"
+            caddy["webapp (Caddy)\n:443 / :80\nautomatic HTTPS"]
+            gw_node["gateway_service\n:8080 (public)"]
+            auth_node["auth_service\n:5003 (internal)"]
+            user_node["user_service\n:5002 (internal)"]
+            plan_node["planner_service\n:5001 (internal)"]
+            mgmt_node[("management_database\nMariaDB 11\ninternal")]
+            plan_db_node[("planner_database\nMariaDB 11\ninternal")]
         end
 
-        subgraph "Volúmenes persistentes"
+        subgraph "Persistent volumes"
             vol_m["management_db_volume"]
             vol_p["planner_db_volume"]
             vol_c["caddy_data / caddy_config"]
@@ -152,296 +154,308 @@ graph TB
     ghcr --> ci_deploy_self
 ```
 
-**Pipeline CI/CD (cuatro jobs opcionales):**
+**CI/CD pipeline (four optional jobs):**
 
-El proceso de despliegue a producción se articula en cuatro jobs configurables, definidos en dos ficheros de GitHub Actions: `deploy_azure.yml` (VM pública en Azure, acceso por SSH) y `deploy_selfhosted.yml` (VM en red privada de la universidad, runner auto-hospedado). Ambos workflows comparten la misma estructura:
+The deployment process is designed for deliberate, controlled releases rather than fully automated continuous deployment. It is structured in four configurable jobs defined in two GitHub Actions workflow files: `deploy_azure.yml` (public Azure VM, SSH access) and `deploy_selfhosted.yml` (university private network VM, self-hosted runner). Both workflows share the same structure, and each job can be independently enabled or disabled at run time:
 
-1. **`unit-tests`** (opcional): ejecuta los tests de integración de `planner_service` con Jest 30 y Testcontainers sobre Node.js 20.
-2. **`e2e-tests`** (opcional, depende de `unit-tests`): levanta todos los servicios backend en background, arranca la base de datos MariaDB como servicio Docker, siembra un usuario administrador de prueba y ejecuta los tests Playwright en Chromium.
-3. **`build-and-push-images`** (opcional): construye las imágenes Docker de todos los servicios y las publica en `ghcr.io/murias10/teachingplanner/<servicio>`.
-4. **`deploy`** (opcional): en `deploy_azure.yml`, accede a la Azure VM por SSH y ejecuta `docker compose pull` + `docker compose up -d`; en `deploy_selfhosted.yml`, el job se ejecuta directamente en el runner instalado en la VM de la universidad y realiza las mismas operaciones sin conexión SSH entrante.
+1. **`unit-tests`** (optional): runs the integration tests for `planner_service` with Jest 30 and Testcontainers on Node.js 20.
+2. **`e2e-tests`** (optional, depends on `unit-tests`): starts all backend services in the background, launches MariaDB as a Docker service, seeds a test administrator user and runs the Playwright tests on Chromium.
+3. **`build-and-push-images`** (optional): builds the Docker images for all services and publishes them to `ghcr.io/murias10/teachingplanner/<service>`.
+4. **`deploy`** (optional): in `deploy_azure.yml`, connects to the Azure VM via SSH and runs `docker compose pull` + `docker compose up -d`; in `deploy_selfhosted.yml`, the job runs directly on the runner installed on the university VM and performs the same operations without an incoming SSH connection.
 
-Ambos workflows se activan exclusivamente mediante `workflow_dispatch` (activación manual) desde la pestaña *Actions* del repositorio en GitHub. Al iniciar la ejecución, el responsable selecciona mediante checkboxes qué jobs desea ejecutar, permitiendo combinaciones como ejecutar solo los tests, solo el build, o el pipeline completo. Ningún `push` a `main` desencadena un despliegue automático, garantizando que la decisión de poner en producción sea siempre consciente y deliberada. Los pasos operativos detallados se recogen en el [Manual de Instalación](./manual_instalacion.md).
+Both workflows are triggered exclusively via `workflow_dispatch` (manual activation) from the *Actions* tab of the GitHub repository. When starting a run, the responsible person selects via checkboxes which jobs to execute, allowing combinations such as running only the tests, only the build, or the full pipeline. No `push` to `main` triggers an automatic deployment, ensuring that the decision to go to production is always conscious and deliberate. The detailed operational steps are described in the [Installation Manual](./manual_instalacion.md).
 
-**Aspectos relevantes del despliegue en producción:**
+**Key aspects of the production deployment:**
 
-- Las bases de datos cuentan con *health checks* (`mysqladmin ping -u root -p$MYSQL_ROOT_PASSWORD`) antes de que los servicios dependientes arranquen, garantizando que `auth_service`, `user_service` y `planner_service` no inicien la conexión TypeORM sobre una base de datos no disponible.
-- Solo `gateway_service` (puerto 8080) y `webapp` (puertos 80/443) son accesibles desde el exterior. Los servicios backend y las bases de datos se encuentran en la red interna `app_network`.
-- El frontend se sirve desde un contenedor **Caddy**, que gestiona automáticamente la obtención y renovación de certificados TLS vía ACME/Let's Encrypt, sin necesidad de cron ni certificados preaprovisionados.
-- TypeORM opera con `synchronize: true` tanto en producción como en tests de integración, lo que significa que el esquema de base de datos se sincroniza automáticamente con las entidades TypeORM en cada arranque del servicio. En los tests de integración con Testcontainers esta configuración es igualmente válida, ya que la base de datos efímera parte siempre de cero.
+- Databases include *health checks* (`mysqladmin ping -u root -p$MYSQL_ROOT_PASSWORD`) before dependent services start, ensuring that `auth_service`, `user_service` and `planner_service` do not initiate the TypeORM connection on an unavailable database.
+- Only `gateway_service` (port 8080) and `webapp` (ports 80/443) are accessible from the outside. Backend services and databases reside in the internal `app_network` network.
+- The frontend is served from a **Caddy** container, which automatically manages TLS certificate issuance and renewal via ACME/Let's Encrypt, without requiring cron jobs or pre-provisioned certificates.
+- TypeORM operates with `synchronize: true` in both production and integration tests, meaning the database schema is automatically synchronised with the TypeORM entities on each service start. This configuration is appropriate for the scope of this project: the system is deployed to a single-tenant university environment with no concurrent schema-migration constraints, and the development cadence favours rapid iteration over a formal migration pipeline. In a multi-tenant or high-availability production system this option would be replaced by a migration tool such as TypeORM Migrations or Flyway; the `AuditedEntity` base class and the well-defined entity structure already provide the foundation to adopt that approach without further redesign. In integration tests with Testcontainers this configuration is equally valid, since the ephemeral database always starts from scratch.
 
 ---
 
-### 5.1.4 Tabla de tecnologías por capa
+### 5.1.4 Technology stack by layer
 
-**Tabla 5.2 — Stack tecnológico por capa**
+**Table 5.2 — Technology stack by layer**
 
-| Capa | Componente | Lenguaje | Framework / Runtime | ORM / BD | Tests | Integración externa |
+| Layer | Component | Language | Framework / Runtime | ORM / DB | Tests | External integration |
 |---|---|---|---|---|---|---|
 | Frontend | webapp | TypeScript | React 19, Vite 6, Tailwind 4 | — | Playwright 1.58 | — |
 | API Gateway | gateway_service | TypeScript | Express 5, Node.js 23¹ | — | — | — |
-| Autenticación | auth_service | TypeScript | Express 5, Node.js 23¹ | TypeORM 0.3 | — | Google OAuth 2.0, SMTP |
-| Usuarios | user_service | TypeScript | Express 5, Node.js 23¹ | TypeORM 0.3 | — | SMTP |
-| Planificación | planner_service | TypeScript | Express 5, Node.js 23¹ | TypeORM 0.3 | Jest 30 + Testcontainers | Google Calendar API |
-| Persistencia | management_database | SQL | MariaDB 11 | — | — | — |
-| Persistencia | planner_database | SQL | MariaDB 11 | — | — | — |
-| Contenedores | — | YAML | Docker · Docker Compose | — | — | — |
+| Authentication | auth_service | TypeScript | Express 5, Node.js 23¹ | TypeORM 0.3 | — | Google OAuth 2.0, SMTP |
+| Users | user_service | TypeScript | Express 5, Node.js 23¹ | TypeORM 0.3 | — | SMTP |
+| Scheduling | planner_service | TypeScript | Express 5, Node.js 23¹, archiver | TypeORM 0.3 | Jest 30 + Testcontainers | Google Calendar API |
+| Persistence | management_database | SQL | MariaDB 11 | — | — | — |
+| Persistence | planner_database | SQL | MariaDB 11 | — | — | — |
+| Containers | — | YAML | Docker · Docker Compose | — | — | — |
 | CI/CD | — | YAML | GitHub Actions | — | — | GitHub Container Registry |
-| Calidad de código | — | — | SonarQube | — | — | — |
+| Code quality | — | — | SonarQube | — | — | — |
 
-> ¹ Node.js 23 en imágenes Docker de producción (`node:23-alpine`). El entorno de CI (GitHub Actions) ejecuta Node.js 20.
+> ¹ Node.js 23 is used in production Docker images (`node:23-alpine`) as it was the current active release at the time of deployment. The CI environment (GitHub Actions) runs on Node.js 20, the Long-Term Support release pinned in the workflow configuration at the time of project setup. Both versions are fully compatible with the Express 5 and TypeORM 0.3 APIs used by the services; the version gap does not introduce behavioural differences in the tested code paths.
 
 ---
 
-### 5.1.5 Diseño de seguridad
+### 5.1.5 Security design
 
-La seguridad del sistema se articula en cinco capas complementarias que cubren la autenticación, la autorización, la protección de credenciales, la seguridad en el transporte y el control de orígenes.
+The system's security is organised into five complementary layers, each addressing a distinct attack surface:
 
-#### Autenticación basada en JWT (stateless)
+1. **JWT-based authentication** — stateless identity verification on every API request.
+2. **Password hashing (bcrypt)** — irreversible credential storage with per-password salt.
+3. **Role-based access control (RBAC)** — fine-grained operation authorisation by user role.
+4. **Transport layer security (HTTPS/TLS)** — encrypted communication between client and server.
+5. **CORS protection** — browser-enforced origin restriction on API requests.
 
-El sistema emplea tokens JWT firmados con el algoritmo HS256 mediante un secreto simétrico configurado en la variable de entorno `JWT_SECRET`. El payload del token contiene exclusivamente los campos `userId`, `email` y `role`, sin información sensible. Los tokens no tienen estado en el servidor (stateless): no existe ninguna tabla de sesiones ni lista de revocación; la validez del token se determina únicamente por la firma criptográfica.
+The following subsections describe the design of each layer in detail.
 
-Un aspecto de diseño relevante es que la verificación del token se realiza en **cada servicio backend de forma independiente**, no en el gateway. El gateway actúa como proxy opaco y reenvía el token sin validarlo. Esto permite que cualquier servicio sea desplegado e invocado directamente —por ejemplo, desde scripts de integración— sin depender del gateway como autoridad de autenticación, lo que incrementa la resiliencia y la testabilidad.
+#### JWT-based authentication (stateless)
 
-La activación de cuentas y el reseteo de contraseña siguen flujos asíncronos por correo electrónico. Cuando un usuario se registra, el sistema genera un `activationToken` aleatorio que se almacena en la entidad `User` y se envía por correo; la cuenta permanece inactiva (`isActive = false`) hasta que el usuario visita el enlace de activación. El reseteo de contraseña genera un OTP de un solo uso con fecha de expiración (`resetTokenExpiry`), también enviado por correo.
+The system uses JWT tokens signed with the HS256 algorithm using a symmetric secret configured in the `JWT_SECRET` environment variable. The token payload contains exclusively the `userId`, `email` and `role` fields, with no sensitive information. Tokens are stateless on the server: there is no session table or revocation list; token validity is determined solely by the cryptographic signature.
 
-El diagrama 5.3 muestra el ciclo de vida de la cuenta de usuario.
+The absence of a server-side session store or token revocation list is an intentional trade-off appropriate for this system's scope: TeachingPlanner is an internal university tool with a small, known user base, where the risk of a compromised token remaining valid until its natural expiry is acceptable. In a higher-security context (e.g. a financial application), this design would be complemented with a token blacklist or short-lived access tokens paired with refresh-token rotation.
 
-**Figura 5.3 — Ciclo de vida de la cuenta de usuario**
+A further design decision is that token verification is performed **in each backend service independently**, not at the gateway. The gateway acts as an opaque proxy and forwards the token without validating it. This allows any service to be deployed and invoked directly — for example, from integration scripts or integration tests — without depending on the gateway as the authentication authority, which increases resilience and testability.
+
+Account activation and password reset follow asynchronous flows via email. When a user registers, the system generates a random `activationToken` that is stored in the `User` entity and sent by email; the account remains inactive (`isActive = false`) until the user visits the activation link. Password reset generates a single-use OTP with an expiry date (`resetTokenExpiry`), also sent by email.
+
+Figure 5.3 shows the user account lifecycle.
+
+**Figure 5.3 — User account lifecycle**
 
 ```mermaid
 stateDiagram-v2
-    [*] --> INACTIVA : Creación por admin (POST /api/user)
-    INACTIVA --> ACTIVA : Activación (POST /auth/activate)
-    ACTIVA --> PASSWORD_RESET_PENDING : Solicita reseteo (POST /auth/forgot-password)
-    PASSWORD_RESET_PENDING --> ACTIVA : OTP verificado + nueva contraseña
-    ACTIVA --> [*] : Eliminación de cuenta
+    [*] --> INACTIVE : Created by admin (POST /api/user)
+    INACTIVE --> ACTIVE : Activation (POST /auth/activate)
+    ACTIVE --> PASSWORD_RESET_PENDING : Reset requested (POST /auth/forgot-password)
+    PASSWORD_RESET_PENDING --> ACTIVE : OTP verified + new password
+    ACTIVE --> [*] : Account deletion
 ```
 
-#### Hashing de contraseñas (bcrypt)
+#### Password hashing (bcrypt)
 
-Las contraseñas nunca se almacenan en texto plano. El campo `password` de la entidad `User` almacena siempre el resultado de `bcrypt.hash(plaintext, saltRounds)`, donde `saltRounds` es configurable por variable de entorno. La verificación de credenciales en el login se realiza con `bcrypt.compare`, que incorpora el salt almacenado en el propio hash, previniendo ataques de rainbow table.
+Passwords are never stored in plain text. The `password` field of the `User` entity always stores the result of `bcrypt.hash(plaintext, saltRounds)`, where `saltRounds` is configurable via an environment variable. Credential verification at login is performed with `bcrypt.compare`, which incorporates the salt stored in the hash itself, preventing rainbow table attacks.
 
-#### Control de acceso basado en roles (RBAC)
+#### Role-based access control (RBAC)
 
-El sistema define dos roles con permisos claramente delimitados:
+The system defines two roles with clearly delimited permissions:
 
-- **`ADMIN`**: acceso completo de lectura y escritura sobre todas las entidades del sistema; gestión de usuarios; aprobación o rechazo de solicitudes de cambio propuestas por profesores.
-- **`PROFESSOR`**: acceso de lectura sobre calendarios y eventos; capacidad de crear `EventRequest` (solicitudes de cambio sobre eventos ya planificados) para revisión por el administrador.
+- **`ADMIN`**: full read and write access to all system entities; user management; approval or rejection of change requests proposed by teaching staff.
+- **`PROFESSOR`**: read access to calendars and events; ability to create `EventRequest` (change requests on already scheduled events) for review by the administrator.
 
-La verificación de autorización se aplica mediante una cadena de tres middlewares Express que actúa antes del controlador en todas las rutas protegidas:
+Authorisation verification is applied via a chain of three Express middlewares that act before the controller on all protected routes:
 
 ```
 authenticateToken → requireAuth → requireRole('ADMIN' | 'PROFESSOR') → controller
 ```
 
-- `authenticateToken` (`auth.middleware.ts`): extrae el Bearer token del header `Authorization` y lo verifica con `jwt.verify`. Si el token es válido, adjunta el payload decodificado a `req.user`. Si es inválido o ausente, no rechaza la petición sino que deja `req.user` como `undefined`.
-- `requireAuth`: rechaza con `401 Unauthorized` si `req.user` es `undefined`.
-- `requireRole(role)`: rechaza con `403 Forbidden` si `req.user.role` no coincide con el rol requerido.
+- `authenticateToken` (`auth.middleware.ts`): extracts the Bearer token from the `Authorization` header and verifies it with `jwt.verify`. If the token is valid, it attaches the decoded payload to `req.user`. If it is invalid or absent, it does not reject the request but leaves `req.user` as `undefined`.
+- `requireAuth`: rejects with `401 Unauthorized` if `req.user` is `undefined`.
+- `requireRole(role)`: rejects with `403 Forbidden` if `req.user.role` does not match the required role.
 
-Esta separación en tres handlers permite reutilizar `authenticateToken` en rutas que deben identificar al usuario pero no requieren un rol específico (por ejemplo, obtener el perfil propio).
+This separation into three handlers allows `authenticateToken` to be reused in routes that need to identify the user but do not require a specific role (for example, retrieving one's own profile).
 
-#### Seguridad en la capa de transporte (HTTPS/TLS)
+#### Transport layer security (HTTPS/TLS)
 
-En producción, todo el tráfico externo hacia `webapp` pasa por Caddy en el puerto 443, con TLS gestionado automáticamente vía ACME/Let's Encrypt. El tráfico HTTP en el puerto 80 es redirigido a HTTPS. El gateway, por su parte, está expuesto en el puerto 8080 y también recibe conexiones HTTPS (el cliente web configura la URL base de la API con `https://`).
+In production, all external traffic to `webapp` goes through Caddy on port 443, with TLS managed automatically via ACME/Let's Encrypt. HTTP traffic on port 80 is redirected to HTTPS. The gateway is exposed on port 8080 and also receives HTTPS connections (the web client configures the API base URL with `https://`).
 
-La comunicación entre los servicios dentro de la red Docker `app_network` se realiza por HTTP sin TLS, lo cual es aceptable desde el punto de vista de seguridad porque el tráfico nunca abandona la máquina virtual y la red bridge de Docker está aislada del tráfico externo.
+Communication between services within the Docker `app_network` uses HTTP without TLS, which is acceptable from a security standpoint because the traffic never leaves the virtual machine and the Docker bridge network is isolated from external traffic.
 
-#### Protección CORS
+#### CORS protection
 
-El gateway implementa una política CORS con lista blanca de orígenes permitidos, construida dinámicamente a partir de las variables de entorno `DOMAIN` (dominio de producción) y `SERVER_IP` (IP pública del servidor). Solo el frontend desplegado en esos orígenes puede realizar peticiones al API desde un navegador, mitigando ataques CSRF desde dominios no autorizados.
+The gateway implements a CORS policy with an allowlist of permitted origins, built dynamically from the `DOMAIN` (production domain) and `SERVER_IP` (server public IP) environment variables. Only the frontend deployed at those origins can read API responses from a browser, preventing unauthorised cross-origin data access.
+
+It is worth noting that this system is **not vulnerable to classical CSRF attacks**: all API requests are authenticated by including the JWT in the `Authorization: Bearer` HTTP header, not in a cookie. Browsers do not automatically attach custom headers to cross-site requests, so a malicious third-party page cannot forge authenticated requests on behalf of a logged-in user. CORS reinforces this by additionally blocking unauthorised origins from reading any response that the browser does receive, providing defence in depth against cross-origin data exfiltration.
 
 ---
 
-## 5.2 Diseño de Detalle
+## 5.2 Detailed Design
 
-### 5.2.1 Estructura del código
+### 5.2.1 Code structure
 
-Los tres microservicios backend (`auth_service`, `user_service`, `planner_service`) comparten una **arquitectura en capas** idéntica, que separa la responsabilidad de enrutamiento, procesamiento de la petición, lógica de negocio y acceso a datos. Esta uniformidad facilita la navegación entre servicios y reduce la curva de aprendizaje para nuevos colaboradores.
+The three backend microservices (`auth_service`, `user_service`, `planner_service`) share an identical **layered architecture** that separates the responsibility of routing, request processing, business logic and data access. This uniformity facilitates navigation between services and reduces the learning curve for new contributors.
 
-**Figura 5.4 — Arquitectura en capas del backend (patrón común a los tres microservicios)**
+**Figure 5.4 — Backend layered architecture (pattern common to all three microservices)**
 
 ```mermaid
 graph LR
-    A["routes/*.routes.ts\n(Definición HTTP)"] --> B["middleware/\n(auth, validación Zod)"]
+    A["routes/*.routes.ts\n(HTTP definition)"] --> B["middleware/\n(auth, Zod validation)"]
     B --> C["controllers/*.controller.ts\n(Request → Response)"]
-    C --> D["services/*.service.ts\n(Lógica de negocio)"]
+    C --> D["services/*.service.ts\n(Business logic)"]
     D --> E["TypeORM Repository\n(getRepository / QueryBuilder)"]
     E --> F[("MariaDB 11")]
 ```
 
-El flujo de una petición HTTP a través de las capas es el siguiente:
+The flow of an HTTP request through the layers is as follows:
 
-1. **`routes/*.routes.ts`**: registra los verbos HTTP y las rutas, compone la cadena de middlewares y asocia el handler del controlador final.
-2. **`middleware/`**: contiene los middlewares transversales. `auth.middleware.ts` verifica el JWT; `require-role.middleware.ts` valida el rol; los schemas Zod validan el cuerpo de la petición antes de que el controlador lo procese.
-3. **`controllers/*.controller.ts`**: recibe el objeto `Request` de Express, extrae los parámetros necesarios, delega en el servicio correspondiente y construye la respuesta HTTP (código de estado, cabeceras, cuerpo JSON).
-4. **`services/*.service.ts`**: contiene la lógica de negocio pura. Usa los repositorios TypeORM para leer y escribir datos; es el único lugar donde se ejecutan reglas de dominio, validaciones de negocio y transformaciones de datos.
-5. **`TypeORM Repository`**: abstrae el acceso a la base de datos. Los controladores y servicios nunca escriben SQL directamente; usan la API de TypeORM (`find`, `save`, `remove`, `createQueryBuilder`).
+1. **`routes/*.routes.ts`**: registers the HTTP verbs and routes, composes the middleware chain and associates the final controller handler.
+2. **`middleware/`**: contains the cross-cutting middlewares. `auth.middleware.ts` verifies the JWT; `require-role.middleware.ts` validates the role; Zod schemas validate the request body before the controller processes it.
+3. **`controllers/*.controller.ts`**: receives the Express `Request` object, extracts the necessary parameters, delegates to the corresponding service and builds the HTTP response (status code, headers, JSON body).
+4. **`services/*.service.ts`**: contains the pure business logic. Uses TypeORM repositories to read and write data; it is the only place where domain rules, business validations and data transformations are executed.
+5. **`TypeORM Repository`**: abstracts database access. Controllers and services never write SQL directly; they use the TypeORM API (`find`, `save`, `remove`, `createQueryBuilder`).
 
-La estructura de directorios de cada microservicio backend es:
+The directory structure of each backend microservice is:
 
 ```
-<servicio>/src/
-├── config/          # DataSource TypeORM y carga de variables de entorno
-├── entities/        # Entidades TypeORM (decoradores @Entity, @Column, @ManyToOne…)
-├── middleware/      # authenticateToken, requireRole, validación de schemas
-├── routes/          # Definición de rutas HTTP y composición de middlewares
-├── controllers/     # Controladores Express: Request → delegate → Response
-├── services/        # Lógica de negocio y acceso a repositorios
-├── schemas/         # Schemas Zod para validación de entrada de la API
-├── types/           # Tipos TypeScript compartidos en el servicio
-└── utils/           # Utilidades reutilizables (formateo, helpers)
+<service>/src/
+├── config/          # TypeORM DataSource and environment variable loading
+├── entities/        # TypeORM entities (@Entity, @Column, @ManyToOne… decorators)
+├── middleware/      # authenticateToken, requireRole, schema validation
+├── routes/          # HTTP route definitions and middleware composition
+├── controllers/     # Express controllers: Request → delegate → Response
+├── services/        # Business logic and repository access
+├── schemas/         # Zod schemas for API input validation
+├── types/           # TypeScript types shared within the service
+└── utils/           # Reusable utilities (formatting, helpers)
 ```
 
-**Frontend (webapp):** la aplicación React sigue una organización por responsabilidad funcional:
+**Frontend (webapp):** the React application follows an organisation by functional responsibility:
 
 ```
 webapp/src/
-├── contexts/        # Estado global React: AuthContext, AppContext,
+├── contexts/        # Global React state: AuthContext, AppContext,
 │                    # BreadcrumbContext, FloatingAlertContext
-├── hooks/           # Custom hooks organizados por dominio:
+├── hooks/           # Custom hooks organised by domain:
 │                    # calendar/, classroom/, course/, degree/,
 │                    # subject/, group/, user/, event-request/, google/
-├── pages/           # Páginas de la SPA (una por ruta de React Router)
-├── components/      # Componentes reutilizables por dominio y componentes UI base
-├── services/        # Funciones de llamada HTTP a la API (axios)
-├── types/           # Tipos TypeScript del dominio de negocio
-└── utils/           # Utilidades de presentación y formateo
+├── pages/           # SPA pages (one per React Router route)
+├── components/      # Reusable components by domain and base UI components
+├── services/        # HTTP call functions to the API (axios)
+├── types/           # TypeScript types for the business domain
+└── utils/           # Presentation and formatting utilities
 ```
 
-La separación entre `hooks/` (lógica de datos con TanStack Query) y `pages/` (presentación) es la inversión de dependencias propia de React: los componentes de página no conocen los detalles de fetching ni caché; únicamente invocan el hook del dominio correspondiente y reaccionan a los estados `data`, `isLoading` y `error` que este expone.
+The separation between `hooks/` (data logic with TanStack Query) and `pages/` (presentation) applies the Single Responsibility Principle to the React component model: each page component is responsible solely for rendering and user interaction, while the corresponding domain hook encapsulates all fetching, caching and error-handling concerns. Page components are therefore unaware of Axios URLs, query keys or retry strategies; they simply invoke the domain hook and react to the `data`, `isLoading` and `error` states it exposes. This decoupling also makes it straightforward to replace the data layer (e.g. switching from REST to a different protocol) without touching any presentation component.
 
 ---
 
-### 5.2.2 Patrones de diseño
+### 5.2.2 Design patterns
 
-La Tabla 5.3 resume los cinco patrones de diseño aplicados en TeachingPlanner antes de su descripción detallada.
+Table 5.3 summarises the five design patterns applied in TeachingPlanner before their detailed description.
 
-**Tabla 5.3 — Resumen de patrones de diseño**
+**Table 5.3 — Design patterns summary**
 
-| Patrón | Tipo | Componente(s) | Propósito |
+| Pattern | Type | Component(s) | Purpose |
 |---|---|---|---|
-| API Gateway | Arquitectónico (Estructural) | `gateway_service` | Punto de entrada único al backend; encapsula las URLs internas de los microservicios |
-| Repository | Estructural | `*_service` (TypeORM) | Desacopla la lógica de negocio del almacenamiento relacional |
-| Middleware Chain (Chain of Responsibility) | Comportamiento | `*_service` (Express) | Composición de preocupaciones transversales (auth, roles, validación) de forma reutilizable |
-| Context | Comportamiento (React) | `webapp` | Propagación de estado global sin prop-drilling |
-| Custom Hook + Query | Comportamiento (React) | `webapp` | Encapsulación de la lógica de fetching, caché y estado de carga por dominio |
+| API Gateway | Architectural (Structural) | `gateway_service` | Single entry point to the backend; encapsulates the internal URLs of the microservices |
+| Repository | Structural | `*_service` (TypeORM) | Decouples business logic from relational storage |
+| Middleware Chain (Chain of Responsibility) | Behavioural | `*_service` (Express) | Composable, reusable composition of cross-cutting concerns (auth, roles, validation) |
+| Context | Behavioural (React) | `webapp` | Global state propagation without prop-drilling |
+| Custom Hook + Query | Behavioural (React) | `webapp` | Encapsulation of fetching logic, caching and loading state per domain |
 
 ---
 
-#### Patrón 1: API Gateway
+#### Pattern 1: API Gateway
 
-**Nombre:** API Gateway
+**Name:** API Gateway
 
-**Motivación:** el frontend no debe conocer las URLs ni los puertos internos de cada microservicio. Un componente central centraliza el enrutamiento, aplica CORS de manera uniforme y simplifica la configuración del cliente HTTP en la webapp.
+**Motivation:** the frontend should not know the internal URLs or ports of each microservice. A single entry point abstracts the internal topology of the backend, applies CORS and multipart handling uniformly, and simplifies the HTTP client configuration in the webapp to a single base URL.
 
-**Instanciación: Enrutamiento de peticiones REST**
+**Instantiation: REST request routing**
 
-| Rol | Clase / Fichero | Descripción |
+| Role | Class / File | Description |
 |---|---|---|
-| Gateway (Fachada) | `gateway_service/src/app.ts` | Punto de entrada único. Registra todas las rutas y aplica middlewares globales (CORS, Multer) |
-| Router de dominio | `gateway_service/src/routes/*.routes.ts` | Cuatro ficheros de rutas: `auth`, `planner`, `user`, `status` |
-| Controlador proxy | `gateway_service/src/controllers/*.controller.ts` | Reenvía la petición HTTP al servicio interno correspondiente |
-| Utilidad proxy | `gateway_service/src/utils/proxy.ts` | Abstrae la llamada HTTP saliente (Axios) y propaga cabeceras y cuerpo de la petición |
-| Configuración de servicios | `gateway_service/src/config/services.ts` | Define las URLs base de los servicios internos mediante variables de entorno |
+| Gateway (Façade) | `gateway_service/src/app.ts` | Single entry point. Registers all routes and applies global middlewares (CORS, Multer) |
+| Domain router | `gateway_service/src/routes/*.routes.ts` | Four route files: `auth`, `planner`, `user`, `status` |
+| Proxy controller | `gateway_service/src/controllers/*.controller.ts` | Forwards the HTTP request to the corresponding internal service |
+| Proxy utility | `gateway_service/src/utils/proxy.ts` | Abstracts the outgoing HTTP call (Axios) and propagates the request headers and body |
+| Service configuration | `gateway_service/src/config/services.ts` | Defines the base URLs of the internal services via environment variables |
 
 ---
 
-#### Patrón 2: Repository (TypeORM)
+#### Pattern 2: Repository (TypeORM)
 
-**Nombre:** Repository
+**Name:** Repository
 
-**Motivación:** los controladores y servicios no deben acceder directamente al motor de base de datos. TypeORM proporciona una implementación del patrón Repository que desacopla la lógica de negocio del almacenamiento relacional, permitiendo intercambiar el motor de base de datos sin modificar la lógica de aplicación.
+**Motivation:** controllers and services should not construct raw SQL queries or depend on database-engine-specific APIs. TypeORM's Repository abstraction decouples business logic from the relational storage layer, yielding two concrete benefits: (1) services are testable in isolation from the database by substituting the repository with a test double; and (2) query construction is expressed in terms of the domain model rather than table and column names, reducing the surface area for SQL injection and making schema refactors safer.
 
-**Instanciación: Acceso a datos en planner_service**
+**Instantiation: Data access in planner_service**
 
-| Rol | Clase / Fichero | Descripción |
+| Role | Class / File | Description |
 |---|---|---|
-| Entity | `planner_service/src/entities/*.entity.ts` | Definen el esquema de datos mediante decoradores TypeORM (`@Entity`, `@Column`, `@ManyToOne`, `@ManyToMany`, etc.) |
-| Repository | `dataSource.getRepository(EntityClass)` | Objeto en tiempo de ejecución que expone `find`, `save`, `remove`, `createQueryBuilder`, etc. |
-| DataSource | `planner_service/src/config/data-source.ts` | Inicializa la conexión con MariaDB y registra las 12 entidades del dominio de planificación |
-| Service (cliente del repo) | `planner_service/src/services/*.service.ts` | Obtiene el repositorio del DataSource y ejecuta la lógica de negocio sobre él |
+| Entity | `planner_service/src/entities/*.entity.ts` | Define the data schema using TypeORM decorators (`@Entity`, `@Column`, `@ManyToOne`, `@ManyToMany`, etc.) |
+| Repository | `dataSource.getRepository(EntityClass)` | Runtime object that exposes `find`, `save`, `remove`, `createQueryBuilder`, etc. |
+| DataSource | `planner_service/src/config/data-source.ts` | Initialises the MariaDB connection and registers the 13 entities of the scheduling domain |
+| Service (repo client) | `planner_service/src/services/*.service.ts` | Obtains the repository from the DataSource and executes business logic on it |
 
 ---
 
-#### Patrón 3: Middleware Chain (Chain of Responsibility)
+#### Pattern 3: Middleware Chain (Chain of Responsibility)
 
-**Nombre:** Middleware Chain (instanciación del patrón Chain of Responsibility sobre Express)
+**Name:** Middleware Chain (instantiation of the Chain of Responsibility pattern on Express)
 
-**Motivación:** Express procesa las peticiones HTTP a través de una cadena de funciones middleware. Esto permite aplicar preocupaciones transversales (autenticación, autorización, validación del cuerpo) de forma composable, reutilizable y en el orden correcto, sin contaminar la lógica del controlador.
+**Motivation:** Express processes HTTP requests through a chain of middleware functions. This allows cross-cutting concerns (authentication, authorisation, body validation) to be applied in a composable, reusable and correctly ordered way, without polluting the controller logic.
 
-**Instanciación: Protección de rutas de administración en planner_service**
+**Instantiation: Protecting admin routes in planner_service**
 
-La cadena completa para una ruta protegida de administrador es la siguiente secuencia de cuatro handlers:
+The full chain for an administrator-protected route is the following sequence of four handlers:
 
-| Orden | Rol | Clase / Fichero | Descripción |
+| Order | Role | Class / File | Description |
 |---|---|---|---|
-| 1 | Extractor de identidad | `planner_service/src/middleware/auth.middleware.ts` → `authenticateToken` | Parsea el Bearer token del header `Authorization` y verifica la firma JWT; si es válido, adjunta `req.user`; si falta o es inválido, deja `req.user = undefined` (no rechaza aún) |
-| 2 | Guard de autenticación | `planner_service/src/middleware/auth.middleware.ts` → `requireAuth` | Rechaza con `401 Unauthorized` si `req.user` es `undefined` |
-| 3 | Guard de autorización | `planner_service/src/middleware/require-role.middleware.ts` → `requireRole('ADMIN')` | Rechaza con `403 Forbidden` si el rol en `req.user.role` no coincide con el rol requerido |
-| 4 | Controlador | `planner_service/src/controllers/*.controller.ts` | Procesa la petición y genera la respuesta solo si los tres handlers anteriores no han cortado la cadena |
+| 1 | Identity extractor | `planner_service/src/middleware/auth.middleware.ts` → `authenticateToken` | Parses the Bearer token from the `Authorization` header and verifies the JWT signature; if valid, attaches `req.user`; if missing or invalid, leaves `req.user = undefined` (does not reject yet) |
+| 2 | Authentication guard | `planner_service/src/middleware/auth.middleware.ts` → `requireAuth` | Rejects with `401 Unauthorized` if `req.user` is `undefined` |
+| 3 | Authorisation guard | `planner_service/src/middleware/require-role.middleware.ts` → `requireRole('ADMIN')` | Rejects with `403 Forbidden` if the role in `req.user.role` does not match the required role |
+| 4 | Controller | `planner_service/src/controllers/*.controller.ts` | Processes the request and generates the response only if the three preceding handlers have not cut the chain |
 
 ---
 
-#### Patrón 4: Context (React)
+#### Pattern 4: Context (React)
 
-**Nombre:** Context (patrón de propagación de estado global en React)
+**Name:** Context (global state propagation pattern in React)
 
-**Motivación:** cierta información de estado —sesión del usuario autenticado, alertas globales, ruta de breadcrumb activa— debe estar disponible en cualquier componente de la aplicación sin necesidad de prop-drilling a través de múltiples niveles del árbol de componentes.
+**Motivation:** React's component model encourages composing the UI from a tree of independent, reusable components. However, certain state information — authenticated user session, global alerts, active breadcrumb path — must be available in any component of the application without the need for prop-drilling through multiple levels of the component tree. The Context API provides a scoped dependency injection mechanism that makes this shared state accessible to any subscriber without coupling intermediate components to data they do not use.
 
-**El sistema utiliza cuatro contextos:**
+**The system uses four contexts:**
 
-**Instanciación 1: Estado de autenticación**
+**Instantiation 1: Authentication state**
 
-| Rol | Clase / Fichero | Descripción |
+| Role | Class / File | Description |
 |---|---|---|
-| Contexto | `webapp/src/contexts/AuthContext.tsx` | Define el tipo del contexto (`user`, `token`, `login`, `logout`) y su valor inicial |
-| Provider | `AuthProvider` (en `AuthContext.tsx`) | Envuelve toda la aplicación; gestiona el estado con `useReducer`; persiste el token en `localStorage`/`sessionStorage` |
-| Hook de acceso | `useAuth()` (exportado desde `AuthContext.tsx`) | Encapsula `useContext(AuthContext)` para un acceso tipado y seguro desde cualquier componente |
+| Context | `webapp/src/contexts/AuthContext.tsx` | Defines the context type (`user`, `token`, `login`, `logout`) and its initial value |
+| Provider | `AuthProvider` (in `AuthContext.tsx`) | Wraps the entire application; manages state with `useReducer`; persists the token in `localStorage`/`sessionStorage` |
+| Access hook | `useAuth()` (exported from `AuthContext.tsx`) | Encapsulates `useContext(AuthContext)` for typed, safe access from any component |
 
-**Instanciación 2: Estado general de la aplicación**
+**Instantiation 2: General application state**
 
-| Rol | Clase / Fichero | Descripción |
+| Role | Class / File | Description |
 |---|---|---|
-| Contexto | `webapp/src/contexts/AppContext.tsx` | Estado global de la SPA: calendario seleccionado, titulación activa y otras selecciones de navegación |
+| Context | `webapp/src/contexts/AppContext.tsx` | Global SPA state: selected calendar, active degree programme and other navigation selections |
 
-**Instanciación 3: Navegación breadcrumb**
+**Instantiation 3: Breadcrumb navigation**
 
-| Rol | Clase / Fichero | Descripción |
+| Role | Class / File | Description |
 |---|---|---|
-| Contexto | `webapp/src/contexts/BreadcrumbContext.tsx` | Permite a cualquier página actualizar dinámicamente la ruta de navegación jerárquica mostrada en la barra superior |
+| Context | `webapp/src/contexts/BreadcrumbContext.tsx` | Allows any page to dynamically update the hierarchical navigation path shown in the top bar |
 
-**Instanciación 4: Notificaciones globales**
+**Instantiation 4: Global notifications**
 
-| Rol | Clase / Fichero | Descripción |
+| Role | Class / File | Description |
 |---|---|---|
-| Contexto | `webapp/src/contexts/FloatingAlertContext.tsx` | Cola de alertas flotantes (éxito, error, advertencia) mostradas sobre la interfaz; cualquier componente puede emitir una alerta sin conocer el componente de visualización |
+| Context | `webapp/src/contexts/FloatingAlertContext.tsx` | Queue of floating alerts (success, error, warning) displayed above the interface; any component can emit an alert without knowing the display component |
 
 ---
 
-#### Patrón 5: Custom Hook con React Query
+#### Pattern 5: Custom Hook with React Query
 
-**Nombre:** Custom Hook (composición de lógica de datos con TanStack React Query)
+**Name:** Custom Hook (data logic composition with TanStack React Query)
 
-**Motivación:** la lógica de fetching, caché, revalidación, estado de carga y gestión de errores es repetitiva en cada dominio. Encapsularla en hooks personalizados evita la duplicación en los componentes de página y desacopla completamente la capa de presentación de la capa de datos.
+**Motivation:** React re-renders components reactively when state changes, but the logic that drives those state changes — HTTP fetching, cache invalidation, error handling, optimistic updates — is identical in structure across every domain entity. Encapsulating this logic in domain-specific custom hooks built on top of TanStack React Query eliminates duplication, keeps page components free of data-fetching concerns, and provides a consistent, predictable interface (`data`, `isLoading`, `error`, mutation functions) across the entire frontend.
 
-**Instanciación: Hook de gestión de titulaciones (ejemplo representativo)**
+**Instantiation: Degree management hook (representative example)**
 
-| Rol | Clase / Fichero | Descripción |
+| Role | Class / File | Description |
 |---|---|---|
-| Hook personalizado | `webapp/src/hooks/degree/useDegrees.ts` | Invoca `useQuery` de React Query para lectura y `useMutation` para escritura; expone `data`, `isLoading`, `error` y funciones de mutación con invalidación de caché automática |
-| QueryClient | Configurado en `webapp/src/main.tsx` | Gestiona la caché global de consultas, la configuración de reintentos y los TTL de los datos en memoria |
-| Componente consumidor | `webapp/src/pages/DegreePage.tsx` | Invoca el hook y renderiza en función de los estados expuestos, sin ningún acoplamiento con Axios ni con la URL de la API |
+| Custom hook | `webapp/src/hooks/degree/useDegrees.ts` | Calls React Query's `useQuery` for reads and `useMutation` for writes; exposes `data`, `isLoading`, `error` and mutation functions with automatic cache invalidation |
+| QueryClient | Configured in `webapp/src/main.tsx` | Manages the global query cache, retry configuration and in-memory data TTLs |
+| Consumer component | `webapp/src/pages/DegreePage.tsx` | Invokes the hook and renders based on the exposed states, with no coupling to Axios or the API URL |
 
-Este patrón se replica para todos los dominios de la aplicación: `calendar/`, `classroom/`, `course/`, `degree/`, `subject/`, `group/`, `user/`, `event-request/` y `google/`.
+This pattern is replicated for all application domains: `calendar/`, `classroom/`, `course/`, `degree/`, `subject/`, `group/`, `user/`, `event-request/` and `google/`.
 
 ---
 
-### 5.2.3 Modelo de dominio — Entidades principales
+### 5.2.3 Domain model — Main entities
 
-El siguiente diagrama muestra las entidades del dominio gestionadas por `planner_service` y sus relaciones. Todas las entidades de negocio extienden `AuditedEntity`, que proporciona los campos de trazabilidad comunes a todas las operaciones de escritura.
+The following diagram shows the domain entities managed by `planner_service` and their relationships. All business entities extend `AuditedEntity`, which provides the traceability fields common to all write operations.
 
-**Figura 5.5 — Diagrama de clases del dominio de planificación**
+**Figure 5.5 — Class diagram of the scheduling domain**
 
 ```mermaid
 classDiagram
@@ -566,296 +580,306 @@ classDiagram
     AuditedEntity <|-- PuntualEvent
     AuditedEntity <|-- PeriodicEvent
 
-    Degree "1" --> "0..*" Course : contiene
-    Course "1" --> "0..*" Calendar : organiza
-    Calendar "1" --> "0..*" Subject : incluye
-    Calendar "1" --> "0..*" Group : agrupa
-    Calendar "1" --> "0..*" Day : define días
-    Calendar "1" --> "0..*" PeriodicEvent : programa periódicamente
-    Calendar "1" --> "0..*" CalendarSync : registra sincronización
-    Subject "1" --> "0..*" Group : desglosa en grupos
-    Day "1" --> "0..*" PuntualEvent : contiene eventos puntuales
-    Group "0..*" <--> "0..*" PuntualEvent : asignado a
-    Group "0..*" <--> "0..*" PeriodicEvent : asignado a
-    Classroom "0..*" <--> "0..*" PuntualEvent : reservada en
-    Classroom "0..*" <--> "0..*" PeriodicEvent : reservada en
-    Classroom "1" --> "0..*" GoogleClassroomCalendar : tiene calendario Google
-    PuntualEvent "0..*" --> "0..1" EventRequest : solicita cambio
+    Degree "1" --> "0..*" Course : contains
+    Course "1" --> "0..*" Calendar : organises
+    Calendar "1" --> "0..*" Subject : includes
+    Calendar "1" --> "0..*" Group : groups
+    Calendar "1" --> "0..*" Day : defines days
+    Calendar "1" --> "0..*" PeriodicEvent : schedules recurrently
+    Calendar "1" --> "0..*" CalendarSync : records synchronisation
+    Subject "1" --> "0..*" Group : broken down into groups
+    Day "1" --> "0..*" PuntualEvent : contains one-off events
+    Group "0..*" <--> "0..*" PuntualEvent : assigned to
+    Group "0..*" <--> "0..*" PeriodicEvent : assigned to
+    Classroom "0..*" <--> "0..*" PuntualEvent : booked for
+    Classroom "0..*" <--> "0..*" PeriodicEvent : booked for
+    Classroom "1" --> "0..*" GoogleClassroomCalendar : has Google Calendar
 ```
 
-**Notas sobre el modelo de dominio:**
+**Notes on the domain model:**
 
-- `CourseState` es un enumerado con tres valores que representan el ciclo de vida de un curso académico: `PLANIFICADO` (antes del inicio del semestre), `ACTIVO` (curso en curso) y `FINALIZADO` (semestre concluido). Este estado controla qué operaciones de edición están permitidas sobre el calendario asociado.
+- `Group.planifiedHours` is stored as `decimal(10,2)` nullable in the database. A `null` value indicates that the group has no configured hours budget and its recurring events of type `N` expand without an hours limit.
 
-- `SyncStatus` es un enumerado con los valores `IDLE`, `SYNCING`, `SUCCESS`, `ERROR` y `DELETING`, que refleja el estado del último proceso de sincronización con Google Calendar para un par (usuario, calendario académico). El estado `DELETING` se activa en el momento en que el usuario inicia la eliminación de un sync individual y permite que la interfaz muestre el estado correcto incluso si el usuario recarga la página mientras el borrado está en curso.
+- `EventRequest` is a coordination entity between roles: it has no direct foreign key relationship with `PuntualEvent` or `PeriodicEvent`. The reference to the event to be modified or cancelled is stored in the JSON field `eventData` (field `originalEventId`), which allows representing any type of event — whether one-off or recurring — without requiring schema changes when new request types are added. The trade-off of this design is the loss of referential integrity at the database level: if a referenced event is deleted before the request is processed, the system must handle the stale reference gracefully at the application layer rather than relying on a cascade or restrict constraint.
 
-- `ApiQuotaCounter` es una entidad de infraestructura (no de negocio) que persiste los contadores de cuota de la Google Calendar API entre reinicios del servidor. Su clave primaria `apiKey` identifica el sistema externo cuya cuota se monitoriza (valor `'google_calendar'`). Los campos `minuteCount`/`minuteWindowStart` implementan la ventana deslizante de 1 minuto; `dailyCount`, `dailyCalendarCreations` y `dailyWindowStart` controlan los límites diarios. Esta entidad no extiende `AuditedEntity` porque no es una entidad de negocio y no requiere trazabilidad de creación/modificación.
+- `CourseState` is an enumeration with three values representing the lifecycle of an academic year: `PLANIFICADO` (planned — before the semester begins), `ACTIVO` (active — semester in progress) and `FINALIZADO` (concluded — semester ended). This state gates editing operations on the associated calendar: in `PLANIFICADO` and `ACTIVO` states, all calendar and event management operations are available; once a course reaches `FINALIZADO`, write operations are blocked to preserve the integrity of the historical record. Only `ADMIN` users can advance a course through the state machine.
 
-- **Restricciones de unicidad del dominio** (invariantes de negocio implementadas como índices únicos en la base de datos):
-  - `Calendar`: `UNIQUE(courseId, semester)` — un curso no puede tener dos calendarios del mismo semestre.
-  - `Subject`: `UNIQUE(name, calendarId)` y `UNIQUE(acronym, calendarId)` — dos asignaturas del mismo calendario no pueden compartir nombre ni acrónimo.
-  - `Group`: `UNIQUE(calendarId, subjectId, number, type, language)` — la combinación de calendario, asignatura, número de grupo, tipo e idioma identifica unívocamente a un grupo.
-  - `Classroom`: `UNIQUE(code)` — el código de aula es único en todo el sistema.
-  - `GoogleClassroomCalendar`: `UNIQUE(userId, classroomId)` — cada usuario tiene a lo sumo un Google Calendar asociado a cada aula.
+- `SyncStatus` is an enumeration with the values `IDLE`, `SYNCING`, `SUCCESS`, `ERROR` and `DELETING`, reflecting the state of the last synchronisation process with Google Calendar for a (user, academic calendar) pair. The `DELETING` state is activated when the user initiates the deletion of an individual sync and allows the interface to display the correct state even if the user reloads the page during the deletion process.
+
+- `ApiQuotaCounter` is an infrastructure entity (not a business one) that persists the Google Calendar API quota counters between server restarts. It is effectively a **singleton record**: there is at most one row in this table, identified by the fixed key `'google_calendar'`. The `apiKey` primary key is therefore a semantic identifier of the monitored API rather than a discriminator over a set of business instances. The `minuteCount`/`minuteWindowStart` fields implement a 1-minute sliding window for the per-minute limit; `dailyCount`, `dailyCalendarCreations` and `dailyWindowStart` control the daily quotas. Persisting these counters in the database — rather than in memory — ensures that quota state survives service restarts and remains consistent if the service is ever scaled to multiple replicas. This entity does not extend `AuditedEntity` because it is purely operational and does not benefit from creation/modification traceability.
+
+- **Domain uniqueness constraints** (business invariants implemented as unique indexes in the database):
+  - `Calendar`: `UNIQUE(courseId, semester)` — an academic year cannot have two calendars of the same semester.
+  - `Subject`: `UNIQUE(name, calendarId)` and `UNIQUE(acronym, calendarId)` — two subjects of the same calendar cannot share name or acronym.
+  - `Group`: `UNIQUE(calendarId, subjectId, number, type, language)` — the combination of calendar, subject, group number, type and language uniquely identifies a group.
+  - `Classroom`: `UNIQUE(code)` — the classroom code is unique across the entire system.
+  - `GoogleClassroomCalendar`: `UNIQUE(userId, classroomId)` — each user has at most one Google Calendar associated with each classroom.
 
 ---
 
-### 5.2.4 Diagramas de secuencia — Flujos de autenticación
+### 5.2.4 Sequence diagrams — Authentication flows
 
-#### Flujo 1: Autenticación con email y contraseña (JWT)
+#### Flow 1: Email and password authentication (JWT)
 
-El siguiente diagrama representa el flujo de autenticación mediante JWT cuando un usuario introduce sus credenciales en el formulario de login.
+This is the primary authentication flow and the entry point for all system users. The diagram traces the request from the moment the user submits their credentials through the microservice chain, covering both the error paths (inactive account, wrong credentials) and the success path that results in a JWT being issued and stored client-side.
 
-**Figura 5.6 — Secuencia de autenticación por email/contraseña**
+**Figure 5.6 — Email/password authentication sequence**
 
 ```mermaid
 sequenceDiagram
-    actor Usuario
+    actor User
     participant webapp as webapp (React)
     participant gateway as gateway_service
     participant auth as auth_service
     participant db as management_database
 
-    Usuario->>webapp: Introduce email y contraseña
+    User->>webapp: Enters email and password
     webapp->>gateway: POST /auth/login {email, password}
     gateway->>auth: POST /login {email, password}
     auth->>db: SELECT user WHERE email = ?
     db-->>auth: {passwordHash, role, isActive}
 
-    alt Cuenta no activada
-        auth-->>gateway: 403 Cuenta no activada
+    alt Account not activated
+        auth-->>gateway: 403 Account not activated
         gateway-->>webapp: 403
-        webapp-->>Usuario: Muestra mensaje de cuenta inactiva
-    else Credenciales incorrectas
+        webapp-->>User: Shows inactive account message
+    else Incorrect credentials
         auth-->>gateway: 401 Unauthorized
         gateway-->>webapp: 401
-        webapp-->>Usuario: Muestra "Credenciales incorrectas"
-    else Autenticación correcta
+        webapp-->>User: Shows "Incorrect credentials"
+    else Successful authentication
         auth->>auth: bcrypt.compare(password, hash)
         auth->>auth: jwt.sign({userId, email, role}, secret)
         auth-->>gateway: 200 {token, user}
         gateway-->>webapp: 200 {token, user}
-        webapp->>webapp: Almacena token en AuthContext
-        webapp-->>Usuario: Redirige a /home
+        webapp->>webapp: Stores token in AuthContext
+        webapp-->>User: Redirects to /home
     end
 ```
 
-#### Flujo 2: Vinculación de cuenta de Google
+#### Flow 2: Google account linking
 
-El segundo flujo permite a un usuario ya autenticado **conectar su cuenta de Google** para habilitar la sincronización del calendario académico con Google Calendar. No es un flujo de autenticación alternativo: la ruta `GET /auth/google/initiate` exige el middleware `authenticateToken`, por lo que solo es accesible con un JWT válido. El usuario inicia el proceso desde la página `/settings`.
+The second flow allows an already authenticated user to **connect their Google account** to enable synchronisation of the academic calendar with Google Calendar. It is not an alternative authentication flow: the route `GET /auth/google/initiate` requires the `authenticateToken` middleware, so it is only accessible with a valid JWT. The user initiates the process from the `/settings` page.
 
-Este flujo justifica la existencia de los campos `googleId`, `googleAccessToken`, `googleRefreshToken` y `googleTokenExpiry` en la entidad `User`.
+This flow justifies the existence of the `googleId`, `googleAccessToken`, `googleRefreshToken` and `googleTokenExpiry` fields in the `User` entity. Note that OAuth tokens are stored **encrypted** in the database; `auth_service` encrypts them before writing and decrypts them when providing them to `planner_service` on request. The diagram distinguishes the two databases involved: `management_database` (owned by `auth_service`, stores user credentials and OAuth tokens) and `planner_database` (owned by `planner_service`, stores the `CalendarSync` entries).
 
-**Figura 5.7 — Secuencia de vinculación de cuenta de Google**
+**Figure 5.7 — Google account linking sequence**
 
 ```mermaid
 sequenceDiagram
-    actor Usuario
+    actor User
     participant webapp as webapp (React) /settings
     participant gateway as gateway_service
     participant auth as auth_service
     participant google as Google OAuth 2.0
-    participant db as management_database
+    participant mgmt_db as management_database
     participant planner as planner_service
+    participant planner_db as planner_database
 
-    Usuario->>webapp: Pulsa "Conectar Google" (ya autenticado)
+    User->>webapp: Clicks "Connect Google" (already authenticated)
     webapp->>gateway: GET /auth/google/initiate (Authorization: Bearer JWT)
     gateway->>auth: GET /auth/google/initiate
     auth-->>gateway: 302 Redirect → Google consent screen URL
     gateway-->>webapp: 302 Redirect
-    webapp->>google: Navega a pantalla de consentimiento OAuth
-    Usuario->>google: Autoriza el acceso
+    webapp->>google: Navigates to OAuth consent screen
+    User->>google: Grants access
     google-->>auth: Callback GET /auth/google/callback?code=...&state=...
-    auth->>google: POST token endpoint (intercambia código por tokens)
+    auth->>google: POST token endpoint (exchanges code for tokens)
     google-->>auth: {access_token, refresh_token, id_token, expiry}
-    auth->>auth: Descifra state → userId; decodifica id_token
-    auth->>db: UPDATE User (googleId, googleAccessToken cifrado, googleRefreshToken cifrado)
+    auth->>auth: Decodes state → userId; decodes id_token
+    auth->>mgmt_db: UPDATE User (googleId, encrypted googleAccessToken, encrypted googleRefreshToken)
     auth->>planner: POST /calendar-sync/initialize {userId, userEmail}
-    planner->>db: INSERT CalendarSync por cada Calendar (syncStatus=IDLE)
-    auth-->>webapp: Redirect a /settings?googleConnected=true
-    webapp-->>Usuario: Confirmación de cuenta vinculada
+    planner->>planner_db: INSERT CalendarSync for each Calendar (syncStatus=IDLE)
+    auth-->>webapp: Redirect to /settings?googleConnected=true
+    webapp-->>User: Account linked confirmation
 ```
 
 ---
 
-### 5.2.5 Diagrama de secuencia — Flujo de solicitud de cambio
+### 5.2.5 Sequence diagram — Change request flow
 
-Las solicitudes de cambio permiten al profesorado (`PROFESSOR`) proponer modificaciones sobre eventos ya planificados. El administrador (`ADMIN`) revisa y aprueba o rechaza cada solicitud sin que el flujo habitual de trabajo se interrumpa.
+Change requests allow teaching staff (`PROFESSOR`) to propose modifications to already scheduled events. The administrator (`ADMIN`) reviews and approves or rejects each request without interrupting the normal workflow.
 
-**Figura 5.8 — Secuencia del flujo de solicitud de cambio**
+**Figure 5.8 — Change request flow sequence**
 
 ```mermaid
 sequenceDiagram
-    actor Profesor
+    actor Professor
     actor Admin
     participant webapp as webapp (React)
     participant gateway as gateway_service
     participant planner as planner_service
     participant db as planner_database
 
-    Profesor->>webapp: Selecciona evento y propone cambio
+    Professor->>webapp: Selects event and proposes change
     webapp->>gateway: POST /event-requests {eventId, requestType, eventData}
     gateway->>planner: POST /event-requests
     planner->>db: INSERT EventRequest (status: PENDING)
     db-->>planner: EventRequest {id}
     planner-->>gateway: 201 Created
     gateway-->>webapp: 201 Created
-    webapp-->>Profesor: Confirmación — solicitud enviada
+    webapp-->>Professor: Confirmation — request submitted
 
-    Note over Admin,db: El administrador revisa las solicitudes pendientes
+    Note over Admin,db: Administrator reviews pending requests
 
-    Admin->>webapp: Accede a /solicitudes
+    Admin->>webapp: Navigates to /solicitudes
     webapp->>gateway: GET /calendar/:id/pending-requests
     gateway->>planner: GET /calendar/:id/pending-requests
     planner->>db: SELECT EventRequests WHERE status = 'PENDING'
     db-->>planner: [EventRequest[]]
-    planner-->>webapp: Lista de solicitudes pendientes
+    planner-->>webapp: List of pending requests
 
-    Admin->>webapp: Aprueba o rechaza una solicitud
+    Admin->>webapp: Approves or rejects a request
     webapp->>gateway: PATCH /event-requests/:id {status: APPROVED | REJECTED}
     gateway->>planner: PATCH /event-requests/:id
     planner->>db: UPDATE EventRequest.status
-    planner->>db: UPDATE Event (si APPROVED, aplica eventData)
+    planner->>db: UPDATE Event (if APPROVED, applies eventData)
     db-->>planner: OK
     planner-->>gateway: 200 OK
     gateway-->>webapp: 200 OK
-    webapp-->>Admin: Confirmación de resolución
+    webapp-->>Admin: Resolution confirmation
 ```
 
-**Tabla 5.4 — Transición de estados de EventRequest**
+**Table 5.4 — EventRequest state transitions**
 
-| Estado | Descripción | Transiciones posibles |
+| State | Description | Possible transitions |
 |---|---|---|
-| `PENDING` | Solicitud enviada por PROFESSOR, pendiente de revisión por el administrador | → `APPROVED`, → `REJECTED` |
-| `APPROVED` | Administrador aprueba; el cambio contenido en `eventData` se aplica sobre el evento original | — (estado terminal) |
-| `REJECTED` | Administrador rechaza; el evento original no se modifica | — (estado terminal) |
+| `PENDING` | Request submitted by PROFESSOR, pending review by the administrator | → `APPROVED`, → `REJECTED` |
+| `APPROVED` | Administrator approves; the change contained in `eventData` is applied to the original event | — (terminal state) |
+| `REJECTED` | Administrator rejects; the original event is not modified | — (terminal state) |
 
-El flujo de solicitudes implica dos rutas de la webapp:
-- `/degrees/.../solicitudes` (`SolicitudPage`): vista por semestre, accesible para ADMIN
-- `/my-requests` (`MyRequestsPage`): vista personal del profesor con todas sus solicitudes entre semestres, accesible para PROFESSOR; permite filtrar por estado y retirar solicitudes pendientes
+The request flow involves two webapp routes:
+- `/degrees/.../solicitudes` (`SolicitudPage`): semester-level view, accessible to ADMIN
+- `/my-requests` (`MyRequestsPage`): personal view for the professor with all their requests across semesters, accessible to PROFESSOR; allows filtering by status and withdrawing pending requests
 
-**Tipos de solicitud (`requestType`):**
+**Request types (`requestType`):**
 
-| Tipo | Descripción | `originalEventId` |
+| Type | Description | `originalEventId` |
 |---|---|---|
-| `CREATE` | Propuesta de creación de un nuevo evento | No requerido (null) |
-| `EDIT` | Modificación de un evento existente (hora, aula, grupos) | Obligatorio |
-| `CANCEL` | Cancelación de una ocurrencia puntual de un evento periódico | Obligatorio |
-| `REPLACE` | Cancelación del evento original y creación de uno nuevo en su lugar | Obligatorio |
+| `CREATE` | Proposal to create a new event | Not required (null) |
+| `EDIT` | Modification of an existing event (time, classroom, groups) | Required |
+| `CANCEL` | Cancellation of a one-off occurrence of a recurring event | Required |
+| `REPLACE` | Cancellation of the original event and creation of a new one in its place | Required |
+
+`originalEventId` is required for `EDIT`, `CANCEL` and `REPLACE` because those operations are defined relative to an event that already exists in the system — the administrator must be able to identify and locate the target event to apply or reject the change. `CREATE` does not reference any existing event: the full specification of the new event is contained entirely within `eventData`.
 
 ---
 
-### 5.2.6 Diseño del sistema de eventos: tipos, periodicidad y caracteres
+### 5.2.6 Event system design: types, recurrence and characters
 
-El sistema de eventos es la parte más compleja del dominio de planificación. Su diseño responde a la necesidad de representar horarios académicos reales, que combinan clases semanales regulares, clases quincenales alternas y esquemas de periodicidad arbitrarios derivados de la importación de horarios desde ficheros Excel del SIES (Sistema de Información de la Escuela Superior de Ingeniería).
+The event system is the most complex part of the scheduling domain. Its design is driven directly by the structure of real academic timetables as exported from the SIES (Sistema de Información de la Escuela de Ingeniería — the School of Engineering Information System), which is the authoritative source of timetable data for the institution. SIES timetables combine three types of recurrence: regular weekly classes that repeat on every teaching week, fortnightly alternating classes (odd-week/even-week groups sharing a classroom), and arbitrary institution-defined patterns where a specific character is assigned to each teaching day. The event model described below is a faithful representation of this three-tier recurrence structure.
 
-#### Tipos de eventos: puntuales vs. periódicos
+#### Event types: one-off vs. recurring
 
-El sistema distingue dos tipos estructuralmente distintos de eventos:
+The system distinguishes two structurally different types of events:
 
-- **`PuntualEvent`**: evento de una sola ocurrencia, ligado directamente a un `Day` concreto del calendario. Puede estar marcado como `cancelled = true` para reflejar que una clase ha sido cancelada ese día. El campo `periodicEventSourceId` almacena la referencia al `PeriodicEvent` que generó este evento puntual (si es una cancelación de una ocurrencia periódica). El campo `replacementEventId` apunta al evento puntual que lo reemplaza en caso de haber sido reprogramado.
+- **`PuntualEvent`**: a one-off event tied directly to a specific `Day` of the calendar. It can be marked as `cancelled = true` to reflect that a class has been cancelled that day. The `periodicEventSourceId` field stores the reference to the `PeriodicEvent` that generated this one-off event (if it is a cancellation of a recurring occurrence). The `replacementEventId` field points to the one-off event that replaces it if it has been rescheduled.
 
-- **`PeriodicEvent`**: evento recurrente no ligado a ningún `Day` específico, sino definido mediante `weekDay` (día de la semana) y `year` (año académico dentro del semestre). No tiene fecha fija; el servicio `CalendarEventsService.generateCalendarEvents()` lo expande dinámicamente a todas las semanas lectivas del calendario en las que corresponda según su `eventCharacter`.
+- **`PeriodicEvent`**: a recurring event not tied to any specific `Day`, but defined via `weekDay` (day of the week) and `year` (academic year within the semester). It has no fixed date; the service `CalendarEventsService.generateCalendarEvents()` dynamically expands it to all teaching days of the calendar where it applies, according to its `eventCharacter`.
 
-#### El sistema de caracteres de evento (`eventCharacter`)
+#### The event character system (`eventCharacter`)
 
-El `eventCharacter` es el mecanismo central que determina la periodicidad de cada `PeriodicEvent`. El sistema define tres caracteres estándar y un pool de caracteres personalizados:
+The `eventCharacter` is the central mechanism that determines the recurrence of each `PeriodicEvent`. The system defines three standard characters and a pool of custom characters:
 
-**Tabla 5.5 — Comportamiento de expansión según `eventCharacter`**
+**Table 5.5 — Expansion behaviour by `eventCharacter`**
 
-| `eventCharacter` | Patrón de expansión | Descripción |
+| `eventCharacter` | Expansion pattern | Description |
 |---|---|---|
-| `N` (Normal) | Todas las semanas lectivas del calendario | Clase semanal regular |
-| `P` (Par) | Semanas lectivas con número par desde el inicio del semestre | Clase quincenal en semanas pares |
-| `I` (Impar) | Semanas lectivas con número impar desde el inicio del semestre | Clase quincenal en semanas impares |
-| Personalizado (ej. `A`, `Α`, `А`) | Los `Day` cuyo campo `dayCharacter` contiene ese carácter | Periodicidad definida por el horario importado |
+| `N` (Normal) | All teaching weeks of the calendar | Regular weekly class |
+| `P` (Even) | Teaching weeks with an even number from the start of the semester | Fortnightly class on even weeks |
+| `I` (Odd) | Teaching weeks with an odd number from the start of the semester | Fortnightly class on odd weeks |
+| Custom (e.g. `A`, `Α`, `А`) | `Day` entries whose `dayCharacter` field contains that character | Recurrence defined by the imported timetable |
 
-El campo `Calendar.charactersInUse` mantiene un registro de todos los caracteres personalizados actualmente asignados en el calendario. Cuando se crea un nuevo tipo de evento periódico personalizado, la función `findAvailableCharacter(charactersInUse)` del fichero `event-characters.constants.ts` recorre el pool de ~90 caracteres disponibles (letras latinas sin N/P/I, alfabeto griego en mayúsculas, alfabeto cirílico en mayúsculas y dígitos 0–9) y devuelve el primer carácter no asignado. Cuando el número de tipos distintos de eventos en un calendario alcanza los 90, el sistema lanza un error explicativo.
+The `Calendar.charactersInUse` field maintains a record of all custom characters currently assigned in the calendar. When a new custom recurring event type is created, the function `findAvailableCharacter(charactersInUse)` in the file `event-characters.constants.ts` iterates through the pool of ~90 available characters (Latin letters excluding N/P/I, uppercase Greek alphabet, uppercase Cyrillic alphabet and digits 0–9) and returns the first unassigned character. When the number of distinct event types in a calendar reaches 90, the system throws an explanatory error.
 
-Los `Day` del calendario tienen un campo `dayCharacter` asignado durante la importación del horario desde Excel. Este carácter identifica qué tipo de evento periódico personalizado ocurre ese día, permitiendo que el motor de expansión determine con precisión qué eventos deben generarse en cada fecha lectiva.
+The `Day` entries of the calendar have a `dayCharacter` field assigned during timetable import from Excel. This character identifies which type of custom recurring event occurs on that day, allowing the expansion engine to precisely determine which events should be generated on each teaching date.
 
-#### Tipos de evento (`eventType`)
+#### Event types (`eventType`)
 
-Independientemente de su periodicidad, cada evento —puntual o periódico— tiene un `eventType` que determina su semántica de negocio y su comportamiento en el cómputo de horas y la exportación:
+Regardless of their recurrence, each event — one-off or recurring — has an `eventType` that determines its business semantics and its behaviour in the hours accounting and export:
 
-**Tabla 5.6 — Comportamiento según `eventType`**
+**Table 5.6 — Behaviour by `eventType`**
 
-| `eventType` | Cuenta horas planificadas | Se exporta a TXT | Permite multiselect grupos/aulas |
+| `eventType` | Counts towards planned hours | Exported to TXT | Allows multi-select of groups/classrooms |
 |---|---|---|---|
-| `NORMAL` | Sí | Sí | No |
+| `NORMAL` | Yes | Yes | No |
 | `BLOCKER` | No | No | No |
-| `REVISION` | No | No | Sí |
-| `EVALUACION` | No | No | Sí |
-| `OTRO` | No | No | Sí |
+| `REVISION` | No | No | Yes |
+| `EVALUACION` | No | No | Yes |
+| `OTRO` | No | No | Yes |
 
-- `NORMAL` es el tipo de clase estándar. El campo `Group.planifiedHours` define el presupuesto total de horas del grupo; el sistema cuenta las horas de eventos `NORMAL` no cancelados para determinar cuántas semanas de clases periódicas quedan por impartir.
-- `BLOCKER` reserva un aula para un uso no académico sin asociarlo a ninguna asignatura ni grupo.
-- `REVISION`, `EVALUACION` y `OTRO` representan actividades académicas que ocupan el espacio horario pero no consumen el presupuesto de horas de docencia. Permiten asignar múltiples grupos y aulas simultáneamente.
+- `NORMAL` is the standard class type. The `Group.planifiedHours` field defines the total hours budget of the group; the system counts the hours of non-cancelled `NORMAL` events to determine how many weeks of recurring classes remain to be delivered.
+- `BLOCKER` reserves a classroom for non-academic use without associating it with any subject or group.
+- `REVISION`, `EVALUACION` and `OTRO` represent academic activities that occupy the time slot but do not consume the teaching hours budget. They allow assigning multiple groups and classrooms simultaneously.
 
-#### Cancelación y reemplazo de ocurrencias periódicas
+#### Cancellation and replacement of recurring occurrences
 
-Cuando se cancela una ocurrencia concreta de un `PeriodicEvent` (por ejemplo, la clase del martes 14 de octubre), el sistema crea un `PuntualEvent` en ese `Day` específico con `cancelled = true` y `periodicEventSourceId` apuntando al `PeriodicEvent` origen. Este mecanismo garantiza dos propiedades importantes:
+When a specific occurrence of a `PeriodicEvent` is cancelled (for example, the Tuesday 14 October class), the system creates a `PuntualEvent` on that specific `Day` with `cancelled = true` and `periodicEventSourceId` pointing to the source `PeriodicEvent`. This mechanism guarantees two important properties:
 
-1. La cancelación es selectiva: el resto de ocurrencias del `PeriodicEvent` no se ven afectadas.
-2. Si la serie periódica es modificada o eliminada posteriormente, las cancelaciones puntuales anteriores no se propagan a nuevas series que puedan ocupar el mismo slot temporal.
+1. The cancellation is selective: the remaining occurrences of the `PeriodicEvent` are not affected.
+2. If the recurring series is subsequently modified or deleted, the previous one-off cancellations do not propagate to new series that may occupy the same time slot.
 
-El reemplazo sigue el mismo mecanismo: se crea el `PuntualEvent` de cancelación y, adicionalmente, un segundo `PuntualEvent` con los nuevos datos del evento de reemplazo, con `replacementEventId` apuntando al evento cancelado, estableciendo así la trazabilidad bidireccional del cambio.
+Replacement follows the same mechanism: the cancellation `PuntualEvent` is created and, additionally, a second `PuntualEvent` with the new event data, with `replacementEventId` pointing to the cancelled event, thus establishing bidirectional traceability of the change.
 
-#### Detección de conflictos
+#### Conflict detection
 
-El sistema impide que dos eventos se solapen en horario si comparten algún grupo de clase o algún aula. Esta validación se ejecuta en seis operaciones distintas sobre eventos, implementadas en `calendar.controller.ts` con ayuda de la utilidad `conflict-detection.utils.ts`:
+The system prevents two events from overlapping in time if they share any class group or any classroom. The detection algorithm compares time intervals using a standard overlap condition (`startA < endB && endA > startB`) and then checks whether the two events share at least one group (by `groupId` intersection) or at least one classroom (by `classroomId` intersection). If either condition is met and the time slots overlap, a conflict is reported. This validation is executed in six different event operations, implemented in `calendar.controller.ts` with the help of the `conflict-detection.utils.ts` utility:
 
-| Operación | Qué se comprueba |
+| Operation | What is checked |
 |---|---|
-| Crear `PuntualEvent` | Vs. PuntualEvents no cancelados del mismo día + PeriodicEvents que materializan ese día |
-| Crear `PeriodicEvent` | Vs. todos los eventos expandidos del calendario (mismo día de la semana y solapamiento horario) |
-| Mover `PuntualEvent` (replace) | Vs. PuntualEvents + PeriodicEvents de la nueva fecha/hora |
-| Editar `PeriodicEvent` (individual) | Vs. todos los eventos expandidos, excluyendo el propio |
-| Editar `PeriodicEvent` (en lote) | Vs. todos los eventos expandidos, excluyendo los editados |
-| Revertir cancelación | Vs. PuntualEvents + PeriodicEvents activos en ese día (el periódico restaurado no debe chocar) |
+| Create `PuntualEvent` | Vs. non-cancelled PuntualEvents of the same day + PeriodicEvents materialising that day |
+| Create `PeriodicEvent` | Vs. all expanded events of the calendar (same day of the week and time overlap) |
+| Move `PuntualEvent` (replace) | Vs. PuntualEvents + PeriodicEvents of the new date/time |
+| Edit `PeriodicEvent` (individual) | Vs. all expanded events, excluding the event itself |
+| Edit `PeriodicEvent` (batch) | Vs. all expanded events, excluding the edited ones |
+| Revert cancellation | Vs. active PuntualEvents + PeriodicEvents on that day (the restored recurring event must not clash) |
 
-Cuando se detecta un conflicto, la API responde con **HTTP 409** e incluye hasta 5 entradas de conflicto con: tipo (puntual/periódico), franja horaria, grupos afectados y códigos de aula. Los mensajes de error están localizados en español e inglés mediante claves i18n:
+When a conflict is detected, the API responds with **HTTP 409** and includes up to 5 conflict entries, each containing: the conflicting event type (one-off or recurring), the time slot, the affected groups and the classroom codes. Error messages are fully localised in Spanish and English via i18n keys to support the bilingual interface:
 
-| Clave i18n | Condición |
+| i18n key | Condition |
 |---|---|
-| `shared_group` | Solapamiento horario con ≥1 grupo compartido |
-| `shared_classroom` | Solapamiento horario con ≥1 aula compartida |
-| `shared_both` | Ambas condiciones simultáneas |
+| `shared_group` | Time overlap with ≥1 shared group |
+| `shared_classroom` | Time overlap with ≥1 shared classroom |
+| `shared_both` | Both conditions simultaneously |
 
-> **Nota:** los eventos `BLOCKER` no generan conflicto por grupo (solo por aula), ya que su propósito es reservar un espacio sin asociarlo a ninguna asignatura.
+> **Note:** `BLOCKER` events do not generate a group conflict (only a classroom conflict), since their purpose is to reserve a space without associating it with any subject.
 
 ---
 
-### 5.2.7 Diseño de la integración con Google Calendar
+### 5.2.7 Google Calendar integration design
 
-La integración con Google Calendar permite que los administradores sincronicen el calendario académico de TeachingPlanner con Google Calendar, facilitando al profesorado la consulta de su horario desde aplicaciones externas (Google Calendar, apps móviles, etc.).
+The Google Calendar integration allows administrators to synchronise the TeachingPlanner academic calendar with Google Calendar, enabling teaching staff to consult their timetable from external applications (Google Calendar, mobile apps, etc.).
 
-#### Arquitectura de la integración en tres elementos
+#### Integration architecture
 
-El diseño se apoya en dos entidades nuevas del modelo de dominio y un servicio dedicado:
+The design introduces two new domain entities and one dedicated service class.
 
-1. **`GoogleClassroomCalendar`**: vincula cada `Classroom` del sistema con un `googleCalendarId` de la cuenta de Google del usuario. Cuando un usuario conecta su cuenta de Google, el sistema crea automáticamente un Google Calendar por cada aula registrada, de forma que los eventos de distintas aulas aparezcan en calendarios separados. Esto permite al profesorado suscribirse selectivamente solo a las aulas de su interés.
+**Domain model extensions:**
 
-2. **`CalendarSync`**: registra el estado de la sincronización para cada par (usuario, calendario académico). El campo `syncStatus` (enumerado `IDLE / SYNCING / SUCCESS / ERROR / DELETING`) refleja el estado del último proceso de sincronización, y `currentOperation` proporciona una descripción textual del progreso que la interfaz web puede mostrar en tiempo real durante una sincronización activa. Los campos `totalCalendars` y `processedCalendars` permiten calcular un porcentaje de progreso. El estado `DELETING` se activa cuando el usuario elimina un sync individual y permite que la UI muestre el estado correcto incluso si el usuario recarga la página durante el proceso.
+- **`GoogleClassroomCalendar`**: links each `Classroom` in the system with a `googleCalendarId` from the user's Google account. When a user connects their Google account, the system automatically creates one Google Calendar per registered classroom, so that events from different classrooms appear in separate calendars in Google Calendar. This allows teaching staff to selectively subscribe only to the classrooms relevant to their schedule.
 
-3. **`GoogleCalendarService`** (`planner_service/src/services/google-calendar.service.ts`): contiene toda la lógica de comunicación con la Google Calendar API v3. Implementa la creación, actualización (upsert) y eliminación de eventos en Google Calendar, así como la gestión del refresco automático del `access_token` cuando ha expirado usando el `refresh_token` almacenado en la entidad `User`.
+- **`CalendarSync`**: records the synchronisation state for each (user, academic calendar) pair. The `syncStatus` field (enumeration `IDLE / SYNCING / SUCCESS / ERROR / DELETING`) reflects the state of the last synchronisation process, and `currentOperation` provides a textual description of the current progress step that the web interface can display in real time. The `totalCalendars` and `processedCalendars` fields allow calculating a completion percentage. The `DELETING` state is set as soon as the user initiates a deletion, before the Google API calls complete, so that the UI shows the correct state even if the user reloads the page mid-deletion.
 
-#### Flujo de sincronización
+**Service class:**
 
-La sincronización con Google Calendar es **exclusivamente manual**: el usuario sincroniza cada calendario con el botón «Sincronizar ahora». Cuando el usuario ya no desea mantener un calendario sincronizado, lo elimina mediante el botón de papelera, que abre un modal de confirmación antes de ejecutar la acción. El botón de eliminar solo aparece si el calendario ha sido sincronizado al menos una vez (es decir, cuando `syncStatus` no es `IDLE` o existe `lastSyncAt`), dado que antes de la primera sincronización no hay datos en Google Calendar que limpiar.
+- **`GoogleCalendarService`** (`planner_service/src/services/google-calendar.service.ts`): encapsulates all communication with the Google Calendar API v3 — creation, update (upsert) and deletion of calendar events, as well as calendar-level create/delete operations. It also manages automatic `access_token` refresh using the `refresh_token` stored encrypted in the `User` entity: before each API call, `getValidAccessToken()` checks the token's expiry and transparently obtains a new access token from Google if necessary, without requiring user interaction.
 
-Los endpoints disponibles en `planner_service` para este flujo son:
+#### Synchronisation flow
 
-| Verbo | Ruta | Descripción |
+Synchronisation with Google Calendar is **exclusively manual**: the user synchronises each calendar with the "Sync now" button. When the user no longer wishes to keep a calendar synchronised, they delete it via the trash button, which opens a confirmation modal before executing the action. The delete button only appears if the calendar has been synchronised at least once (i.e. when `syncStatus` is not `IDLE` or `lastSyncAt` exists), since before the first synchronisation there is no data in Google Calendar to clean up.
+
+The endpoints available in `planner_service` for this flow are:
+
+| Verb | Route | Description |
 |---|---|---|
-| `GET` | `/calendar-sync/rate-limit-status` | Devuelve el estado actual de los contadores de cuota de la Google Calendar API (uso del minuto y del día, límites configurados). Requiere autenticación; no requiere rol específico |
-| `POST` | `/calendar-sync/initialize` | Crea las entradas `CalendarSync` tras vincular Google (llamado desde `auth_service`, uso interno) |
-| `GET` | `/calendar-sync` | Devuelve las configuraciones de sync del usuario autenticado |
-| `DELETE` | `/calendar-sync/:id` | Elimina un sync individual: limpia eventos de Google, elimina Google Calendar si queda vacío y borra el registro de BD |
-| `POST` | `/calendar-sync/:id/sync-now` | Dispara la sincronización real del calendario a Google Calendar |
-| `DELETE` | `/calendar-sync/cleanup` | Endpoint interno: llamado desde `auth_service` durante la desconexión; elimina todos los syncs del usuario y limpia sus calendarios en Google |
+| `GET` | `/calendar-sync/rate-limit-status` | Returns the current state of the Google Calendar API quota counters (minute and day usage, configured limits). Requires authentication; no specific role required |
+| `POST` | `/calendar-sync/initialize` | Creates the `CalendarSync` entries after linking Google (called from `auth_service`, internal use) |
+| `GET` | `/calendar-sync` | Returns the sync configurations for the authenticated user |
+| `DELETE` | `/calendar-sync/:id` | Deletes an individual sync: cleans Google events, deletes the Google Calendar if empty and removes the database record |
+| `POST` | `/calendar-sync/:id/sync-now` | Triggers the actual synchronisation of the calendar to Google Calendar |
+| `DELETE` | `/calendar-sync/cleanup` | Internal endpoint: called from `auth_service` during disconnection; deletes all user syncs and cleans their Google calendars |
 
-**Figura 5.9a — Eliminar sincronización individual**
+**Figure 5.9a — Delete individual synchronisation**
 
 ```mermaid
 sequenceDiagram
@@ -866,23 +890,23 @@ sequenceDiagram
     participant google as Google Calendar API
     participant db as planner_database
 
-    Admin->>webapp: Pulsa botón eliminar sync
-    webapp-->>Admin: Modal de confirmación
-    Admin->>webapp: Confirma eliminación
+    Admin->>webapp: Clicks delete sync button
+    webapp-->>Admin: Confirmation modal
+    Admin->>webapp: Confirms deletion
     webapp->>gateway: DELETE /calendar-sync/:id
     gateway->>planner: DELETE /calendar-sync/:id
-    planner->>auth: GET /auth/google/token/:userId (interno)
+    planner->>auth: GET /auth/google/token/:userId (internal)
     auth-->>planner: {accessToken}
     planner->>db: UPDATE CalendarSync (syncStatus=DELETING)
-    planner->>google: DELETE eventos del calendario académico en cada Google Calendar del usuario
-    planner->>google: DELETE Google Calendar si queda vacío
+    planner->>google: DELETE academic calendar events from each user Google Calendar
+    planner->>google: DELETE Google Calendar if empty
     planner->>db: DELETE CalendarSync
     planner-->>gateway: 200 {success: true}
     gateway-->>webapp: 200 OK
-    webapp-->>Admin: Fila desaparece de la tabla
+    webapp-->>Admin: Row disappears from the table
 ```
 
-**Figura 5.9b — Sincronización manual con Google Calendar**
+**Figure 5.9b — Manual synchronisation with Google Calendar**
 
 ```mermaid
 sequenceDiagram
@@ -894,158 +918,160 @@ sequenceDiagram
     participant google as Google Calendar API
     participant db as planner_database
 
-    Admin->>webapp: Pulsa "Sincronizar ahora"
+    Admin->>webapp: Clicks "Sync now"
     webapp->>gateway: POST /calendar-sync/:id/sync-now
     gateway->>planner: POST /calendar-sync/:id/sync-now
-    planner->>auth: GET /auth/google/token/:userId (interno)
+    planner->>auth: GET /auth/google/token/:userId (internal)
     auth-->>planner: {accessToken}
     planner->>db: UPDATE CalendarSync (syncStatus=SYNCING)
-    planner->>db: SELECT todos los eventos del Calendar (periódicos + puntuales expandidos)
-    planner->>db: SELECT GoogleClassroomCalendar por aula del usuario
-    loop Por cada evento del Calendar
-        planner->>google: Upsert evento en Google Calendar del aula correspondiente
+    planner->>db: SELECT all Calendar events (recurring + expanded one-off)
+    planner->>db: SELECT GoogleClassroomCalendar by user classroom
+    loop For each Calendar event
+        planner->>google: Upsert event in corresponding classroom Google Calendar
         google-->>planner: googleEventId
         planner->>db: UPDATE CalendarSync (currentOperation, processedCalendars++)
     end
     planner->>db: UPDATE CalendarSync (syncStatus=SUCCESS, lastSyncAt=now)
     planner-->>gateway: 200 {success: true}
     gateway-->>webapp: 200 OK
-    webapp-->>Admin: Confirmación de sincronización completada
+    webapp-->>Admin: Synchronisation completed confirmation
 ```
 
-#### Control de cuotas de la Google Calendar API
+#### Google Calendar API quota control
 
-La Google Calendar API impone un límite de 600 peticiones por minuto a nivel de proyecto de Google Cloud (compartido entre todos los usuarios del sistema). El servicio implementa un control de cuotas que limita el ritmo de envío a 400 peticiones por minuto (margen de seguridad del 33%), pausando automáticamente cuando se acerca al límite y reanudando tras la ventana temporal correspondiente.
+The Google Calendar API imposes a limit of 600 requests per minute at the Google Cloud project level (shared among all system users). The service implements quota control that caps the effective sending rate at 400 requests per minute, leaving a safety headroom of 200 requests per minute (33% of the total quota) to absorb transient bursts and latency in the quota-tracking sliding window. When the counter reaches 400 within the current minute window, all further Google API calls are paused until the window resets, then automatically resumed.
 
-El contador de cuota es **global al servicio** — no por usuario individual — reflejando correctamente cómo Google aplica sus límites. Todas las operaciones que generan llamadas HTTP a Google pasan por `waitForRateLimit()`, incluyendo la creación y borrado de eventos, la creación y borrado de calendarios, y la limpieza de eventos al eliminar un sync individual. Esto garantiza que el widget de cuota de la interfaz muestra el uso real acumulado de todas las operaciones.
+The quota counter is **global to the service** — not per individual user — correctly reflecting how Google applies its limits. All operations that generate HTTP calls to Google go through `waitForRateLimit()`, including event creation and deletion, calendar creation and deletion, and event cleanup when deleting an individual sync. This ensures that the quota widget in the interface shows the actual accumulated usage of all operations.
 
-Al desconectar la cuenta, el sistema obtiene un token válido mediante `getValidAccessToken()`, que refresca automáticamente el `access_token` usando el `refresh_token` si el primero está próximo a expirar o ya caducó. Esto garantiza que el borrado de calendarios funciona aunque el usuario lleve más de una hora sin sincronizar.
+When disconnecting the account, the system obtains a valid token via `getValidAccessToken()` — the same mechanism used during synchronisation — which automatically refreshes the `access_token` using the stored encrypted `refresh_token` if the former is close to expiry or has already expired. This guarantees that calendar cleanup on disconnection works correctly even if the user has not interacted with the system for several hours.
 
-En caso de error durante la sincronización o el borrado (token irrecuperable, cuota superada, error de red), el servicio actualiza `CalendarSync.syncStatus` a `ERROR` con el mensaje de error en `errorMessage`, permitiendo al administrador diagnosticar la causa desde la interfaz sin necesidad de consultar los logs del servidor.
+In case of error during synchronisation or deletion (unrecoverable token, exceeded quota, network error), the service updates `CalendarSync.syncStatus` to `ERROR` with the error message in `errorMessage`, allowing the administrator to diagnose the cause from the interface without needing to consult the server logs.
 
 ---
 
-## 5.3 Diseño de Pruebas
+## 5.3 Testing Design
 
-### 5.3.1 Estrategia general
+### 5.3.1 General strategy
 
-La estrategia de pruebas de TeachingPlanner se articula en tres niveles complementarios que cubren distintas capas del sistema, desde el análisis estático del código hasta los flujos completos de usuario.
+The testing strategy for TeachingPlanner is structured in three complementary levels covering different system layers, from static code analysis to complete user flows.
 
-**Tabla 5.7 — Niveles de prueba**
+**Table 5.7 — Testing levels**
 
-| Nivel | Tipo | Alcance | Herramienta |
+| Level | Type | Scope | Tool |
 |---|---|---|---|
-| 0 | Análisis estático de código | Todos los servicios (backend + frontend) | SonarQube (sonar-project.properties) |
-| 1 | Tests de integración | Backend — lógica de negocio con base de datos real | Jest 30 + Testcontainers (MariaDB 11) |
-| 2 | Tests end-to-end (E2E) | Flujos completos de usuario a través de la interfaz web | Playwright 1.58 (Chromium) |
+| 0 | Static code analysis | All services (backend + frontend) | SonarQube (sonar-project.properties) |
+| 1 | Integration tests | Backend — business logic with a real database | Jest 30 + Testcontainers (MariaDB 11) |
+| 2 | End-to-end tests (E2E) | Complete user flows through the web interface | Playwright 1.58 (Chromium) |
 
-**Justificación de la ausencia de tests unitarios con mocks:** la lógica de negocio más crítica del sistema implica invariablemente operaciones sobre la base de datos: restricciones de unicidad, cascadas de eliminación y relaciones lazy/eager. Aislar TypeORM con mocks en tests unitarios introduciría una discrepancia fundamental: el mock no reproduce el comportamiento real del motor MariaDB (índices únicos, cascadas ON DELETE, check constraints). En su lugar, los tests de integración con Testcontainers ejecutan sobre una instancia MariaDB real en un contenedor efímero, verificando exactamente el comportamiento que se desplegará en producción. Esta es una decisión de diseño informada, no una omisión.
-
----
-
-### 5.3.2 Nivel 0 — Análisis estático de código (SonarQube)
-
-**Objeto de análisis:** la totalidad del código fuente TypeScript de los cuatro servicios backend (`auth_service`, `user_service`, `gateway_service`, `planner_service`) y el frontend (`webapp`).
-
-**Herramienta:** SonarQube desplegado localmente mediante `docker-compose.sonarqube.yml`. El análisis se activa manualmente mediante `sonar-scanner` con la configuración del fichero `sonar-project.properties`.
-
-**Qué se analiza:**
-- Bugs potenciales y code smells detectados por las reglas de SonarQube para TypeScript.
-- Cobertura de código: el fichero `sonar-project.properties` configura las rutas a los informes LCOV generados por Jest (`auth_service/coverage/lcov.info`, `planner_service/coverage/lcov.info`, etc.).
-- Duplicación de código y complejidad ciclomática.
-
-**Qué queda excluido del análisis:**
-- `webapp/src/components/ui/**`: incluye dos categorías — (a) los 37 primitivos de Radix UI generados automáticamente via shadcn/ui y no modificados directamente, y (b) `DataTable.tsx` y `FormDrawer.tsx`, componentes genéricos del proyecto de mantenimiento manual que también quedan excluidos por el patrón `ui/**`.
-- Directorios `dist/`, `build/`, `coverage/` y todos los ficheros de test (`*.test.ts`, `*.spec.ts`).
+**Justification for the absence of unit tests with mocks:** the most critical business logic in the system invariably involves database operations: uniqueness constraints, deletion cascades and lazy/eager relationships. Isolating TypeORM with mocks in unit tests would introduce a fundamental discrepancy: the mock does not reproduce the real behaviour of the MariaDB engine (unique indexes, ON DELETE cascades, check constraints). Instead, integration tests with Testcontainers run against a real MariaDB instance in an ephemeral container, verifying exactly the behaviour that will be deployed in production. This is an informed design decision, not an omission.
 
 ---
 
-### 5.3.3 Nivel 1 — Tests de integración (backend)
+### 5.3.2 Level 0 — Static code analysis (SonarQube)
 
-**Objeto de prueba:** la capa de datos y servicios del `planner_service`, con especial atención a las operaciones de escritura que afectan a múltiples entidades relacionadas y a las restricciones de integridad de la base de datos.
+**Scope of analysis:** the entirety of the TypeScript source code of the four backend services (`auth_service`, `user_service`, `gateway_service`, `planner_service`) and the frontend (`webapp`).
 
-**Herramientas:**
-- **Jest 30** con soporte TypeScript mediante `ts-jest`. Timeout configurado a 60 segundos por suite (`testTimeout: 60000` en `jest.config.js`) para dar margen suficiente al arranque del contenedor MariaDB mediante Testcontainers.
-- **Testcontainers** (`@testcontainers/mariadb 11.2`): levanta un contenedor MariaDB efímero por suite de pruebas y lo destruye automáticamente al finalizar, garantizando aislamiento total entre suites.
-- **TypeORM** con `synchronize: true` sobre la base de datos de test, asegurando que el esquema es siempre idéntico al de producción sin requerir migraciones.
-- **supertest 7.2.2**: para aserciones sobre respuestas HTTP en los tests que ejercitan controladores.
+**Tool:** SonarQube deployed locally via `docker-compose.sonarqube.yml`. The analysis is triggered manually via `sonar-scanner` with the configuration from the `sonar-project.properties` file.
 
-**Qué se prueba:**
+**What is analysed:**
+- Potential bugs and code smells detected by SonarQube rules for TypeScript.
+- Code coverage: the `sonar-project.properties` file configures paths to the LCOV reports generated by Jest (`auth_service/coverage/lcov.info`, `planner_service/coverage/lcov.info`, etc.).
+- Code duplication and cyclomatic complexity.
 
-Los ficheros de test se encuentran en `planner_service/src/__tests__/integration/`:
-
-1. **`calendar.delete.test.ts` — Eliminación en cascada de Calendar**: al eliminar un calendario, todas las entidades dependientes (días, eventos puntuales, eventos periódicos, grupos, asignaturas, relaciones de tablas pivote) deben eliminarse en cascada. Las entidades en posición ascendente en la jerarquía (titulación, curso) deben permanecer intactas.
-
-2. **`classroom.delete.test.ts` — Eliminación de Classroom con flag `force`**:
-   - Con `force=true`: se eliminan primero todos los eventos (`PuntualEvent`, `PeriodicEvent`) asociados al aula y después el aula misma.
-   - Con `force=false` y eventos asociados: la operación debe rechazarse (lógica equivalente a HTTP 409 Conflict).
-   - Sin eventos asociados: eliminación directa sin efectos colaterales, independientemente del valor de `force`.
-
-3. **Restricción `UNIQUE` de `Classroom.code`**: el test intenta insertar dos entidades `Classroom` con el mismo valor en el campo `code` y verifica que TypeORM propaga la excepción de violación de clave única lanzada por MariaDB (código de error 1062), garantizando que la restricción actúa a nivel de base de datos y no solo a nivel de aplicación.
-
-**Cobertura:** Jest genera informes de cobertura en formato LCOV (`planner_service/coverage/lcov.info`) que son consumidos por SonarQube para calcular la cobertura de líneas y ramas del código.
-
-**Qué queda fuera del alcance en este nivel:**
-- Lógica de autenticación y gestión de usuarios (`auth_service`, `user_service`): sus controladores son delgados y el comportamiento relevante es la integración con bcrypt y JWT, cubierta por los tests E2E.
-- Controladores HTTP: la lógica de enrutamiento y códigos de estado se verifica en los tests E2E.
-- Sincronización con Google Calendar: depende de API externa que requiere credenciales reales.
+**What is excluded from analysis:**
+- `webapp/src/components/ui/**`: this path covers two categories of files that are intentionally excluded. (a) The 32 Radix UI primitives generated via shadcn/ui: these are third-party component scaffolds not maintained by the project; analysing them would inflate the code smells count with issues that are not actionable. (b) Project-owned presentational components (`DataTable.tsx`, `FormDrawer.tsx`, `RequiredLabel.tsx` and others): these components are pure presentation code with no conditional business logic — they consist almost entirely of JSX markup and prop forwarding, making cyclomatic complexity and branch coverage metrics uninformative. Excluding them focuses the SonarQube analysis on the code paths where defects would have functional consequences.
+- Directories `dist/`, `build/`, `coverage/` and all test files (`*.test.ts`, `*.spec.ts`).
 
 ---
 
-### 5.3.4 Nivel 2 — Tests end-to-end (frontend)
+### 5.3.3 Level 1 — Integration tests (backend)
 
-**Objeto de prueba:** los flujos de usuario completos que implican interacción con la interfaz web, desde el navegador hasta la base de datos, pasando por todos los microservicios.
+**Scope of testing:** the data and service layer of `planner_service`, with special attention to write operations affecting multiple related entities and database integrity constraints.
 
-**Herramientas:**
-- **Playwright 1.58** configurado para ejecutar en **Chromium** (Desktop Chrome).
-- El servidor de desarrollo de Vite (`npm run dev`, puerto 5173) arranca automáticamente antes de la suite mediante el mecanismo `webServer` de la configuración de Playwright.
-- **Limpieza de base de datos previa** mediante el endpoint `POST /test/reset-database`, activo únicamente cuando `NODE_ENV=development` o `NODE_ENV=test`, que elimina en cascada 9 tablas del dominio de planificación (`GROUPS`, `SUBJECTS`, `PERIODIC_EVENTS`, `PUNTUAL_EVENTS`, `DAYS`, `CALENDARS`, `COURSES`, `DEGREES`, `CLASSROOMS`), garantizando la idempotencia de cada test independientemente del orden de ejecución.
+**Tools:**
+- **Jest 30** with TypeScript support via `ts-jest`. Timeout configured to 60 seconds per suite (`testTimeout: 60000` in `jest.config.js`) to allow sufficient time for the MariaDB container startup via Testcontainers.
+- **Testcontainers** (`@testcontainers/mariadb 11.2`): starts an ephemeral MariaDB container per test suite and destroys it automatically upon completion, guaranteeing full isolation between suites.
+- **TypeORM** with `synchronize: true` on the test database, ensuring that the schema is always identical to production without requiring migrations.
+- **supertest 7.2.2**: for HTTP response assertions in tests that exercise controllers.
 
-**Qué se prueba:**
+**What is tested:**
 
-**Tabla 5.8 — Cobertura de los tests E2E**
+The test files are located in `planner_service/src/__tests__/integration/`:
 
-| Fichero | Módulo | Aspectos verificados | Nº tests |
+1. **`calendar.delete.test.ts` — Calendar cascade deletion**: when a calendar is deleted, all dependent entities (days, one-off events, recurring events, groups, subjects, pivot table relationships) must be deleted in cascade. Entities higher up in the hierarchy (degree programme, academic year) must remain intact.
+
+2. **`classroom.delete.test.ts` — Classroom deletion with `force` flag**:
+   - With `force=true`: all events (`PuntualEvent`, `PeriodicEvent`) associated with the classroom are deleted first, then the classroom itself.
+   - With `force=false` and associated events: the operation must be rejected (logic equivalent to HTTP 409 Conflict).
+   - Without associated events: direct deletion without side effects, regardless of the value of `force`.
+
+3. **`UNIQUE` constraint on `Classroom.code`**: the test attempts to insert two `Classroom` entities with the same value in the `code` field and verifies that TypeORM propagates the unique key violation exception thrown by MariaDB (error code 1062), guaranteeing that the constraint acts at the database level and not just at the application level.
+
+The two test files contain a total of **7 test cases** (2 in `calendar.delete.test.ts` and 5 in `classroom.delete.test.ts`), detailed in **§6.2.1 of Chapter 6**.
+
+**Coverage:** Jest generates coverage reports in LCOV format (`planner_service/coverage/lcov.info`) consumed by SonarQube to calculate line and branch coverage.
+
+**What is out of scope at this level:**
+- Authentication and user management logic (`auth_service`, `user_service`): their controllers are thin and the relevant behaviour is the integration with bcrypt and JWT, covered by E2E tests.
+- HTTP controllers: routing logic and status codes are verified in E2E tests.
+- Google Calendar synchronisation: depends on an external API requiring real credentials.
+
+---
+
+### 5.3.4 Level 2 — End-to-end tests (frontend)
+
+**Scope of testing:** complete user flows that involve interaction with the web interface, from the browser to the database, passing through all microservices.
+
+**Tools:**
+- **Playwright 1.58** configured to run on **Chromium** (Desktop Chrome). Test files are located in `webapp/e2e/` (not inside `src/`).
+- The Vite development server (`npm run dev`, port 5173) starts automatically before the suite via the `webServer` mechanism in the Playwright configuration.
+- **Pre-execution database cleanup** via the `POST /test/reset-database` endpoint, which cascade-deletes records from 9 planning domain tables (`GROUPS`, `SUBJECTS`, `PERIODIC_EVENTS`, `PUNTUAL_EVENTS`, `DAYS`, `CALENDARS`, `COURSES`, `DEGREES`, `CLASSROOMS`), guaranteeing the idempotence of each test regardless of execution order. This endpoint is gated by the `NODE_ENV` environment variable and is only active when `NODE_ENV=development` or `NODE_ENV=test`. Including the `development` environment in this guard is a deliberate trade-off: it allows developers to run the E2E suite against locally started services without reconfiguring the environment. The associated risk — accidentally resetting development data — is accepted given that development databases contain only synthetic test data and are routinely rebuilt from seed scripts.
+
+**What is tested:**
+
+**Table 5.8 — E2E test coverage**
+
+| File | Module | Aspects verified | No. tests |
 |---|---|---|---|
-| `auth.spec.ts` | Autenticación | Renderizado del formulario; validación de campos vacíos; error por credenciales incorrectas; login exitoso y redirección; navegación autenticada; logout | 6 |
-| `classroom.spec.ts` | Aulas | Listado; creación con código único; error por código duplicado; edición (campo `code` de solo lectura); eliminación sin eventos; eliminación forzada con eventos; cancelación; filtrado por código | 8 |
-| `course.spec.ts` | Cursos | Listado; creación; error por año duplicado; edición de estado; eliminación; cancelación; filtrado; validación de campos obligatorios; estado por defecto `PLANIFICADO` | 9 |
-| `degree.spec.ts` | Titulaciones | Listado; creación; error por acrónimo duplicado; edición; eliminación; cancelación; filtrado por nombre; validación de campos obligatorios; conversión automática a mayúsculas del acrónimo | 9 |
-| `subject.spec.ts` | Asignaturas | Listado; creación; error por acrónimo duplicado; edición; eliminación; cancelación; validación de campos; mayúsculas en nombre; opciones de año (0–4); borrado múltiple en masa | 10 |
+| `auth.spec.ts` | Authentication | Form rendering; empty field validation; error on incorrect credentials; successful login and redirect; authenticated navigation; logout | 6 |
+| `classroom.spec.ts` | Classrooms | Listing; creation with unique code; error on duplicate code; editing (`code` field read-only); deletion without events; forced deletion with events; cancellation; filter by code | 8 |
+| `course.spec.ts` | Academic years | Listing; creation; error on duplicate year; state editing; deletion; cancellation; filtering; required field validation; default state `PLANIFICADO` | 9 |
+| `degree.spec.ts` | Degree programmes | Listing; creation; error on duplicate acronym; editing; deletion; cancellation; filter by name; required field validation; automatic acronym uppercase conversion | 9 |
+| `subject.spec.ts` | Subjects | Listing; creation; error on duplicate acronym; editing; deletion; cancellation; field validation; uppercase name; year options (0–4); bulk multi-delete | 10 |
 | **Total** | | | **42** |
 
-**Estrategia de aislamiento de datos:** el endpoint `POST /test/reset-database` garantiza que cada suite de tests comienza con una base de datos limpia. Los tests dentro de cada suite se ejecutan secuencialmente para evitar condiciones de carrera sobre los datos. En el entorno de CI, Playwright se configura con `workers: 1` para evitar conflictos entre suites paralelas sobre la base de datos compartida.
+**Data isolation strategy:** the `POST /test/reset-database` endpoint guarantees that each test suite starts with a clean database. Tests within each suite run sequentially to avoid race conditions on shared data. In the CI environment, Playwright is configured with `workers: 1` to avoid conflicts between parallel suites on the shared database.
 
-**Infraestructura de ejecución en CI** (job `e2e-tests` de los workflows de despliegue):
-1. Se levanta MariaDB 11 como servicio Docker con credenciales de test.
-2. Se crean las dos bases de datos de test (`planner_db_test`, `management_db_test`).
-3. Se compilan y arrancan en background los cuatro servicios backend con `NODE_ENV=test`.
-4. Se siembra un usuario administrador de prueba mediante un script de seed.
-5. Se instalan los navegadores de Playwright.
-6. Se ejecuta `playwright test` con el reporter `html,github` para generar artefactos subibles a GitHub Actions en caso de fallo.
+**CI execution infrastructure** (`e2e-tests` job of the deployment workflows):
+1. MariaDB 11 is started as a Docker service with test credentials.
+2. The two test databases are created (`planner_db_test`, `management_db_test`).
+3. The four backend services are compiled and started in the background with `NODE_ENV=test`.
+4. A test administrator user is seeded via a seed script.
+5. Playwright browsers are installed.
+6. `playwright test` is run with the `html,github` reporter to generate artefacts uploadable to GitHub Actions in case of failure.
 
-**Qué queda fuera del alcance en este nivel:**
-- Flujos de administración de usuarios: creación de cuentas, activación por correo y reseteo de contraseña (requieren servidor SMTP real).
-- Gestión completa de calendarios y eventos desde la interfaz.
-- Sincronización con Google Calendar (requiere cuenta real de Google con credenciales OAuth configuradas).
-- Pruebas de rendimiento o carga.
+**What is out of scope at this level:**
+- User administration flows: account creation, email activation and password reset (require a real SMTP server).
+- Complete calendar and event management from the interface.
+- Google Calendar synchronisation (requires a real Google account with OAuth credentials configured).
+- Performance or load testing.
 
 ---
 
-### 5.3.5 Entornos de ejecución
+### 5.3.5 Execution environments
 
-**Tabla 5.9 — Entornos de ejecución de las pruebas**
+**Table 5.9 — Test execution environments**
 
-| Entorno | Descripción | Activación |
+| Environment | Description | Activation |
 |---|---|---|
-| **Desarrollo local** | Todos los servicios levantados con `docker-compose.dev.yml` o manualmente; BD limpiada antes de cada ejecución E2E con `npm run test:e2e:clean` | Manual |
-| **Integración continua (CI)** | GitHub Actions con MariaDB como servicio Docker; servicios backend compilados y arrancados en background; seed de usuario de prueba; Playwright en `workers: 1` | Manual desde la UI de GitHub Actions (`workflow_dispatch`) |
-| **Análisis de calidad (SonarQube)** | Instancia SonarQube local levantada con `docker-compose.sonarqube.yml`; análisis ejecutado con `sonar-scanner` tras la generación de informes LCOV por Jest | Manual, tras ejecución de tests de integración |
+| **Local development** | All services started with `docker-compose.dev.yml` or manually; database cleaned before each E2E run with `npm run test:e2e:clean` | Manual |
+| **Continuous integration (CI)** | GitHub Actions with MariaDB as a Docker service; backend services compiled and started in the background; test user seed; Playwright with `workers: 1` | Manual from the GitHub Actions UI (`workflow_dispatch`) |
+| **Quality analysis (SonarQube)** | Local SonarQube instance started with `docker-compose.sonarqube.yml`; analysis run with `sonar-scanner` after Jest generates LCOV reports | Manual, after running integration tests |
 
-La implementación detallada de los scripts, casos de prueba y resultados obtenidos se describe en el **Capítulo 6**.
+The detailed implementation of scripts, test cases and results obtained is described in **Chapter 6**.
 
 ---
 
-## Referencias
+## References
 
 [1] S. Newman, *Building Microservices: Designing Fine-Grained Systems*, 2nd ed. O'Reilly Media, 2021.

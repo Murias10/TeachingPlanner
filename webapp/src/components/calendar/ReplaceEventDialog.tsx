@@ -13,11 +13,12 @@ import { TimePicker } from '@/components/ui/time-picker';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/ui/searchable-select';
-import { es } from 'date-fns/locale';
+import { es, enUS } from 'date-fns/locale';
 import { format } from 'date-fns';
 import { CalendarEvent } from '@/types/CalendarEvent';
 import { useClassrooms } from '@/hooks/classroom/useClassrooms';
 import { calculateDurationInMinutes, calculateNewEndTime } from '@/utils/timeUtils';
+import { useTranslation } from 'react-i18next';
 
 interface ReplaceEventDialogProps {
   open: boolean;
@@ -49,6 +50,9 @@ const ReplaceEventDialog: React.FC<ReplaceEventDialogProps> = ({
   eventToReplace,
   lectiveDates = new Set()
 }) => {
+  const { t, i18n } = useTranslation();
+  const dateLocale = i18n.language === 'es' ? es : enUS;
+
   const [newEventDate, setNewEventDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
   const [newStartTime, setNewStartTime] = useState<string>('09:00');
   const [newEndTime, setNewEndTime] = useState<string>('10:00');
@@ -58,14 +62,11 @@ const ReplaceEventDialog: React.FC<ReplaceEventDialogProps> = ({
   const [openEndTime, setOpenEndTime] = useState(false);
   const [openDatePicker, setOpenDatePicker] = useState(false);
 
-  // Hook para obtener las aulas
   const { data: classrooms = [] } = useClassrooms();
 
-  // Inicializar valores cuando se abre el diálogo
   React.useEffect(() => {
     if (open && eventToReplace) {
       setNewEventDate(eventToReplace.date);
-      // Formatear horas para quitar los segundos (HH:mm:ss -> HH:mm)
       setNewStartTime(eventToReplace.startTime.substring(0, 5));
       setNewEndTime(eventToReplace.endTime.substring(0, 5));
       setSelectedClassroomIds(eventToReplace.classrooms.map(c => c.id));
@@ -77,7 +78,7 @@ const ReplaceEventDialog: React.FC<ReplaceEventDialogProps> = ({
     return null;
   }
 
-  const subjectName = eventToReplace.subject?.name || 'Sin asignatura';
+  const subjectName = eventToReplace.subject?.name || t("replaceEventDialog.noSubject");
   const groupNames = eventToReplace.groups.map(g => {
     const subject = eventToReplace.subject;
     const langPrefix = g.language === 'EN' ? 'I-' : '';
@@ -116,39 +117,39 @@ const ReplaceEventDialog: React.FC<ReplaceEventDialogProps> = ({
             <div className="p-2 bg-accent rounded-lg">
               <Replace className="w-5 h-5" />
             </div>
-            <DialogTitle className="text-lg font-semibold">Reemplazar evento</DialogTitle>
+            <DialogTitle className="text-lg font-semibold">{t("replaceEventDialog.title")}</DialogTitle>
           </div>
-          <DialogDescription className="hidden">Diálogo para reemplazar un evento periódico</DialogDescription>
+          <DialogDescription className="hidden">{t("replaceEventDialog.description")}</DialogDescription>
         </DialogHeader>
 
         <div className="overflow-y-auto flex-1 px-6 py-3">
           <div className="space-y-3">
             {/* Información del evento original (solo lectura) */}
             <div className="p-3 bg-muted/50 rounded-lg border space-y-2">
-              <p className="text-xs font-semibold text-muted-foreground">Evento original</p>
+              <p className="text-xs font-semibold text-muted-foreground">{t("replaceEventDialog.originalEvent")}</p>
               <div className="space-y-1 text-sm">
-                <p><strong>Asignatura:</strong> {subjectName}</p>
-                <p><strong>Grupos:</strong> {groupNames}</p>
-                <p><strong>Aulas:</strong> {originalClassroomNames}</p>
-                <p><strong>Fecha:</strong> {format(new Date(eventToReplace.date), 'dd/MM/yyyy', { locale: es })}</p>
-                <p><strong>Horario:</strong> {eventToReplace.startTime.substring(0, 5)} - {eventToReplace.endTime.substring(0, 5)}</p>
+                <p><strong>{t("replaceEventDialog.subject")}:</strong> {subjectName}</p>
+                <p><strong>{t("replaceEventDialog.groups")}:</strong> {groupNames}</p>
+                <p><strong>{t("replaceEventDialog.classrooms")}:</strong> {originalClassroomNames}</p>
+                <p><strong>{t("replaceEventDialog.date")}:</strong> {format(new Date(eventToReplace.date), 'dd/MM/yyyy', { locale: dateLocale })}</p>
+                <p><strong>{t("replaceEventDialog.schedule")}:</strong> {eventToReplace.startTime.substring(0, 5)} - {eventToReplace.endTime.substring(0, 5)}</p>
               </div>
             </div>
 
-            {/* Campos bloqueados (solo información) */}
+            {/* Frecuencia bloqueada */}
             <div className="space-y-1">
-              <Label className="text-xs font-semibold">Frecuencia</Label>
+              <Label className="text-xs font-semibold">{t("replaceEventDialog.frequency")}</Label>
               <Input
-                value="No se repite"
+                value={t("replaceEventDialog.noRepeat")}
                 disabled
                 className="h-8 text-xs bg-muted"
               />
-              <p className="text-xs text-muted-foreground">El evento de reemplazo será un evento puntual</p>
+              <p className="text-xs text-muted-foreground">{t("replaceEventDialog.punctualHint")}</p>
             </div>
 
             {/* Nueva fecha y horario */}
             <div className="space-y-1">
-              <RequiredLabel required className="text-xs font-semibold">Nueva Fecha y Horario</RequiredLabel>
+              <RequiredLabel required className="text-xs font-semibold">{t("replaceEventDialog.newDateAndTime")}</RequiredLabel>
               <div className="flex gap-2">
                 {/* Date Selection */}
                 <Popover open={openDatePicker} onOpenChange={setOpenDatePicker} modal={true}>
@@ -157,7 +158,9 @@ const ReplaceEventDialog: React.FC<ReplaceEventDialogProps> = ({
                       variant="outline"
                       className="h-8 px-3 text-xs justify-between font-normal flex-1"
                     >
-                      {newEventDate && !isNaN(new Date(newEventDate).getTime()) ? format(new Date(newEventDate), 'dd/MM/yyyy', { locale: es }) : 'Fecha'}
+                      {newEventDate && !isNaN(new Date(newEventDate).getTime())
+                        ? format(new Date(newEventDate), 'dd/MM/yyyy', { locale: dateLocale })
+                        : t("replaceEventDialog.date")}
                       <ChevronDownIcon className="w-3 h-3" />
                     </Button>
                   </PopoverTrigger>
@@ -172,7 +175,7 @@ const ReplaceEventDialog: React.FC<ReplaceEventDialogProps> = ({
                           setOpenDatePicker(false);
                         }
                       }}
-                      locale={es}
+                      locale={dateLocale}
                       disabled={(date) => !lectiveDates.has(format(date, 'yyyy-MM-dd'))}
                     />
                   </PopoverContent>
@@ -193,9 +196,7 @@ const ReplaceEventDialog: React.FC<ReplaceEventDialogProps> = ({
                     <TimePicker
                       value={newStartTime}
                       onChange={(value) => {
-                        // Calculate current duration
                         const duration = calculateDurationInMinutes(newStartTime, newEndTime);
-                        // Calculate new end time maintaining the duration
                         const calculatedEndTime = calculateNewEndTime(value, duration);
                         setNewStartTime(value);
                         setNewEndTime(calculatedEndTime);
@@ -234,7 +235,7 @@ const ReplaceEventDialog: React.FC<ReplaceEventDialogProps> = ({
 
             {/* Asignatura (bloqueado) */}
             <div className="space-y-1">
-              <Label className="text-xs font-semibold">Asignatura</Label>
+              <Label className="text-xs font-semibold">{t("replaceEventDialog.subject")}</Label>
               <Input
                 value={subjectName}
                 disabled
@@ -246,7 +247,7 @@ const ReplaceEventDialog: React.FC<ReplaceEventDialogProps> = ({
             <div className="grid grid-cols-2 gap-2">
               {/* Grupos (bloqueado) */}
               <div className="space-y-1">
-                <Label className="text-xs font-semibold">Grupo</Label>
+                <Label className="text-xs font-semibold">{t("replaceEventDialog.group")}</Label>
                 <Input
                   value={groupNames}
                   disabled
@@ -256,10 +257,10 @@ const ReplaceEventDialog: React.FC<ReplaceEventDialogProps> = ({
 
               {/* Aulas (editable) */}
               <div className="space-y-1">
-                <RequiredLabel required className="text-xs font-semibold">Aula</RequiredLabel>
+                <RequiredLabel required className="text-xs font-semibold">{t("replaceEventDialog.classroom")}</RequiredLabel>
                 {classrooms.length === 0 ? (
                   <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
-                    Cargando aulas...
+                    {t("replaceEventDialog.loadingClassrooms")}
                   </div>
                 ) : classrooms.length > 8 ? (
                   <SearchableSelect
@@ -271,9 +272,9 @@ const ReplaceEventDialog: React.FC<ReplaceEventDialogProps> = ({
                       value: classroom.id,
                       label: classroom.code
                     }))}
-                    placeholder="Seleccionar aula"
-                    searchPlaceholder="Buscar aula..."
-                    emptyMessage="No se encontraron aulas."
+                    placeholder={t("replaceEventDialog.selectClassroom")}
+                    searchPlaceholder={t("replaceEventDialog.searchClassroom")}
+                    emptyMessage={t("replaceEventDialog.noClassroomsFound")}
                   />
                 ) : (
                   <Select
@@ -283,7 +284,7 @@ const ReplaceEventDialog: React.FC<ReplaceEventDialogProps> = ({
                     }}
                   >
                     <SelectTrigger className="h-8 text-xs w-full">
-                      <SelectValue placeholder="Seleccionar aula" />
+                      <SelectValue placeholder={t("replaceEventDialog.selectClassroom")} />
                     </SelectTrigger>
                     <SelectContent>
                       {classrooms.sort((a, b) => a.code.localeCompare(b.code)).map((classroom) => (
@@ -297,12 +298,12 @@ const ReplaceEventDialog: React.FC<ReplaceEventDialogProps> = ({
               </div>
             </div>
 
-            {/* Comment Field */}
+            {/* Comentario */}
             <div className="space-y-1">
-              <Label htmlFor="comment" className="text-xs font-semibold">Comentario</Label>
+              <Label htmlFor="comment" className="text-xs font-semibold">{t("replaceEventDialog.comment")}</Label>
               <Textarea
                 id="comment"
-                placeholder="Añade un comentario sobre este reemplazo..."
+                placeholder={t("replaceEventDialog.commentPlaceholder")}
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 className="h-20 text-xs resize-none"
@@ -311,14 +312,23 @@ const ReplaceEventDialog: React.FC<ReplaceEventDialogProps> = ({
 
             {/* Resumen */}
             <div className="bg-accent/20 border border-primary/20 rounded p-3 text-xs space-y-1">
-              <p className="font-semibold">Resumen del reemplazo</p>
+              <p className="font-semibold">{t("replaceEventDialog.summary")}</p>
               <p className="text-muted-foreground">
-                El evento del <strong>{format(new Date(eventToReplace.date), 'dd/MM/yyyy', { locale: es })}</strong> a las <strong>{eventToReplace.startTime.substring(0, 5)}</strong> será cancelado
+                {t("replaceEventDialog.summaryCancel", {
+                  date: format(new Date(eventToReplace.date), 'dd/MM/yyyy', { locale: dateLocale }),
+                  time: eventToReplace.startTime.substring(0, 5)
+                })}
               </p>
               <p className="text-muted-foreground">
-                Se creará un nuevo evento el <strong>{format(new Date(newEventDate), 'dd/MM/yyyy', { locale: es })}</strong> de <strong>{newStartTime} - {newEndTime}</strong>
+                {t("replaceEventDialog.summaryCreate", {
+                  newDate: format(new Date(newEventDate), 'dd/MM/yyyy', { locale: dateLocale }),
+                  startTime: newStartTime,
+                  endTime: newEndTime
+                })}
                 {selectedClassroomIds.length > 0 && (
-                  <> en el aula <strong>{classrooms.find(c => c.id === selectedClassroomIds[0])?.code}</strong></>
+                  t("replaceEventDialog.summaryClassroom", {
+                    code: classrooms.find(c => c.id === selectedClassroomIds[0])?.code
+                  })
                 )}
               </p>
             </div>
@@ -332,14 +342,14 @@ const ReplaceEventDialog: React.FC<ReplaceEventDialogProps> = ({
             onClick={() => onOpenChange(false)}
             className="h-8 text-xs"
           >
-            Cancelar
+            {t("replaceEventDialog.cancel")}
           </Button>
           <Button
             onClick={handleSave}
             disabled={!isFormValid}
             className="h-8 text-xs"
           >
-            Reemplazar evento
+            {t("replaceEventDialog.replace")}
           </Button>
         </div>
       </DialogContent>

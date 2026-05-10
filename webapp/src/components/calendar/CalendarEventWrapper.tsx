@@ -10,6 +10,7 @@ import {
 import { Edit, Trash2, Calendar, XCircle, Replace, Undo, Eye, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { EVENT_CHARACTERS } from "@/constants/eventCharacters";
+import { useTranslation } from "react-i18next";
 
 interface CalendarEventWrapperProps {
   event: {
@@ -48,6 +49,7 @@ export function CalendarEventWrapper({
   onRequestReplace,
 }: CalendarEventWrapperProps) {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const calendarEvent = event.resource;
   const isAdmin = user?.role === 'ADMIN';
   const isProfessor = user?.role === 'PROFESSOR';
@@ -160,14 +162,14 @@ export function CalendarEventWrapper({
         <ContextMenuContent className="w-56">
           <ContextMenuItem onClick={handleViewDetails}>
             <Calendar />
-            Ver detalles
+            {t("calendar.contextMenu.viewDetails")}
           </ContextMenuItem>
 
           <ContextMenuSeparator />
 
           <ContextMenuItem onClick={handleRevertCancellation}>
             <Undo />
-            Revertir cancelación
+            {t("calendar.contextMenu.revertCancellation")}
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
@@ -184,19 +186,19 @@ export function CalendarEventWrapper({
         <ContextMenuContent className="w-56">
           <ContextMenuItem onClick={handleViewDetails}>
             <Calendar />
-            Ver detalles
+            {t("calendar.contextMenu.viewDetails")}
           </ContextMenuItem>
 
           <ContextMenuSeparator />
 
           <ContextMenuItem onClick={handleReviewRequest}>
             <Eye className="text-blue-600" />
-            Revisar solicitud
+            {t("calendar.contextMenu.reviewRequest")}
           </ContextMenuItem>
 
           <ContextMenuItem variant="destructive" onClick={handleRejectRequest}>
             <X className="text-rose-600" />
-            Rechazar solicitud
+            {t("calendar.contextMenu.rejectRequest")}
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
@@ -213,14 +215,14 @@ export function CalendarEventWrapper({
         <ContextMenuContent className="w-56">
           <ContextMenuItem onClick={handleViewDetails}>
             <Calendar />
-            Ver detalles
+            {t("calendar.contextMenu.viewDetails")}
           </ContextMenuItem>
 
           <ContextMenuSeparator />
 
           <ContextMenuItem variant="destructive" onClick={handleDeleteRequest}>
             <Trash2 />
-            Eliminar solicitud
+            {t("calendar.contextMenu.deleteRequest")}
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
@@ -239,36 +241,35 @@ export function CalendarEventWrapper({
           <ContextMenuContent className="w-56">
             <ContextMenuItem onClick={handleViewDetails}>
               <Calendar />
-              Ver detalles
+              {t("calendar.contextMenu.viewDetails")}
             </ContextMenuItem>
 
             <ContextMenuSeparator />
 
-            {/* Mostrar "Editar serie" para eventos periódicos (Normal, Par, Impar y personalizados) */}
             {/* Solo excluir eventos festivos (F). Los días lectivos no tienen carácter específico */}
             {calendarEvent.eventCharacter &&
              calendarEvent.eventCharacter !== EVENT_CHARACTERS.FESTIVO && (
               <ContextMenuItem onClick={handleEditSeries}>
                 <Edit />
-                Editar serie de eventos
+                {t("calendar.contextMenu.editSeries")}
               </ContextMenuItem>
             )}
 
             <ContextMenuItem onClick={handleReplaceEvent}>
               <Replace />
-              Reemplazar evento
+              {t("calendar.contextMenu.replaceEvent")}
             </ContextMenuItem>
 
             <ContextMenuSeparator />
 
             <ContextMenuItem variant="destructive" onClick={handleDelete}>
               <Trash2 />
-              Eliminar evento
+              {t("calendar.contextMenu.deleteEvent")}
             </ContextMenuItem>
 
             <ContextMenuItem variant="destructive" onClick={handleDeleteSeries}>
               <Trash2 />
-              Eliminar serie de eventos
+              {t("calendar.contextMenu.deleteSeries")}
             </ContextMenuItem>
           </ContextMenuContent>
         </ContextMenu>
@@ -284,21 +285,21 @@ export function CalendarEventWrapper({
         <ContextMenuContent className="w-56">
           <ContextMenuItem onClick={handleViewDetails}>
             <Calendar />
-            Ver detalles
+            {t("calendar.contextMenu.viewDetails")}
           </ContextMenuItem>
 
           <ContextMenuSeparator />
 
           <ContextMenuItem onClick={handleEdit}>
             <Edit />
-            Editar evento
+            {t("calendar.contextMenu.editEvent")}
           </ContextMenuItem>
 
           <ContextMenuSeparator />
 
           <ContextMenuItem variant="destructive" onClick={handleDelete}>
             <Trash2 />
-            Eliminar evento
+            {t("calendar.contextMenu.deleteEvent")}
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
@@ -315,24 +316,26 @@ export function CalendarEventWrapper({
         <ContextMenuContent>
           <ContextMenuItem onClick={handleViewDetails}>
             <Calendar />
-            Ver detalles
+            {t("calendar.contextMenu.viewDetails")}
           </ContextMenuItem>
 
           <ContextMenuSeparator />
 
           <ContextMenuItem onClick={handleRequestEdit}>
             <Edit />
-            {isPeriodicEvent ? 'Solicitar editar serie de eventos' : 'Solicitar editar evento'}
+            {isPeriodicEvent
+              ? t("calendar.contextMenu.requestEditSeries")
+              : t("calendar.contextMenu.requestEditEvent")}
           </ContextMenuItem>
 
           <ContextMenuItem onClick={handleRequestReplace}>
             <Replace />
-            Solicitar reemplazar evento
+            {t("calendar.contextMenu.requestReplace")}
           </ContextMenuItem>
 
           <ContextMenuItem variant="destructive" onClick={handleRequestCancel}>
             <XCircle />
-            Solicitar cancelar
+            {t("calendar.contextMenu.requestCancel")}
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>

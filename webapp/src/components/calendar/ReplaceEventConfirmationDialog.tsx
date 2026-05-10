@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -25,7 +26,9 @@ export function ReplaceEventConfirmationDialog({
   onOpenChange,
   onConfirm,
   eventInfo
-}: ReplaceEventConfirmationDialogProps) {
+}: Readonly<ReplaceEventConfirmationDialogProps>) {
+  const { t } = useTranslation();
+
   const handleConfirm = () => {
     onConfirm();
     onOpenChange(false);
@@ -35,32 +38,33 @@ export function ReplaceEventConfirmationDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Reemplazar evento</AlertDialogTitle>
+          <AlertDialogTitle>{t("dialog.replaceConfirmation.title")}</AlertDialogTitle>
           <AlertDialogDescription>
             {eventInfo ? (
               <>
-                Vas a reemplazar el evento del grupo <strong>{eventInfo.groupName}</strong> del{' '}
-                <strong>{eventInfo.date}</strong> a las <strong>{eventInfo.time}</strong>.
+                {t("dialog.replaceConfirmation.descriptionWithInfo", {
+                  groupName: eventInfo.groupName,
+                  date: eventInfo.date,
+                  time: eventInfo.time,
+                })}
                 <br /><br />
-                Esta acción creará un nuevo evento en la fecha y hora que elijas, y el evento original
-                será marcado como cancelado.
+                {t("dialog.replaceConfirmation.description")}
                 <br /><br />
-                ¿Deseas continuar?
+                {t("dialog.replaceConfirmation.confirm")}
               </>
             ) : (
               <>
-                Esta acción creará un nuevo evento en la fecha y hora que elijas, y el evento original
-                será marcado como cancelado.
+                {t("dialog.replaceConfirmation.description")}
                 <br /><br />
-                ¿Deseas continuar?
+                {t("dialog.replaceConfirmation.confirm")}
               </>
             )}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
           <AlertDialogAction onClick={handleConfirm}>
-            Continuar
+            {t("dialog.replaceConfirmation.continue")}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

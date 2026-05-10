@@ -1,13 +1,16 @@
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { Pencil, Trash2 } from "lucide-react"
+import { useTranslation } from "react-i18next"
 
 interface EditDeleteTableButtonsProps {
     onDelete: () => void;
     onEdit: () => void;
 }
 
-export function EditDeleteTableButtons({ onDelete, onEdit }: EditDeleteTableButtonsProps) {
+export function EditDeleteTableButtons({ onDelete, onEdit }: Readonly<EditDeleteTableButtonsProps>) {
+    const { t } = useTranslation()
+
     return (
         <>
             <Tooltip>
@@ -24,7 +27,7 @@ export function EditDeleteTableButtons({ onDelete, onEdit }: EditDeleteTableButt
                     </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                    <p>Editar</p>
+                    <p>{t("common.edit")}</p>
                 </TooltipContent>
             </Tooltip>
 
@@ -42,7 +45,7 @@ export function EditDeleteTableButtons({ onDelete, onEdit }: EditDeleteTableButt
                     </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                    <p>Eliminar</p>
+                    <p>{t("common.delete")}</p>
                 </TooltipContent>
             </Tooltip>
         </>

@@ -16,6 +16,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AprobacionEventoModal } from "./AprobacionEventoModal";
 
 interface EventRequest {
@@ -44,7 +45,8 @@ export function SolicitudesPendientesModal({
     onApprove,
     onReject,
     loading = false
-}: SolicitudesPendientesModalProps) {
+}: Readonly<SolicitudesPendientesModalProps>) {
+    const { t, i18n } = useTranslation();
     const [selectedRequest, setSelectedRequest] = useState<EventRequest | null>(null);
     const [approvalModalOpen, setApprovalModalOpen] = useState(false);
 
@@ -61,18 +63,18 @@ export function SolicitudesPendientesModal({
     const getStatusBadge = (status: string) => {
         switch (status) {
             case "PENDING":
-                return <Badge variant="default">Pendiente</Badge>;
+                return <Badge variant="default">{t("table.solicitudes.status.pending")}</Badge>;
             case "APPROVED":
-                return <Badge variant="default" className="bg-green-600">Aprobado</Badge>;
+                return <Badge variant="default" className="bg-green-600">{t("table.solicitudes.status.approved")}</Badge>;
             case "REJECTED":
-                return <Badge variant="destructive">Rechazado</Badge>;
+                return <Badge variant="destructive">{t("table.solicitudes.status.rejected")}</Badge>;
             default:
                 return <Badge>{status}</Badge>;
         }
     };
 
     const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('es-ES');
+        return new Date(dateString).toLocaleDateString(i18n.language === 'es' ? 'es-ES' : 'en-GB');
     };
 
     return (
@@ -80,23 +82,23 @@ export function SolicitudesPendientesModal({
             <Dialog open={open} onOpenChange={onOpenChange}>
                 <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
                     <DialogHeader>
-                        <DialogTitle>Solicitudes de Eventos Pendientes</DialogTitle>
+                        <DialogTitle>{t("solicitudesPendientes.title")}</DialogTitle>
                     </DialogHeader>
 
                     {solicitudes.length === 0 ? (
                         <div className="py-8 text-center text-gray-500">
-                            No hay solicitudes pendientes
+                            {t("solicitudesPendientes.empty")}
                         </div>
                     ) : (
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Profesor</TableHead>
-                                    <TableHead>Tipo</TableHead>
-                                    <TableHead>Fecha Solicitud</TableHead>
-                                    <TableHead>Hora</TableHead>
-                                    <TableHead>Estado</TableHead>
-                                    <TableHead>Acciones</TableHead>
+                                    <TableHead>{t("solicitudesPendientes.table.professor")}</TableHead>
+                                    <TableHead>{t("solicitudesPendientes.table.type")}</TableHead>
+                                    <TableHead>{t("solicitudesPendientes.table.requestDate")}</TableHead>
+                                    <TableHead>{t("solicitudesPendientes.table.time")}</TableHead>
+                                    <TableHead>{t("solicitudesPendientes.table.status")}</TableHead>
+                                    <TableHead>{t("solicitudesPendientes.table.actions")}</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -104,7 +106,9 @@ export function SolicitudesPendientesModal({
                                     <TableRow key={request.id}>
                                         <TableCell className="text-sm">{request.professorId}</TableCell>
                                         <TableCell className="text-sm">
-                                            {request.eventType === "PUNTUAL" ? "Puntual" : "Periódico"}
+                                            {request.eventType === "PUNTUAL"
+                                                ? t("requests.dialog.approve.eventType.punctual")
+                                                : t("requests.dialog.approve.eventType.periodic")}
                                         </TableCell>
                                         <TableCell className="text-sm">
                                             {formatDate(request.createdAt)}
@@ -124,7 +128,7 @@ export function SolicitudesPendientesModal({
                                                         onClick={() => handleApproveClick(request)}
                                                         disabled={loading}
                                                     >
-                                                        Aprobar
+                                                        {t("requests.dialog.approve.approve")}
                                                     </Button>
                                                     <Button
                                                         size="sm"
@@ -132,7 +136,7 @@ export function SolicitudesPendientesModal({
                                                         onClick={() => handleRejectClick(request)}
                                                         disabled={loading}
                                                     >
-                                                        Rechazar
+                                                        {t("requests.dialog.reject.reject")}
                                                     </Button>
                                                 </>
                                             )}
@@ -145,7 +149,7 @@ export function SolicitudesPendientesModal({
 
                     <div className="mt-4 flex justify-end">
                         <DialogClose asChild>
-                            <Button variant="outline">Cerrar</Button>
+                            <Button variant="outline">{t("common.close")}</Button>
                         </DialogClose>
                     </div>
                 </DialogContent>

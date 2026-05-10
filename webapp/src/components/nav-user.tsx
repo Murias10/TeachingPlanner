@@ -30,6 +30,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext"
 import { useNavigate } from "react-router-dom"
 import { useEffect, useRef } from "react"
+import { useTranslation } from "react-i18next"
 
 export function NavUser({
   user,
@@ -43,6 +44,7 @@ export function NavUser({
   const { isMobile } = useSidebar()
   const { logout, isAuthenticated } = useAuth()
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const justLoggedOut = useRef(false)
 
   useEffect(() => {
@@ -105,19 +107,19 @@ export function NavUser({
                 <DropdownMenuGroup>
                   <DropdownMenuItem onClick={() => navigate("/settings")}>
                     <Settings2 />
-                    Configuración
+                    {t("navUser.settings")}
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>
                   <LogOut />
-                  Log out
+                  {t("navUser.logout")}
                 </DropdownMenuItem>
               </>
             ) : (
               <DropdownMenuItem onClick={handleSignIn}>
                 <LogIn />
-                Sign in
+                {t("navUser.signIn")}
               </DropdownMenuItem>
             )}
           </DropdownMenuContent>

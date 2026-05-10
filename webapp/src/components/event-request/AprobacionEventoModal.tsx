@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface EventRequest {
     id: string;
@@ -31,7 +32,8 @@ export function AprobacionEventoModal({
     request,
     onApprove,
     onReject,
-}: AprobacionEventoModalProps) {
+}: Readonly<AprobacionEventoModalProps>) {
+    const { t } = useTranslation();
     const [action, setAction] = useState<"approve" | "reject" | null>(null);
     const [comments, setComments] = useState("");
     const [loading, setLoading] = useState(false);
@@ -73,35 +75,37 @@ export function AprobacionEventoModal({
             <DialogContent className="max-w-md">
                 <DialogHeader>
                     <DialogTitle>
-                        {action === "approve" ? "Aprobar Solicitud" : "Rechazar Solicitud"}
+                        {action === "approve"
+                            ? t("requests.dialog.approve.title")
+                            : t("requests.dialog.reject.title")}
                     </DialogTitle>
                     <DialogDescription>
                         {action === "approve"
-                            ? "¿Deseas aprobar esta solicitud de evento?"
-                            : "¿Deseas rechazar esta solicitud? Puedes dejar comentarios."}
+                            ? t("aprobacionModal.approveDescription")
+                            : t("aprobacionModal.rejectDescription")}
                     </DialogDescription>
                 </DialogHeader>
 
                 {action === null && (
                     <div className="space-y-3">
                         <div className="bg-gray-50 p-3 rounded text-sm">
-                            <p><strong>Profesor:</strong> {request.professorId}</p>
-                            <p><strong>Tipo:</strong> {request.eventType === "PUNTUAL" ? "Puntual" : "Periódico"}</p>
-                            <p><strong>Hora:</strong> {request.eventData.startTime} - {request.eventData.endTime}</p>
+                            <p><strong>{t("requests.dialog.approve.professor")}:</strong> {request.professorId}</p>
+                            <p><strong>{t("requests.dialog.approve.eventType")}:</strong> {request.eventType === "PUNTUAL" ? t("requests.dialog.approve.eventType.punctual") : t("requests.dialog.approve.eventType.periodic")}</p>
+                            <p><strong>{t("aprobacionModal.schedule")}:</strong> {request.eventData.startTime} - {request.eventData.endTime}</p>
                         </div>
                         <div className="flex gap-2">
                             <Button
                                 className="flex-1"
                                 onClick={() => setAction("approve")}
                             >
-                                Aprobar
+                                {t("requests.dialog.approve.approve")}
                             </Button>
                             <Button
                                 className="flex-1"
                                 variant="destructive"
                                 onClick={() => setAction("reject")}
                             >
-                                Rechazar
+                                {t("requests.dialog.reject.reject")}
                             </Button>
                         </div>
                         <Button
@@ -109,7 +113,7 @@ export function AprobacionEventoModal({
                             variant="outline"
                             onClick={handleCancel}
                         >
-                            Cancelar
+                            {t("common.cancel")}
                         </Button>
                     </div>
                 )}
@@ -117,7 +121,7 @@ export function AprobacionEventoModal({
                 {action === "approve" && (
                     <div className="space-y-4">
                         <div className="bg-green-50 p-3 rounded text-sm text-green-800">
-                            Se creará el evento cuando apruebes
+                            {t("aprobacionModal.approveInfo")}
                         </div>
                         <div className="flex gap-2">
                             <Button
@@ -125,7 +129,7 @@ export function AprobacionEventoModal({
                                 onClick={handleApprove}
                                 disabled={loading}
                             >
-                                {loading ? "Procesando..." : "Confirmar Aprobación"}
+                                {loading ? t("aprobacionModal.processing") : t("aprobacionModal.confirmApprove")}
                             </Button>
                             <Button
                                 className="flex-1"
@@ -133,7 +137,7 @@ export function AprobacionEventoModal({
                                 onClick={() => setAction(null)}
                                 disabled={loading}
                             >
-                                Volver
+                                {t("aprobacionModal.back")}
                             </Button>
                         </div>
                     </div>
@@ -142,12 +146,12 @@ export function AprobacionEventoModal({
                 {action === "reject" && (
                     <div className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="reject-comments">Comentarios (opcional)</Label>
+                            <Label htmlFor="reject-comments">{t("requests.dialog.approve.commentLabel")}</Label>
                             <Textarea
                                 id="reject-comments"
                                 value={comments}
                                 onChange={(e) => setComments(e.target.value)}
-                                placeholder="Explica brevemente por qué rechazas la solicitud..."
+                                placeholder={t("requests.dialog.reject.commentsPlaceholder")}
                                 rows={4}
                             />
                         </div>
@@ -158,7 +162,7 @@ export function AprobacionEventoModal({
                                 onClick={handleReject}
                                 disabled={loading}
                             >
-                                {loading ? "Procesando..." : "Confirmar Rechazo"}
+                                {loading ? t("aprobacionModal.processing") : t("aprobacionModal.confirmReject")}
                             </Button>
                             <Button
                                 className="flex-1"
@@ -166,7 +170,7 @@ export function AprobacionEventoModal({
                                 onClick={() => setAction(null)}
                                 disabled={loading}
                             >
-                                Volver
+                                {t("aprobacionModal.back")}
                             </Button>
                         </div>
                     </div>

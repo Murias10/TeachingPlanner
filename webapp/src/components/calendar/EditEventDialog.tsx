@@ -17,7 +17,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { TimePicker } from '@/components/ui/time-picker';
 import { Textarea } from '@/components/ui/textarea';
-import { es } from 'date-fns/locale';
+import { es, enUS } from 'date-fns/locale';
 import { format } from 'date-fns';
 import type { RecurrenceConfig, FrequencyType, WeekDay, EndsType, CustomFrequencyUnit, MonthlyPatternType } from '@/types/RecurrenceConfig';
 import type { CalendarEvent } from '@/types/CalendarEvent';
@@ -38,16 +38,16 @@ interface EditEventDialogProps {
   lectiveDates?: Set<string>;
 }
 
-// Helper functions for time calculations
 const formatTimeDisplay = (time: string): string => {
-  // Si el tiempo viene con segundos (HH:mm:ss), solo mostrar HH:mm
   const parts = time.split(':');
   return parts.length >= 2 ? `${parts[0]}:${parts[1]}` : time;
 };
 
 
 const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, onSave, event, calendarId, lectiveDates = new Set() }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const dateLocale = i18n.language === 'es' ? es : enUS;
+
   const [config, setConfig] = useState<RecurrenceConfig>({
     frequency: 'no-repeat',
     interval: 1,
@@ -76,19 +76,17 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
   const [openCustomStartDate, setOpenCustomStartDate] = useState(false);
   const [openEndsOnDate, setOpenEndsOnDate] = useState(false);
   const [allowEditPlanifiedHours, setAllowEditPlanifiedHours] = useState(false);
-  const [initialGroupHours, setInitialGroupHours] = useState<number>(0); // Store initial hours from selected group
-  const [initialConfig, setInitialConfig] = useState<RecurrenceConfig | null>(null); // Store initial config to detect changes
-  const [isInitializing, setIsInitializing] = useState(false); // Flag to prevent clearing during initialization
+  const [initialGroupHours, setInitialGroupHours] = useState<number>(0);
+  const [initialConfig, setInitialConfig] = useState<RecurrenceConfig | null>(null);
+  const [isInitializing, setIsInitializing] = useState(false);
 
   const previousGroupTypeRef = React.useRef<string>('T');
 
-  // Detectar si el evento es periódico personalizado (custom character que no es N, P, I, F)
   const isCustomPeriodicEvent = useMemo(() => {
     if (event?.type !== 'periodic') return false;
     return isCustomEventCharacter(event.eventCharacter);
   }, [event]);
 
-  // Resetear estados cuando se cierra el diálogo
   useEffect(() => {
     if (!open) {
       setInitialConfig(null);
@@ -102,24 +100,18 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
     }
   }, [open]);
 
-  // Actualizar config cuando cambie el evento
   useEffect(() => {
     if (event && open) {
-      // Marcar que estamos inicializando
       setIsInitializing(true);
-      // Para eventos periódicos, usar las horas planificadas del grupo
       const planifiedHours = event.type === 'periodic' && event.groups.length > 0
         ? event.groups[0].planifiedHours || 0
         : 0;
 
-      // Para eventos periódicos, extraer el día de la semana del evento
       let weekDays: WeekDay[] = [];
       if (event.type === 'periodic' && event.weekDay) {
-        // El weekDay ya viene en formato de letra (L, M, X, J, V, S, D) desde la base de datos
         weekDays = [event.weekDay as WeekDay];
       }
 
-      // Determinar la frecuencia basándose en el eventCharacter
       let frequency: FrequencyType = 'no-repeat';
       if (event.type === 'periodic') {
         if (event.eventCharacter === EVENT_CHARACTERS.NORMAL) {
@@ -129,10 +121,8 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
         } else if (event.eventCharacter === EVENT_CHARACTERS.IMPAR) {
           frequency = 'biweekly-odd';
         } else if (event.eventCharacter) {
-          // Cualquier otro carácter es personalizado
           frequency = 'custom';
         } else {
-          // Fallback si no hay eventCharacter
           frequency = 'weekly';
         }
       }
@@ -158,35 +148,28 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
         eventCharacter: event.eventCharacter,
       };
 
-      // Set refs BEFORE any state updates to avoid race conditions
       if (event.groups.length > 0) {
         previousGroupTypeRef.current = event.groups[0].type;
       }
-      // Also set the subject ref to prevent subject change detection
       previousSubjectIdRef.current = event.subject?.id;
 
-      // Update all states - config and initialConfig should be set together
       setConfig(newConfig);
-      setInitialConfig(newConfig); // Save initial config for comparison
+      setInitialConfig(newConfig);
 
-      // Initialize planified hours state for periodic events
       if (event.type === 'periodic' && planifiedHours > 0) {
         setInitialGroupHours(planifiedHours);
         setAllowEditPlanifiedHours(false);
       }
 
-      // Set selectedEventType from the event, groupType from first group
       setSelectedEventType(event.eventType || EVENT_TYPES.NORMAL);
       if (event.groups.length > 0) {
         setGroupType(event.groups[0].type);
       }
 
-      // Marcar que terminamos de inicializar (después de un pequeño delay para asegurar que todos los estados se actualizaron)
       setTimeout(() => setIsInitializing(false), 0);
     }
   }, [event, open]);
 
-  // Clear group and classroom selections when selectedEventType or groupType changes (only if user manually changed it)
   React.useEffect(() => {
     if (isInitializing) return;
     if (groupType !== previousGroupTypeRef.current) {
@@ -199,22 +182,18 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
     }
   }, [groupType, selectedEventType, isInitializing]);
 
-  // Clear group selection when subject changes
   const previousSubjectIdRef = React.useRef<string | undefined>(undefined);
   React.useEffect(() => {
-    // Don't clear groups during initialization
     if (isInitializing) {
       previousSubjectIdRef.current = config.subjectId;
       return;
     }
 
-    // Skip the first run (when component mounts)
     if (previousSubjectIdRef.current === undefined) {
       previousSubjectIdRef.current = config.subjectId;
       return;
     }
 
-    // Only clear groups if subject actually changed
     if (config.subjectId !== previousSubjectIdRef.current) {
       setConfig(prev => ({
         ...prev,
@@ -227,13 +206,11 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
   const { data: classrooms = [] } = useClassrooms();
   const { data: subjectsWithGroups = [], isLoading: isLoadingSubjects } = useSubjectsWithGroupsByCalendarId(calendarId || null);
 
-  // Ensure event classrooms are available in the list
   const availableClassrooms = useMemo(() => {
     if (!event || !event.classrooms.length) {
       return classrooms;
     }
 
-    // Merge classrooms from the hook with classrooms from the event
     const mergedClassrooms = [...classrooms];
 
     event.classrooms.forEach(eventClassroom => {
@@ -245,15 +222,12 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
     return mergedClassrooms;
   }, [classrooms, event]);
 
-  // Get current subject with fallback to event.subject
   const currentSubject = useMemo(() => {
     if (!config.subjectId) return null;
 
-    // First try to find in subjectsWithGroups
     const found = subjectsWithGroups.find(s => s.id === config.subjectId);
     if (found) return found;
 
-    // Fallback to event.subject if available
     if (event?.subject?.id === config.subjectId) {
       return event.subject;
     }
@@ -261,7 +235,6 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
     return null;
   }, [config.subjectId, subjectsWithGroups, event]);
 
-  // Calculate monthly pattern labels based on customStartDate
   const monthlyPatternLabels = useMemo(() => {
     if (!config.customStartDate) {
       return { dayOfMonth: '', dayOfWeek: '' };
@@ -278,7 +251,6 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
   const effectiveEventType = isBlocker ? EVENT_TYPES.BLOCKER : selectedEventType;
   const isReviewOrEval = isReviewOrEvalEventType(selectedEventType);
 
-  // Extract groups from subjects with groups for the selected subject and filter by groupType
   const availableGroups = useMemo((): Group[] => {
     if (!config.subjectId || isBlocker) return [];
 
@@ -297,8 +269,6 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
       ? selectedSubject.groups.filter((group: Group) => group.type === groupType)
       : selectedSubject.groups;
 
-    // If the filtered list doesn't include the selected group from the event,
-    // add it to ensure it's available for selection
     if (event && event.groups.length > 0 && config.groupIds && config.groupIds.length > 0) {
       const missingGroups = config.groupIds
         .filter(id => !filtered.some(g => g.id === id))
@@ -316,7 +286,6 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
     const hasClassrooms = config.classroomIds && config.classroomIds.length > 0;
     const isSpecial = isSpecialEventType(effectiveEventType);
 
-    // Blocker: solo necesita aulas (y fecha/días según frecuencia)
     if (isBlocker) {
       if (!hasClassrooms) return false;
       if (config.frequency === 'no-repeat') return !!config.eventDate;
@@ -326,7 +295,6 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
       return true;
     }
 
-    // Eventos con asignatura: requieren asignatura, grupo(s), aula(s)
     const baseValid = (
       config.subjectId &&
       config.groupIds &&
@@ -347,11 +315,9 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
     return true;
   }, [effectiveEventType, isBlocker, config.subjectId, config.groupIds, config.classroomIds, config.frequency, config.eventDate, config.weekDays, config.planifiedHours]);
 
-  // Detect if there are any changes from the initial config
   const hasChanges = useMemo(() => {
     if (!initialConfig) return false;
 
-    // Helper function to compare arrays
     const arraysEqual = (a: any[], b: any[]) => {
       if (a.length !== b.length) return false;
       const sortedA = [...a].sort();
@@ -359,7 +325,6 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
       return sortedA.every((val, idx) => val === sortedB[idx]);
     };
 
-    // Compare each field that can be edited
     return (
       config.startTime !== initialConfig.startTime ||
       config.endTime !== initialConfig.endTime ||
@@ -394,41 +359,39 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
   };
 
   const getSummary = (): string => {
-    if (config.frequency === 'no-repeat') return 'No se repite';
-    if (config.frequency === 'weekly') return 'Semanalmente';
-    if (config.frequency === 'biweekly-even') return 'Quincenal (Semanas Pares)';
-    if (config.frequency === 'biweekly-odd') return 'Quincenal (Semanas Impares)';
+    if (config.frequency === 'no-repeat') return t("eventDialog.noRepeat");
+    if (config.frequency === 'weekly') return t("eventDialog.weekly");
+    if (config.frequency === 'biweekly-even') return t("eventDialog.biweeklyEven");
+    if (config.frequency === 'biweekly-odd') return t("eventDialog.biweeklyOdd");
 
     if (config.frequency === 'custom') {
-      // Para eventos personalizados existentes, mostrar el carácter
       if (config.eventCharacter) {
         return getCharacterDescription(config.eventCharacter);
       }
 
-      // Para eventos nuevos (no deberían llegar aquí en EditDialog)
       if (config.interval > 0 && config.customFrequencyUnit) {
         let unitLabel = '';
         if (config.customFrequencyUnit === 'day') {
-          unitLabel = config.interval === 1 ? 'día' : 'días';
+          unitLabel = config.interval === 1 ? t("eventDialog.day") : t("eventDialog.days");
         } else if (config.customFrequencyUnit === 'week') {
-          unitLabel = config.interval === 1 ? 'semana' : 'semanas';
+          unitLabel = config.interval === 1 ? t("eventDialog.week") : t("eventDialog.weeks");
         } else if (config.customFrequencyUnit === 'month') {
-          unitLabel = config.interval === 1 ? 'mes' : 'meses';
+          unitLabel = config.interval === 1 ? t("eventDialog.month") : t("eventDialog.months");
         }
 
-        let summary = `Cada ${config.interval} ${unitLabel}`;
+        let summary = `${t("eventDialog.repeatEvery")} ${config.interval} ${unitLabel}`;
 
         if (config.customFrequencyUnit === 'week' && config.weekDays.length > 0) {
-          summary += ` los ${config.weekDays.join(', ')}`;
+          summary += ` ${config.weekDays.join(', ')}`;
         }
 
         return summary;
       }
 
-      return 'Personalizado';
+      return t("eventDialog.custom");
     }
 
-    return 'Personalizado';
+    return t("eventDialog.custom");
   };
 
   const handleSave = () => {
@@ -436,6 +399,15 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
       onSave(event.id, { ...config, eventType: effectiveEventType });
       onOpenChange(false);
     }
+  };
+
+  const getDateLabel = () => {
+    if (isCustomPeriodicEvent) return t("eventDialog.scheduleOnly");
+    if (config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd') {
+      return t("eventDialog.dayAndTime");
+    }
+    if (config.frequency === 'custom') return t("eventDialog.startDateAndTime");
+    return t("eventDialog.dateAndTime");
   };
 
   return (
@@ -446,26 +418,26 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
             <div className="p-2 bg-accent rounded-lg">
               <EditIcon className="w-5 h-5" />
             </div>
-            <DialogTitle className="text-lg font-semibold">Editar evento</DialogTitle>
+            <DialogTitle className="text-lg font-semibold">{t("eventDialog.editTitle")}</DialogTitle>
           </div>
-          <DialogDescription className="hidden">Diálogo para editar un evento del calendario</DialogDescription>
+          <DialogDescription className="hidden">{t("eventDialog.editDescription")}</DialogDescription>
         </DialogHeader>
 
         <div className="overflow-y-auto flex-1 px-6 py-3">
           <div className="space-y-3">
-            {/* Frequency Selection - Always visible */}
+            {/* Frequency Selection */}
             <div className="space-y-1">
-              <Label className="text-xs font-semibold">Frecuencia</Label>
+              <Label className="text-xs font-semibold">{t("eventDialog.frequency")}</Label>
               <Select value={config.frequency} disabled>
                 <SelectTrigger className="h-8 text-xs w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="no-repeat">No se repite</SelectItem>
-                  <SelectItem value="weekly">Semanalmente</SelectItem>
-                  <SelectItem value="biweekly-even">Quincenal (Semanas Pares)</SelectItem>
-                  <SelectItem value="biweekly-odd">Quincenal (Semanas Impares)</SelectItem>
-                  <SelectItem value="custom">Personalizado</SelectItem>
+                  <SelectItem value="no-repeat">{t("eventDialog.noRepeat")}</SelectItem>
+                  <SelectItem value="weekly">{t("eventDialog.weekly")}</SelectItem>
+                  <SelectItem value="biweekly-even">{t("eventDialog.biweeklyEven")}</SelectItem>
+                  <SelectItem value="biweekly-odd">{t("eventDialog.biweeklyOdd")}</SelectItem>
+                  <SelectItem value="custom">{t("eventDialog.custom")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -473,7 +445,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
             {/* Date, Start Time, End Time in same row */}
             <div className="space-y-1">
               <RequiredLabel required className="text-xs font-semibold">
-                {isCustomPeriodicEvent ? 'Horario' : (config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd') ? 'Día y Horario' : config.frequency === 'custom' ? 'Fecha Inicio y Horario' : 'Fecha y Horario'}
+                {getDateLabel()}
               </RequiredLabel>
               <div className="flex gap-2">
                 {/* Date Selection - for no-repeat */}
@@ -484,7 +456,9 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                         variant="outline"
                         className="h-8 px-3 text-xs justify-between font-normal flex-1"
                       >
-                        {config.eventDate && !isNaN(new Date(config.eventDate).getTime()) ? format(new Date(config.eventDate), 'dd/MM/yyyy', { locale: es }) : 'Fecha'}
+                        {config.eventDate && !isNaN(new Date(config.eventDate).getTime())
+                          ? format(new Date(config.eventDate), 'dd/MM/yyyy', { locale: dateLocale })
+                          : t("eventDialog.datePlaceholder")}
                         <ChevronDownIcon className="w-3 h-3" />
                       </Button>
                     </PopoverTrigger>
@@ -499,7 +473,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                             setOpenEventDate(false);
                           }
                         }}
-                        locale={es}
+                        locale={dateLocale}
                         disabled={(date) => !lectiveDates.has(format(date, 'yyyy-MM-dd'))}
                       />
                     </PopoverContent>
@@ -513,14 +487,14 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                     onValueChange={(value) => setConfig({ ...config, weekDays: [value as WeekDay] })}
                   >
                     <SelectTrigger className="h-8 px-3 text-xs font-normal flex-1">
-                      <SelectValue placeholder="Seleccionar día" />
+                      <SelectValue placeholder={t("eventDialog.selectDay")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="L">Lunes</SelectItem>
-                      <SelectItem value="M">Martes</SelectItem>
-                      <SelectItem value="X">Miércoles</SelectItem>
-                      <SelectItem value="J">Jueves</SelectItem>
-                      <SelectItem value="V">Viernes</SelectItem>
+                      <SelectItem value="L">{t("eventDialog.monday")}</SelectItem>
+                      <SelectItem value="M">{t("eventDialog.tuesday")}</SelectItem>
+                      <SelectItem value="X">{t("eventDialog.wednesday")}</SelectItem>
+                      <SelectItem value="J">{t("eventDialog.thursday")}</SelectItem>
+                      <SelectItem value="V">{t("eventDialog.friday")}</SelectItem>
                     </SelectContent>
                   </Select>
                 )}
@@ -533,7 +507,9 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                         variant="outline"
                         className="h-8 px-3 text-xs justify-between font-normal flex-1"
                       >
-                        {config.customStartDate && !isNaN(new Date(config.customStartDate).getTime()) ? format(new Date(config.customStartDate), 'dd/MM/yyyy', { locale: es }) : 'Fecha'}
+                        {config.customStartDate && !isNaN(new Date(config.customStartDate).getTime())
+                          ? format(new Date(config.customStartDate), 'dd/MM/yyyy', { locale: dateLocale })
+                          : t("eventDialog.datePlaceholder")}
                         <ChevronDownIcon className="w-3 h-3" />
                       </Button>
                     </PopoverTrigger>
@@ -548,7 +524,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                             setOpenCustomStartDate(false);
                           }
                         }}
-                        locale={es}
+                        locale={dateLocale}
                         disabled={(date) => !lectiveDates.has(format(date, 'yyyy-MM-dd'))}
                       />
                     </PopoverContent>
@@ -570,9 +546,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                     <TimePicker
                       value={config.startTime}
                       onChange={(value) => {
-                        // Calculate current duration
                         const duration = calculateDurationInMinutes(config.startTime, config.endTime);
-                        // Calculate new end time maintaining the duration
                         const newEndTime = calculateNewEndTime(value, duration);
                         setConfig({ ...config, startTime: value, endTime: newEndTime });
                         setOpenStartTime(false);
@@ -608,16 +582,16 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
               </div>
             </div>
 
-            {/* Subject Selection - Always visible */}
+            {/* Subject Selection */}
             <div className="space-y-1">
-              <RequiredLabel required={!isBlocker} className="text-xs font-semibold">Asignatura</RequiredLabel>
+              <RequiredLabel required={!isBlocker} className="text-xs font-semibold">{t("eventDialog.subject")}</RequiredLabel>
               {isLoadingSubjects ? (
                 <div className="h-8 text-xs flex items-center text-muted-foreground">
-                  Cargando asignaturas...
+                  {t("eventDialog.loadingSubjects")}
                 </div>
               ) : subjectsWithGroups.length === 0 ? (
                 <div className="h-8 text-xs flex items-center text-muted-foreground">
-                  No hay asignaturas disponibles
+                  {t("eventDialog.noSubjectsAvailable")}
                 </div>
               ) : (
                 (() => {
@@ -631,21 +605,20 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                       value={config.subjectId || ''}
                       onValueChange={(value) => setConfig({ ...config, subjectId: value })}
                       options={subjectOptions}
-                      placeholder="Seleccionar asignatura"
-                      searchPlaceholder="Buscar asignatura..."
-                      emptyMessage="No se encontraron asignaturas."
+                      placeholder={t("eventDialog.subjectPlaceholder")}
+                      searchPlaceholder={t("eventDialog.subjectSearch")}
+                      emptyMessage={t("eventDialog.subjectNotFound")}
                     />
                   );
                 })()
               )}
             </div>
 
-            {/* Tipo de Evento y Tipo de Grupo en la misma fila */}
+            {/* Tipo de Evento y Tipo de Grupo */}
             {config.subjectId && (
             <div className="flex gap-2">
-              {/* Tipo de Evento */}
               <div className="space-y-1 flex-1">
-                <RequiredLabel required={!isBlocker} className="text-xs font-semibold">Tipo de Evento</RequiredLabel>
+                <RequiredLabel required={!isBlocker} className="text-xs font-semibold">{t("eventDialog.eventType")}</RequiredLabel>
                 <Select value={selectedEventType} onValueChange={(value) => setSelectedEventType(value)}>
                   <SelectTrigger className="h-8 text-xs w-full">
                     <SelectValue />
@@ -658,19 +631,18 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                 </Select>
               </div>
 
-              {/* Tipo de Grupo (T/S/L/TG) — oculto cuando no hay asignatura */}
               {!isBlocker && (
                 <div className="space-y-1 flex-1">
-                  <RequiredLabel required={!isBlocker} className="text-xs font-semibold">Tipo de Grupo</RequiredLabel>
+                  <RequiredLabel required={!isBlocker} className="text-xs font-semibold">{t("eventDialog.groupType")}</RequiredLabel>
                   <Select value={groupType} onValueChange={(value) => setGroupType(value)}>
                     <SelectTrigger className="h-8 text-xs w-full">
-                      <SelectValue placeholder="Seleccionar tipo de grupo" />
+                      <SelectValue placeholder={t("eventDialog.selectGroupType")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="T">Teoría</SelectItem>
-                      <SelectItem value="S">Seminario</SelectItem>
-                      <SelectItem value="L">Laboratorio</SelectItem>
-                      <SelectItem value="TG">Tutorías Grupales</SelectItem>
+                      <SelectItem value="T">{t("eventDialog.groupTypeTheory")}</SelectItem>
+                      <SelectItem value="S">{t("eventDialog.groupTypeSeminar")}</SelectItem>
+                      <SelectItem value="L">{t("eventDialog.groupTypeLab")}</SelectItem>
+                      <SelectItem value="TG">{t("eventDialog.groupTypeTutorial")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -678,19 +650,18 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
             </div>
             )}
 
-            {/* Groups and Classrooms Selection - Same row */}
+            {/* Groups and Classrooms Selection */}
             <div className="grid grid-cols-2 gap-2">
-              {/* Groups Selection — oculto para BLOCKER */}
               {!isBlocker && (
               <div className="space-y-1">
-                <RequiredLabel required={!isBlocker} className="text-xs font-semibold">{isReviewOrEval ? 'Grupos' : 'Grupo'}</RequiredLabel>
+                <RequiredLabel required={!isBlocker} className="text-xs font-semibold">{isReviewOrEval ? t("eventDialog.groups") : t("eventDialog.group")}</RequiredLabel>
                 {!config.subjectId ? (
                   <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
-                    Selecciona una asignatura primero
+                    {t("eventDialog.selectSubjectFirst")}
                   </div>
                 ) : availableGroups.length === 0 ? (
                   <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
-                    Sin grupos disponibles
+                    {t("eventDialog.noGroupsAvailable")}
                   </div>
                 ) : isReviewOrEval ? (
                   <MultiSelect
@@ -706,9 +677,9 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                         label: `${currentSubject?.acronym}.${group.type}.${group.language === 'EN' ? 'I-' : ''}${group.number}`
                       };
                     })}
-                    placeholder="Seleccionar grupos"
-                    searchPlaceholder="Buscar grupo..."
-                    emptyMessage="No se encontraron grupos."
+                    placeholder={t("eventDialog.selectGroups")}
+                    searchPlaceholder={t("eventDialog.groupSearch")}
+                    emptyMessage={t("eventDialog.groupNotFound")}
                   />
                 ) : availableGroups.length > 8 ? (
                   <SearchableSelect
@@ -726,9 +697,9 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                         label: `${currentSubject?.acronym}.${group.type}.${group.language === 'EN' ? 'I-' : ''}${group.number}`
                       };
                     })}
-                    placeholder="Seleccionar grupo"
-                    searchPlaceholder="Buscar grupo..."
-                    emptyMessage="No se encontraron grupos."
+                    placeholder={t("eventDialog.selectGroup")}
+                    searchPlaceholder={t("eventDialog.groupSearch")}
+                    emptyMessage={t("eventDialog.groupNotFound")}
                   />
                 ) : (
                   <Select
@@ -738,7 +709,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                     }}
                   >
                     <SelectTrigger className="h-8 text-xs w-full">
-                      <SelectValue placeholder="Seleccionar grupo" />
+                      <SelectValue placeholder={t("eventDialog.selectGroup")} />
                     </SelectTrigger>
                     <SelectContent>
                       {availableGroups.sort((a, b) => {
@@ -758,12 +729,12 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
               </div>
               )}
 
-              {/* Classrooms Selection - MultiSelect for special types, single select for NORMAL */}
+              {/* Classrooms Selection */}
               <div className={`space-y-1${isBlocker ? ' col-span-2' : ''}`}>
-                <RequiredLabel required className="text-xs font-semibold">{isSpecialEventType(effectiveEventType) ? 'Aulas' : 'Aula'}</RequiredLabel>
+                <RequiredLabel required className="text-xs font-semibold">{isSpecialEventType(effectiveEventType) ? t("eventDialog.classrooms") : t("eventDialog.classroom")}</RequiredLabel>
                 {availableClassrooms.length === 0 ? (
                   <div className="h-8 text-xs flex items-center text-muted-foreground border rounded px-3">
-                    Cargando aulas...
+                    {t("eventDialog.loadingClassrooms")}
                   </div>
                 ) : isSpecialEventType(effectiveEventType) ? (
                   <MultiSelect
@@ -773,9 +744,9 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                       value: classroom.id,
                       label: classroom.code
                     }))}
-                    placeholder="Seleccionar aulas"
-                    searchPlaceholder="Buscar aula..."
-                    emptyMessage="No se encontraron aulas."
+                    placeholder={t("eventDialog.selectClassrooms")}
+                    searchPlaceholder={t("eventDialog.classroomSearch")}
+                    emptyMessage={t("eventDialog.classroomNotFound")}
                   />
                 ) : availableClassrooms.length > 8 ? (
                   <SearchableSelect
@@ -787,9 +758,9 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                       value: classroom.id,
                       label: classroom.code
                     }))}
-                    placeholder="Seleccionar aula"
-                    searchPlaceholder="Buscar aula..."
-                    emptyMessage="No se encontraron aulas."
+                    placeholder={t("eventDialog.selectClassroom")}
+                    searchPlaceholder={t("eventDialog.classroomSearch")}
+                    emptyMessage={t("eventDialog.classroomNotFound")}
                   />
                 ) : (
                   <Select
@@ -799,7 +770,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                     }}
                   >
                     <SelectTrigger className="h-8 text-xs w-full">
-                      <SelectValue placeholder="Seleccionar aula" />
+                      <SelectValue placeholder={t("eventDialog.selectClassroom")} />
                     </SelectTrigger>
                     <SelectContent>
                       {availableClassrooms.sort((a, b) => a.code.localeCompare(b.code)).map((classroom) => (
@@ -813,10 +784,10 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
               </div>
             </div>
 
-            {/* Planified Hours - Only visible for periodic NORMAL events with a group selected */}
+            {/* Planified Hours */}
             {!isSpecialEventType(effectiveEventType) && (config.frequency === 'weekly' || config.frequency === 'biweekly-even' || config.frequency === 'biweekly-odd' || isCustomPeriodicEvent) && config.groupIds && config.groupIds.length > 0 && (
               <div className="space-y-2">
-                <Label htmlFor="planified-hours" className="text-xs font-semibold">Horas Planificadas</Label>
+                <Label htmlFor="planified-hours" className="text-xs font-semibold">{t("eventDialog.planifiedHours")}</Label>
                 <Input
                   id="planified-hours"
                   type="number"
@@ -824,7 +795,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                   step="0.5"
                   value={config.planifiedHours || ''}
                   onChange={(e) => setConfig({ ...config, planifiedHours: parseFloat(e.target.value) || 0 })}
-                  placeholder="Ej: 30"
+                  placeholder={t("eventDialog.planifiedHoursPlaceholder")}
                   className="h-8 text-xs"
                   disabled={initialGroupHours > 0 && !allowEditPlanifiedHours}
                   required={initialGroupHours === 0}
@@ -841,19 +812,18 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                       htmlFor="allow-edit-hours"
                       className="text-xs text-muted-foreground cursor-pointer"
                     >
-                      Modificar las horas planificadas puede afectar a todos los eventos de este grupo
+                      {t("eventDialog.planifiedHoursWarning")}
                     </label>
                   </div>
                 )}
               </div>
             )}
 
-            {/* Custom Frequency Options - Only visible for custom frequency and NOT for custom periodic events in edit mode */}
+            {/* Custom Frequency Options */}
             {config.frequency === 'custom' && !isCustomPeriodicEvent && (
               <div className="space-y-3 p-3 border border-primary/20 rounded bg-accent/20">
-                {/* Frequency Unit Selection */}
                 <div className="space-y-1">
-                  <Label className="text-xs font-semibold">Repetir cada</Label>
+                  <Label className="text-xs font-semibold">{t("eventDialog.repeatEvery")}</Label>
                   <div className="flex gap-2">
                     <Input
                       type="number"
@@ -871,23 +841,22 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="day">
-                          {config.interval === 1 ? 'día' : 'días'}
+                          {config.interval === 1 ? t("eventDialog.day") : t("eventDialog.days")}
                         </SelectItem>
                         <SelectItem value="week">
-                          {config.interval === 1 ? 'semana' : 'semanas'}
+                          {config.interval === 1 ? t("eventDialog.week") : t("eventDialog.weeks")}
                         </SelectItem>
                         <SelectItem value="month">
-                          {config.interval === 1 ? 'mes' : 'meses'}
+                          {config.interval === 1 ? t("eventDialog.month") : t("eventDialog.months")}
                         </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
 
-                {/* Weekday Selection - Only for weekly custom frequency */}
                 {config.customFrequencyUnit === 'week' && (
                   <div className="space-y-2">
-                    <Label className="text-xs font-semibold">Días</Label>
+                    <Label className="text-xs font-semibold">{t("eventDialog.daysLabel")}</Label>
                     <div className="grid grid-cols-5 gap-1">
                       {weekDays.filter(day => day.value !== 'S' && day.value !== 'D').map((day) => (
                         <Button
@@ -903,16 +872,15 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                   </div>
                 )}
 
-                {/* Month Pattern Selection - Only for monthly custom frequency */}
                 {config.customFrequencyUnit === 'month' && (
                   <div className="space-y-2">
-                    <Label className="text-xs font-semibold">Patrón Mensual</Label>
+                    <Label className="text-xs font-semibold">{t("eventDialog.monthlyPattern")}</Label>
                     <Select
                       value={config.monthlyPatternType || 'day-of-month'}
                       onValueChange={(value: MonthlyPatternType) => setConfig({ ...config, monthlyPatternType: value })}
                     >
                       <SelectTrigger className="h-8 text-xs w-full">
-                        <SelectValue placeholder="Seleccionar patrón" />
+                        <SelectValue placeholder={t("eventDialog.selectPattern")} />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="day-of-month">{monthlyPatternLabels.dayOfMonth}</SelectItem>
@@ -922,27 +890,24 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                   </div>
                 )}
 
-                {/* Finalización */}
                 <div className="space-y-2">
-                  <Label className="text-xs font-semibold">Finaliza</Label>
+                  <Label className="text-xs font-semibold">{t("eventDialog.endsLabel")}</Label>
                   <RadioGroup
                     value={config.endsType}
                     onValueChange={(value: EndsType) => setConfig({ ...config, endsType: value })}
                     className="space-y-2"
                   >
-                    <div className={`flex items-center gap-2 p-2 rounded border transition-all cursor-pointer ${config.endsType === 'never' ? 'border-primary bg-primary/10' : 'border-primary/20 bg-accent/20'
-                      }`}>
+                    <div className={`flex items-center gap-2 p-2 rounded border transition-all cursor-pointer ${config.endsType === 'never' ? 'border-primary bg-primary/10' : 'border-primary/20 bg-accent/20'}`}>
                       <RadioGroupItem value="never" id="never" />
                       <Label htmlFor="never" className="text-xs cursor-pointer m-0 flex-1">
-                        Nunca
+                        {t("eventDialog.endsNever")}
                       </Label>
                     </div>
 
-                    <div className={`flex items-center gap-2 p-2 rounded border transition-all cursor-pointer ${config.endsType === 'on' ? 'border-primary bg-primary/10' : 'border-primary/20 bg-accent/20'
-                      }`}>
+                    <div className={`flex items-center gap-2 p-2 rounded border transition-all cursor-pointer ${config.endsType === 'on' ? 'border-primary bg-primary/10' : 'border-primary/20 bg-accent/20'}`}>
                       <RadioGroupItem value="on" id="on" />
                       <Label htmlFor="on" className="text-xs cursor-pointer m-0">
-                        El
+                        {t("eventDialog.endsOn")}
                       </Label>
                       <Popover open={openEndsOnDate} onOpenChange={setOpenEndsOnDate}>
                         <PopoverTrigger asChild disabled={config.endsType !== 'on'}>
@@ -950,7 +915,9 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                             variant="ghost"
                             className="h-7 px-2 text-xs flex-1 justify-between font-normal"
                           >
-                            {config.endsOnDate ? format(new Date(config.endsOnDate), 'dd/MM/yyyy', { locale: es }) : 'Seleccionar fecha'}
+                            {config.endsOnDate
+                              ? format(new Date(config.endsOnDate), 'dd/MM/yyyy', { locale: dateLocale })
+                              : t("eventDialog.selectDate")}
                             <ChevronDownIcon className="w-3 h-3" />
                           </Button>
                         </PopoverTrigger>
@@ -965,7 +932,7 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                                 setOpenEndsOnDate(false);
                               }
                             }}
-                            locale={es}
+                            locale={dateLocale}
                             disabled={(date) => {
                               const startDate = config.customStartDate ? new Date(config.customStartDate) : new Date();
                               return date < startDate;
@@ -975,11 +942,10 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                       </Popover>
                     </div>
 
-                    <div className={`flex items-center gap-2 p-2 rounded border transition-all cursor-pointer ${config.endsType === 'after' ? 'border-primary bg-primary/10' : 'border-primary/20 bg-accent/20'
-                      }`}>
+                    <div className={`flex items-center gap-2 p-2 rounded border transition-all cursor-pointer ${config.endsType === 'after' ? 'border-primary bg-primary/10' : 'border-primary/20 bg-accent/20'}`}>
                       <RadioGroupItem value="after" id="after" />
                       <Label htmlFor="after" className="text-xs cursor-pointer m-0">
-                        Después de
+                        {t("eventDialog.endsAfter")}
                       </Label>
                       <Input
                         type="number"
@@ -992,20 +958,20 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
                         disabled={config.endsType !== 'after'}
                         className="h-7 text-xs text-center w-14"
                       />
-                      <Label className="text-xs cursor-pointer m-0">horas</Label>
+                      <Label className="text-xs cursor-pointer m-0">{t("eventDialog.hours")}</Label>
                     </div>
                   </RadioGroup>
                 </div>
               </div>
             )}
 
-            {/* Comment Field - Only visible when frequency is 'no-repeat' */}
+            {/* Comment Field */}
             {config.frequency === 'no-repeat' && (
               <div className="space-y-1">
-                <Label htmlFor="comment" className="text-xs font-semibold">Comentario</Label>
+                <Label htmlFor="comment" className="text-xs font-semibold">{t("eventDialog.comment")}</Label>
                 <Textarea
                   id="comment"
-                  placeholder="Añade un comentario sobre este evento..."
+                  placeholder={t("eventDialog.commentPlaceholder")}
                   value={config.comment}
                   onChange={(e) => setConfig({ ...config, comment: e.target.value })}
                   className="h-20 text-xs resize-none"
@@ -1028,14 +994,14 @@ const EditEventDialog: React.FC<EditEventDialogProps> = ({ open, onOpenChange, o
             onClick={() => onOpenChange(false)}
             className="h-8 text-xs"
           >
-            Cancelar
+            {t("eventDialog.cancel")}
           </Button>
           <Button
             onClick={handleSave}
             disabled={!isFormValid || !hasChanges}
             className="h-8 text-xs"
           >
-            Guardar
+            {t("eventDialog.save")}
           </Button>
         </div>
       </DialogContent>

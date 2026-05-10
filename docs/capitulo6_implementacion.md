@@ -349,7 +349,7 @@ This separation guarantees that a failure or migration in the scheduling databas
 
 See **§5.1.3** of Chapter 5 for the complete UML deployment diagram. The most relevant aspects from the implementation perspective are:
 
-- Each component has its own `Dockerfile` (7 in total). The `webapp` image uses **Caddy** as the web server with automatic HTTPS support.
+- Each component has its own `Dockerfile` (7 in total). The `webapp` image uses **Caddy** as the web server, configured to serve HTTPS using the university-issued GEANT TLS certificate supplied via GitHub Secrets.
 - In the development environment, all services are started with `docker-compose.dev.yml`, which mounts the source directories as volumes to allow hot-reload.
 - In production (Azure VM), `docker-compose.azure.yml` uses pre-built images published in GitHub Container Registry following the convention `ghcr.io/murias10/teachingplanner/{service}:latest`. Only `gateway_service` (port 8080) and `webapp` (443/80) are accessible from the outside.
 - The CI/CD pipeline (GitHub Actions) runs tests on each *pull request* before authorising the merge. The manual deployment mechanism (`workflow_dispatch`) and its justification are described in **§5.1.3**.

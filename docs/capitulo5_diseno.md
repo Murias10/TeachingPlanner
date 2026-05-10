@@ -20,7 +20,7 @@ To justify the choice of specific technologies within this architectural style, 
 |---|---|---|
 | Microservices vs. monolith | Modular monolith (NestJS) | Fault isolation and independent scaling of the scheduling service; the monolith would have coupled the deployment cycles of authentication and scheduling |
 | Relational MariaDB vs. NoSQL | MongoDB | The academic data model (calendars, groups, subjects, events) has strong relationships with referential integrity and uniqueness constraints that naturally fit a relational schema |
-| Caddy vs. Nginx for TLS | Nginx with manual Let's Encrypt | Caddy automatically manages TLS certificate issuance and renewal via ACME, eliminating the manual certbot configuration and renewal cron jobs |
+| Caddy vs. Nginx for TLS | Nginx with manual certbot | Caddy supports both automatic ACME-based TLS and manually provisioned certificates; in this deployment, the university-issued GEANT TLS certificate is supplied via GitHub Secrets and mounted at container startup, removing the need for in-container certificate management tooling |
 | React SPA (Vite) vs. Next.js SSR | Next.js with server-side rendering | All application routes require prior authentication; SSR provides no value for a fully private SPA, and Vite's build pipeline offers a significantly faster development feedback cycle with no server infrastructure overhead |
 
 The resulting component decomposition is described in detail in the following section.
@@ -169,7 +169,7 @@ Both workflows are triggered exclusively via `workflow_dispatch` (manual activat
 
 - Databases include *health checks* (`mysqladmin ping -u root -p$MYSQL_ROOT_PASSWORD`) before dependent services start, ensuring that `auth_service`, `user_service` and `planner_service` do not initiate the TypeORM connection on an unavailable database.
 - Only `gateway_service` (port 8080) and `webapp` (ports 80/443) are accessible from the outside. Backend services and databases reside in the internal `app_network` network.
-- The frontend is served from a **Caddy** container, which automatically manages TLS certificate issuance and renewal via ACME/Let's Encrypt, without requiring cron jobs or pre-provisioned certificates.
+- The frontend is served from a **Caddy** container configured to serve the application over HTTPS using a certificate issued by the university's IT department (GEANT TLS, valid for `*.ingenieriainformatica.uniovi.es`). The certificate and private key are stored as encrypted GitHub Actions secrets and written to the server automatically on each workflow run.
 - TypeORM operates with `synchronize: true` in both production and integration tests, meaning the database schema is automatically synchronised with the TypeORM entities on each service start. This configuration is appropriate for the scope of this project: the system is deployed to a single-tenant university environment with no concurrent schema-migration constraints, and the development cadence favours rapid iteration over a formal migration pipeline. In a multi-tenant or high-availability production system this option would be replaced by a migration tool such as TypeORM Migrations or Flyway; the `AuditedEntity` base class and the well-defined entity structure already provide the foundation to adopt that approach without further redesign. In integration tests with Testcontainers this configuration is equally valid, since the ephemeral database always starts from scratch.
 
 ---
@@ -255,7 +255,7 @@ This separation into three handlers allows `authenticateToken` to be reused in r
 
 #### Transport layer security (HTTPS/TLS)
 
-In production, all external traffic to `webapp` goes through Caddy on port 443, with TLS managed automatically via ACME/Let's Encrypt. HTTP traffic on port 80 is redirected to HTTPS. The gateway is exposed on port 8080 and also receives HTTPS connections (the web client configures the API base URL with `https://`).
+In production, all external traffic to `webapp` goes through Caddy on port 443, with TLS provided by a certificate issued by the university's systems administration team (GEANT TLS, scoped to `*.ingenieriainformatica.uniovi.es`). The certificate and its private key are stored as encrypted repository secrets (`SSL_CERT`, `SSL_KEY`) and written to the server by the deployment workflow on each run, eliminating the need for manual file transfers. HTTP traffic on port 80 is redirected to HTTPS. The gateway is exposed on port 8080 and also receives HTTPS connections (the web client configures the API base URL with `https://`).
 
 Communication between services within the Docker `app_network` uses HTTP without TLS, which is acceptable from a security standpoint because the traffic never leaves the virtual machine and the Docker bridge network is isolated from external traffic.
 

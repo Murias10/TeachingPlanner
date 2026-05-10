@@ -71,7 +71,7 @@ The `auth_service` and `user_service` microservices share the `management_databa
 | Git | 2.x | Clone the repository |
 | Docker Engine | 24.x | Run containers |
 | Docker Compose Plugin | 2.20 | Orchestrate services |
-| OpenSSL | any | Generate self-signed SSL certificates |
+| OpenSSL | any | Inspect or verify SSL certificate files (optional) |
 
 Ubuntu 22.04 LTS (or later) is recommended as the server operating system. Ports 22 (SSH), 80 (HTTP), and 443 (HTTPS) must be accessible.
 
@@ -329,29 +329,9 @@ Variables that must be adjusted from the template values for a production enviro
 | `PLANNER_DATABASE_ROOT_PASSWORD` | Strong password, different from the template value |
 | `MANAGEMENT_DATABASE_ROOT_PASSWORD` | Strong password, different from the template value |
 
-### Step 3 — Generate the SSL certificate and upload it to GitHub Secrets
+### Step 3 — Obtain the SSL certificate and upload it to GitHub Secrets
 
-Caddy uses the `cert.pem` and `key.pem` files to serve the application over HTTPS. **Certificates are not copied manually to the VM**: the deployment workflow writes them automatically on each run by reading the GitHub secrets. The only manual step is to generate them locally and upload them as secrets.
-
-Run on the local machine (not on the VM):
-
-```bash
-mkdir -p ./certs
-cd ./certs
-
-# Generate a self-signed certificate valid for 365 days.
-# The Subject Alternative Name (SAN) field makes the certificate
-# valid for both the domain and the server IP.
-openssl req -x509 -newkey rsa:2048 -nodes -days 365 \
-  -keyout key.pem -out cert.pem \
-  -subj "/C=ES/ST=Asturias/L=Oviedo/O=TeachingPlanner/CN=<DOMAIN_OR_IP>" \
-  -addext "subjectAltName=DNS:<DOMAIN>,DNS:localhost,IP:<SERVER_IP>,IP:127.0.0.1"
-
-# Verify that the certificate includes the defined SANs
-openssl x509 -in cert.pem -text -noout | grep -A 3 "Subject Alternative Name"
-```
-
-Replace `<DOMAIN_OR_IP>`, `<DOMAIN>`, and `<SERVER_IP>` with the actual server values. If the application will only be served by IP (without a domain), omit the `DNS:` fields from the SAN.
+Caddy uses `cert.pem` and `key.pem` files to serve the application over HTTPS. **Certificates are never copied manually to the VM**: the deployment workflow writes them automatically on each run by reading the GitHub Secrets. The only manual step is to obtain the certificate files and register them as secrets.
 
 Caddy reads the certificates from `/certs/cert.pem` and `/certs/key.pem`, as specified in `webapp/Caddyfile`:
 
@@ -362,13 +342,38 @@ Caddy reads the certificates from `/certs/cert.pem` and `/certs/key.pem`, as spe
 }
 ```
 
-The `DOMAIN` environment variable controls Caddy's behaviour: if set to `localhost`, it serves the application over HTTP without SSL; if set to a real domain or IP, it enables HTTPS with the specified certificate.
+The `DOMAIN` environment variable controls Caddy's behaviour: if set to `localhost`, it serves the application over HTTP without TLS; if set to a real domain, it enables HTTPS using the mounted certificate.
 
-To **renew the certificate** in the future, simply update the `SSL_CERT` and `SSL_KEY` secrets in GitHub and re-run the workflow; no manual SSH connection to the server is needed.
+#### Institutional certificate (GEANT TLS — recommended)
+
+For deployments using a university-managed domain, the certificate is issued by the institution's IT department. The GEANT TLS certificate authority (Hellenic Academic and Research Institutions CA) issues wildcard certificates for university subdomains (e.g. `*.ingenieriainformatica.uniovi.es`). In this project, the certificate was requested through the university TFG supervisors and provisioned by the systems administration team.
+
+Once the `cert.pem` and `key.pem` files are available, register them as GitHub Secrets following **Step 4** below.
+
+To **renew the certificate** in the future, update the `SSL_CERT` and `SSL_KEY` secrets in GitHub with the new files and re-run the workflow; no manual SSH connection to the server is required.
+
+#### Self-signed certificate (alternative for environments without an institutional certificate)
+
+If no institutional certificate is available, a self-signed certificate can be generated locally for testing or initial setup. Run on the local machine (not on the VM):
+
+```bash
+mkdir -p ./certs
+cd ./certs
+
+openssl req -x509 -newkey rsa:2048 -nodes -days 365 \
+  -keyout key.pem -out cert.pem \
+  -subj "/C=ES/ST=Asturias/L=Oviedo/O=TeachingPlanner/CN=<DOMAIN_OR_IP>" \
+  -addext "subjectAltName=DNS:<DOMAIN>,DNS:localhost,IP:<SERVER_IP>,IP:127.0.0.1"
+
+# Verify that the certificate includes the defined SANs
+openssl x509 -in cert.pem -text -noout | grep -A 3 "Subject Alternative Name"
+```
+
+Replace `<DOMAIN_OR_IP>`, `<DOMAIN>`, and `<SERVER_IP>` with the actual server values. If the application will only be served by IP, omit the `DNS:` fields from the SAN. Note that browsers will display a security warning for self-signed certificates; this is expected and can be accepted in non-production environments.
 
 ### Step 4 — Configure GitHub secrets
 
-The certificates generated in the previous step are stored as repository secrets. On each workflow run, the deployment job writes them automatically to `~/TeachingPlanner/certs/` on the VM.
+The certificate files obtained in the previous step are stored as encrypted repository secrets. On each workflow run, the deployment job writes them automatically to `~/TeachingPlanner/certs/` on the VM.
 
 Steps to create the secrets:
 1. Go to the repository on GitHub → Settings → Secrets and variables → Actions
@@ -424,7 +429,7 @@ docker compose logs -f
 curl -k https://<IP_OR_DOMAIN>
 ```
 
-All services should show status `Up`. Access the application from the browser at `https://<IP_OR_DOMAIN>`. If the certificate is self-signed, the browser will show a warning; accept it to continue.
+All services should show status `Up`. Access the application from the browser at `https://<IP_OR_DOMAIN>`. If a self-signed certificate is in use, the browser will display a security warning; accept it to continue. With an institutional GEANT TLS certificate, no warning is shown.
 
 ---
 
@@ -554,13 +559,15 @@ In addition to the common production variables described in section 7.1.5, adjus
 | `FRONTEND_URL` | `https://planificador.ingenieriainformatica.uniovi.es` |
 | `GOOGLE_REDIRECT_URI` | `https://planificador.ingenieriainformatica.uniovi.es/api/auth/google/callback` |
 
-### Step 4 — Generate the SSL certificate
+### Step 4 — Obtain the SSL certificate
 
-For the initial phase without official certificates, follow the self-signed certificate generation procedure in **Step 3 of section 7.1.5**, replacing `<DOMAIN>` and `<SERVER_IP>` with the university environment values.
+For the university environment, the certificate is issued by the institution's IT department as a GEANT TLS wildcard certificate for `*.ingenieriainformatica.uniovi.es`. The request is coordinated through the TFG supervisors and provisioned by the systems administration team, who deliver the `cert.pem` and `key.pem` files.
 
-#### Official certificates (GEANT TLS)
+Once the certificate files are available, register them as GitHub Secrets following **Step 6** below. To **renew the certificate** in the future, update the `SSL_CERT` and `SSL_KEY` secrets and re-run the workflow; no SSH connection to the VM is needed.
 
-Once the university provides the official certificates (GEANT TLS certificates for `*.ingenieriainformatica.uniovi.es`), update the `SSL_CERT` and `SSL_KEY` secrets in GitHub with the content of the new files and re-run the workflow. No SSH connection to the VM is needed.
+#### Alternative: self-signed certificate
+
+If the institutional certificate is not yet available, a self-signed certificate can be used temporarily by following the procedure described in the **"Self-signed certificate"** subsection of **Step 3 in section 7.1.5**, replacing `<DOMAIN>` and `<SERVER_IP>` with the university environment values.
 
 ### Step 5 — Configure access to GitHub Container Registry
 
@@ -587,7 +594,7 @@ The credentials are stored in `~/.docker/config.json` and the runner will use th
 
 ### Step 6 — Upload the certificates as GitHub secrets
 
-Follow **Step 4 of section 7.1.5** to create the `SSL_CERT` and `SSL_KEY` secrets and the `REPOSITORY_NAME` variable. The secrets `AZURE_SSH_PRIVATE_KEY`, `AZURE_VM_IP`, and `AZURE_VM_USER` are **not needed** in this scenario (the runner runs on the VM itself).
+Follow **Step 4 of section 7.1.5** to create the `SSL_CERT` and `SSL_KEY` secrets (using the institutional GEANT TLS certificate files, or the self-signed ones if still in an initial phase) and the `REPOSITORY_NAME` variable. The secrets `AZURE_SSH_PRIVATE_KEY`, `AZURE_VM_IP`, and `AZURE_VM_USER` are **not needed** in this scenario (the runner runs on the VM itself).
 
 ### Step 7 — Trigger the first deployment
 

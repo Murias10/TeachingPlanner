@@ -30,7 +30,7 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
               className="h-9 gap-2"
             >
               <CirclePlus className="w-4 h-4" />
-              <span className="hidden sm:inline text-xs">{t('calendar.toolbar.createEvent')}</span>
+              <span className="hidden md:inline text-xs">{t('calendar.toolbar.createEvent')}</span>
             </Button>
           </TooltipTrigger>
           <TooltipContent>{t('calendar.toolbar.createEventTooltip')}</TooltipContent>
@@ -47,7 +47,7 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
                 className="h-9 gap-2"
               >
                 <Upload className="w-4 h-4" />
-                <span className="hidden sm:inline text-xs">{t('calendar.toolbar.importExceptions')}</span>
+                <span className="hidden md:inline text-xs">{t('calendar.toolbar.importExceptions')}</span>
               </Button>
             </TooltipTrigger>
             <TooltipContent>{t('calendar.toolbar.importExceptionsTooltip')}</TooltipContent>
@@ -64,7 +64,7 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
               className="h-9 gap-2"
             >
               <Download className="w-4 h-4" />
-              <span className="hidden sm:inline text-xs">{t('calendar.toolbar.exportTxt')}</span>
+              <span className="hidden md:inline text-xs">{t('calendar.toolbar.exportTxt')}</span>
             </Button>
           </TooltipTrigger>
           <TooltipContent>{t('calendar.toolbar.exportTxtTooltip')}</TooltipContent>

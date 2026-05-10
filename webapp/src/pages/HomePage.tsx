@@ -58,15 +58,15 @@ export default function HomePage() {
     const hasAvailableCalendars = calendarsData && calendarsData.length > 0;
 
     const calendarSelector = hasAvailableCalendars ? (
-        <div className="flex items-center gap-3">
-            <label className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+            <label className="hidden lg:inline text-sm font-medium text-muted-foreground whitespace-nowrap shrink-0">
                 {t("home.selectCalendar")}:
             </label>
             <Select
                 value={selectedCalendarId || ""}
                 onValueChange={handleCalendarChange}
             >
-                <SelectTrigger className="w-auto min-w-[400px]">
+                <SelectTrigger className="w-full max-w-[400px]">
                     <SelectValue placeholder={t("home.selectCalendar")} />
                 </SelectTrigger>
                 <SelectContent>

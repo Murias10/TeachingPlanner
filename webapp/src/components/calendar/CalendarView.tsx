@@ -1267,10 +1267,10 @@ export default function CalendarView({ calendarId, headerSlot, isQuickAccess }: 
                 {(isAdmin || isProfessor || headerSlot || !!data) && (
                     <div className="px-4 py-3 border-b bg-card flex items-center gap-4">
                         {/* Izquierda: selector de calendario (solo en HomePage via headerSlot) */}
-                        {headerSlot && <div className="flex items-center">{headerSlot}</div>}
+                        {headerSlot && <div className="flex items-center min-w-0 flex-1">{headerSlot}</div>}
 
                         {/* Spacer */}
-                        <div className="flex-1" />
+                        {!headerSlot && <div className="flex-1" />}
 
                         {/* Derecha: botones de acción según rol */}
                         <TooltipProvider>
@@ -1293,7 +1293,7 @@ export default function CalendarView({ calendarId, headerSlot, isQuickAccess }: 
                                                 className="h-9 gap-2"
                                             >
                                                 <FileText className="w-4 h-4" />
-                                                <span className="hidden sm:inline text-xs">{t('calendar.toolbar.requestEvent')}</span>
+                                                <span className="hidden md:inline text-xs">{t('calendar.toolbar.requestEvent')}</span>
                                             </Button>
                                         </TooltipTrigger>
                                         <TooltipContent>{t('calendar.toolbar.requestEventTooltip')}</TooltipContent>
@@ -1310,7 +1310,7 @@ export default function CalendarView({ calendarId, headerSlot, isQuickAccess }: 
                                                 className="h-9 gap-2"
                                             >
                                                 <FileSpreadsheet className="w-4 h-4" />
-                                                <span className="hidden sm:inline text-xs">{t('calendar.toolbar.exportCsv')}</span>
+                                                <span className="hidden md:inline text-xs">{t('calendar.toolbar.exportCsv')}</span>
                                             </Button>
                                         </TooltipTrigger>
                                         <TooltipContent>{t('calendar.toolbar.exportCsvTooltip')}</TooltipContent>

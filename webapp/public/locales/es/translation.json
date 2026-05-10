@@ -1929,7 +1929,11 @@
             "blockerHint": "Para eventos bloqueantes debes seleccionar al menos una asignatura. Selecciona la asignatura cuyas horas quieres afectar.",
             "cancel": "Cancelar",
             "send": "Enviar solicitud",
-            "sending": "Enviando..."
+            "sending": "Enviando...",
+            "description": "Diálogo para solicitar un nuevo evento en el calendario",
+            "classrooms": "Aulas (opcional)",
+            "classroom": "Aula (opcional)",
+            "noHours": "Sin horas planificadas"
         },
         "edit": {
             "title": "Editar solicitud de evento",

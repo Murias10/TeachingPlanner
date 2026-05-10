@@ -1931,7 +1931,11 @@
             "blockerHint": "For blocker events you must select at least one subject. Select the subject whose hours you want to affect.",
             "cancel": "Cancel",
             "send": "Send request",
-            "sending": "Sending..."
+            "sending": "Sending...",
+            "description": "Dialog to request a new event in the calendar",
+            "classrooms": "Classrooms (optional)",
+            "classroom": "Classroom (optional)",
+            "noHours": "No planned hours"
         },
         "edit": {
             "title": "Edit event request",

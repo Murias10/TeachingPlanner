@@ -14,7 +14,7 @@ import { useCalendarById } from "@/hooks/calendar/useCalendarById";
 import { CalendarEvent } from "@/types/CalendarEvent";
 import ClassFilter from "@/components/ClassFilter";
 import {
-    FileText, BookOpen, DoorOpen, Languages, Users, GraduationCap, Tag
+    FileText, FileSpreadsheet, BookOpen, DoorOpen, Languages, Users, GraduationCap, Tag
 } from "lucide-react";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { useTranslation } from "react-i18next";
@@ -1264,7 +1264,7 @@ export default function CalendarView({ calendarId, headerSlot, isQuickAccess }: 
         <>
             <section className="h-full bg-muted/50 overflow-hidden flex flex-col">
                 {/* Toolbar */}
-                {(isAdmin || isProfessor || headerSlot) && (
+                {(isAdmin || isProfessor || headerSlot || !!data) && (
                     <div className="px-4 py-3 border-b bg-card flex items-center gap-4">
                         {/* Izquierda: selector de calendario (solo en HomePage via headerSlot) */}
                         {headerSlot && <div className="flex items-center">{headerSlot}</div>}
@@ -1273,18 +1273,17 @@ export default function CalendarView({ calendarId, headerSlot, isQuickAccess }: 
                         <div className="flex-1" />
 
                         {/* Derecha: botones de acción según rol */}
-                        <div className="flex items-center gap-2">
-                            {isAdmin && (
-                                <CalendarToolbar
-                                    onExport={handleExportCalendar}
-                                    onExportCSV={handleExportToCSV}
-                                    onCreateEvent={handleCreateEvent}
-                                    onImportExceptions={() => setIsImportExceptionsDialogOpen(true)}
-                                    isAdmin={isAdmin}
-                                />
-                            )}
-                            {isProfessor && (
-                                <TooltipProvider>
+                        <TooltipProvider>
+                            <div className="flex items-center gap-2">
+                                {isAdmin && (
+                                    <CalendarToolbar
+                                        onExport={handleExportCalendar}
+                                        onCreateEvent={handleCreateEvent}
+                                        onImportExceptions={() => setIsImportExceptionsDialogOpen(true)}
+                                        isAdmin={isAdmin}
+                                    />
+                                )}
+                                {isProfessor && (
                                     <Tooltip>
                                         <TooltipTrigger asChild>
                                             <Button
@@ -1299,9 +1298,26 @@ export default function CalendarView({ calendarId, headerSlot, isQuickAccess }: 
                                         </TooltipTrigger>
                                         <TooltipContent>{t('calendar.toolbar.requestEventTooltip')}</TooltipContent>
                                     </Tooltip>
-                                </TooltipProvider>
-                            )}
-                        </div>
+                                )}
+                                {/* Exportar CSV — visible para todos los perfiles */}
+                                {!!data && (
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={handleExportToCSV}
+                                                className="h-9 gap-2"
+                                            >
+                                                <FileSpreadsheet className="w-4 h-4" />
+                                                <span className="hidden sm:inline text-xs">{t('calendar.toolbar.exportCsv')}</span>
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>{t('calendar.toolbar.exportCsvTooltip')}</TooltipContent>
+                                    </Tooltip>
+                                )}
+                            </div>
+                        </TooltipProvider>
                     </div>
                 )}
 

@@ -1,11 +1,10 @@
 import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Download, CirclePlus, FileSpreadsheet, Upload } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Download, CirclePlus, Upload } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 interface CalendarToolbarProps {
   onExport?: () => void;
-  onExportCSV?: () => void;
   onCreateEvent?: () => void;
   onImportExceptions?: () => void;
   isAdmin?: boolean;
@@ -13,7 +12,6 @@ interface CalendarToolbarProps {
 
 const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
   onExport,
-  onExportCSV,
   onCreateEvent,
   onImportExceptions,
   isAdmin = false,
@@ -21,8 +19,7 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
   const { t } = useTranslation();
 
   return (
-    <TooltipProvider>
-      <div className="flex gap-2 items-center justify-end">
+    <div className="flex gap-2 items-center justify-end">
         {/* Create Event Button - Primary action first */}
         <Tooltip>
           <TooltipTrigger asChild>
@@ -57,22 +54,6 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
           </Tooltip>
         )}
 
-        {/* Export CSV Button */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onExportCSV}
-              className="h-9 gap-2"
-            >
-              <FileSpreadsheet className="w-4 h-4" />
-              <span className="hidden sm:inline text-xs">{t('calendar.toolbar.exportCsv')}</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>{t('calendar.toolbar.exportCsvTooltip')}</TooltipContent>
-        </Tooltip>
-
         {/* Export TXT Button */}
         <Tooltip>
           <TooltipTrigger asChild>
@@ -88,8 +69,7 @@ const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
           </TooltipTrigger>
           <TooltipContent>{t('calendar.toolbar.exportTxtTooltip')}</TooltipContent>
         </Tooltip>
-      </div>
-    </TooltipProvider>
+    </div>
   );
 };
 

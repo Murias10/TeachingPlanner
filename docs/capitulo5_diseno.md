@@ -668,7 +668,7 @@ This flow justifies the existence of the `googleId`, `googleAccessToken`, `googl
 ```mermaid
 sequenceDiagram
     actor User
-    participant webapp as webapp (React) /settings
+    participant webapp as "webapp (React) /settings"
     participant gateway as gateway_service
     participant auth as auth_service
     participant google as Google OAuth 2.0
@@ -677,18 +677,18 @@ sequenceDiagram
     participant planner_db as planner_database
 
     User->>webapp: Clicks "Connect Google" (already authenticated)
-    webapp->>gateway: GET /auth/google/initiate (Authorization: Bearer JWT)
+    webapp->>gateway: GET /auth/google/initiate (Bearer JWT)
     gateway->>auth: GET /auth/google/initiate
-    auth-->>gateway: 302 Redirect → Google consent screen URL
+    auth-->>gateway: 302 Redirect to Google consent screen URL
     gateway-->>webapp: 302 Redirect
     webapp->>google: Navigates to OAuth consent screen
     User->>google: Grants access
-    google-->>auth: Callback GET /auth/google/callback?code=...&state=...
+    google-->>auth: Callback GET /auth/google/callback?code=...
     auth->>google: POST token endpoint (exchanges code for tokens)
-    google-->>auth: {access_token, refresh_token, id_token, expiry}
-    auth->>auth: Decodes state → userId; decodes id_token
-    auth->>mgmt_db: UPDATE User (googleId, encrypted googleAccessToken, encrypted googleRefreshToken)
-    auth->>planner: POST /calendar-sync/initialize {userId, userEmail}
+    google-->>auth: access_token, refresh_token, id_token, expiry
+    auth->>auth: Decodes state to userId, decodes id_token
+    auth->>mgmt_db: UPDATE User (googleId, encrypted tokens)
+    auth->>planner: POST /calendar-sync/initialize (userId, userEmail)
     planner->>planner_db: INSERT CalendarSync for each Calendar (syncStatus=IDLE)
     auth-->>webapp: Redirect to /settings?googleConnected=true
     webapp-->>User: Account linked confirmation
@@ -866,7 +866,17 @@ The design introduces two new domain entities and one dedicated service class.
 
 #### Synchronisation flow
 
-Synchronisation with Google Calendar is **exclusively manual**: the user synchronises each calendar with the "Sync now" button. When the user no longer wishes to keep a calendar synchronised, they delete it via the trash button, which opens a confirmation modal before executing the action. The delete button only appears if the calendar has been synchronised at least once (i.e. when `syncStatus` is not `IDLE` or `lastSyncAt` exists), since before the first synchronisation there is no data in Google Calendar to clean up.
+Synchronisation with Google Calendar is **exclusively manual** and restricted to users with the `ADMIN` role: the administrator synchronises each calendar with the "Sync now" button. When the administrator no longer wishes to keep a calendar synchronised, they delete it via the trash button, which opens a confirmation modal before executing the action. The delete button only appears if the calendar has been synchronised at least once (i.e. when `syncStatus` is not `IDLE` or `lastSyncAt` exists), since before the first synchronisation there is no data in Google Calendar to clean up.
+
+#### Motivation: external dependency on classroom Google Calendars
+
+The per-classroom Google Calendar creation is not merely a convenience feature: it is a critical integration point within the EII ecosystem. A separate application used by the head of studies (jefatura de estudios) consumes these Google Calendars directly to drive its own functionality. Prior to TeachingPlanner, any modification to the `.txt` timetable files required a separate, manual update to the corresponding Google Calendar — a dual-maintenance workflow that was both time-consuming and prone to desynchronisation.
+
+#### Synchronisation strategy: delete-and-recreate
+
+The synchronisation strategy implemented in `GoogleCalendarService` is a **full delete-and-recreate** rather than an incremental diff. On each "Sync now" operation, all existing events in the affected Google Calendars are deleted and the entire expanded event set is rewritten from the current state of the `planner_database`. This approach guarantees that after each synchronisation the Google Calendar state is 100% consistent with TeachingPlanner — no orphaned events or stale data can accumulate from prior sync runs.
+
+The alternative — synchronising incrementally with each individual change — would generate one Google Calendar API call per event insert, edit or delete. For a full semester calendar with hundreds of expanded events, this would exhaust the 400 req/min effective quota almost immediately and is therefore not feasible from a quota-cost perspective. The manual on-demand synchronisation model (triggered explicitly by the administrator) balances consistency guarantees with API quota consumption.
 
 The endpoints available in `planner_service` for this flow are:
 

@@ -340,12 +340,12 @@ Click **Solicitar** to submit. The request is registered with **Pending** status
 
 #### EDIT, CANCEL, and REPLACE requests — modify an existing event
 
-> **[IMAGE 21b — Event context menu for professors]**: screenshot of the context menu that appears when a professor right-clicks on an existing calendar event, showing the "Ver detalles", "Solicitar editar serie de eventos", "Solicitar reemplazar evento" and "Solicitar cancelar" options.
+> **[IMAGE 21b — Event context menu for professors]**: screenshot of the context menu that appears when a professor right-clicks on an existing calendar event. For recurring events the menu shows "Ver detalles", "Solicitar editar serie de eventos", "Solicitar reemplazar evento" and "Solicitar cancelar". For one-off events the labels adapt: "Solicitar edición" replaces "Solicitar editar serie de eventos", but "Solicitar reemplazar evento" and "Solicitar cancelar" remain available.
 
 **Right-click** any existing event on the calendar to open its context menu. (On touch devices, a long press opens the same menu.) The following options are available:
 
 - **Request edit** (*Solicitar editar serie de eventos*): propose a change to the time, date, or classroom of an existing recurring event. Fill in the updated details and click **Send request** to submit. For one-off events, the option reads *Solicitar edición*.
-- **Request replacement** (*Solicitar reemplazar evento*): substitute a single occurrence of a recurring event with a different one-off session.
+- **Request replacement** (*Solicitar reemplazar evento*): substitute an event — either a specific occurrence of a recurring series or a one-off event — with a different one-off session scheduled on a new date and time.
 
   > **[IMAGE 21d — Replace request dialog with summary block]**: screenshot of the "Solicitar reemplazo de evento" dialog showing the three sections: the original event block (read-only) at the top, the new date/time/classroom fields in the middle, and the "Resumen de la solicitud" block at the bottom displaying both action lines.
 

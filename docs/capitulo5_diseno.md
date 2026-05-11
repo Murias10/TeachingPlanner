@@ -758,8 +758,8 @@ The request flow involves two webapp routes:
 |---|---|---|
 | `CREATE` | Proposal to create a new event | Not required (null) |
 | `EDIT` | Modification of an existing event (time, classroom, groups) | Required |
-| `CANCEL` | Cancellation of a one-off occurrence of a recurring event | Required |
-| `REPLACE` | Cancellation of the original event and creation of a new one in its place | Required |
+| `CANCEL` | Cancellation of an existing event (a specific occurrence of a recurring series, or a one-off event) | Required |
+| `REPLACE` | Cancellation of the original event (a specific occurrence of a recurring series, or a one-off event) and creation of a new one-off event in its place | Required |
 
 `originalEventId` is required for `EDIT`, `CANCEL` and `REPLACE` because those operations are defined relative to an event that already exists in the system — the administrator must be able to identify and locate the target event to apply or reject the change. `CREATE` does not reference any existing event: the full specification of the new event is contained entirely within `eventData`.
 

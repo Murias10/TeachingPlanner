@@ -455,10 +455,12 @@ This pattern is replicated for all application domains: `calendar/`, `classroom/
 
 The following diagram shows the domain entities managed by `planner_service` and their relationships. All business entities extend `AuditedEntity`, which provides the traceability fields common to all write operations.
 
-**Figure 5.5 — Class diagram of the scheduling domain**
+**Figure 5.5a — Class diagram of the scheduling domain (`planner_db`)**
 
 ```mermaid
 classDiagram
+    direction TB
+
     class AuditedEntity {
         <<abstract>>
         +UUID id
@@ -513,7 +515,6 @@ classDiagram
         +string endTime
         +boolean cancelled
         +string eventType
-        +string comment
         +UUID periodicEventSourceId
         +UUID replacementEventId
     }
@@ -522,7 +523,6 @@ classDiagram
         +string startTime
         +string endTime
         +string weekDay
-        +number year
         +string eventCharacter
         +string eventType
         +number planifiedHours
@@ -535,66 +535,77 @@ classDiagram
 
     class EventRequest {
         +string professorId
-        +string calendarId
-        +string eventType
-        +string requestType
-        +string originalEventId
+        +EventType eventType
+        +RequestType requestType
+        +UUID originalEventId
         +JSON eventData
-        +string status
+        +RequestStatus status
         +string reviewedBy
         +Date reviewedAt
-        +string comments
     }
 
     class CalendarSync {
         +string userId
         +SyncStatus syncStatus
         +Date lastSyncAt
-        +string currentOperation
+        +string errorMessage
         +number totalCalendars
         +number processedCalendars
     }
 
     class GoogleClassroomCalendar {
         +string userId
+        +string classroomId
         +string googleCalendarId
         +string googleCalendarName
     }
-
-    class ApiQuotaCounter {
-        +string apiKey
-        +number minuteCount
-        +number minuteWindowStart
-        +number dailyCount
-        +number dailyCalendarCreations
-        +number dailyWindowStart
-    }
-
-    AuditedEntity <|-- Degree
-    AuditedEntity <|-- Course
-    AuditedEntity <|-- Calendar
-    AuditedEntity <|-- Subject
-    AuditedEntity <|-- Group
-    AuditedEntity <|-- Classroom
-    AuditedEntity <|-- Day
-    AuditedEntity <|-- PuntualEvent
-    AuditedEntity <|-- PeriodicEvent
 
     Degree "1" --> "0..*" Course : contains
     Course "1" --> "0..*" Calendar : organises
     Calendar "1" --> "0..*" Subject : includes
     Calendar "1" --> "0..*" Group : groups
     Calendar "1" --> "0..*" Day : defines days
-    Calendar "1" --> "0..*" PeriodicEvent : schedules recurrently
-    Calendar "1" --> "0..*" CalendarSync : records synchronisation
-    Subject "1" --> "0..*" Group : broken down into groups
-    Day "1" --> "0..*" PuntualEvent : contains one-off events
+    Calendar "1" --> "0..*" PeriodicEvent : schedules
+    Calendar "1" --> "0..*" CalendarSync : sync state
+    Calendar "1" --> "0..*" EventRequest : receives
+    Subject "1" --> "0..*" Group : broken into
+    Day "1" --> "0..*" PuntualEvent : contains
     Group "0..*" <--> "0..*" PuntualEvent : assigned to
     Group "0..*" <--> "0..*" PeriodicEvent : assigned to
     Classroom "0..*" <--> "0..*" PuntualEvent : booked for
     Classroom "0..*" <--> "0..*" PeriodicEvent : booked for
-    Classroom "1" --> "0..*" GoogleClassroomCalendar : has Google Calendar
+    Classroom "1" --> "0..*" GoogleClassroomCalendar : has Google Cal
 ```
+
+**Figure 5.5b — User entity (`management_db`)**
+
+```mermaid
+classDiagram
+    direction TB
+
+    class User {
+        +UUID id
+        +string name
+        +string firstSurname
+        +string secondSurname
+        +string uniOviUser
+        +string email
+        +string password
+        +UserRole role
+        +boolean isActive
+        +string activationToken
+        +Date tokenExpiry
+        +Date resetTokenExpiry
+        +string googleId
+        +string googleAccessToken
+        +string googleRefreshToken
+        +Date googleTokenExpiry
+        +boolean googleCalendarSyncEnabled
+        +boolean googleDisconnecting
+    }
+```
+
+`User` is managed exclusively in `management_db` by `auth_service` (authentication, Google OAuth) and `user_service` (CRUD, bulk import). It does not appear in `planner_db`; `planner_service` references users only by their `userId` (UUID extracted from the JWT) in the `userId` fields of `CalendarSync` and `GoogleClassroomCalendar`, and by their email address in the `AuditedEntity.createdBy` / `updatedBy` audit fields. There is no foreign key constraint between the two databases — referential integrity across the database boundary is enforced at the application layer.
 
 **Notes on the domain model:**
 

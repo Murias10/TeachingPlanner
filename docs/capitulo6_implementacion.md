@@ -366,7 +366,7 @@ The testing strategy and design (what is tested and why) have been defined in **
 
 #### Infrastructure
 
-The integration tests are located in `planner_service/src/__tests__/integration/` and run with **Jest 30** and TypeScript support via `ts-jest`. The distinctive feature of this suite is the use of **Testcontainers** (`@testcontainers/mariadb 11.2`): before the suite begins, an ephemeral MariaDB container is automatically started with a `test_planner_db` database where TypeORM synchronises the full schema (`synchronize: true`). Upon completion, the container is destroyed.
+The integration tests are distributed across **`planner_service/src/__tests__/integration/`**, **`auth_service/src/__tests__/integration/`** and **`user_service/src/__tests__/integration/`**, and run with **Jest 30** and TypeScript support via `ts-jest`. The distinctive feature of this suite is the use of **Testcontainers** (`@testcontainers/mariadb 11.2`): before each suite begins, an ephemeral MariaDB container is automatically started with a dedicated test database where TypeORM synchronises the full schema (`synchronize: true`). Upon completion, the container is destroyed. The suite totals **8 test files and 27 test cases**.
 
 The lifecycle of each suite is:
 
@@ -427,6 +427,61 @@ npm run test:ci
 | TC-INT-05 | Deletion of Classroom with no events | Classroom with no associated events | Classroom deleted; `count() === 0` |
 | TC-INT-06 | Classroom code uniqueness — duplicate rejected | Classroom with code `UNIQUE-CODE` already existing | `classroomRepo.save(classroom2)` throws an exception |
 | TC-INT-07 | Creation of two Classrooms with different codes | Empty database | Both records created; `count() === 2` |
+
+**File: `subject.delete.test.ts`**
+
+| ID | Description | Precondition | Expected result |
+|---|---|---|---|
+| TC-INT-08 | Cascade deletion of Subject with groups and events | Subject with 2 Groups, each with PuntualEvent and PeriodicEvent | Subject, Groups and all associated events deleted; Calendar and Course remain |
+| TC-INT-09 | Deletion of Subject with no groups | Empty Subject (no groups) | Subject deleted; Calendar and Course remain |
+| TC-INT-10 | Subject acronym uniqueness — duplicate rejected | Subject with acronym `SUBJ-DUP` already existing | `subjectRepo.save()` throws unique key violation (error 1062) |
+
+**File: `degree.cascade.test.ts`**
+
+| ID | Description | Precondition | Expected result |
+|---|---|---|---|
+| TC-INT-11 | Full cascade deletion Degree → Course → Calendar → events | Degree with 1 Course, 1 Calendar, 1 Subject, 1 Group, 2 Days, 1 PuntualEvent, 1 PeriodicEvent | All entities deleted; `count() === 0` for each repository |
+| TC-INT-12 | Deletion of Degree with no associated courses | Degree with no courses | Degree deleted; `count() === 0` |
+| TC-INT-13 | Degree name uniqueness — duplicate rejected | Degree with name `INGENIERÍA TEST` already existing | `degreeRepo.save()` throws unique key violation |
+
+**File: `group.hours.test.ts`**
+
+| ID | Description | Precondition | Expected result |
+|---|---|---|---|
+| TC-INT-14 | Creation of Group with valid planifiedHours | Calendar and Subject existing; planifiedHours = 60 | Group created; `planifiedHours === 60` in the retrieved entity |
+| TC-INT-15 | Multiple groups within same Subject — independent planifiedHours | Subject with 2 Groups (30h and 45h) | Both groups exist; hours are stored independently |
+| TC-INT-16 | Deletion of Group deletes associated events | Group with 1 PuntualEvent and 1 PeriodicEvent | Group and both events deleted; Subject and Calendar remain |
+
+**File: `periodicEvent.create.test.ts`**
+
+| ID | Description | Precondition | Expected result |
+|---|---|---|---|
+| TC-INT-17 | Creation of PeriodicEvent with eventCharacter N | Group and Classroom existing | PeriodicEvent created with `eventCharacter = 'N'`; `count() === 1` |
+| TC-INT-18 | Creation of PeriodicEvent with eventCharacter P | Group and Classroom existing | PeriodicEvent created with `eventCharacter = 'P'`; `count() === 1` |
+| TC-INT-19 | Multiple PeriodicEvents in same Group with different characters | Group with PeriodicEvents N and I | Both events exist; retrievable and distinguishable by `eventCharacter` |
+
+**File: `day.create.test.ts`**
+
+| ID | Description | Precondition | Expected result |
+|---|---|---|---|
+| TC-INT-20 | Creation of Day with dayCharacter P | Calendar existing | Day persisted with `dayCharacter = 'P'` and correct `date`; `count() === 1` |
+| TC-INT-21 | Creation of Days with different dayCharacters in same Calendar | Calendar existing | 3 Days (P, I, custom A) created; retrievable by `dayCharacter` |
+
+**File: `auth.integration.test.ts`** (`auth_service/src/__tests__/integration/`)
+
+| ID | Description | Precondition | Expected result |
+|---|---|---|---|
+| TC-INT-22 | Successful user registration stores hashed password | Empty users table | User created; stored `passwordHash` differs from plain text; `bcrypt.compare()` returns true |
+| TC-INT-23 | Login with correct credentials returns JWT | User registered in DB | Response includes `accessToken`; JWT payload contains `userId` and `role` |
+| TC-INT-24 | Login with incorrect password rejected | User registered in DB | `bcrypt.compare()` returns false; no token issued |
+| TC-INT-25 | Duplicate email registration rejected | User with email `test@uni.es` already existing | `userRepo.save()` throws unique key violation |
+
+**File: `user.integration.test.ts`** (`user_service/src/__tests__/integration/`)
+
+| ID | Description | Precondition | Expected result |
+|---|---|---|---|
+| TC-INT-26 | User creation with role ROLE_ADMIN | Empty users table | User created; `role === 'ROLE_ADMIN'`; `count() === 1` |
+| TC-INT-27 | Role update persisted correctly | User with role `ROLE_USER` | After update; `role === 'ROLE_ADMIN'` in re-fetched entity |
 
 The following is a representative fragment of test TC-INT-01, illustrating the *Arrange–Act–Assert* pattern used:
 
@@ -584,7 +639,32 @@ npm run test:e2e:report
 | TC-E2E-41 | should display correct year options (0–4) | Year selector shows options from 0 to 4 |
 | TC-E2E-42 | should delete multiple subjects in bulk | Multiple selection and bulk deletion; all selected records deleted |
 
-**Total: 42 E2E tests** (6 + 8 + 9 + 9 + 10).
+**Suite: `calendar.spec.ts` — 8 tests**
+
+| ID | Test name | Main verification |
+|---|---|---|
+| TC-E2E-43 | should display calendars list | URL `/calendars`; semester and date columns visible |
+| TC-E2E-44 | should create new calendar successfully | Creation with start/end date and semester; "Calendar created" alert; row visible in table |
+| TC-E2E-45 | should show error when end date is before start date | Invalid date range; error message visible |
+| TC-E2E-46 | should edit calendar dates successfully | Date modification; "Calendar updated" alert |
+| TC-E2E-47 | should delete calendar successfully | Cascade warning dialog; "Calendar deleted" alert; row removed |
+| TC-E2E-48 | should cancel delete operation | Click "Cancel"; calendar remains in table |
+| TC-E2E-49 | should filter calendars by semester | Filter by semester; only matching rows shown |
+| TC-E2E-50 | should validate required fields in create form | Save button disabled if start date, end date or semester is missing |
+
+**Suite: `group.spec.ts` — 7 tests**
+
+| ID | Test name | Main verification |
+|---|---|---|
+| TC-E2E-51 | should display groups list | Listing with name and planified hours columns |
+| TC-E2E-52 | should create new group successfully | Creation with name and hours; "Group created" alert; row visible in table |
+| TC-E2E-53 | should show error when planified hours is zero or negative | Validation error for non-positive hours value |
+| TC-E2E-54 | should edit group successfully | Hours modification; "Group updated" alert |
+| TC-E2E-55 | should delete group successfully | Confirmation dialog; "Group deleted" alert; row removed |
+| TC-E2E-56 | should cancel delete operation | Click "Cancel"; group remains in table |
+| TC-E2E-57 | should validate required fields in create form | Save button disabled if name or planified hours is missing |
+
+**Total: 57 E2E tests** (6 + 8 + 9 + 9 + 10 + 8 + 7).
 
 The following is a representative fragment of an E2E test (degree programme creation), illustrating the use of semantic selectors and the timestamp-based unique data strategy:
 
@@ -631,7 +711,7 @@ flowchart TD
         E5["wait-for-services.ts\n(timeout 120 s)"]
         E6["npm run seed:ci — user_service\n(creates admin@test.com)"]
         E7["npx playwright install chromium"]
-        E8["npm run test:e2e:ci\n42 Playwright tests"]
+        E8["npm run test:e2e:ci\n57 Playwright tests"]
         E9{{"Tests OK?"}}
         E10["Upload artifacts\n(screenshots · videos · HTML report)\nRetention: 7 days"]
     end
@@ -675,5 +755,5 @@ Artefacts are retained for **7 days** and are accessible from the *Actions* tab 
 | MariaDB setup + dependency installation + compilation | ~3–4 minutes |
 | Service startup and wait | ~30–60 seconds |
 | Integration tests (Jest + Testcontainers) | ~30–60 seconds |
-| E2E tests (42 Playwright tests) | ~2–3 minutes |
-| **Total** | **~6–8 minutes** |
+| E2E tests (57 Playwright tests) | ~3–4 minutes |
+| **Total** | **~7–9 minutes** |

@@ -648,3 +648,147 @@ All services should show status `Up`. Access from the browser (with the VPN acti
 ```
 https://planificador.ingenieriainformatica.uniovi.es
 ```
+
+---
+
+## 7.1.7 Code quality analysis (SonarQube)
+
+SonarQube is used for static analysis of all TypeScript source code across the four backend services and the frontend. It is run locally on demand, not as part of the CI/CD pipeline.
+
+### Prerequisites
+
+- Docker and Docker Compose installed (same requirement as the local development environment).
+- The root `package.json` includes all `sonar:*` scripts; no additional global installation is needed.
+
+### Initial setup (first time only)
+
+**Step 1 — Start the SonarQube server**
+
+```bash
+npm run sonar:start
+```
+
+This starts the `sonarqube:community` container via `docker-compose.sonarqube.yml` on port 9000. Wait 1–2 minutes for the server to initialise fully.
+
+**Step 2 — Create an account and change the default password**
+
+Open `http://localhost:9000` in a browser. Log in with the default credentials:
+
+- Username: `admin`
+- Password: `admin`
+
+SonarQube will immediately prompt you to set a new password. Choose a strong password and save it.
+
+**Step 3 — Generate an authentication token**
+
+1. Click your profile icon (top-right corner) → **My Account** → **Security**
+2. Under **Generate Tokens**:
+   - **Name**: `teaching-planner-scanner`
+   - **Type**: `Global Analysis Token`
+   - **Expires in**: `No expiration` (or according to team policy)
+3. Click **Generate**
+4. Copy the token immediately — it is only shown once
+
+**Step 4 — Configure the token**
+
+Open the file `.env.sonarqube` in the project root and paste the token:
+
+```env
+SONAR_TOKEN=squ_your_token_here
+```
+
+This file is listed in `.gitignore` and must never be committed to the repository.
+
+### Available scripts
+
+| Script | Action |
+|---|---|
+| `npm run sonar:start` | Start the SonarQube server (port 9000) |
+| `npm run sonar:scan` | Run the analysis of all services |
+| `npm run sonar:full` | Start the server and run the analysis in one step (waits for the server to be ready) |
+| `npm run sonar:stop` | Stop the SonarQube server |
+| `npm run sonar:restart` | Restart the server |
+| `npm run sonar:logs` | View SonarQube server logs |
+| `npm run sonar:logs-scanner` | View scanner logs |
+| `npm run sonar:clean` | Remove all SonarQube data and volumes — **irreversible** |
+
+### Regular usage
+
+If SonarQube is already running:
+
+```bash
+npm run sonar:scan
+```
+
+If SonarQube is not running:
+
+```bash
+npm run sonar:full
+```
+
+Results are available at `http://localhost:9000/dashboard?id=teaching-planner`.
+
+When finished working:
+
+```bash
+npm run sonar:stop
+```
+
+### Branch analysis
+
+The `.env.sonarqube` file controls which branch is analysed and which branch it is compared against:
+
+```env
+SONAR_BRANCH_NAME=develop       # Branch to analyse
+SONAR_BRANCH_TARGET=main        # Base branch for comparison
+```
+
+To analyse a feature branch before merging:
+
+1. Edit `.env.sonarqube`:
+   ```env
+   SONAR_BRANCH_NAME=feature/my-feature
+   SONAR_BRANCH_TARGET=develop
+   ```
+2. Run `npm run sonar:scan`
+3. In the SonarQube dashboard, select the branch from the branch selector (top of the project page) to view new issues introduced relative to the target branch.
+
+After the analysis, restore the default values in `.env.sonarqube`.
+
+### Pre-merge quality checklist
+
+Before merging any branch to `main`, verify the following thresholds in the SonarQube dashboard (`http://localhost:9000`):
+
+| Metric | Threshold |
+|---|---|
+| New issues vs `main` | 0 |
+| Code duplication | < 30% |
+| Test coverage | > 70% |
+| Cyclomatic complexity per function | < 15 |
+
+### Troubleshooting
+
+**SonarQube does not start**
+
+```bash
+npm run sonar:logs
+```
+
+If the logs show permission errors or data corruption:
+
+```bash
+npm run sonar:clean
+npm run sonar:start
+```
+
+> **Warning:** `sonar:clean` removes all historical data (projects, metrics, issue history). Only use it as a last resort.
+
+**Analysis fails with a token error**
+
+- Verify that `.env.sonarqube` exists and contains a valid `SONAR_TOKEN`.
+- Check in SonarQube (My Account → Security) that the token has not expired.
+- If expired, generate a new token and update `.env.sonarqube`.
+
+**Analysis fails because SonarQube is not ready**
+
+Use `npm run sonar:full` instead of `npm run sonar:scan`. The `full` script waits for the health check to pass before launching the scanner.

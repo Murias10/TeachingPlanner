@@ -1000,8 +1000,10 @@ The testing strategy for TeachingPlanner is structured in three complementary le
 - Code duplication and cyclomatic complexity.
 
 **What is excluded from analysis:**
-- `webapp/src/components/ui/**`: this path covers two categories of files that are intentionally excluded. (a) The 32 Radix UI primitives generated via shadcn/ui: these are third-party component scaffolds not maintained by the project; analysing them would inflate the code smells count with issues that are not actionable. (b) Project-owned presentational components (`DataTable.tsx`, `FormDrawer.tsx`, `RequiredLabel.tsx` and others): these components are pure presentation code with no conditional business logic — they consist almost entirely of JSX markup and prop forwarding, making cyclomatic complexity and branch coverage metrics uninformative. Excluding them focuses the SonarQube analysis on the code paths where defects would have functional consequences.
+- The 34 Radix UI primitives scaffolded by shadcn/ui (`alert.tsx`, `button.tsx`, `dialog.tsx`, `sidebar.tsx`, etc.) are excluded individually by their full path in `sonar.exclusions`, `sonar.coverage.exclusions` and `sonar.cpd.exclusions`: these are third-party component scaffolds not maintained by the project; analysing them would inflate the code smells count with issues that are not actionable. Project-owned components that reside in the same `webapp/src/components/ui/` directory — `DataTable.tsx`, `FormDrawer.tsx`, `RequiredLabel.tsx`, `multi-select.tsx`, `searchable-select.tsx` and `password-requirements.tsx` — are **included** in the analysis, as they contain conditional business logic (pagination state, multi-selection, searchable dropdowns, password validation rules) where defects would have functional consequences.
 - Directories `dist/`, `build/`, `coverage/` and all test files (`*.test.ts`, `*.spec.ts`).
+
+**Execution and quality gates:** SonarQube is started locally via `npm run sonar:start` (`docker-compose.sonarqube.yml`, port 9000). The scan is triggered with `npm run sonar:scan`; `npm run sonar:full` combines startup and scan in a single step. Branch analysis is configured via `.env.sonarqube` (`SONAR_BRANCH_NAME` / `SONAR_BRANCH_TARGET`; defaults: `develop` vs `main`). Before merging to `main`, the following thresholds are verified in the SonarQube dashboard: new issues vs main = 0; code duplication < 30%; test coverage > 70%; cyclomatic complexity < 15 per function.
 
 ---
 
@@ -1017,23 +1019,19 @@ The testing strategy for TeachingPlanner is structured in three complementary le
 
 **What is tested:**
 
-The test files are located in `planner_service/src/__tests__/integration/`:
+The integration tests cover three categories of behaviour across the planning domain and the authentication and user management services:
 
-1. **`calendar.delete.test.ts` — Calendar cascade deletion**: when a calendar is deleted, all dependent entities (days, one-off events, recurring events, groups, subjects, pivot table relationships) must be deleted in cascade. Entities higher up in the hierarchy (degree programme, academic year) must remain intact.
+- **Cascade deletion correctness**: when a high-level entity (Degree, Calendar, Subject, Classroom) is deleted, all subordinate entities must be removed transactionally and entities outside the deleted subtree must remain intact.
+- **Conditional deletion logic**: the `force` flag on Classroom deletion must be respected — deletion must be rejected when associated events exist and `force` is false, and must succeed when `force` is true or no events are present.
+- **Database-level uniqueness constraints**: unique fields (Classroom code, Subject acronym, Degree name, user email) must raise a constraint violation at the MariaDB level, not merely at the application layer.
+- **Entity creation and field integrity**: newly created entities (Group, PeriodicEvent, Day) must persist their domain-specific fields (`planifiedHours`, `eventCharacter`, `dayCharacter`) correctly and independently.
+- **Authentication contract**: user registration must store a bcrypt hash (not plaintext); login must issue a valid JWT on correct credentials and reject incorrect ones; email must be unique across registrations.
 
-2. **`classroom.delete.test.ts` — Classroom deletion with `force` flag**:
-   - With `force=true`: all events (`PuntualEvent`, `PeriodicEvent`) associated with the classroom are deleted first, then the classroom itself.
-   - With `force=false` and associated events: the operation must be rejected (logic equivalent to HTTP 409 Conflict).
-   - Without associated events: direct deletion without side effects, regardless of the value of `force`.
-
-3. **`UNIQUE` constraint on `Classroom.code`**: the test attempts to insert two `Classroom` entities with the same value in the `code` field and verifies that TypeORM propagates the unique key violation exception thrown by MariaDB (error code 1062), guaranteeing that the constraint acts at the database level and not just at the application level.
-
-The two test files contain a total of **7 test cases** (2 in `calendar.delete.test.ts` and 5 in `classroom.delete.test.ts`), detailed in **§6.2.1 of Chapter 6**.
+The concrete test cases implementing these verification objectives are detailed in **§6.2.1 of Chapter 6** (27 test cases across 10 test files).
 
 **Coverage:** Jest generates coverage reports in LCOV format (`planner_service/coverage/lcov.info`) consumed by SonarQube to calculate line and branch coverage.
 
 **What is out of scope at this level:**
-- Authentication and user management logic (`auth_service`, `user_service`): their controllers are thin and the relevant behaviour is the integration with bcrypt and JWT, covered by E2E tests.
 - HTTP controllers: routing logic and status codes are verified in E2E tests.
 - Google Calendar synchronisation: depends on an external API requiring real credentials.
 
@@ -1059,9 +1057,11 @@ The two test files contain a total of **7 test cases** (2 in `calendar.delete.te
 | `course.spec.ts` | Academic years | Listing; creation; error on duplicate year; state editing; deletion; cancellation; filtering; required field validation; default state `PLANIFICADO` | 9 |
 | `degree.spec.ts` | Degree programmes | Listing; creation; error on duplicate acronym; editing; deletion; cancellation; filter by name; required field validation; automatic acronym uppercase conversion | 9 |
 | `subject.spec.ts` | Subjects | Listing; creation; error on duplicate acronym; editing; deletion; cancellation; field validation; uppercase name; year options (0–4); bulk multi-delete | 10 |
-| **Total** | | | **42** |
+| `calendar.spec.ts` | Calendars | Listing; creation with dates and semester; end-date-before-start validation; editing; deletion with cascade warning; cancellation; filter by semester; required field validation | 8 |
+| `group.spec.ts` | Groups | Listing; creation with planified hours; validation error for zero hours; editing; deletion; cancellation; required field validation | 7 |
+| **Total** | | | **57** |
 
-**Data isolation strategy:** the `POST /test/reset-database` endpoint guarantees that each test suite starts with a clean database. Tests within each suite run sequentially to avoid race conditions on shared data. In the CI environment, Playwright is configured with `workers: 1` to avoid conflicts between parallel suites on the shared database.
+**Data isolation strategy:** the `POST /test/reset-database` endpoint guarantees that each test suite starts with a clean database. Tests within each suite run sequentially to avoid race conditions on shared data. In the CI environment, Playwright is configured with `workers: 1` to avoid conflicts between parallel suites on the shared database. The 57 tests are distributed across 7 suites.
 
 **CI execution infrastructure** (`e2e-tests` job of the deployment workflows):
 1. MariaDB 11 is started as a Docker service with test credentials.

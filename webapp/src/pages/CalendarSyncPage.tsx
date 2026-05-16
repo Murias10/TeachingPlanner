@@ -41,8 +41,45 @@ const DEFAULT_QUOTA = {
     calendarsCreatedToday: { used: 0, estimatedLimit: 150 }
 } as const;
 
+const GOOGLE_ERROR_PREFIX = 'errorCode:';
+
+/**
+ * Maps a structured backend error token (errorCode:<CODE>[:<JSON>]) to a translated string.
+ * Falls back to displaying the raw message for legacy non-structured errors.
+ */
+function useParseErrorMessage() {
+    const { t } = useTranslation();
+    return (raw: string | undefined): string => {
+        if (!raw) return '';
+        if (!raw.startsWith(GOOGLE_ERROR_PREFIX)) return raw;
+
+        const withoutPrefix = raw.slice(GOOGLE_ERROR_PREFIX.length);
+        const colonIdx = withoutPrefix.indexOf(':');
+        const code = colonIdx === -1 ? withoutPrefix : withoutPrefix.slice(0, colonIdx);
+
+        let params: Record<string, string> = {};
+        if (colonIdx !== -1) {
+            try {
+                params = JSON.parse(withoutPrefix.slice(colonIdx + 1)) as Record<string, string>;
+            } catch { /* malformed params — translate without interpolation */ }
+        }
+
+        const i18nKey = `calendarSync.syncErrors.${code
+            .replace('GOOGLE_TOKEN_EXPIRED', 'tokenExpired')
+            .replace('GOOGLE_RATE_LIMIT', 'rateLimit')
+            .replace('GOOGLE_QUOTA_EXCEEDED', 'quotaExceeded')
+            .replace('GOOGLE_SERVER_ERROR', 'serverError')
+            .replace('GOOGLE_NETWORK_ERROR', 'networkError')
+            .replace('GOOGLE_CALENDAR_PARTIAL', 'partialFailure')
+            .replace('GOOGLE_UNKNOWN', 'unknown')}`;
+
+        return t(i18nKey, params);
+    };
+}
+
 const CalendarSyncPage = () => {
     const { t } = useTranslation();
+    const parseErrorMessage = useParseErrorMessage();
     const { setItems } = useBreadcrumbContext();
     const { user } = useAuth();
     const { triggerAlert } = useFloatingAlertContext();
@@ -97,13 +134,13 @@ const CalendarSyncPage = () => {
         if (result.success) {
             triggerAlert({
                 title: t("calendarSync.syncStarted.title"),
-                description: result.message || t("calendarSync.syncStarted.description"),
+                description: t("calendarSync.syncStarted.description"),
                 variant: "success"
             });
         } else {
             triggerAlert({
                 title: t("error.title"),
-                description: result.message || t("calendarSync.syncError"),
+                description: t("calendarSync.syncError"),
                 variant: "destructive"
             });
         }
@@ -301,7 +338,7 @@ const CalendarSyncPage = () => {
                                                         {getSyncStatusBadge(sync.syncStatus)}
                                                         {sync.errorMessage && (
                                                             <span className="text-xs text-destructive">
-                                                                {sync.errorMessage}
+                                                                {parseErrorMessage(sync.errorMessage)}
                                                             </span>
                                                         )}
                                                     </div>

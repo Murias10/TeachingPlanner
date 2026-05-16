@@ -33,6 +33,46 @@ interface GoogleCalendarCreateResponse {
 }
 
 /**
+ * Prefix that signals a structured, i18n-able error to the frontend.
+ * Format: "errorCode:<CODE>" or "errorCode:<CODE>:<JSON_PARAMS>"
+ * The frontend strips this prefix and looks up calendarSync.syncErrors.<camelCaseCode>
+ */
+const GOOGLE_ERROR_PREFIX = 'errorCode:';
+
+/**
+ * Maps a Google Calendar API HTTP error response to a structured error token.
+ *
+ * Google API error shape (documented):
+ *   { error: { code, message, errors: [{ domain, reason, message }] } }
+ *
+ * Documented reason values: authError, rateLimitExceeded, userRateLimitExceeded,
+ *   quotaExceeded, backendError, notFound, duplicate, conflict, conditionNotMet
+ */
+function buildGoogleErrorCode(status: number, body: string): string {
+    let reason: string | undefined;
+    try {
+        const parsed = JSON.parse(body) as { error?: { errors?: Array<{ reason?: string }> } };
+        reason = parsed?.error?.errors?.[0]?.reason;
+    } catch {
+        // body is not JSON — fall through to HTTP-status-based mapping
+    }
+
+    if (status === 401 || reason === 'authError') {
+        return `${GOOGLE_ERROR_PREFIX}GOOGLE_TOKEN_EXPIRED`;
+    }
+    if (reason === 'rateLimitExceeded' || reason === 'userRateLimitExceeded' || status === 429) {
+        return `${GOOGLE_ERROR_PREFIX}GOOGLE_RATE_LIMIT`;
+    }
+    if (reason === 'quotaExceeded') {
+        return `${GOOGLE_ERROR_PREFIX}GOOGLE_QUOTA_EXCEEDED`;
+    }
+    if (reason === 'backendError' || status >= 500) {
+        return `${GOOGLE_ERROR_PREFIX}GOOGLE_SERVER_ERROR:${JSON.stringify({ status })}`;
+    }
+    return `${GOOGLE_ERROR_PREFIX}GOOGLE_UNKNOWN:${JSON.stringify({ status })}`;
+}
+
+/**
  * Service for synchronizing academic calendars with Google Calendar
  * New architecture:
  * - One Google Calendar per classroom (created on Google connect)
@@ -48,6 +88,9 @@ export class GoogleCalendarService {
     private static readonly MAX_REQUESTS_PER_MINUTE = 400;
     private static readonly ESTIMATED_DAILY_REQUEST_LIMIT = 10000;
     private static readonly ESTIMATED_DAILY_CALENDAR_CREATION_LIMIT = 150;
+    // Google enforces an undocumented per-user rate limit on calendar creation
+    // (distinct from the general request quota). Empirically ~1 per 5s is safe.
+    private static readonly CALENDAR_CREATION_DELAY_MS = 5000;
     private static readonly QUOTA_KEY = 'google_calendar';
 
     // In-memory cache — loaded from DB on startup via initQuotaCounters()
@@ -252,43 +295,23 @@ export class GoogleCalendarService {
         classroomCode: string,
         accessToken: string,
         userEmail: string
-    ): Promise<GoogleClassroomCalendar | null> {
+    ): Promise<GoogleClassroomCalendar> {
         const googleCalendarRepo = AppDataSource.getRepository(GoogleClassroomCalendar);
 
-        try {
-            // Check if already exists (idempotency - prevents duplicates)
-            const existing = await googleCalendarRepo.findOne({
-                where: { userId, classroomId }
-            });
-
-            if (existing) {
-                return existing; // Return existing calendar
-            }
-
-            // Create Google Calendar via API
-            const googleCalendar = await this.createGoogleCalendar(
-                accessToken,
-                classroomCode
-            );
-
-            if (!googleCalendar) {
-                return null;
-            }
-
-            // Save to database
-            const saved = await googleCalendarRepo.save({
-                userId,
-                classroomId,
-                googleCalendarId: googleCalendar.id,
-                googleCalendarName: googleCalendar.summary,
-                createdBy: userEmail
-            });
-
-            return saved;
-        } catch (error: any) {
-            console.error(`Error ensuring Google Calendar for classroom ${classroomCode}:`, error);
-            return null;
+        const existing = await googleCalendarRepo.findOne({ where: { userId, classroomId } });
+        if (existing) {
+            return existing;
         }
+
+        const googleCalendar = await this.createGoogleCalendar(accessToken, classroomCode);
+
+        return googleCalendarRepo.save({
+            userId,
+            classroomId,
+            googleCalendarId: googleCalendar.id,
+            googleCalendarName: googleCalendar.summary,
+            createdBy: userEmail
+        });
     }
 
     /**
@@ -512,18 +535,19 @@ export class GoogleCalendarService {
                 await syncRepo.save(sync);
 
                 let createdCount = 0;
-                let failedCount = 0;
+                const failedClassrooms: string[] = [];
+                let lastErrorCode = '';
+
                 for (const classroomId of classroomsToCreate) {
-                    // Fetch classroom info
                     const classroom = await classroomRepo.findOne({ where: { id: classroomId } });
+                    if (!classroom) continue;
 
-                    if (classroom) {
-                        createdCount++;
-                        sync.processedCalendars = createdCount;
-                        sync.currentOperation = `Creando calendario ${createdCount}/${classroomsToCreate.length}: ${classroom.code}`;
-                        await syncRepo.save(sync);
+                    createdCount++;
+                    sync.processedCalendars = createdCount;
+                    sync.currentOperation = `Creando calendario ${createdCount}/${classroomsToCreate.length}: ${classroom.code}`;
+                    await syncRepo.save(sync);
 
-                        // Create Google Calendar on-demand with duplicate prevention
+                    try {
                         const googleCal = await this.ensureGoogleCalendarForClassroom(
                             sync.userId,
                             classroomId,
@@ -531,24 +555,36 @@ export class GoogleCalendarService {
                             accessToken,
                             sync.createdBy || 'system'
                         );
+                        classroomToGoogleCal[classroomId] = googleCal.googleCalendarId;
+                        console.log(`[SYNC] Created Google Calendar for classroom ${classroom.code}`);
+                    } catch (err: unknown) {
+                        const errorCode = err instanceof Error ? err.message : String(err);
+                        lastErrorCode = errorCode;
+                        failedClassrooms.push(classroom.code);
+                        console.error(`[SYNC] Failed to create Google Calendar for classroom ${classroom.code}:`, errorCode);
 
-                        if (googleCal) {
-                            classroomToGoogleCal[classroomId] = googleCal.googleCalendarId;
-                            console.log(`[SYNC] Created Google Calendar for classroom ${classroom.code}`);
-                        } else {
-                            failedCount++;
-                            console.error(`[SYNC] Failed to create Google Calendar for classroom ${classroom.code}`);
+                        // A token error will affect every subsequent call — abort early
+                        if (errorCode.includes('GOOGLE_TOKEN_EXPIRED')) {
+                            throw new Error(`${GOOGLE_ERROR_PREFIX}GOOGLE_TOKEN_EXPIRED`);
                         }
                     }
                 }
 
-                console.log(`[SYNC] Created ${createdCount - failedCount} new Google Calendars (${failedCount} failed)`);
+                const successCount = createdCount - failedClassrooms.length;
+                console.log(`[SYNC] Created ${successCount} new Google Calendars (${failedClassrooms.length} failed)`);
 
-                // If all calendars failed to create, throw error about quota limits
-                if (failedCount > 0 && failedCount === classroomsToCreate.length) {
-                    throw new Error('No se pudieron crear los calendarios de Google. Has excedido el límite diario de creación de calendarios. Por favor, inténtalo de nuevo mañana.');
-                } else if (failedCount > 0) {
-                    throw new Error(`Se crearon ${createdCount - failedCount} calendarios, pero ${failedCount} fallaron debido a límites de Google Calendar. Por favor, inténtalo de nuevo más tarde.`);
+                if (failedClassrooms.length > 0) {
+                    const params = JSON.stringify({
+                        created: successCount,
+                        failed: failedClassrooms.length,
+                        classrooms: failedClassrooms.join(', ')
+                    });
+                    // Propagate the root cause if it's a known structured code, otherwise use partialFailure
+                    const isStructuredError = lastErrorCode.startsWith(GOOGLE_ERROR_PREFIX);
+                    if (successCount === 0 && isStructuredError) {
+                        throw new Error(lastErrorCode);
+                    }
+                    throw new Error(`${GOOGLE_ERROR_PREFIX}GOOGLE_CALENDAR_PARTIAL:${params}`);
                 }
             } else {
                 console.log(`[SYNC] All needed Google Calendars already exist`);
@@ -703,10 +739,13 @@ export class GoogleCalendarService {
     private static async createGoogleCalendar(
         accessToken: string,
         calendarName: string
-    ): Promise<GoogleCalendarCreateResponse | null> {
+    ): Promise<GoogleCalendarCreateResponse> {
+        await this.waitForRateLimit();
+        await new Promise(resolve => setTimeout(resolve, this.CALENDAR_CREATION_DELAY_MS));
+
+        let response: Response;
         try {
-            await this.waitForRateLimit();
-            const response = await fetch(`${this.GOOGLE_CALENDAR_API}/calendars`, {
+            response = await fetch(`${this.GOOGLE_CALENDAR_API}/calendars`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${accessToken}`,
@@ -717,19 +756,20 @@ export class GoogleCalendarService {
                     timeZone: this.TIME_ZONE
                 })
             });
-
-            if (!response.ok) {
-                console.error('Failed to create Google Calendar:', await response.text());
-                return null;
-            }
-
-            this.dailyCalendarCreations++;
-            this.persistQuotaCounters();
-            return await response.json();
-        } catch (error) {
-            console.error('Error creating Google Calendar:', error);
-            return null;
+        } catch (networkError) {
+            console.error('Network error creating Google Calendar:', networkError);
+            throw new Error(`${GOOGLE_ERROR_PREFIX}GOOGLE_NETWORK_ERROR`);
         }
+
+        if (!response.ok) {
+            const body = await response.text();
+            console.error(`Failed to create Google Calendar [${response.status}]:`, body);
+            throw new Error(buildGoogleErrorCode(response.status, body));
+        }
+
+        this.dailyCalendarCreations++;
+        this.persistQuotaCounters();
+        return response.json() as Promise<GoogleCalendarCreateResponse>;
     }
 
     /**
@@ -840,11 +880,16 @@ export class GoogleCalendarService {
                 if (response.ok) {
                     successCount++;
                 } else {
-                    const error = await response.text();
-                    console.error(`Event insert failed (${i + 1}/${events.length}):`, error);
+                    const body = await response.text();
+                    console.error(`Event insert failed (${i + 1}/${events.length}) [${response.status}]:`, body);
+                    if (response.status === 401) {
+                        throw new Error(`${GOOGLE_ERROR_PREFIX}GOOGLE_TOKEN_EXPIRED`);
+                    }
                 }
-            } catch (error) {
-                console.error(`Event insert error (${i + 1}/${events.length}):`, error);
+            } catch (err) {
+                // Re-throw structured errors (e.g. 401 abort) so the caller can handle them
+                if (err instanceof Error && err.message.startsWith(GOOGLE_ERROR_PREFIX)) throw err;
+                console.error(`Event insert network error (${i + 1}/${events.length}):`, err);
             }
 
             // Log progress every 20 events
@@ -878,7 +923,11 @@ export class GoogleCalendarService {
             });
 
             if (!listResponse.ok) {
-                console.error('Failed to list events:', await listResponse.text());
+                const body = await listResponse.text();
+                console.error(`Failed to list events [${listResponse.status}]:`, body);
+                if (listResponse.status === 401) {
+                    throw new Error(`${GOOGLE_ERROR_PREFIX}GOOGLE_TOKEN_EXPIRED`);
+                }
                 return 0;
             }
 

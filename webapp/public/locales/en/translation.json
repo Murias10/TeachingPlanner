@@ -1737,6 +1737,15 @@
             "resetting": "Resetting...",
             "resetInSeconds": "Resets in ~{{seconds}}s",
             "resetInMinutes": "Resets in ~{{minutes}} min"
+        },
+        "syncErrors": {
+            "tokenExpired": "Google session expired. Go to Settings and reconnect your Google account.",
+            "rateLimit": "Too many requests to Google Calendar. Wait a moment and try again.",
+            "quotaExceeded": "Google Calendar usage limit reached. Try again later.",
+            "serverError": "Temporary Google Calendar error ({{status}}). Try again in a few minutes.",
+            "networkError": "Network error connecting to Google Calendar. Check your internet connection.",
+            "partialFailure": "{{created}} calendars created successfully. {{failed}} failed: {{classrooms}}. Please try again.",
+            "unknown": "Unexpected Google Calendar error (code {{status}}). Please try again."
         }
     },
     "myRequests": {

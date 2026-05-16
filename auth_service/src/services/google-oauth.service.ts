@@ -87,6 +87,7 @@ export class GoogleOAuthService {
             user.googleAccessToken = this.encrypt(tokens.access_token);
             user.googleRefreshToken = tokens.refresh_token ? this.encrypt(tokens.refresh_token) : user.googleRefreshToken;
             user.googleId = googleUser.id;
+            user.googleEmail = googleUser.email;
             user.googleTokenExpiry = new Date(Date.now() + tokens.expires_in * 1000);
             user.googleCalendarSyncEnabled = true;
 
@@ -188,6 +189,7 @@ export class GoogleOAuthService {
             user.googleAccessToken = undefined;
             user.googleRefreshToken = undefined;
             user.googleId = undefined;
+            user.googleEmail = undefined;
             user.googleTokenExpiry = undefined;
             user.googleCalendarSyncEnabled = false;
             user.googleDisconnecting = false;
@@ -218,6 +220,7 @@ export class GoogleOAuthService {
 
             return {
                 connected: true,
+                email: user.googleEmail,
                 syncEnabled: user.googleCalendarSyncEnabled,
                 disconnecting: false
             };

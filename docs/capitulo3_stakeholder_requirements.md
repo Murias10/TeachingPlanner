@@ -155,15 +155,23 @@ UR1.4. El sistema permitirá a los usuarios autenticados consultar y modificar l
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR1.4.2.1. Si la contraseña actual introducida no es correcta, el sistema mostrará un mensaje de error y no realizará el cambio.
 
-UR1.5. El sistema permitirá a los usuarios autenticados vincular su cuenta con una cuenta de Google para habilitar la sincronización de calendarios académicos con Google Calendar.
+UR1.5. Cuando el administrador crea una cuenta nueva, el usuario recibirá un correo electrónico con un enlace de activación.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR1.5.1. El usuario será redirigido a la pantalla de consentimiento de Google, donde autorizará el acceso al sistema.
+&nbsp;&nbsp;&nbsp;&nbsp;UR1.5.1. Al acceder al enlace, el sistema solicitará al usuario que establezca su contraseña personal, cumpliendo los requisitos de complejidad indicados en UR1.2.3.1.1.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR1.5.2. Si el usuario autoriza el acceso, el sistema vinculará la cuenta de Google y mostrará el correo electrónico de la cuenta Google vinculada como confirmación.
+&nbsp;&nbsp;&nbsp;&nbsp;UR1.5.2. Si el enlace ha caducado, el sistema indicará al usuario que contacte con el administrador para que le reenvíe el correo de activación.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR1.5.3. Si el usuario deniega el acceso, el sistema mostrará un mensaje informativo y no vinculará ninguna cuenta.
+&nbsp;&nbsp;&nbsp;&nbsp;UR1.5.3. Si los datos son válidos, el sistema activará la cuenta y redirigirá al usuario al formulario de inicio de sesión.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR1.5.4. El sistema permitirá al usuario desconectar su cuenta de Google. Al desconectarse, el sistema eliminará los calendarios de Google creados por ese usuario y eliminará la vinculación almacenada.
+UR1.6. El sistema permitirá a los usuarios autenticados vincular su cuenta con una cuenta de Google para habilitar la sincronización de calendarios académicos con Google Calendar.
+
+&nbsp;&nbsp;&nbsp;&nbsp;UR1.6.1. El usuario será redirigido a la pantalla de consentimiento de Google, donde autorizará el acceso al sistema.
+
+&nbsp;&nbsp;&nbsp;&nbsp;UR1.6.2. Si el usuario autoriza el acceso, el sistema vinculará la cuenta de Google y mostrará el correo electrónico de la cuenta Google vinculada como confirmación.
+
+&nbsp;&nbsp;&nbsp;&nbsp;UR1.6.3. Si el usuario deniega el acceso, el sistema mostrará un mensaje informativo y no vinculará ninguna cuenta.
+
+&nbsp;&nbsp;&nbsp;&nbsp;UR1.6.4. El sistema permitirá al usuario desconectar su cuenta de Google. Al desconectarse, el sistema eliminará los calendarios de Google creados por ese usuario y eliminará la vinculación almacenada.
 
 ---
 
@@ -209,65 +217,59 @@ UR2.1. El sistema permitirá al administrador registrar nuevos usuarios en el si
 
 &nbsp;&nbsp;&nbsp;&nbsp;UR2.1.4. Si el registro es correcto, el sistema creará la cuenta con estado inactivo y enviará al nuevo usuario un correo electrónico con un enlace para activar su cuenta y establecer su contraseña.
 
-UR2.2. El sistema permitirá al administrador activar cuentas de nuevos usuarios mediante un enlace enviado por correo electrónico.
+UR2.2. El sistema permitirá al administrador importar usuarios de forma masiva desde un fichero Excel.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR2.2.1. Al acceder al enlace de activación, el sistema solicitará al usuario que establezca su contraseña personal, cumpliendo los requisitos definidos en UR1.2.3.1.1.
+&nbsp;&nbsp;&nbsp;&nbsp;UR2.2.1. El sistema solicitará al administrador que cargue un fichero en formato `.xlsx`.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR2.2.2. Si el enlace de activación ha caducado, el sistema mostrará un mensaje de error indicando al usuario que contacte con su administrador.
+&nbsp;&nbsp;&nbsp;&nbsp;UR2.2.2. El fichero deberá contener las siguientes columnas:
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR2.2.3. Si la contraseña es válida, el sistema activará la cuenta y redirigirá al usuario al formulario de inicio de sesión.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR2.2.2.1. Usuario UniOvi. Es un dato obligatorio por fila.
 
-UR2.3. El sistema permitirá al administrador importar usuarios de forma masiva desde un fichero Excel.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR2.2.2.2. Nombre. Es un dato obligatorio por fila.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR2.3.1. El sistema solicitará al administrador que cargue un fichero en formato `.xlsx`.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR2.2.2.3. Apellidos. Es un dato obligatorio por fila. El sistema dividirá internamente este campo en primer apellido y segundo apellido.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR2.3.2. El fichero deberá contener las siguientes columnas:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR2.2.2.4. Correo electrónico. Es un dato obligatorio por fila. Debe ser único en el sistema.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR2.3.2.1. Usuario UniOvi. Es un dato obligatorio por fila.
+&nbsp;&nbsp;&nbsp;&nbsp;UR2.2.3. El sistema validará cada fila del fichero de forma independiente.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR2.3.2.2. Nombre. Es un dato obligatorio por fila.
+&nbsp;&nbsp;&nbsp;&nbsp;UR2.2.4. El sistema creará los usuarios de las filas válidas con estado inactivo y enviará a cada uno un correo de activación.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR2.3.2.3. Apellidos. Es un dato obligatorio por fila. El sistema dividirá internamente este campo en primer apellido y segundo apellido.
+&nbsp;&nbsp;&nbsp;&nbsp;UR2.2.5. El sistema mostrará un informe indicando cuántos usuarios se crearon correctamente y qué filas contuvieron errores y por qué motivo.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR2.3.2.4. Correo electrónico. Es un dato obligatorio por fila. Debe ser único en el sistema.
+UR2.3. El sistema permitirá al administrador consultar el listado de usuarios registrados en el sistema.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR2.3.3. El sistema validará cada fila del fichero de forma independiente.
+&nbsp;&nbsp;&nbsp;&nbsp;UR2.3.1. El sistema mostrará para cada usuario: nombre completo, correo electrónico, rol, estado (activo o inactivo) y fecha de registro.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR2.3.4. El sistema creará los usuarios de las filas válidas con estado inactivo y enviará a cada uno un correo de activación.
+&nbsp;&nbsp;&nbsp;&nbsp;UR2.3.2. El sistema permitirá filtrar el listado por rol y por estado.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR2.3.5. El sistema mostrará un informe indicando cuántos usuarios se crearon correctamente y qué filas contuvieron errores y por qué motivo.
+&nbsp;&nbsp;&nbsp;&nbsp;UR2.3.3. El sistema permitirá buscar usuarios por nombre o correo electrónico.
 
-UR2.4. El sistema permitirá al administrador consultar el listado de usuarios registrados en el sistema.
+UR2.4. El sistema permitirá al administrador modificar los datos de un usuario existente.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR2.4.1. El sistema mostrará para cada usuario: nombre completo, correo electrónico, rol, estado (activo o inactivo) y fecha de registro.
+&nbsp;&nbsp;&nbsp;&nbsp;UR2.4.1. El administrador podrá modificar el nombre, los apellidos, el rol y el estado (activo o inactivo) del usuario.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR2.4.2. El sistema permitirá filtrar el listado por rol y por estado.
+&nbsp;&nbsp;&nbsp;&nbsp;UR2.4.2. El sistema impedirá que el administrador cambie el rol o desactive al último administrador activo del sistema.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR2.4.3. El sistema permitirá buscar usuarios por nombre o correo electrónico.
+&nbsp;&nbsp;&nbsp;&nbsp;UR2.4.3. El sistema impedirá que el administrador desactive su propia cuenta.
 
-UR2.5. El sistema permitirá al administrador modificar los datos de un usuario existente.
+UR2.5. El sistema permitirá al administrador eliminar un usuario del sistema.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR2.5.1. El administrador podrá modificar el nombre, los apellidos, el rol y el estado (activo o inactivo) del usuario.
+&nbsp;&nbsp;&nbsp;&nbsp;UR2.5.1. El sistema solicitará confirmación explícita antes de proceder con la eliminación.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR2.5.2. El sistema impedirá que el administrador cambie el rol o desactive al último administrador activo del sistema.
+&nbsp;&nbsp;&nbsp;&nbsp;UR2.5.2. El sistema impedirá eliminar al último administrador activo del sistema.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR2.5.3. El sistema impedirá que el administrador desactive su propia cuenta.
+&nbsp;&nbsp;&nbsp;&nbsp;UR2.5.3. El sistema impedirá que el administrador elimine su propia cuenta.
 
-UR2.6. El sistema permitirá al administrador eliminar un usuario del sistema.
+UR2.6. El sistema permitirá al administrador reenviar el correo electrónico de activación a usuarios que hayan sido registrados pero aún no hayan activado su cuenta. El proceso de activación que seguirá el usuario al recibir el correo reenviado es idéntico al descrito en UR1.5.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR2.6.1. El sistema solicitará confirmación explícita antes de proceder con la eliminación.
+UR2.7. El sistema gestionará tres perfiles de acceso con niveles diferenciados:
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR2.6.2. El sistema impedirá eliminar al último administrador activo del sistema.
+&nbsp;&nbsp;&nbsp;&nbsp;UR2.7.1. Administrador: acceso completo a todas las funciones de gestión del sistema.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR2.6.3. El sistema impedirá que el administrador elimine su propia cuenta.
+&nbsp;&nbsp;&nbsp;&nbsp;UR2.7.2. Docente: acceso a la consulta de horarios y a la creación y gestión de sus propias solicitudes de cambio.
 
-UR2.7. El sistema permitirá al administrador reenviar el correo electrónico de activación a usuarios que hayan sido registrados pero aún no hayan activado su cuenta.
-
-UR2.8. El sistema gestionará dos roles de usuario con niveles de acceso diferenciados:
-
-&nbsp;&nbsp;&nbsp;&nbsp;UR2.8.1. Administrador: acceso completo a todas las funciones de gestión del sistema.
-
-&nbsp;&nbsp;&nbsp;&nbsp;UR2.8.2. Docente: acceso a la consulta de horarios y a la creación y gestión de sus propias solicitudes de cambio.
+&nbsp;&nbsp;&nbsp;&nbsp;UR2.7.3. Invitado (usuario no autenticado): acceso de solo lectura a los horarios de calendarios de cursos en estado Activo, sin necesidad de cuenta en el sistema.
 
 ---
 
@@ -415,7 +417,7 @@ UR3.4. El sistema permitirá al administrador gestionar grupos dentro de una asi
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.4.1.5. El número de grupo es asignado automáticamente por el sistema. El sistema asignará el siguiente número disponible para la combinación de asignatura, tipo e idioma seleccionados.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.4.1.6. Si ya existe un grupo con el mismo tipo e idioma en la misma asignatura y el número asignado automáticamente genera un duplicado, el sistema mostrará un mensaje de error y no completará la creación.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.4.1.6. Si el sistema no puede asignar un número único para la combinación de asignatura, tipo e idioma indicada, mostrará un mensaje de error y no completará la creación.
 
 &nbsp;&nbsp;&nbsp;&nbsp;UR3.4.2. El sistema permitirá consultar el listado de grupos de una asignatura.
 
@@ -497,7 +499,7 @@ UR4.4. El sistema permitirá al administrador duplicar un calendario existente p
 
 &nbsp;&nbsp;&nbsp;&nbsp;UR4.4.3. Si ya existe un calendario para el curso y semestre destino, el sistema mostrará un mensaje de error y no completará la duplicación.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR4.4.4. Si los datos son válidos, el sistema creará el nuevo calendario copiando la estructura de días y los eventos periódicos del calendario origen, ajustados a las nuevas fechas.
+&nbsp;&nbsp;&nbsp;&nbsp;UR4.4.4. Si los datos son válidos, el sistema creará el nuevo calendario copiando la estructura de días del calendario origen (incluidos los días marcados como festivos, ajustados proporcionalmente a las nuevas fechas) y los eventos periódicos del calendario origen.
 
 UR4.5. El sistema permitirá al administrador eliminar un calendario y todos sus datos asociados.
 
@@ -511,7 +513,7 @@ UR5.1. El sistema permitirá al administrador crear eventos periódicos (clases 
 
 &nbsp;&nbsp;&nbsp;&nbsp;UR5.1.1. Grupo o grupos a los que afecta el evento.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR5.1.1.1. Es un dato obligatorio. El administrador podrá seleccionar uno o varios grupos.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR5.1.1.1. Es un dato obligatorio para todos los tipos de evento excepto Independiente. El administrador podrá seleccionar uno o varios grupos. Los eventos de tipo Independiente no requieren grupo ni asignatura asociada.
 
 &nbsp;&nbsp;&nbsp;&nbsp;UR5.1.2. Aula o aulas asignadas al evento.
 
@@ -579,7 +581,7 @@ UR5.2. El sistema permitirá al administrador crear eventos puntuales (sesiones 
 
 &nbsp;&nbsp;&nbsp;&nbsp;UR5.2.2. Grupo o grupos a los que afecta el evento.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR5.2.2.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR5.2.2.1. Es un dato obligatorio para todos los tipos de evento excepto Independiente, que no requiere grupo ni asignatura asociada.
 
 &nbsp;&nbsp;&nbsp;&nbsp;UR5.2.3. Aula o aulas asignadas.
 
@@ -643,27 +645,33 @@ UR6.3. El sistema mostrará los eventos del calendario seleccionado en una vista
 
 UR6.4. El sistema permitirá filtrar los eventos visibles en el calendario según los siguientes criterios:
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR6.4.1. Asignatura.
+&nbsp;&nbsp;&nbsp;&nbsp;UR6.4.1. Curso del grupo (primero, segundo, tercero, cuarto u optativa).
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR6.4.2. Tipo de grupo.
+&nbsp;&nbsp;&nbsp;&nbsp;UR6.4.2. Asignatura.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR6.4.3. Grupo concreto.
+&nbsp;&nbsp;&nbsp;&nbsp;UR6.4.3. Tipo de grupo.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR6.4.4. Aula.
+&nbsp;&nbsp;&nbsp;&nbsp;UR6.4.4. Grupo concreto.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR6.4.5. Idioma.
+&nbsp;&nbsp;&nbsp;&nbsp;UR6.4.5. Aula.
+
+&nbsp;&nbsp;&nbsp;&nbsp;UR6.4.6. Idioma.
+
+&nbsp;&nbsp;&nbsp;&nbsp;UR6.4.7. Tipo de evento (clase, evaluación, revisión, otros, cancelado).
 
 UR6.5. Al seleccionar un evento en el calendario, el sistema mostrará sus detalles: asignatura, grupo, tipo de evento, aula, horario y comentarios si los hubiera.
 
-UR6.6. Los eventos cancelados se mostrarán visualmente diferenciados del resto de eventos.
+UR6.6. Los eventos cancelados y los eventos de solicitudes pendientes de revisión se mostrarán visualmente diferenciados del resto de eventos activos.
 
 UR6.7. La interfaz de consulta de horarios funcionará correctamente en dispositivos móviles.
+
+UR6.8. El sistema guardará automáticamente las selecciones de filtros del calendario en el navegador del usuario, de modo que se mantengan entre sesiones sin necesidad de reconfigurarlos.
 
 ---
 
 **UR7 — Solicitudes de cambio** *(docente crea; administrador gestiona)*
 
-UR7.1. El sistema permitirá al docente crear solicitudes de cambio sobre los eventos del calendario, sin necesidad de usar el correo electrónico. El sistema ofrecerá los siguientes tipos de solicitud:
+UR7.1. El sistema permitirá al docente crear solicitudes de cambio sobre los eventos del calendario, sin necesidad de usar el correo electrónico. El docente podrá abrir el formulario de solicitud mediante el botón de la barra de herramientas del calendario o haciendo clic y arrastrando sobre una franja horaria vacía para prerellenar automáticamente la fecha y el horario. El sistema ofrecerá los siguientes tipos de solicitud:
 
 &nbsp;&nbsp;&nbsp;&nbsp;UR7.1.1. Solicitud de creación de un nuevo evento: el docente proporcionará los datos del evento que desea crear, con los mismos campos que en la creación directa de un evento (UR5.1 o UR5.2).
 
@@ -683,7 +691,7 @@ UR7.1. El sistema permitirá al docente crear solicitudes de cambio sobre los ev
 
 &nbsp;&nbsp;&nbsp;&nbsp;UR7.1.6. Al enviar la solicitud, el sistema notificará a los administradores por correo electrónico.
 
-UR7.2. El sistema permitirá al docente consultar el listado de sus propias solicitudes y ver el estado actualizado y los comentarios del revisor en cada una de ellas.
+UR7.2. El sistema permitirá al docente consultar el listado de sus propias solicitudes y ver el estado actualizado y los comentarios del revisor en cada una de ellas. El listado implementará paginación y permitirá filtrar por estado (pendiente, aprobada, rechazada, todas).
 
 UR7.3. El sistema permitirá al docente eliminar sus propias solicitudes que estén pendientes de revisión.
 
@@ -733,6 +741,8 @@ UR8.2. El sistema garantizará que, al ejecutar una sincronización, el estado d
 
 UR8.3. El sistema permitirá al administrador consultar el estado de sincronización de cada calendario académico: pendiente de sincronizar, en proceso, sincronizado correctamente o con error.
 
+&nbsp;&nbsp;&nbsp;&nbsp;UR8.3.1. El sistema permitirá filtrar la lista de calendarios por titulación.
+
 UR8.4. El sistema permitirá al administrador eliminar la sincronización de un calendario académico concreto.
 
 &nbsp;&nbsp;&nbsp;&nbsp;UR8.4.1. El sistema solicitará confirmación antes de proceder.
@@ -757,21 +767,23 @@ UR9.2. El sistema permitirá a cualquier usuario descargar el calendario de un s
 
 &nbsp;&nbsp;&nbsp;&nbsp;UR9.2.2. La descarga generará los ficheros `.txt` con el contenido actualmente visible en el calendario.
 
-UR9.3. El sistema permitirá al administrador importar un calendario académico desde los cinco ficheros `.txt` del sistema heredado para facilitar la migración inicial.
+UR9.3. El sistema permitirá al administrador crear un nuevo calendario académico a partir de los cinco ficheros `.txt` del sistema heredado, para facilitar la migración inicial sin necesidad de introducir los datos manualmente.
 
 &nbsp;&nbsp;&nbsp;&nbsp;UR9.3.1. El administrador cargará los ficheros `.txt` del sistema anterior (se requieren: `asignaturas.txt`, `calendario.txt`, `horarios.txt`, `ubicaciones.txt`; el fichero `excepciones.txt` es opcional).
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR9.3.2. Tras la confirmación del administrador, el sistema creará las entidades correspondientes en el calendario destino.
+&nbsp;&nbsp;&nbsp;&nbsp;UR9.3.2. Tras la confirmación del administrador, el sistema creará un nuevo calendario académico con todas las entidades (asignaturas, grupos, aulas, días lectivos y eventos) extraídas de los ficheros.
 
 &nbsp;&nbsp;&nbsp;&nbsp;UR9.3.3. El sistema mostrará un informe con los datos importados correctamente y los errores encontrados.
 
 UR9.4. El sistema permitirá al administrador cargar excepciones sobre un calendario existente desde un fichero `.txt`.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR9.4.1. El administrador podrá elegir entre dos modos de importación:
+&nbsp;&nbsp;&nbsp;&nbsp;UR9.4.1. El administrador deberá seleccionar obligatoriamente uno de los dos modos de importación antes de confirmar:
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR9.4.1.1. Agregar: las excepciones del fichero se añaden a las ya existentes en el calendario.
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR9.4.1.2. Reemplazar: las excepciones existentes en el calendario son sustituidas completamente por las del fichero.
+
+&nbsp;&nbsp;&nbsp;&nbsp;UR9.4.2. El sistema no iniciará la importación hasta que el administrador haya seleccionado explícitamente uno de los dos modos.
 
 UR9.5. El sistema permitirá exportar el horario de un calendario en formato CSV compatible con Google Calendar, para que los usuarios puedan importarlo en su aplicación de calendario personal.
 
@@ -832,7 +844,7 @@ El sistema requiere gestionar la identidad de los usuarios que acceden a las fun
 
 **Opción elegida: Opción A**, por descarte. La opción B, que habría sido la más adecuada desde el punto de vista de seguridad, no estaba disponible en el momento del desarrollo. La opción C introduce una dependencia externa inaceptable para el control de acceso. Se reconoce esta decisión como una **limitación conocida del sistema**: al gestionar contraseñas propias se asumen riesgos que un sistema de autenticación delegado evitaría. La integración con el SSO institucional queda documentada como trabajo futuro.
 
-*Nota:* Google OAuth sí se utiliza en el sistema, pero únicamente para habilitar la sincronización de calendarios con Google Calendar (UR1.5), no como mecanismo de login.
+*Nota:* Google OAuth sí se utiliza en el sistema, pero únicamente para habilitar la sincronización de calendarios con Google Calendar (UR1.6), no como mecanismo de login.
 
 ---
 

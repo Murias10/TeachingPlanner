@@ -606,11 +606,18 @@ export class GoogleCalendarService {
                     if (isRetryableErrorCode(lastErrorCode) && sync.retryCount < GoogleCalendarService.MAX_RETRIES) {
                         const delayMs = GoogleCalendarService.RETRY_DELAYS_MS[sync.retryCount] ?? GoogleCalendarService.RETRY_DELAYS_MS[GoogleCalendarService.RETRY_DELAYS_MS.length - 1];
                         const retryIn = Math.round(delayMs / 60_000);
+                        const partialParams = JSON.stringify({
+                            created: successCount,
+                            failed: failedClassroomIds.length,
+                            classrooms: failedClassroomCodes.join(', ')
+                        });
                         sync.syncStatus = SyncStatus.PENDING_RETRY;
                         sync.pendingClassroomIds = JSON.stringify(failedClassroomIds);
                         sync.nextRetryAt = new Date(Date.now() + delayMs);
                         sync.retryCount = sync.retryCount + 1;
-                        sync.errorMessage = undefined;
+                        sync.errorMessage = successCount === 0
+                            ? lastErrorCode
+                            : `${GOOGLE_ERROR_PREFIX}GOOGLE_CALENDAR_PARTIAL:${partialParams}`;
                         sync.currentOperation = `Esperando cuota de Google (intento ${sync.retryCount}/${GoogleCalendarService.MAX_RETRIES}). Reintentando en ${retryIn} min...`;
                         sync.totalCalendars = undefined;
                         sync.processedCalendars = undefined;
@@ -639,6 +646,7 @@ export class GoogleCalendarService {
             sync.pendingClassroomIds = undefined;
             sync.retryCount = 0;
             sync.nextRetryAt = undefined;
+            sync.errorMessage = undefined;
 
             // 4. Distribute events to classroom Google Calendars using batch insert
             const eventsByCalendar: Record<string, any[]> = {};

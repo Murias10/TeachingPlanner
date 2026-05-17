@@ -280,13 +280,15 @@ RF-USER-03.4. El sistema implementará paginación en el listado.
 
 **RF-USER-04: Modificar datos de perfil** *(cualquier usuario autenticado para su propio perfil; ROLE_ADMIN para cualquier usuario)*
 
-RF-USER-04.1. El administrador podrá modificar los siguientes campos de cualquier usuario: nombre, primer apellido, segundo apellido, usuario UniOvi, rol y estado (activo/inactivo).
+RF-USER-04.1. Cualquier usuario autenticado podrá modificar los siguientes campos de su propio perfil: nombre, primer apellido, segundo apellido, correo electrónico y usuario UniOvi. El rol y el estado no son modificables por el propio usuario.
 
-RF-USER-04.2. El correo electrónico no es modificable, ya que es el identificador único del usuario en el sistema.
+RF-USER-04.2. El administrador podrá modificar los siguientes campos de cualquier usuario: nombre, primer apellido, segundo apellido, usuario UniOvi, rol y estado (activo/inactivo).
 
-RF-USER-04.3. Si el administrador intenta cambiar el rol o desactivar al último administrador activo del sistema, el sistema mostrará un mensaje de error (*"No puede cambiar el rol del último administrador"* o *"No puede desactivar al último administrador"*) y no aplicará el cambio.
+RF-USER-04.3. El correo electrónico no es modificable por el administrador una vez creado el usuario, ya que es el identificador único en el sistema. Solo el propio usuario puede actualizarlo desde su perfil.
 
-RF-USER-04.4. Si el administrador intenta desactivar su propia cuenta, el sistema mostrará un mensaje de error (*"No puede desactivar su propia cuenta"*) y no aplicará el cambio.
+RF-USER-04.4. Si el administrador intenta cambiar el rol o desactivar al último administrador activo del sistema, el sistema mostrará un mensaje de error (*"No puede cambiar el rol del último administrador"* o *"No puede desactivar al último administrador"*) y no aplicará el cambio.
+
+RF-USER-04.5. Si el administrador intenta desactivar su propia cuenta, el sistema mostrará un mensaje de error (*"No puede desactivar su propia cuenta"*) y no aplicará el cambio.
 
 ---
 
@@ -634,7 +636,7 @@ RF-EVENT-01.1. El sistema solicitará los siguientes datos:
 
 RF-EVENT-01.2. Si la hora de fin no es posterior a la hora de inicio, el sistema mostrará un mensaje de error y no completará la creación.
 
-RF-EVENT-01.3. Los tipos `Evaluation`, `Review`, `Others` e `Independent` no requieren selección de grupo cuando el tipo es `Independent`. El resto requieren al menos un grupo seleccionado.
+RF-EVENT-01.3. El tipo `Independent` no requiere selección de grupo ni asignatura asociada, ya que representa una reserva de aula sin vínculo docente. Para todos los demás tipos (`Class`, `Evaluation`, `Review`, `Others`), la selección de al menos un grupo es obligatoria.
 
 RF-EVENT-01.4. El sistema ejecutará el algoritmo de detección de conflictos (RF-EVENT-03) con los datos introducidos.
 
@@ -654,7 +656,7 @@ RF-EVENT-02.1. El sistema solicitará los siguientes datos:
 
 &nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-02.1.2. Grupo o grupos.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-02.1.2.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-02.1.2.1. Es un dato obligatorio para todos los tipos de evento excepto `Independent`, que no requiere grupo ni asignatura (ver RF-EVENT-01.3).
 
 &nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-02.1.3. Aula o aulas.
 
@@ -704,7 +706,7 @@ RF-EVENT-03.7. Si no se detecta ningún conflicto, la operación continuará.
 
 **RF-EVENT-04: Modificar evento periódico** *(solo ROLE_ADMIN)*
 
-RF-EVENT-04.1. El sistema permitirá modificar los grupos, aulas, horario y días de la semana de un evento periódico existente.
+RF-EVENT-04.1. El sistema permitirá modificar los grupos, aulas, horario, días de la semana, tipo de evento y frecuencia de repetición de un evento periódico existente.
 
 RF-EVENT-04.2. El sistema ejecutará el algoritmo de detección de conflictos (RF-EVENT-03) con los nuevos parámetros antes de guardar el cambio.
 
@@ -768,19 +770,25 @@ RF-VIEW-01.4. El sistema presentará los eventos en una vista de tipo calendario
 
 RF-VIEW-01.5. El sistema permitirá aplicar los siguientes filtros sobre los eventos visibles:
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-VIEW-01.5.1. Asignatura.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-VIEW-01.5.1. Curso del grupo (`0` = optativa, `1`, `2`, `3`, `4`).
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-VIEW-01.5.2. Tipo de grupo (`T`, `S`, `L`, `TG`).
+&nbsp;&nbsp;&nbsp;&nbsp;RF-VIEW-01.5.2. Asignatura.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-VIEW-01.5.3. Grupo concreto.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-VIEW-01.5.3. Tipo de grupo (`T`, `S`, `L`, `TG`).
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-VIEW-01.5.4. Aula.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-VIEW-01.5.4. Grupo concreto.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-VIEW-01.5.5. Idioma (`ES`, `EN`).
+&nbsp;&nbsp;&nbsp;&nbsp;RF-VIEW-01.5.5. Aula.
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-VIEW-01.5.6. Idioma (`ES`, `EN`).
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-VIEW-01.5.7. Tipo de evento (`Class`, `Evaluation`, `Review`, `Others`, `Independent`, o cancelado).
+
+RF-VIEW-01.5.8. *(Propiedad del sistema de filtros, no un filtro adicional.)* Los filtros combinan sus criterios con lógica AND entre categorías y OR dentro de cada categoría. Las selecciones de filtro se persisten automáticamente en el navegador del usuario entre sesiones.
 
 RF-VIEW-01.6. Al hacer clic sobre un evento, el sistema mostrará un panel lateral con los detalles del evento: asignatura, grupo, tipo de evento, aula, horario y comentarios si los hubiera.
 
-RF-VIEW-01.7. Los eventos con `cancelled = true` se mostrarán visualmente diferenciados (por ejemplo, con estilo tachado o color atenuado).
+RF-VIEW-01.7. Los eventos con `cancelled = true` se mostrarán con estilo visual diferenciado (texto tachado, color atenuado). Los eventos procedentes de solicitudes de cambio en estado `PENDING` se mostrarán con opacidad reducida y borde discontinuo, indicando que están pendientes de aprobación.
 
 ---
 
@@ -836,7 +844,7 @@ RF-REQ-03.2. Si la solicitud está en estado `PENDING`, el sistema eliminará el
 
 RF-REQ-04.1. El sistema mostrará el listado de todas las solicitudes del sistema con: tipo, docente solicitante, calendario, fecha de envío y estado.
 
-RF-REQ-04.2. El sistema permitirá filtrar por estado (`PENDING`, `APPROVED`, `REJECTED`) y por calendario.
+RF-REQ-04.2. El sistema permitirá filtrar por estado (`PENDING`, `APPROVED`, `REJECTED`), por titulación y por calendario.
 
 RF-REQ-04.3. Las solicitudes con estado `PENDING` se mostrarán con una indicación visual diferenciada.
 
@@ -946,7 +954,7 @@ RF-SYNC-04.4. El sistema eliminará los eventos de ese calendario académico en 
 
 RF-SYNC-04.5. Si un Google Calendar de aula queda sin eventos de ningún calendario académico (incluso si ya estaba vacío antes de la operación), el sistema lo eliminará de Google y borrará el registro `GoogleClassroomCalendar` correspondiente de la base de datos.
 
-RF-SYNC-04.6. El sistema eliminará el registro `CalendarSync` de la base de datos. La fila desaparecerá de la tabla en la interfaz.
+RF-SYNC-04.6. El sistema eliminará el registro `CalendarSync` de la base de datos.
 
 ---
 
@@ -954,13 +962,17 @@ RF-SYNC-04.6. El sistema eliminará el registro `CalendarSync` de la base de dat
 
 **RF-EXPORT-01: Exportar calendario en formato ZIP** *(solo ROLE_ADMIN)*
 
-RF-EXPORT-01.1. El sistema generará un archivo comprimido en formato ZIP que contendrá los siguientes ficheros de texto:
+RF-EXPORT-01.1. El sistema generará un archivo comprimido en formato ZIP que contendrá los siguientes cinco ficheros de texto:
 
 &nbsp;&nbsp;&nbsp;&nbsp;RF-EXPORT-01.1.1. `ubicaciones.txt`: listado de aulas en formato `CÓDIGO_AULA:URL_GIS`, ordenado por código de aula de forma ascendente.
 
 &nbsp;&nbsp;&nbsp;&nbsp;RF-EXPORT-01.1.2. `asignaturas.txt`: catálogo de asignaturas con sus grupos por tipo e idioma, en el formato de 12 campos separados por `:` del sistema heredado, ordenado por acrónimo.
 
 &nbsp;&nbsp;&nbsp;&nbsp;RF-EXPORT-01.1.3. `calendario.txt`: días lectivos del calendario con sus caracteres de día correspondientes.
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-EXPORT-01.1.4. `horarios.txt`: eventos periódicos del calendario en el formato del sistema heredado, vinculando cada grupo a un día de la semana, franja horaria y aula.
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-EXPORT-01.1.5. `excepciones.txt`: eventos puntuales del calendario, incluidas cancelaciones de ocurrencias específicas.
 
 RF-EXPORT-01.2. Solo se incluirán en la exportación los eventos de tipo `Class` (`eventType = 'Class'`). Los eventos de tipo `Evaluation`, `Review`, `Others` e `Independent` no se incluirán.
 
@@ -1008,7 +1020,7 @@ RF-EXPORT-04.2. El fichero generado estará en codificación UTF-8 y seguirá el
 
 RF-EXPORT-04.3. El sistema iniciará la descarga automática del fichero en el navegador del usuario.
 
-RF-EXPORT-04.4. Esta funcionalidad está disponible desde la vista del calendario de semestre para cualquier usuario autenticado.
+RF-EXPORT-04.4. Esta funcionalidad está disponible desde la vista del calendario de semestre para todos los perfiles, incluyendo usuarios no autenticados (invitados).
 
 ---
 
@@ -1016,19 +1028,9 @@ RF-EXPORT-04.4. Esta funcionalidad está disponible desde la vista del calendari
 
 RF-EXPORT-05.1. El sistema permitirá descargar el calendario de un semestre en los ficheros `.txt` nativos de la aplicación directamente desde la vista del calendario de semestre.
 
-RF-EXPORT-05.2. Esta funcionalidad está disponible para cualquier usuario autenticado (no requiere ser administrador).
+RF-EXPORT-05.2. Esta funcionalidad está disponible para todos los perfiles, incluyendo usuarios no autenticados (invitados).
 
 RF-EXPORT-05.3. La descarga generará los ficheros `.txt` con el contenido actualmente visible en el calendario.
-
----
-
-**RF-EXPORT-03: Exportar horario en formato CSV para Google Calendar**
-
-RF-EXPORT-03.1. El sistema generará un fichero CSV con el formato de importación de Google Calendar a partir del horario del calendario seleccionado.
-
-RF-EXPORT-03.2. El fichero generado estará en codificación UTF-8 y seguirá el estándar de campos de Google Calendar (Subject, Start Date, Start Time, End Date, End Time, Description, Location).
-
-RF-EXPORT-03.3. El sistema iniciará la descarga automática del fichero en el navegador del usuario.
 
 ---
 

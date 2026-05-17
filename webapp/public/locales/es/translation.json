@@ -1702,6 +1702,7 @@
         },
         "retryInfo": "Reintento automático en ~{{minutes}} min (intento {{attempt}}/{{maxAttempts}})",
         "retryImminent": "Reintentando en menos de 1 minuto...",
+        "lastAttemptError": "Último error",
         "card": {
             "title": "Calendarios Académicos",
             "description": "Activa o desactiva la sincronización de calendarios académicos con Google Calendar"

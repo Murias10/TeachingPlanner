@@ -355,6 +355,9 @@ const CalendarSyncPage = () => {
                                                                             minutes
                                                                         })
                                                                     }
+                                                                    {sync.errorMessage && (
+                                                                        <> · {parseErrorMessage(sync.errorMessage)}</>
+                                                                    )}
                                                                 </span>
                                                             );
                                                         })()}

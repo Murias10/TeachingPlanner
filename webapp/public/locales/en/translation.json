@@ -1704,6 +1704,7 @@
         },
         "retryInfo": "Automatic retry in ~{{minutes}} min (attempt {{attempt}}/{{maxAttempts}})",
         "retryImminent": "Retrying in less than 1 minute...",
+        "lastAttemptError": "Last attempt error",
         "card": {
             "title": "Academic Calendars",
             "description": "Enable or disable synchronization of academic calendars with Google Calendar"

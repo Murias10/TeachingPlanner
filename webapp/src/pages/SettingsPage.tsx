@@ -71,6 +71,7 @@ const SettingsPage = () => {
     // Google Calendar state
     const [googleConnected, setGoogleConnected] = useState(false)
     const [googleEmail, setGoogleEmail] = useState<string | undefined>()
+    const [googleDisconnecting, setGoogleDisconnecting] = useState(false)
     const [isLoadingGoogleStatus, setIsLoadingGoogleStatus] = useState(true)
 
     // Avatar initials derived from form state
@@ -110,6 +111,7 @@ const SettingsPage = () => {
                 if (status) {
                     setGoogleConnected(status.connected)
                     setGoogleEmail(status.email)
+                    setGoogleDisconnecting(status.disconnecting)
                 }
                 setSearchParams({})
             } else if (googleError) {
@@ -133,6 +135,7 @@ const SettingsPage = () => {
             if (status) {
                 setGoogleConnected(status.connected)
                 setGoogleEmail(status.email)
+                setGoogleDisconnecting(status.disconnecting)
             }
             setIsLoadingGoogleStatus(false)
         }
@@ -199,8 +202,10 @@ const SettingsPage = () => {
         if (result.success) {
             setGoogleConnected(false)
             setGoogleEmail(undefined)
+            setGoogleDisconnecting(false)
             triggerAlert({ title: t("settings.google.disconnectSuccessTitle"), description: t("settings.google.disconnectSuccessDescription"), variant: "success" })
         } else {
+            setGoogleDisconnecting(false)
             triggerAlert({ title: t("error.title"), description: result.message || t("error.title"), variant: "destructive" })
         }
     }
@@ -483,9 +488,9 @@ const SettingsPage = () => {
                                                 <Button onClick={handleManageSyncs} variant="default">
                                                     {t("settings.google.manageButton")}
                                                 </Button>
-                                                <Button onClick={handleGoogleDisconnect} variant="outline" disabled={isGoogleLoading}>
-                                                    {isGoogleLoading && <Spinner />}
-                                                    {isGoogleLoading ? t("settings.google.disconnecting") : t("settings.google.disconnectButton")}
+                                                <Button onClick={handleGoogleDisconnect} variant="outline" disabled={isGoogleLoading || googleDisconnecting}>
+                                                    {(isGoogleLoading || googleDisconnecting) && <Spinner />}
+                                                    {(isGoogleLoading || googleDisconnecting) ? t("settings.google.disconnecting") : t("settings.google.disconnectButton")}
                                                 </Button>
                                             </>
                                         ) : (

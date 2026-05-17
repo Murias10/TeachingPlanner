@@ -1063,13 +1063,7 @@ The concrete test cases implementing these verification objectives are detailed 
 
 **Data isolation strategy:** the `POST /test/reset-database` endpoint guarantees that each test suite starts with a clean database. Tests within each suite run sequentially to avoid race conditions on shared data. In the CI environment, Playwright is configured with `workers: 1` to avoid conflicts between parallel suites on the shared database. The 57 tests are distributed across 7 suites.
 
-**CI execution infrastructure** (`e2e-tests` job of the deployment workflows):
-1. MariaDB 11 is started as a Docker service with test credentials.
-2. The two test databases are created (`planner_db_test`, `management_db_test`).
-3. The four backend services are compiled and started in the background with `NODE_ENV=test`.
-4. A test administrator user is seeded via a seed script.
-5. Playwright browsers are installed.
-6. `playwright test` is run with the `html,github` reporter to generate artefacts uploadable to GitHub Actions in case of failure.
+The detailed CI execution steps, ports, estimated timings and generated artefacts are described in **§6.2.3 of Chapter 6**.
 
 **What is out of scope at this level:**
 - User administration flows: account creation, email activation and password reset (require a real SMTP server).

@@ -522,9 +522,7 @@ npm run test:coverage
 
 #### Infrastructure
 
-The E2E tests are located in `webapp/e2e/` and run with **Playwright 1.58** on Chromium. Before each run it is recommended to clean the scheduling database via the `POST /test/reset-database` endpoint, available only when `NODE_ENV=development` or `NODE_ENV=test`. This endpoint cascade-deletes records from 9 tables: `EventRequests`, `PuntualEvents`, `PeriodicEvents`, `Calendars`, `Groups`, `Subjects`, `Classrooms`, `Courses` and `Degrees`.
-
-The motivation for this prior cleanup is to guarantee test determinism: without it, records from previous runs can cause failures due to pagination, duplicate names or inconsistent state.
+The data isolation strategy and the rationale for the `POST /test/reset-database` endpoint are described in **§5.3.4 of Chapter 5**.
 
 **Prerequisites for local execution:**
 1. All backend services running: `auth_service` (5003), `gateway_service` (8080), `planner_service` (5001), `user_service` (5002).

@@ -1,4 +1,4 @@
-# Capítulo 4 — SYSTEM REQUIREMENTS (REQUISITOS DEL SISTEMA)
+# Chapter 4 — SYSTEM REQUIREMENTS
 
 ---
 
@@ -6,1156 +6,1074 @@
 
 ### 4.1.1 System Functions
 
-Los requisitos funcionales del sistema se expresan mediante una lista jerárquica detallada que transforma cada requisito de usuario del Capítulo 3 en una especificación técnica del comportamiento esperado del sistema. Se incluyen los datos solicitados, su obligatoriedad, las validaciones aplicadas, los condicionales de error y las acciones del sistema tras completar cada flujo. Los módulos referenciados se corresponden con los grupos de requisitos de usuario (UR) del Capítulo 3.
+The functional requirements of the system are expressed through a detailed hierarchical list that transforms each user requirement from Chapter 3 into a technical specification of the expected system behaviour. The data requested, their mandatory nature, the validations applied, the error conditions and the system actions after completing each flow are included. The modules referenced correspond to the user requirement groups (UR) from Chapter 3.
 
-Para las operaciones CRUD estándar sin lógica de negocio compleja, se evita la duplicación de escenarios redundantes (conforme a la nota del guion académico), limitándose a enumerar la operación y sus restricciones específicas.
-
----
-
-#### RF-AUTH — Autenticación y acceso (→ UR1)
-
-**RF-AUTH-01: Inicio de sesión**
-
-RF-AUTH-01.1. El sistema presentará al usuario no autenticado un formulario de inicio de sesión.
-
-RF-AUTH-01.2. El sistema solicitará los siguientes datos:
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-01.2.1. Correo electrónico.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-01.2.1.1. Es un dato obligatorio.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-01.2.2. Contraseña.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-01.2.2.1. Es un dato obligatorio.
-
-RF-AUTH-01.3. El sistema verificará que existe un usuario registrado con el correo electrónico indicado y que su cuenta está en estado activo (`isActive = true`).
-
-RF-AUTH-01.4. El sistema comparará la contraseña introducida con el hash almacenado en base de datos mediante `bcrypt.compare()`.
-
-RF-AUTH-01.5. Si las credenciales son correctas, el sistema generará un token JWT firmado con el algoritmo HS256, con el siguiente contenido en el payload: `userId`, `email` y `role`, y con una validez de 24 horas.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-01.5.1. El sistema devolverá el token al cliente.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-01.5.2. El sistema redirigirá al usuario a la pantalla principal según su rol:
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-01.5.2.1. Si el rol es `ROLE_ADMIN`, el sistema redirigirá al panel de administración.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-01.5.2.2. Si el rol es `ROLE_PROFESSOR`, el sistema redirigirá a la vista de docente.
-
-RF-AUTH-01.6. Si el correo electrónico no existe en el sistema, la cuenta no está activa, o la contraseña es incorrecta, el sistema mostrará el mismo mensaje de error genérico (*"Credenciales inválidas"*) sin revelar cuál de las condiciones no se ha cumplido, y el usuario no quedará autenticado.
+For standard CRUD operations without complex business logic, duplication of redundant scenarios is avoided (in accordance with the academic guidelines), limiting the specification to enumerating the operation and its specific restrictions.
 
 ---
 
-**RF-AUTH-02: Activación de cuenta**
+#### RF-AUTH — Authentication and access (→ UR1)
 
-RF-AUTH-02.1. Cuando el administrador crea un nuevo usuario, el sistema generará un token de activación único con validez de 48 horas y lo almacenará asociado al registro del usuario en la base de datos.
+**RF-AUTH-01: Login**
 
-RF-AUTH-02.2. El sistema enviará un correo electrónico al usuario con el enlace de activación que incorpora el token.
+RF-AUTH-01.1. The system shall present the unauthenticated user with a login form.
 
-RF-AUTH-02.3. Al acceder al enlace, el sistema comprobará la validez del token.
+RF-AUTH-01.2. The system shall request the following data:
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-02.3.1. Si el token ha expirado o no existe, el sistema mostrará un mensaje de error indicando al usuario que contacte con su administrador para que le reenvíe el enlace.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-01.2.1. Email address.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-02.3.2. Si el token es válido, el sistema presentará el formulario de activación.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-01.2.1.1. It is a mandatory field.
 
-RF-AUTH-02.4. El sistema solicitará al usuario los siguientes datos:
+&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-01.2.2. Password.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-02.4.1. Nueva contraseña.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-01.2.2.1. It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-02.4.1.1. Es un dato obligatorio.
+RF-AUTH-01.3. The system shall verify that a registered user exists with the indicated email address and that their account is in active status (`isActive = true`).
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-02.4.1.2. Debe tener al menos 8 caracteres y no más de 128.
+RF-AUTH-01.4. The system shall compare the entered password with the hash stored in the database using an industry-standard cryptographic comparison function.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-02.4.1.3. Debe contener al menos una letra mayúscula (A–Z).
+RF-AUTH-01.5. If the credentials are correct, the system shall generate a cryptographically signed authentication token containing user identity and role information, with a validity of 24 hours.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-02.4.1.4. Debe contener al menos una letra minúscula (a–z).
+&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-01.5.1. The system shall return the token to the client.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-02.4.1.5. Debe contener al menos un dígito (0–9).
+&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-01.5.2. The system shall redirect the user to the main screen according to their role:
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-02.4.1.6. Debe contener al menos un carácter especial.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-01.5.2.1. If the role is `ROLE_ADMIN`, the system shall redirect to the administration panel.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-02.4.2. Confirmación de la nueva contraseña.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-01.5.2.2. If the role is `ROLE_PROFESSOR`, the system shall redirect to the lecturer view.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-02.4.2.1. Es un dato obligatorio.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-02.4.2.2. Debe coincidir exactamente con la contraseña introducida en RF-AUTH-02.4.1.
-
-RF-AUTH-02.5. Si la contraseña no cumple los requisitos de complejidad, el sistema mostrará un indicador en tiempo real señalando qué condición no está satisfecha y no completará la activación.
-
-RF-AUTH-02.6. Si las contraseñas no coinciden, el sistema mostrará un mensaje de error y no completará la activación.
-
-RF-AUTH-02.7. Si los datos son válidos, el sistema cifrará la contraseña con `bcrypt.hash()` con factor de coste 10, actualizará el registro del usuario estableciendo `isActive = true`, invalidará el token de activación y redirigirá al usuario al formulario de inicio de sesión.
+RF-AUTH-01.6. If the email address does not exist in the system, the account is not active, or the password is incorrect, the system shall display the same generic error message (*"Invalid credentials"*) without revealing which condition was not met, and the user shall not be authenticated.
 
 ---
 
-**RF-AUTH-03: Recuperación de contraseña mediante código OTP**
+**RF-AUTH-02: Account activation**
 
-El proceso se realiza en tres pasos secuenciales.
+RF-AUTH-02.1. When the administrator creates a new user, the system shall generate a unique activation token valid for 48 hours and store it associated with the user record in the database.
 
-RF-AUTH-03.1. **Paso 1 — Solicitud de código de verificación.**
+RF-AUTH-02.2. The system shall send an email to the user with the activation link that incorporates the token.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-03.1.1. El sistema solicitará al usuario su correo electrónico.
+RF-AUTH-02.3. Upon accessing the link, the system shall check the token's validity.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-03.1.1.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-02.3.1. If the token has expired or does not exist, the system shall display an error message indicating to the user that they should contact their administrator to have the link resent.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-03.1.2. El sistema comprobará si el correo existe y la cuenta está activa. La respuesta del sistema será siempre genérica, sin revelar si el correo está registrado o no.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-02.3.2. If the token is valid, the system shall display the activation form.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-03.1.3. Si el correo existe y la cuenta está activa, el sistema generará un código OTP numérico de seis dígitos con una validez de 15 minutos y lo enviará por correo electrónico.
+RF-AUTH-02.4. The system shall request the following data from the user:
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-03.1.4. El sistema aplicará un período de enfriamiento de 60 segundos: no permitirá generar un nuevo código para el mismo correo hasta que hayan transcurrido 60 segundos desde la solicitud anterior.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-02.4.1. New password.
 
-RF-AUTH-03.2. **Paso 2 — Verificación del código OTP.**
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-02.4.1.1. It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-03.2.1. El sistema solicitará al usuario el código de seis dígitos recibido por correo.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-02.4.1.2. It must be at least 8 characters and no more than 128.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-03.2.1.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-02.4.1.3. It must contain at least one uppercase letter (A–Z).
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-03.2.2. El sistema comprobará que el código introducido coincide con el almacenado y que no ha expirado.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-02.4.1.4. It must contain at least one lowercase letter (a–z).
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-03.2.3. Si el código ha expirado, el sistema mostrará un mensaje de error (*"El código ha expirado. Solicite uno nuevo."*) y no pasará al siguiente paso.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-02.4.1.5. It must contain at least one digit (0–9).
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-03.2.4. Si el código es incorrecto, el sistema mostrará un mensaje de error (*"Código de verificación inválido."*) y no pasará al siguiente paso.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-02.4.1.6. It must contain at least one special character.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-03.2.5. Si el código es válido, el sistema generará un `resetToken` de un solo uso y lo asociará internamente a la sesión de recuperación.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-02.4.2. Confirmation of the new password.
 
-RF-AUTH-03.3. **Paso 3 — Establecer nueva contraseña.**
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-02.4.2.1. It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-03.3.1. El sistema solicitará al usuario los siguientes datos:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-02.4.2.2. It must exactly match the password entered in RF-AUTH-02.4.1.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-03.3.1.1. Nueva contraseña, con los mismos requisitos de complejidad de RF-AUTH-02.4.1.
+RF-AUTH-02.5. If the password does not meet the complexity requirements, the system shall display a real-time indicator showing which condition is not satisfied and shall not complete the activation.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-03.3.1.2. Confirmación de la nueva contraseña.
+RF-AUTH-02.6. If the passwords do not match, the system shall display an error message and shall not complete the activation.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-03.3.2. Si la contraseña no cumple los requisitos de complejidad, el sistema mostrará un mensaje de error y no actualizará la contraseña.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-03.3.3. Si las contraseñas no coinciden, el sistema mostrará un mensaje de error y no actualizará la contraseña.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-03.3.4. Si los datos son válidos, el sistema cifrará la nueva contraseña con bcrypt (factor 10), la almacenará en base de datos, invalidará el `resetToken` y redirigirá al usuario al formulario de inicio de sesión.
+RF-AUTH-02.7. If the data are valid, the system shall encrypt the password using an industry-standard hashing function, update the user record setting `isActive = true`, invalidate the activation token and redirect the user to the login form.
 
 ---
 
-**RF-AUTH-04: Cierre de sesión**
+**RF-AUTH-03: Password recovery via OTP code**
 
-RF-AUTH-04.1. El sistema eliminará el token JWT del almacenamiento del cliente.
+The process is carried out in three sequential steps.
 
-RF-AUTH-04.2. El sistema redirigirá al usuario a la pantalla de inicio.
+RF-AUTH-03.1. **Step 1 — Request for verification code.**
 
----
+&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-03.1.1. The system shall request the user's email address.
 
-**RF-AUTH-05: Conexión con Google OAuth (para sincronización de calendario)**
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-03.1.1.1. It is a mandatory field.
 
-RF-AUTH-05.1. Desde la página de configuración (`/settings`), el usuario autenticado podrá iniciar el flujo OAuth 2.0 con Google.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-03.1.2. The system shall check whether the email exists and the account is active. The system's response shall always be generic, without revealing whether the email is registered or not.
 
-RF-AUTH-05.2. El sistema redirigirá al usuario a la pantalla de consentimiento de Google, solicitando acceso al ámbito `calendar` de Google Calendar API.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-03.1.3. If the email exists and the account is active, the system shall generate a six-digit numeric OTP code valid for 15 minutes and send it by email.
 
-RF-AUTH-05.3. Google devolverá un código de autorización al sistema.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-03.1.4. The system shall apply a 60-second cooldown period: it shall not allow generating a new code for the same email until 60 seconds have elapsed since the previous request.
 
-RF-AUTH-05.4. El sistema intercambiará el código de autorización por un `access_token` y un `refresh_token` mediante la API de Google.
+RF-AUTH-03.2. **Step 2 — OTP code verification.**
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-05.4.1. El sistema almacenará ambos tokens cifrados en base de datos mediante AES-256 usando la clave configurada en la variable de entorno `ENCRYPTION_KEY`.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-03.2.1. The system shall request the six-digit code received by email.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-05.4.2. El sistema almacenará también la fecha de expiración del `access_token`.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-03.2.1.1. It is a mandatory field.
 
-RF-AUTH-05.5. El sistema mostrará al usuario el correo electrónico de la cuenta de Google vinculada como confirmación de la conexión exitosa.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-03.2.2. The system shall check that the entered code matches the one stored and has not expired.
 
-RF-AUTH-05.6. Si el usuario deniega el acceso en la pantalla de consentimiento de Google, el sistema mostrará un mensaje informativo y no almacenará ningún token.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-03.2.3. If the code has expired, the system shall display an error message (*"The code has expired. Please request a new one."*) and shall not proceed to the next step.
 
-RF-AUTH-05.7. El usuario podrá desconectar su cuenta de Google desde la misma página de configuración.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-03.2.4. If the code is incorrect, the system shall display an error message (*"Invalid verification code."*) and shall not proceed to the next step.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-05.7.1. El sistema solicitará confirmación antes de proceder.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-03.2.5. If the code is valid, the system shall generate a single-use `resetToken` and associate it internally with the recovery session.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-05.7.2. El sistema obtendrá un `access_token` válido (renovándolo si es necesario) y eliminará todos los Google Calendars de aulas creados por ese usuario llamando a la Google Calendar API.
+RF-AUTH-03.3. **Step 3 — Set new password.**
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-05.7.3. El sistema eliminará los registros `GoogleClassroomCalendar` y `CalendarSync` asociados al usuario en base de datos.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-03.3.1. The system shall request the following data from the user:
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-05.7.4. El sistema eliminará los tokens de Google almacenados del usuario.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-03.3.1.1. New password, with the same complexity requirements as RF-AUTH-02.4.1.
 
----
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-03.3.1.2. Confirmation of the new password.
 
-**RF-AUTH-06: Cambio de contraseña desde perfil**
+&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-03.3.2. If the password does not meet the complexity requirements, the system shall display an error message and shall not update the password.
 
-RF-AUTH-06.1. El sistema permitirá a cualquier usuario autenticado cambiar su contraseña desde la página de configuración de perfil (`/settings`).
+&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-03.3.3. If the passwords do not match, the system shall display an error message and shall not update the password.
 
-RF-AUTH-06.2. El sistema solicitará los siguientes datos:
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-06.2.1. Contraseña actual.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-06.2.1.1. Es un dato obligatorio.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-06.2.2. Nueva contraseña.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-06.2.2.1. Es un dato obligatorio.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-06.2.2.2. Debe cumplir los mismos requisitos de complejidad definidos en RF-AUTH-02.4.1.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-06.2.3. Confirmación de la nueva contraseña.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-06.2.3.1. Es un dato obligatorio. Debe coincidir con RF-AUTH-06.2.2.
-
-RF-AUTH-06.3. El sistema verificará la contraseña actual mediante `bcrypt.compare()` antes de proceder.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-06.3.1. Si la contraseña actual es incorrecta, el sistema mostrará un mensaje de error y no realizará el cambio.
-
-RF-AUTH-06.4. Si todos los datos son válidos, el sistema cifrará la nueva contraseña con bcrypt (factor 10) y actualizará el registro del usuario en la base de datos. El endpoint utilizado es `PATCH /user/:id/password`.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-03.3.4. If the data are valid, the system shall encrypt the new password using an industry-standard hashing function, store it in the database, invalidate the `resetToken` and redirect the user to the login form.
 
 ---
 
-#### RF-USER — Gestión de usuarios (→ UR2)
+**RF-AUTH-04: Logout**
 
-**RF-USER-01: Registrar nuevo usuario** *(solo ROLE_ADMIN)*
+RF-AUTH-04.1. The system shall remove the JWT token from the client's storage.
 
-RF-USER-01.1. El sistema solicitará al administrador los siguientes datos:
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-USER-01.1.1. Nombre.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-USER-01.1.1.1. Es un dato obligatorio.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-USER-01.1.2. Primer apellido.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-USER-01.1.2.1. Es un dato obligatorio.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-USER-01.1.3. Segundo apellido.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-USER-01.1.3.1. Es un dato obligatorio.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-USER-01.1.4. Correo electrónico.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-USER-01.1.4.1. Es un dato obligatorio.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-USER-01.1.4.2. El sistema comprobará que el formato del correo es válido.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-USER-01.1.4.3. El sistema comprobará que el correo no está ya registrado en la base de datos de usuarios (`management_db`).
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-USER-01.1.5. Rol.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-USER-01.1.5.1. Es un dato obligatorio.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-USER-01.1.5.2. El sistema permitirá elegir entre `ROLE_ADMIN` y `ROLE_PROFESSOR`.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-USER-01.1.6. Usuario UniOvi.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-USER-01.1.6.1. Es un dato opcional.
-
-RF-USER-01.2. Si el formato del correo electrónico no es válido, el sistema mostrará un mensaje de error (*"Formato de email inválido"*) y no completará el registro.
-
-RF-USER-01.3. Si el correo electrónico ya está registrado en el sistema, el sistema mostrará un mensaje de error (*"El email ya está registrado en el sistema"*) y no completará el registro.
-
-RF-USER-01.4. Si los datos son válidos, el sistema creará el registro de usuario en base de datos con `isActive = false` y ejecutará el flujo de activación de cuenta descrito en RF-AUTH-02.
+RF-AUTH-04.2. The system shall redirect the user to the home screen.
 
 ---
 
-**RF-USER-02: Importar usuarios desde Excel** *(solo ROLE_ADMIN)*
+**RF-AUTH-05: Google OAuth connection (for calendar synchronisation)**
 
-RF-USER-02.1. El sistema solicitará al administrador que cargue un fichero en formato `.xlsx`.
+RF-AUTH-05.1. From the settings page (`/settings`), the authenticated user shall be able to initiate the OAuth 2.0 flow with Google.
 
-RF-USER-02.2. El sistema parseará el fichero utilizando la librería XLSX y procesará cada fila de forma independiente, leyendo las columnas por posición (columna 0, 1, 2, 3).
+RF-AUTH-05.2. The system shall redirect the user to the Google consent screen, requesting access to the `calendar` scope of the Google Calendar API.
 
-RF-USER-02.3. Para cada fila, el sistema comprobará que contiene las siguientes columnas con datos válidos:
+RF-AUTH-05.3. Google shall return an authorisation code to the system.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-USER-02.3.1. Columna 0 — Usuario UniOvi (`unioviUser`). Es obligatorio.
+RF-AUTH-05.4. The system shall exchange the authorisation code for an `access_token` and a `refresh_token` via the Google API.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-USER-02.3.2. Columna 1 — Nombre (`name`). Es obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-05.4.1. The system shall store both tokens encrypted in the database.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-USER-02.3.3. Columna 2 — Apellidos (`surnames`). Es obligatorio. El sistema dividirá este campo por espacios: la primera palabra será el primer apellido y el resto (si los hubiera) será el segundo apellido.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-05.4.2. The system shall also store the expiration date of the `access_token`.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-USER-02.3.4. Columna 3 — Correo electrónico (`email`). Es obligatorio. El sistema comprobará formato válido y que no está ya registrado en el sistema.
+RF-AUTH-05.5. The system shall display to the user the email address of the linked Google account as confirmation of the successful connection.
 
-RF-USER-02.4. Para las filas válidas, el sistema creará el usuario con `isActive = false` y `role = ROLE_PROFESSOR` por defecto, y enviará el correo de activación.
+RF-AUTH-05.6. If the user denies access on the Google consent screen, the system shall display an informational message and shall not store any token.
 
-RF-USER-02.5. El sistema mostrará al administrador un informe final indicando: número de usuarios creados correctamente y, para cada fila con error, el número de fila y el motivo del error.
+RF-AUTH-05.7. The user shall be able to disconnect their Google account from the same settings page.
 
----
+&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-05.7.1. The system shall request confirmation before proceeding.
 
-**RF-USER-03: Consultar listado de usuarios** *(solo ROLE_ADMIN)*
+&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-05.7.2. The system shall obtain a valid `access_token` (renewing it if necessary) and delete all Google Classroom Calendars created by that user by calling the Google Calendar API.
 
-RF-USER-03.1. El sistema mostrará la lista de usuarios registrados con las columnas: nombre completo, correo electrónico, rol, estado (`Activo` / `Inactivo`) y fecha de registro.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-05.7.3. The system shall delete the `GoogleClassroomCalendar` and `CalendarSync` records associated with the user in the database.
 
-RF-USER-03.2. El sistema permitirá filtrar el listado por rol (`ROLE_ADMIN`, `ROLE_PROFESSOR`, o todos) y por estado (activo, inactivo, o todos).
-
-RF-USER-03.3. El sistema permitirá realizar búsquedas por nombre o correo electrónico (búsqueda insensible a mayúsculas).
-
-RF-USER-03.4. El sistema implementará paginación en el listado.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-05.7.4. The system shall delete the user's stored Google tokens.
 
 ---
 
-**RF-USER-04: Modificar datos de perfil** *(cualquier usuario autenticado para su propio perfil; ROLE_ADMIN para cualquier usuario)*
+**RF-AUTH-06: Password change from profile**
 
-RF-USER-04.1. Cualquier usuario autenticado podrá modificar los siguientes campos de su propio perfil: nombre, primer apellido, segundo apellido, correo electrónico y usuario UniOvi. El rol y el estado no son modificables por el propio usuario.
+RF-AUTH-06.1. The system shall allow any authenticated user to change their password from the profile settings page (`/settings`).
 
-RF-USER-04.2. El administrador podrá modificar los siguientes campos de cualquier usuario: nombre, primer apellido, segundo apellido, usuario UniOvi, rol y estado (activo/inactivo).
+RF-AUTH-06.2. The system shall request the following data:
 
-RF-USER-04.3. El correo electrónico no es modificable por el administrador una vez creado el usuario, ya que es el identificador único en el sistema. Solo el propio usuario puede actualizarlo desde su perfil.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-06.2.1. Current password.
 
-RF-USER-04.4. Si el administrador intenta cambiar el rol o desactivar al último administrador activo del sistema, el sistema mostrará un mensaje de error (*"No puede cambiar el rol del último administrador"* o *"No puede desactivar al último administrador"*) y no aplicará el cambio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-06.2.1.1. It is a mandatory field.
 
-RF-USER-04.5. Si el administrador intenta desactivar su propia cuenta, el sistema mostrará un mensaje de error (*"No puede desactivar su propia cuenta"*) y no aplicará el cambio.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-06.2.2. New password.
 
----
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-06.2.2.1. It is a mandatory field.
 
-**RF-USER-05: Eliminar usuario** *(solo ROLE_ADMIN)*
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-06.2.2.2. It must meet the same complexity requirements defined in RF-AUTH-02.4.1.
 
-RF-USER-05.1. El sistema mostrará un diálogo de confirmación antes de eliminar un usuario, indicando que la acción es irreversible.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-06.2.3. Confirmation of the new password.
 
-RF-USER-05.2. Si el administrador intenta eliminar al último administrador activo, el sistema mostrará un mensaje de error y no realizará la eliminación.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-06.2.3.1. It is a mandatory field. It must match RF-AUTH-06.2.2.
 
-RF-USER-05.3. Si el administrador intenta eliminar su propia cuenta, el sistema mostrará un mensaje de error y no realizará la eliminación.
+RF-AUTH-06.3. The system shall verify the current password using an industry-standard cryptographic comparison function before proceeding.
 
-RF-USER-05.4. Si la confirmación procede, el sistema eliminará el registro del usuario de la base de datos.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-AUTH-06.3.1. If the current password is incorrect, the system shall display an error message and shall not make the change.
 
----
-
-**RF-USER-06: Reenviar email de activación** *(solo ROLE_ADMIN)*
-
-RF-USER-06.1. El sistema permitirá al administrador reenviar el correo electrónico de activación a un usuario que haya sido registrado pero aún no haya activado su cuenta (`isActive = false`).
-
-RF-USER-06.2. El sistema generará un nuevo token de activación con validez de 48 horas, invalidará el anterior si existía, y enviará el correo de activación con el nuevo enlace.
-
-RF-USER-06.3. Si el usuario ya tiene la cuenta activa (`isActive = true`), el sistema mostrará un mensaje de error y no realizará la operación.
+RF-AUTH-06.4. If all data are valid, the system shall encrypt the new password using an industry-standard hashing function and update the user record in the database.
 
 ---
 
-#### RF-STRUCT — Gestión de la estructura académica (→ UR3)
+#### RF-USER — User management (→ UR2)
 
-**RF-STRUCT-01: Gestión de titulaciones** *(solo ROLE_ADMIN)*
+**RF-USER-01: Register new user** *(ROLE_ADMIN only)*
 
-RF-STRUCT-01.1. **Crear titulación.** El sistema solicitará los siguientes datos:
+RF-USER-01.1. The system shall request the following data from the administrator:
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-01.1.1. Nombre.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-USER-01.1.1. First name.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-01.1.1.1. Es un dato obligatorio. Máximo 100 caracteres.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-USER-01.1.1.1. It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-01.1.1.2. El sistema comprobará que el nombre no está ya registrado en el sistema (restricción `UNIQUE` en base de datos).
+&nbsp;&nbsp;&nbsp;&nbsp;RF-USER-01.1.2. First surname.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-01.1.2. Acrónimo.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-USER-01.1.2.1. It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-01.1.2.1. Es un dato obligatorio. Máximo 20 caracteres.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-USER-01.1.3. Second surname.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-01.1.2.2. El sistema comprobará que el acrónimo no está ya registrado en el sistema (restricción `UNIQUE` en base de datos).
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-USER-01.1.3.1. It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-01.1.3. Si el nombre ya existe, el sistema mostrará un mensaje de error (*"Ya existe una titulación con ese nombre"*) y no completará la creación.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-USER-01.1.4. Email address.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-01.1.4. Si el acrónimo ya existe, el sistema mostrará un mensaje de error (*"Ya existe una titulación con ese acrónimo"*) y no completará la creación.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-USER-01.1.4.1. It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-01.1.5. Si los datos son válidos, el sistema creará la titulación, registrará los metadatos de auditoría (`createdBy`, `createdAt`) y mostrará una confirmación.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-USER-01.1.4.2. The system shall check that the email format is valid.
 
-RF-STRUCT-01.2. **Consultar titulaciones.** El sistema mostrará el listado de titulaciones existentes con nombre, acrónimo y número de cursos asociados.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-USER-01.1.4.3. The system shall check that the email is not already registered in the user database (`management_db`).
 
-RF-STRUCT-01.3. **Modificar titulación.** El sistema permitirá editar el nombre y el acrónimo, aplicando las mismas validaciones de unicidad que en la creación.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-USER-01.1.5. Role.
 
-RF-STRUCT-01.4. **Eliminar titulación.**
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-USER-01.1.5.1. It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-01.4.1. El sistema comprobará que la titulación no tiene cursos académicos asociados.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-USER-01.1.5.2. The system shall allow choosing between `ROLE_ADMIN` and `ROLE_PROFESSOR`.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-01.4.2. Si tiene cursos asociados, el sistema mostrará un mensaje de error (*"No puede eliminar una titulación con cursos académicos asociados"*) y no completará la eliminación.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-USER-01.1.6. UniOvi username.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-01.4.3. Si no tiene cursos asociados, el sistema solicitará confirmación y procederá con la eliminación.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-USER-01.1.6.1. It is an optional field.
 
----
+RF-USER-01.2. If the email address format is not valid, the system shall display an error message (*"Invalid email format"*) and shall not complete the registration.
 
-**RF-STRUCT-02: Gestión de cursos académicos** *(solo ROLE_ADMIN)*
+RF-USER-01.3. If the email address is already registered in the system, the system shall display an error message (*"The email is already registered in the system"*) and shall not complete the registration.
 
-RF-STRUCT-02.1. **Crear curso académico.** El sistema solicitará los siguientes datos:
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-02.1.1. Titulación a la que pertenece.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-02.1.1.1. Es un dato obligatorio. Se seleccionará de las titulaciones existentes.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-02.1.2. Año de inicio (`startYear`).
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-02.1.2.1. Es un dato obligatorio.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-02.1.3. Año de fin (`endYear`).
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-02.1.3.1. Es un dato obligatorio.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-02.1.3.2. Debe ser posterior al año de inicio.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-02.1.4. Si ya existe un curso con los mismos años para esa titulación, el sistema mostrará un mensaje de error y no completará la creación.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-02.1.5. Si los datos son válidos, el sistema creará el curso con estado inicial `PLANIFICADO`.
-
-RF-STRUCT-02.2. **Modificar curso académico.** El sistema permitirá editar el estado del curso:
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-02.2.1. El sistema permitirá elegir entre los valores: `PLANIFICADO`, `ACTIVO`, `FINALIZADO`.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-02.2.2. Las transiciones de estado son unidireccionales: `PLANIFICADO` → `ACTIVO` → `FINALIZADO`. El sistema no permitirá revertir un curso a un estado anterior.
-
-RF-STRUCT-02.3. **Eliminar curso académico.**
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-02.3.1. Si el curso tiene calendarios con eventos asociados, el sistema mostrará un mensaje de error y no completará la eliminación.
+RF-USER-01.4. If the data are valid, the system shall create the user record in the database with `isActive = false` and execute the account activation flow described in RF-AUTH-02.
 
 ---
 
-**RF-STRUCT-03: Gestión de asignaturas** *(solo ROLE_ADMIN)*
+**RF-USER-02: Import users from Excel** *(ROLE_ADMIN only)*
 
-RF-STRUCT-03.1. **Crear asignatura.** El sistema solicitará los siguientes datos:
+RF-USER-02.1. The system shall ask the administrator to upload a file in `.xlsx` format.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-03.1.1. Nombre.
+RF-USER-02.2. The system shall parse the file and process each row independently, reading columns by position (column 0, 1, 2, 3).
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-03.1.1.1. Es un dato obligatorio.
+RF-USER-02.3. For each row, the system shall check that it contains the following columns with valid data:
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-03.1.1.2. Debe ser único dentro de la misma titulación.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-USER-02.3.1. Column 0 — UniOvi username (`unioviUser`). Mandatory.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-03.1.2. Acrónimo.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-USER-02.3.2. Column 1 — First name (`name`). Mandatory.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-03.1.2.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-USER-02.3.3. Column 2 — Surnames (`surnames`). Mandatory. The system shall split this field by spaces: the first word shall be the first surname and the rest (if any) shall be the second surname.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-03.1.2.2. Debe ser único dentro de la misma titulación.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-USER-02.3.4. Column 3 — Email address (`email`). Mandatory. The system shall check for valid format and that it is not already registered in the system.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-03.1.3. Código SIES (`siesCode`).
+RF-USER-02.4. For valid rows, the system shall create the user with `isActive = false` and `role = ROLE_PROFESSOR` by default, and send the activation email.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-03.1.3.1. Es un dato obligatorio.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-03.1.3.2. No será modificable una vez creada la asignatura.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-03.1.4. Titulación.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-03.1.4.1. Es un dato obligatorio. Se seleccionará de las titulaciones existentes.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-03.1.5. Semestre (`semester`).
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-03.1.5.1. Es un dato obligatorio.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-03.1.5.2. El sistema aceptará únicamente los valores `1` o `2`.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-03.1.6. Curso en el que se imparte (`year`).
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-03.1.6.1. Es un dato obligatorio.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-03.1.6.2. El sistema aceptará los valores `0` (sin curso específico — asignaturas optativas o de libre elección), `1`, `2`, `3` o `4`. Esta restricción está implementada como constraint `CHECK` en la base de datos.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-03.1.7. Si el nombre o el acrónimo ya existen dentro de la misma titulación, el sistema mostrará un mensaje de error específico y no completará la creación.
-
-RF-STRUCT-03.2. **Modificar asignatura.** El sistema permitirá editar todos los campos excepto el código SIES, que se mostrará como campo de solo lectura.
-
-RF-STRUCT-03.3. **Eliminar asignatura.**
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-03.3.1. El sistema mostrará un aviso al administrador indicando que la eliminación también eliminará en cascada todos los grupos de la asignatura y todos los eventos asociados a esos grupos.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-03.3.2. Tras la confirmación explícita del administrador, el sistema procederá con la eliminación en cascada.
+RF-USER-02.5. The system shall display to the administrator a final report indicating: number of users created successfully and, for each row with an error, the row number and the reason for the error.
 
 ---
 
-**RF-STRUCT-04: Gestión de grupos** *(solo ROLE_ADMIN)*
+**RF-USER-03: View user list** *(ROLE_ADMIN only)*
 
-RF-STRUCT-04.1. **Crear grupo.** El sistema solicitará los siguientes datos:
+RF-USER-03.1. The system shall display the list of registered users with the columns: full name, email address, role, status (`Active` / `Inactive`) and registration date.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-04.1.1. Asignatura a la que pertenece.
+RF-USER-03.2. The system shall allow filtering the list by role (`ROLE_ADMIN`, `ROLE_PROFESSOR`, or all) and by status (active, inactive, or all).
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-04.1.1.1. Es un dato obligatorio.
+RF-USER-03.3. The system shall allow searches by name or email address (case-insensitive search).
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-04.1.2. Tipo de grupo (`type`).
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-04.1.2.1. Es un dato obligatorio.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-04.1.2.2. El sistema aceptará los valores: `T` (Teoría), `S` (Seminario), `L` (Prácticas de Laboratorio), `TG` (Tutoría Grupal).
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-04.1.3. Idioma (`language`).
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-04.1.3.1. Es un dato obligatorio.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-04.1.3.2. El sistema aceptará los valores: `ES` (Español) y `EN` (Inglés).
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-04.1.4. Horas planificadas (`planifiedHours`).
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-04.1.4.1. Es un dato obligatorio.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-04.1.4.2. Debe ser un número decimal positivo múltiplo de 0,5 (por ejemplo: 0, 0.5, 1, 1.5, 6). El campo se almacena como `decimal(10,2)`. No se aceptan valores negativos ni decimales que no sean múltiplos de 0,5.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-04.1.5. El número de grupo (`number`) es asignado automáticamente por el sistema. El sistema seleccionará el siguiente número disponible para la combinación de asignatura, tipo e idioma especificados.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-04.1.6. Si la combinación (asignatura, tipo, idioma, número asignado) ya existe, el sistema mostrará un mensaje de error y no completará la creación.
-
-RF-STRUCT-04.2. **Consultar, modificar y eliminar grupos.** El sistema permitirá estas operaciones con las mismas validaciones de unicidad en la modificación. La eliminación solicitará confirmación antes de proceder.
+RF-USER-03.4. The system shall implement pagination in the list.
 
 ---
 
-**RF-STRUCT-05: Gestión de aulas** *(solo ROLE_ADMIN)*
+**RF-USER-04: Modify profile data** *(any authenticated user for their own profile; ROLE_ADMIN for any user)*
 
-RF-STRUCT-05.1. **Crear aula.** El sistema solicitará los siguientes datos:
+RF-USER-04.1. Any authenticated user shall be able to modify the following fields of their own profile: first name, first surname, second surname, email address and UniOvi username. The role and status are not modifiable by the user themselves.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-05.1.1. Código del aula (`code`).
+RF-USER-04.2. The administrator shall be able to modify the following fields for any user: first name, first surname, second surname, UniOvi username, role and status (active/inactive).
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-05.1.1.1. Es un dato obligatorio. Máximo 50 caracteres.
+RF-USER-04.3. The email address is not modifiable by the administrator once the user is created, as it is the unique identifier in the system. Only the user themselves can update it from their profile.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-05.1.1.2. El sistema comprobará que el código no está ya registrado en el sistema (restricción `UNIQUE` en base de datos).
+RF-USER-04.4. If the administrator attempts to change the role or deactivate the last active administrator in the system, the system shall display an error message (*"You cannot change the role of the last administrator"* or *"You cannot deactivate the last administrator"*) and shall not apply the change.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-05.1.2. URL GIS (`gisUrl`).
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-05.1.2.1. Es un dato opcional.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-05.1.2.2. Si se proporciona, el sistema comprobará que el valor tiene formato de URL válido (comienza por `http://` o `https://`).
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-05.1.3. Si el código ya existe, el sistema mostrará un mensaje de error (*"Ya existe un aula con ese código"*) y no completará la creación.
-
-RF-STRUCT-05.2. **Consultar y modificar aulas.** Operaciones estándar con las mismas validaciones de unicidad del código.
-
-RF-STRUCT-05.3. **Eliminar aula.**
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-05.3.1. Si el aula tiene eventos asociados, el sistema mostrará una advertencia al administrador indicando el número de eventos afectados y solicitará una confirmación adicional explícita (`force = true`) antes de proceder.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-05.3.2. Si el aula no tiene eventos asociados, el sistema solicitará confirmación estándar y eliminará el registro.
+RF-USER-04.5. If the administrator attempts to deactivate their own account, the system shall display an error message (*"You cannot deactivate your own account"*) and shall not apply the change.
 
 ---
 
-#### RF-CAL — Gestión de calendarios académicos (→ UR4)
+**RF-USER-05: Delete user** *(ROLE_ADMIN only)*
 
-**RF-CAL-01: Crear calendario académico** *(solo ROLE_ADMIN)*
+RF-USER-05.1. The system shall display a confirmation dialog before deleting a user, indicating that the action is irreversible.
 
-RF-CAL-01.1. El sistema solicitará los siguientes datos:
+RF-USER-05.2. If the administrator attempts to delete the last active administrator, the system shall display an error message and shall not perform the deletion.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-CAL-01.1.1. Curso académico.
+RF-USER-05.3. If the administrator attempts to delete their own account, the system shall display an error message and shall not perform the deletion.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-CAL-01.1.1.1. Es un dato obligatorio. Se seleccionará de los cursos académicos existentes.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-CAL-01.1.2. Semestre.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-CAL-01.1.2.1. Es un dato obligatorio. El sistema aceptará los valores `1` o `2`.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-CAL-01.1.3. Fecha de inicio (`start`).
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-CAL-01.1.3.1. Es un dato obligatorio. Formato `YYYY-MM-DD`.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-CAL-01.1.4. Fecha de fin (`end`).
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-CAL-01.1.4.1. Es un dato obligatorio. Formato `YYYY-MM-DD`.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-CAL-01.1.4.2. Debe ser posterior a la fecha de inicio.
-
-RF-CAL-01.2. Si ya existe un calendario para la combinación (curso académico, semestre), el sistema mostrará un mensaje de error (*"Ya existe un calendario para este curso y semestre"*) y no completará la creación.
-
-RF-CAL-01.3. Si la fecha de fin no es posterior a la fecha de inicio, el sistema mostrará un mensaje de error y no completará la creación.
-
-RF-CAL-01.4. Si los datos son válidos, el sistema creará el registro `Calendar` y generará automáticamente un registro `Day` por cada día laborable (lunes a viernes) comprendido entre `start` y `end` (excluyendo sábados y domingos), con estado lectivo inicial.
+RF-USER-05.4. If the confirmation proceeds, the system shall delete the user record from the database.
 
 ---
 
-**RF-CAL-02: Gestionar días lectivos y festivos** *(solo ROLE_ADMIN)*
+**RF-USER-06: Resend activation email** *(ROLE_ADMIN only)*
 
-RF-CAL-02.1. El sistema permitirá al administrador modificar el estado de cualquier día del calendario marcándolo como festivo o recuperando su estado lectivo.
+RF-USER-06.1. The system shall allow the administrator to resend the activation email to a user who has been registered but has not yet activated their account (`isActive = false`).
 
-RF-CAL-02.2. El campo `dayCharacter` del registro `Day` se actualizará en consecuencia.
+RF-USER-06.2. The system shall generate a new activation token valid for 48 hours, invalidate the previous one if it existed, and send the activation email with the new link.
 
----
-
-**RF-CAL-03: Consultar calendarios académicos**
-
-RF-CAL-03.1. El sistema mostrará el listado de calendarios existentes con: curso académico, semestre, fecha de inicio, fecha de fin, número de días lectivos y número de eventos programados.
-
-RF-CAL-03.2. El sistema permitirá filtrar por curso académico y por semestre.
+RF-USER-06.3. If the user already has the account active (`isActive = true`), the system shall display an error message and shall not perform the operation.
 
 ---
 
-**RF-CAL-04: Duplicar calendario académico** *(solo ROLE_ADMIN)*
+#### RF-STRUCT — Academic structure management (→ UR3)
 
-RF-CAL-04.1. El sistema solicitará los siguientes datos:
+**RF-STRUCT-01: Degree management** *(ROLE_ADMIN only)*
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-CAL-04.1.1. Curso académico destino.
+RF-STRUCT-01.1. **Create degree.** The system shall request the following data:
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-CAL-04.1.1.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-01.1.1. Name.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-CAL-04.1.2. Semestre destino.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-01.1.1.1. Mandatory. Maximum 100 characters.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-CAL-04.1.2.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-01.1.1.2. The system shall check that the name is not already registered in the system (`UNIQUE` constraint in the database).
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-CAL-04.1.3. Nueva fecha de inicio.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-01.1.2. Acronym.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-CAL-04.1.3.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-01.1.2.1. Mandatory. Maximum 20 characters.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-CAL-04.1.4. Nueva fecha de fin.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-01.1.2.2. The system shall check that the acronym is not already registered in the system (`UNIQUE` constraint in the database).
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-CAL-04.1.4.1. Es un dato obligatorio. Debe ser posterior a la nueva fecha de inicio.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-01.1.3. If the name already exists, the system shall display an error message (*"A degree with that name already exists"*) and shall not complete the creation.
 
-RF-CAL-04.2. Si ya existe un calendario para el curso destino y semestre destino, el sistema mostrará un mensaje de error y no completará la duplicación.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-01.1.4. If the acronym already exists, the system shall display an error message (*"A degree with that acronym already exists"*) and shall not complete the creation.
 
-RF-CAL-04.3. Si los datos son válidos, el sistema creará el nuevo calendario, copiará la estructura de días lectivos y festivos (ajustada a las nuevas fechas) y copiará los eventos periódicos del calendario origen al calendario destino.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-01.1.5. If the data are valid, the system shall create the degree, record the audit metadata (`createdBy`, `createdAt`) and display a confirmation.
 
----
+RF-STRUCT-01.2. **View degrees.** The system shall display the list of existing degrees with name, acronym and number of associated courses.
 
-**RF-CAL-05: Eliminar calendario académico** *(solo ROLE_ADMIN)*
+RF-STRUCT-01.3. **Modify degree.** The system shall allow editing the name and acronym, applying the same uniqueness validations as in creation.
 
-RF-CAL-05.1. El sistema mostrará un resumen de los datos que se eliminarán (número de días, eventos periódicos y eventos puntuales) y solicitará confirmación explícita antes de proceder.
+RF-STRUCT-01.4. **Delete degree.**
 
-RF-CAL-05.2. La eliminación se realizará en cascada: se eliminarán todos los registros `Day`, `PeriodicEvent`, `PuntualEvent` y `EventRequest` asociados al calendario.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-01.4.1. The system shall check that the degree has no associated academic courses.
 
----
+&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-01.4.2. If it has associated courses, the system shall display an error message (*"You cannot delete a degree with associated academic courses"*) and shall not complete the deletion.
 
-#### RF-EVENT — Gestión de eventos (→ UR5)
-
-**RF-EVENT-01: Crear evento periódico** *(solo ROLE_ADMIN)*
-
-RF-EVENT-01.1. El sistema solicitará los siguientes datos:
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.1. Grupo o grupos (`groups`).
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.1.1. Es un dato obligatorio. El administrador podrá seleccionar uno o varios grupos.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.2. Aula o aulas (`classrooms`).
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.2.1. Es un dato opcional.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.3. Hora de inicio (`startTime`).
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.3.1. Es un dato obligatorio. Formato `HH:MM`.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.4. Hora de fin (`endTime`).
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.4.1. Es un dato obligatorio. Formato `HH:MM`.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.4.2. Debe ser posterior a la hora de inicio.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.5. Día de la semana (`weekDay`).
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.5.1. Es un dato obligatorio. El administrador seleccionará uno de los valores: `L` (lunes), `M` (martes), `X` (miércoles), `J` (jueves), `V` (viernes).
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.6. Frecuencia de repetición (`eventCharacter`).
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.6.1. Es un dato obligatorio. Determina en qué días lectivos del calendario aparecerá el evento. El sistema ofrecerá las siguientes opciones:
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.6.1.1. Semanal (`N`): el evento aparece en todos los días lectivos del calendario que coincidan con el `weekDay` seleccionado.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.6.1.2. Quincenal — semanas pares (`P`): el evento aparece en los días lectivos etiquetados como semanas pares en el calendario.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.6.1.3. Quincenal — semanas impares (`I`): el evento aparece en los días lectivos etiquetados como semanas impares en el calendario.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.6.1.4. Personalizado: el administrador define un carácter propio que se asigna a los días del calendario de forma manual.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.7. Tipo de evento (`eventType`).
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.7.1. Es un dato obligatorio. El sistema aceptará los siguientes valores:
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.7.1.1. `Class` (internamente `NORMAL`): sesión docente ordinaria. Cuenta para el presupuesto de horas planificadas del grupo y se incluye en las exportaciones `.txt`.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.7.1.2. `Evaluation` (internamente `EVALUACION`): examen o evaluación formal. No consume horas planificadas. Se muestra en el calendario con el prefijo `EV·`.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.7.1.3. `Review` (internamente `REVISION`): sesión de revisión de examen. No consume horas planificadas. Se muestra con el prefijo `RE·`.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.7.1.4. `Others` (internamente `OTRO`): cualquier otra actividad con reserva de aula que no consume horas planificadas (charlas, talleres, etc.). Se muestra con el prefijo `OT·`.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.7.1.5. `Independent` (internamente `BLOCKER`): reserva de aula sin asignatura ni grupo asociado, para bloquear un espacio por razones no académicas.
-
-RF-EVENT-01.2. Si la hora de fin no es posterior a la hora de inicio, el sistema mostrará un mensaje de error y no completará la creación.
-
-RF-EVENT-01.3. El tipo `Independent` no requiere selección de grupo ni asignatura asociada, ya que representa una reserva de aula sin vínculo docente. Para todos los demás tipos (`Class`, `Evaluation`, `Review`, `Others`), la selección de al menos un grupo es obligatoria.
-
-RF-EVENT-01.4. El sistema ejecutará el algoritmo de detección de conflictos (RF-EVENT-03) con los datos introducidos.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.4.1. Si se detecta un conflicto, el sistema mostrará un mensaje de error detallado indicando el evento en conflicto y el recurso afectado (grupo o aula), e impedirá guardar el evento.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.4.2. Si no se detecta ningún conflicto, el sistema creará el registro `PeriodicEvent` y establecerá las relaciones con los grupos y aulas seleccionados en las tablas intermedias correspondientes.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-01.4.3. If it has no associated courses, the system shall request confirmation and proceed with the deletion.
 
 ---
 
-**RF-EVENT-02: Crear evento puntual** *(solo ROLE_ADMIN)*
+**RF-STRUCT-02: Academic course management** *(ROLE_ADMIN only)*
 
-RF-EVENT-02.1. El sistema solicitará los siguientes datos:
+RF-STRUCT-02.1. **Create academic course.** The system shall request the following data:
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-02.1.1. Día del calendario (`day`).
+&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-02.1.1. Degree to which it belongs.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-02.1.1.1. Es un dato obligatorio. Debe ser un registro `Day` perteneciente al calendario activo.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-02.1.1.1. Mandatory. To be selected from the existing degrees.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-02.1.2. Grupo o grupos.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-02.1.2. Start year (`startYear`).
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-02.1.2.1. Es un dato obligatorio para todos los tipos de evento excepto `Independent`, que no requiere grupo ni asignatura (ver RF-EVENT-01.3).
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-02.1.2.1. Mandatory.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-02.1.3. Aula o aulas.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-02.1.3. End year (`endYear`).
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-02.1.3.1. Es un dato opcional.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-02.1.3.1. Mandatory.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-02.1.4. Hora de inicio y hora de fin.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-02.1.3.2. Must be later than the start year.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-02.1.4.1. Ambos son datos obligatorios. La hora de fin debe ser posterior a la de inicio.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-02.1.4. If a course with the same years already exists for that degree, the system shall display an error message and shall not complete the creation.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-02.1.5. Tipo de evento.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-02.1.5. If the data are valid, the system shall create the course with initial status `PLANIFICADO`.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-02.1.5.1. Es un dato obligatorio, con los mismos valores que en RF-EVENT-01.1.7.1.
+RF-STRUCT-02.2. **Modify academic course.** The system shall allow editing the course status:
 
-RF-EVENT-02.2. Si el día seleccionado está marcado como festivo (`dayCharacter` festivo), el sistema mostrará una advertencia al administrador. La creación podrá continuar si el administrador confirma.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-02.2.1. The system shall allow choosing between the values: `PLANIFICADO`, `ACTIVO`, `FINALIZADO`.
 
-RF-EVENT-02.3. El sistema ejecutará el algoritmo de detección de conflictos (RF-EVENT-03) para la fecha y franja horaria específicas del evento puntual.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-02.2.2. Status transitions are unidirectional: `PLANIFICADO` → `ACTIVO` → `FINALIZADO`. The system shall not allow reverting a course to a previous status.
 
----
+RF-STRUCT-02.3. **Delete academic course.**
 
-**RF-EVENT-03: Detección de conflictos de horario**
-
-Este módulo es invocado internamente antes de crear o modificar cualquier evento (periódico o puntual) y antes de aprobar cualquier solicitud de cambio.
-
-RF-EVENT-03.1. El sistema determinará el conjunto de días afectados por el nuevo evento:
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-03.1.1. Para un evento periódico: todos los días lectivos del calendario cuyo `dayCharacter` corresponda al día de la semana seleccionado.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-03.1.2. Para un evento puntual: únicamente el día concreto seleccionado.
-
-RF-EVENT-03.2. Para cada día del conjunto determinado en RF-EVENT-03.1, el sistema comprobará si existe algún evento activo (no cancelado) que cumpla simultáneamente:
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-03.2.1. Comparte al menos uno de los grupos seleccionados, **y**
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-03.2.2. Se solapa en horario: `horaInicio_A < horaFin_B AND horaFin_A > horaInicio_B`.
-
-RF-EVENT-03.3. El sistema realizará la misma comprobación para las aulas seleccionadas.
-
-RF-EVENT-03.4. Si se detecta al menos un conflicto de grupo, el sistema generará un mensaje de error indicando el nombre del grupo en conflicto, el nombre del evento existente y la franja horaria.
-
-RF-EVENT-03.5. Si se detecta al menos un conflicto de aula, el sistema generará un mensaje de error indicando el código del aula en conflicto y el evento existente.
-
-RF-EVENT-03.6. Si se detectan conflictos, el sistema bloqueará la operación y mostrará todos los conflictos encontrados. El tiempo máximo de respuesta de este módulo será de 500 ms para calendarios con hasta 500 eventos.
-
-RF-EVENT-03.7. Si no se detecta ningún conflicto, la operación continuará.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-02.3.1. If the course has calendars with associated events, the system shall display an error message and shall not complete the deletion.
 
 ---
 
-**RF-EVENT-04: Modificar evento periódico** *(solo ROLE_ADMIN)*
+**RF-STRUCT-03: Subject management** *(ROLE_ADMIN only)*
 
-RF-EVENT-04.1. El sistema permitirá modificar los grupos, aulas, horario, días de la semana, tipo de evento y frecuencia de repetición de un evento periódico existente.
+RF-STRUCT-03.1. **Create subject.** The system shall request the following data:
 
-RF-EVENT-04.2. El sistema ejecutará el algoritmo de detección de conflictos (RF-EVENT-03) con los nuevos parámetros antes de guardar el cambio.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-03.1.1. Name.
 
----
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-03.1.1.1. Mandatory.
 
-**RF-EVENT-05: Cancelar evento puntual** *(solo ROLE_ADMIN)*
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-03.1.1.2. Must be unique within the same degree.
 
-RF-EVENT-05.1. El sistema marcará el registro `PuntualEvent` con `cancelled = true`, sin eliminarlo de la base de datos.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-03.1.2. Acronym.
 
-RF-EVENT-05.2. Los eventos cancelados se mostrarán en el calendario con indicación visual diferenciada y no se contabilizarán en las estadísticas de ocupación.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-03.1.2.1. Mandatory.
 
----
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-03.1.2.2. Must be unique within the same degree.
 
-**RF-EVENT-06: Eliminar evento** *(solo ROLE_ADMIN)*
+&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-03.1.3. SIES code (`siesCode`).
 
-RF-EVENT-06.1. Para eventos periódicos, el administrador podrá eliminar una ocurrencia concreta o toda la serie:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-03.1.3.1. Mandatory.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-06.1.1. Eliminar una ocurrencia concreta: el sistema creará un registro `PuntualEvent` con `cancelled = true` y `periodicEventSourceId` apuntando al `PeriodicEvent` origen, cancelando selectivamente esa ocurrencia sin afectar al resto de la serie.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-03.1.3.2. It shall not be modifiable once the subject has been created.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-06.1.2. Eliminar toda la serie: el sistema mostrará un diálogo de advertencia y, tras la confirmación, eliminará el registro `PeriodicEvent` y sus relaciones en las tablas intermedias.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-03.1.4. Degree.
 
-RF-EVENT-06.2. Para eventos puntuales no cancelados, el sistema eliminará el registro `PuntualEvent` tras solicitar confirmación.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-03.1.4.1. Mandatory. To be selected from the existing degrees.
 
----
+&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-03.1.5. Semester (`semester`).
 
-**RF-EVENT-07: Revertir cancelación de evento puntual** *(solo ROLE_ADMIN)*
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-03.1.5.1. Mandatory.
 
-RF-EVENT-07.1. El sistema permitirá al administrador revertir la cancelación de un evento puntual que tenga `cancelled = true`.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-03.1.5.2. The system shall accept only the values `1` or `2`.
 
-RF-EVENT-07.2. El sistema actualizará el registro `PuntualEvent` estableciendo `cancelled = false`.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-03.1.6. Year in which it is taught (`year`).
 
-RF-EVENT-07.3. El evento volverá a mostrarse en el calendario con su estado visual normal.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-03.1.6.1. Mandatory.
 
----
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-03.1.6.2. The system shall accept the values `0` (no specific year — elective or free-choice subjects), `1`, `2`, `3` or `4`. This restriction is implemented as a `CHECK` constraint in the database.
 
-#### RF-VIEW — Consulta de horarios (→ UR6)
+&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-03.1.7. If the name or acronym already exist within the same degree, the system shall display a specific error message and shall not complete the creation.
 
-**RF-VIEW-01: Consulta pública de horarios**
+RF-STRUCT-03.2. **Modify subject.** The system shall allow editing all fields except the SIES code, which shall be displayed as a read-only field.
 
-RF-VIEW-01.1. El sistema permitirá el acceso a la vista de calendario sin requerir autenticación.
+RF-STRUCT-03.3. **Delete subject.**
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-VIEW-01.1.1. Los usuarios no autenticados solo podrán acceder a los calendarios cuyo curso académico tenga estado `ACTIVO`.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-03.3.1. The system shall display a warning to the administrator indicating that the deletion will also cascade-delete all groups of the subject and all events associated with those groups.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-VIEW-01.1.2. Los usuarios autenticados podrán acceder a calendarios en cualquier estado.
-
-RF-VIEW-01.2. El sistema solicitará al usuario que seleccione el calendario a visualizar mediante la jerarquía: titulación → curso académico → semestre.
-
-RF-VIEW-01.3. El sistema expandirá dinámicamente los eventos periódicos del calendario a sus ocurrencias concretas en cada día lectivo, respetando el sistema de caracteres de día (`dayCharacter`) y el carácter de cada evento periódico (`eventCharacter`).
-
-RF-VIEW-01.4. El sistema presentará los eventos en una vista de tipo calendario con los siguientes modos disponibles:
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-VIEW-01.4.1. Vista de semana completa.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-VIEW-01.4.2. Vista de semana laboral.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-VIEW-01.4.3. Vista de día.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-VIEW-01.4.4. Vista de mes.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-VIEW-01.4.5. Vista de agenda.
-
-RF-VIEW-01.5. El sistema permitirá aplicar los siguientes filtros sobre los eventos visibles:
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-VIEW-01.5.1. Curso del grupo (`0` = optativa, `1`, `2`, `3`, `4`).
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-VIEW-01.5.2. Asignatura.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-VIEW-01.5.3. Tipo de grupo (`T`, `S`, `L`, `TG`).
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-VIEW-01.5.4. Grupo concreto.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-VIEW-01.5.5. Aula.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-VIEW-01.5.6. Idioma (`ES`, `EN`).
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-VIEW-01.5.7. Tipo de evento (`Class`, `Evaluation`, `Review`, `Others`, `Independent`, o cancelado).
-
-RF-VIEW-01.5.8. *(Propiedad del sistema de filtros, no un filtro adicional.)* Los filtros combinan sus criterios con lógica AND entre categorías y OR dentro de cada categoría. Las selecciones de filtro se persisten automáticamente en el navegador del usuario entre sesiones.
-
-RF-VIEW-01.6. Al hacer clic sobre un evento, el sistema mostrará un panel lateral con los detalles del evento: asignatura, grupo, tipo de evento, aula, horario y comentarios si los hubiera.
-
-RF-VIEW-01.7. Los eventos con `cancelled = true` se mostrarán con estilo visual diferenciado (texto tachado, color atenuado). Los eventos procedentes de solicitudes de cambio en estado `PENDING` se mostrarán con opacidad reducida y borde discontinuo, indicando que están pendientes de aprobación.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-03.3.2. After the administrator's explicit confirmation, the system shall proceed with the cascade deletion.
 
 ---
 
-#### RF-REQ — Solicitudes de cambio (→ UR7)
+**RF-STRUCT-04: Group management** *(ROLE_ADMIN only)*
 
-**RF-REQ-01: Crear solicitud de cambio** *(solo ROLE_PROFESSOR)*
+RF-STRUCT-04.1. **Create group.** The system shall request the following data:
 
-RF-REQ-01.1. El sistema permitirá al docente crear solicitudes de cambio de cuatro tipos:
+&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-04.1.1. Subject to which it belongs.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-REQ-01.1.1. `CREATE` — propuesta de creación de un nuevo evento. El campo `originalEventId` será nulo. El docente proporcionará los datos completos del nuevo evento en el campo `eventData`.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-04.1.1.1. Mandatory.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-REQ-01.1.2. `EDIT` — propuesta de modificación de un evento existente.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-04.1.2. Group type (`type`).
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-REQ-01.1.2.1. El docente deberá seleccionar el evento original. El sistema almacenará su identificador en `originalEventId`. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-04.1.2.1. Mandatory.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-REQ-01.1.2.2. El docente proporcionará los datos modificados en `eventData`.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-04.1.2.2. The system shall accept the values: `T` (Theory), `S` (Seminar), `L` (Laboratory Practice), `TG` (Group Tutoring).
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-REQ-01.1.3. `CANCEL` — propuesta de cancelación de una ocurrencia concreta de un evento.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-04.1.3. Language (`language`).
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-REQ-01.1.3.1. El docente deberá seleccionar el evento original (`originalEventId`). Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-04.1.3.1. Mandatory.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-REQ-01.1.3.2. El docente deberá indicar la fecha de la ocurrencia a cancelar en `eventData`.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-04.1.3.2. The system shall accept the values: `ES` (Spanish) and `EN` (English).
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-REQ-01.1.4. `REPLACE` — propuesta de cancelar una ocurrencia y crear un nuevo evento en su lugar.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-04.1.4. Planned hours (`planifiedHours`).
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-REQ-01.1.4.1. El docente deberá seleccionar el evento original y la ocurrencia a cancelar. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-04.1.4.1. Mandatory.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-REQ-01.1.4.2. El docente proporcionará los datos del evento sustituto en `eventData`.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-04.1.4.2. Must be a positive decimal number that is a multiple of 0.5 (e.g.: 0, 0.5, 1, 1.5, 6). The field is stored as `decimal(10,2)`. Negative values and decimals that are not multiples of 0.5 are not accepted.
 
-RF-REQ-01.2. Antes de enviar, el sistema ejecutará el algoritmo de detección de conflictos (RF-EVENT-03) con los datos de `eventData` e informará al docente del resultado. Esta comprobación es informativa; el docente podrá enviar la solicitud independientemente del resultado.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-04.1.5. The group number (`number`) is automatically assigned by the system. The system shall select the next available number for the specified combination of subject, type and language.
 
-RF-REQ-01.3. Al enviar la solicitud, el sistema creará el registro `EventRequest` con `status = PENDING` y enviará una notificación por correo electrónico a todos los usuarios con rol `ROLE_ADMIN`.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-04.1.6. If the system cannot assign a unique number for the specified (subject, type, language) combination, it shall display an error message and shall not complete the creation.
 
----
-
-**RF-REQ-02: Consultar solicitudes propias** *(solo ROLE_PROFESSOR)*
-
-RF-REQ-02.1. El sistema mostrará al docente el listado de sus propias solicitudes con: tipo de solicitud, fecha de envío, estado (`PENDING`, `APPROVED`, `REJECTED`) y comentarios del revisor (si los hubiera).
+RF-STRUCT-04.2. **View, modify and delete groups.** The system shall allow these operations with the same uniqueness validations on modification. Deletion shall request confirmation before proceeding.
 
 ---
 
-**RF-REQ-03: Eliminar solicitud propia** *(solo ROLE_PROFESSOR)*
+**RF-STRUCT-05: Classroom management** *(ROLE_ADMIN only)*
 
-RF-REQ-03.1. El sistema comprobará que la solicitud pertenece al docente autenticado y que su estado es `PENDING`.
+RF-STRUCT-05.1. **Create classroom.** The system shall request the following data:
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-REQ-03.1.1. Si la solicitud ya ha sido revisada, el sistema mostrará un mensaje de error (*"No puede eliminar una solicitud ya procesada"*) y no realizará la eliminación.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-05.1.1. Classroom code (`code`).
 
-RF-REQ-03.2. Si la solicitud está en estado `PENDING`, el sistema eliminará el registro `EventRequest` tras solicitar confirmación.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-05.1.1.1. Mandatory. Maximum 50 characters.
 
----
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-05.1.1.2. The system shall check that the code is not already registered in the system (`UNIQUE` constraint in the database).
 
-**RF-REQ-04: Consultar todas las solicitudes** *(solo ROLE_ADMIN)*
+&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-05.1.2. GIS URL (`gisUrl`).
 
-RF-REQ-04.1. El sistema mostrará el listado de todas las solicitudes del sistema con: tipo, docente solicitante, calendario, fecha de envío y estado.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-05.1.2.1. Optional.
 
-RF-REQ-04.2. El sistema permitirá filtrar por estado (`PENDING`, `APPROVED`, `REJECTED`), por titulación y por calendario.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-05.1.2.2. If provided, the system shall check that the value has a valid URL format (starts with `http://` or `https://`).
 
-RF-REQ-04.3. Las solicitudes con estado `PENDING` se mostrarán con una indicación visual diferenciada.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-05.1.3. If the code already exists, the system shall display an error message (*"A classroom with that code already exists"*) and shall not complete the creation.
 
----
+RF-STRUCT-05.2. **View and modify classrooms.** Standard operations with the same code uniqueness validations.
 
-**RF-REQ-05: Aprobar solicitud** *(solo ROLE_ADMIN)*
+RF-STRUCT-05.3. **Delete classroom.**
 
-RF-REQ-05.1. El sistema comprobará que el estado de la solicitud es `PENDING`. Si no lo es, el sistema mostrará un mensaje de error (*"Esta solicitud ya fue procesada anteriormente"*).
+&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-05.3.1. If the classroom has associated events, the system shall display a warning to the administrator indicating the number of affected events and shall request explicit additional confirmation (`force = true`) before proceeding.
 
-RF-REQ-05.2. El sistema mostrará al administrador el resultado del algoritmo de detección de conflictos (RF-EVENT-03) aplicado a los datos de `eventData` en el estado actual del calendario.
-
-RF-REQ-05.3. Antes de confirmar la aprobación, el administrador podrá ajustar la frecuencia, las fechas y las horas del evento propuesto. Los campos de asignatura, grupo y aula son de solo lectura (fijados por el docente en la solicitud) y no podrán modificarse durante la revisión.
-
-RF-REQ-05.4. Si el administrador confirma la aprobación, el sistema ejecutará automáticamente la acción correspondiente al tipo de solicitud con los datos definitivos (incluyendo los posibles ajustes del paso anterior):
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-REQ-05.4.1. `CREATE`: el sistema creará el evento con los datos de `eventData`.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-REQ-05.4.2. `EDIT`: el sistema modificará el evento referenciado en `originalEventId` con los datos de `eventData`.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-REQ-05.4.3. `CANCEL`: el sistema marcará la ocurrencia indicada en `eventData` como cancelada (`cancelled = true`).
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-REQ-05.4.4. `REPLACE`: el sistema cancelará la ocurrencia original y creará el nuevo evento puntual con los datos de `eventData`, vinculándolo a la ocurrencia original mediante `replacementEventId`.
-
-RF-REQ-05.5. El sistema actualizará el registro `EventRequest` con `status = APPROVED`, `reviewedBy` (email del administrador) y `reviewedAt` (timestamp actual).
-
-RF-REQ-05.6. El sistema enviará una notificación por correo electrónico al docente informando de la aprobación.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-STRUCT-05.3.2. If the classroom has no associated events, the system shall request standard confirmation and delete the record.
 
 ---
 
-**RF-REQ-06: Rechazar solicitud** *(solo ROLE_ADMIN)*
+#### RF-CAL — Academic calendar management (→ UR4)
 
-RF-REQ-06.1. El sistema comprobará que el estado de la solicitud es `PENDING`. Si no lo es, mostrará un mensaje de error.
+**RF-CAL-01: Create academic calendar** *(ROLE_ADMIN only)*
 
-RF-REQ-06.2. El sistema ofrecerá al administrador un campo para introducir el motivo del rechazo (`comments`).
+RF-CAL-01.1. The system shall request the following data:
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-REQ-06.2.1. Es un dato recomendado pero no técnicamente obligatorio (el campo es nullable en la base de datos). Si se omite, el docente recibirá la notificación de rechazo sin justificación detallada.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-CAL-01.1.1. Academic course.
 
-RF-REQ-06.3. El sistema actualizará el registro `EventRequest` con `status = REJECTED`, `reviewedBy`, `reviewedAt` y `comments` (o null si no se proporcionó).
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-CAL-01.1.1.1. Mandatory. To be selected from the existing academic courses.
 
-RF-REQ-06.4. El sistema enviará una notificación por correo electrónico al docente con el motivo del rechazo, si lo hubiera.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-CAL-01.1.2. Semester.
 
----
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-CAL-01.1.2.1. Mandatory. The system shall accept the values `1` or `2`.
 
-#### RF-SYNC — Sincronización con Google Calendar (→ UR8)
+&nbsp;&nbsp;&nbsp;&nbsp;RF-CAL-01.1.3. Start date (`start`).
 
-**RF-SYNC-01: Inicializar entradas de sincronización**
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-CAL-01.1.3.1. Mandatory. Format `YYYY-MM-DD`.
 
-RF-SYNC-01.1. Al completar la conexión de una cuenta de Google (RF-AUTH-05), el sistema llamará automáticamente al endpoint `POST /calendar-sync/initialize`.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-CAL-01.1.4. End date (`end`).
 
-RF-SYNC-01.2. El sistema consultará todos los calendarios académicos activos del sistema y creará un registro `CalendarSync` con estado `IDLE` por cada uno que no tenga ya un registro de sincronización asociado al usuario.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-CAL-01.1.4.1. Mandatory. Format `YYYY-MM-DD`.
 
----
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-CAL-01.1.4.2. Must be later than the start date.
 
-**RF-SYNC-02: Sincronizar calendario académico con Google Calendar** *(solo ROLE_ADMIN)*
+RF-CAL-01.2. If a calendar already exists for the (academic course, semester) combination, the system shall display an error message (*"A calendar already exists for this course and semester"*) and shall not complete the creation.
 
-RF-SYNC-02.1. El administrador seleccionará el calendario académico a sincronizar desde la página `/calendar-sync` y lanzará la sincronización.
+RF-CAL-01.3. If the end date is not later than the start date, the system shall display an error message and shall not complete the creation.
 
-RF-SYNC-02.2. El sistema actualizará el estado del `CalendarSync` a `SYNCING`.
-
-RF-SYNC-02.3. El sistema renovará automáticamente el `access_token` de Google si ha expirado o está próximo a expirar, utilizando el `refresh_token` almacenado cifrado en base de datos (RF-SYNC-03).
-
-RF-SYNC-02.4. El sistema identificará todas las aulas que tienen eventos en el calendario seleccionado.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-SYNC-02.4.1. Para cada aula nueva (sin Google Calendar previo), el sistema creará un nuevo Google Calendar mediante la API con el código del aula como nombre y almacenará el `googleCalendarId` en un nuevo registro `GoogleClassroomCalendar`.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-SYNC-02.4.2. Para los Google Calendars de aulas ya existentes, el sistema borrará primero todos los eventos previos del calendario académico en ese Google Calendar.
-
-RF-SYNC-02.5. El sistema creará los eventos del calendario académico en el Google Calendar del aula correspondiente, con: título (asignatura y grupo), fecha y hora, y código del aula como ubicación.
-
-RF-SYNC-02.6. Todas las llamadas a la Google Calendar API pasarán por el control de cuota del sistema:
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-SYNC-02.6.1. El sistema aplicará un límite efectivo de 400 peticiones por minuto a nivel de proyecto (no por usuario).
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-SYNC-02.6.2. Si se alcanza el límite, el sistema pausará las llamadas hasta que el ventana de tiempo se renueve antes de continuar automáticamente.
-
-RF-SYNC-02.7. El sistema actualizará el progreso en tiempo real en el registro `CalendarSync`: número de calendarios de aula procesados sobre el total.
-
-RF-SYNC-02.8. Al finalizar, el sistema actualizará el estado del `CalendarSync`. Los estados posibles son: `IDLE`, `SYNCING`, `SUCCESS`, `ERROR`, `DELETING` y `PENDING_RETRY`:
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-SYNC-02.8.1. Si completó sin errores: `status = SUCCESS` y `lastSyncAt = timestamp actual`.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-SYNC-02.8.2. Si se produjo un error irrecuperable: `status = ERROR` y `errorMessage` con la descripción del error para diagnóstico desde la interfaz.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-SYNC-02.8.3. Si se produjo un error recuperable (por ejemplo, cuota agotada temporalmente): `status = PENDING_RETRY`, indicando que la sincronización puede reintentarse.
+RF-CAL-01.4. If the data are valid, the system shall create the `Calendar` record and automatically generate one `Day` record for each working day (Monday to Friday) between `start` and `end` (excluding Saturdays and Sundays), with initial teaching status.
 
 ---
 
-**RF-SYNC-03: Renovación automática de tokens de Google**
+**RF-CAL-02: Manage teaching and holiday days** *(ROLE_ADMIN only)*
 
-RF-SYNC-03.1. Antes de realizar cualquier llamada a la Google Calendar API, el sistema comprobará la validez del `access_token` almacenado.
+RF-CAL-02.1. The system shall allow the administrator to modify the status of any calendar day by marking it as a holiday or restoring its teaching status.
 
-RF-SYNC-03.2. Si el `access_token` ha expirado o está próximo a expirar, el sistema utilizará el `refresh_token` almacenado para obtener un nuevo `access_token` de Google y actualizará el registro en base de datos con el nuevo token y su fecha de expiración.
-
-RF-SYNC-03.3. Si el `refresh_token` ha sido revocado o es inválido, el sistema marcará el `CalendarSync` con `status = ERROR` y un mensaje de error indicando que el usuario debe reconectar su cuenta de Google.
+RF-CAL-02.2. The `dayCharacter` field of the `Day` record shall be updated accordingly.
 
 ---
 
-**RF-SYNC-04: Eliminar sincronización individual** *(solo ROLE_ADMIN)*
+**RF-CAL-03: View academic calendars**
 
-RF-SYNC-04.1. El administrador podrá eliminar la sincronización de un calendario académico concreto desde la página `/calendar-sync`.
+RF-CAL-03.1. The system shall display the list of existing calendars with: academic course, semester, start date, end date, number of teaching days and number of scheduled events.
 
-RF-SYNC-04.2. El sistema mostrará un diálogo de confirmación con el nombre del calendario afectado antes de proceder.
-
-RF-SYNC-04.3. Si el administrador confirma, el sistema actualizará el estado a `DELETING` (persistente en base de datos para sobrevivir recargas de página) y comenzará el proceso de limpieza.
-
-RF-SYNC-04.4. El sistema eliminará los eventos de ese calendario académico en cada Google Calendar de aula afectado, respetando el control de cuota de RF-SYNC-02.6.
-
-RF-SYNC-04.5. Si un Google Calendar de aula queda sin eventos de ningún calendario académico (incluso si ya estaba vacío antes de la operación), el sistema lo eliminará de Google y borrará el registro `GoogleClassroomCalendar` correspondiente de la base de datos.
-
-RF-SYNC-04.6. El sistema eliminará el registro `CalendarSync` de la base de datos.
+RF-CAL-03.2. The system shall allow filtering by academic course and by semester.
 
 ---
 
-#### RF-EXPORT — Interoperabilidad con el sistema heredado (→ UR9)
+**RF-CAL-04: Duplicate academic calendar** *(ROLE_ADMIN only)*
 
-**RF-EXPORT-01: Exportar calendario en formato ZIP** *(solo ROLE_ADMIN)*
+RF-CAL-04.1. The system shall request the following data:
 
-RF-EXPORT-01.1. El sistema generará un archivo comprimido en formato ZIP que contendrá los siguientes cinco ficheros de texto:
+&nbsp;&nbsp;&nbsp;&nbsp;RF-CAL-04.1.1. Target academic course.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-EXPORT-01.1.1. `ubicaciones.txt`: listado de aulas en formato `CÓDIGO_AULA:URL_GIS`, ordenado por código de aula de forma ascendente.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-CAL-04.1.1.1. Mandatory.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-EXPORT-01.1.2. `asignaturas.txt`: catálogo de asignaturas con sus grupos por tipo e idioma, en el formato de 12 campos separados por `:` del sistema heredado, ordenado por acrónimo.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-CAL-04.1.2. Target semester.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-EXPORT-01.1.3. `calendario.txt`: días lectivos del calendario con sus caracteres de día correspondientes.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-CAL-04.1.2.1. Mandatory.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-EXPORT-01.1.4. `horarios.txt`: eventos periódicos del calendario en el formato del sistema heredado, vinculando cada grupo a un día de la semana, franja horaria y aula.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-CAL-04.1.3. New start date.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-EXPORT-01.1.5. `excepciones.txt`: eventos puntuales del calendario, incluidas cancelaciones de ocurrencias específicas.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-CAL-04.1.3.1. Mandatory.
 
-RF-EXPORT-01.2. Solo se incluirán en la exportación los eventos de tipo `Class` (`eventType = 'Class'`). Los eventos de tipo `Evaluation`, `Review`, `Others` e `Independent` no se incluirán.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-CAL-04.1.4. New end date.
 
-RF-EXPORT-01.3. Todos los ficheros del ZIP se generarán con codificación UTF-8.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-CAL-04.1.4.1. Mandatory. Must be later than the new start date.
 
-RF-EXPORT-01.4. El tiempo de generación del ZIP no superará los 10 segundos para calendarios con hasta 200 eventos.
+RF-CAL-04.2. If a calendar already exists for the target course and target semester, the system shall display an error message and shall not complete the duplication.
 
-RF-EXPORT-01.5. El sistema iniciará la descarga automática del archivo en el navegador del administrador.
-
----
-
-**RF-EXPORT-02: Importar calendario desde ficheros `.txt`** *(solo ROLE_ADMIN)*
-
-RF-EXPORT-02.1. El sistema aceptará la carga de los ficheros `.txt` del sistema heredado para crear un nuevo calendario. Se requieren: `asignaturas.txt`, `calendario.txt`, `horarios.txt` y `ubicaciones.txt`. El fichero `excepciones.txt` es opcional.
-
-RF-EXPORT-02.2. El sistema parseará y validará el contenido de cada fichero comprobando que el formato es correcto (separador `:`, número de campos esperado por línea, codificación UTF-8).
-
-RF-EXPORT-02.3. El sistema mostrará una vista previa de los datos que se importarán (número de asignaturas, grupos, eventos) antes de proceder.
-
-RF-EXPORT-02.4. Tras la confirmación del administrador, el sistema creará las entidades correspondientes en el calendario destino.
-
-RF-EXPORT-02.5. El sistema mostrará un informe con los datos importados correctamente y los errores encontrados, indicando la línea y el motivo del error para cada caso.
+RF-CAL-04.3. If the data are valid, the system shall create the new calendar, copy the teaching and holiday day structure (adjusted to the new dates) and copy the recurring events from the source calendar to the target calendar.
 
 ---
 
-**RF-EXPORT-03: Importar excepciones sobre un calendario existente** *(solo ROLE_ADMIN)*
+**RF-CAL-05: Delete academic calendar** *(ROLE_ADMIN only)*
 
-RF-EXPORT-03.1. El sistema permitirá al administrador cargar un fichero `excepciones.txt` sobre un calendario ya existente para añadir o actualizar eventos puntuales.
+RF-CAL-05.1. The system shall display a summary of the data that will be deleted (number of days, recurring events and one-off events) and shall request explicit confirmation before proceeding.
 
-RF-EXPORT-03.2. El sistema ofrecerá dos modos de importación que el administrador deberá seleccionar antes de confirmar:
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-EXPORT-03.2.1. Agregar: los eventos del fichero se añaden a los eventos puntuales ya existentes en el calendario, sin eliminar ninguno de los existentes.
-
-&nbsp;&nbsp;&nbsp;&nbsp;RF-EXPORT-03.2.2. Reemplazar: todos los eventos puntuales existentes en el calendario son eliminados y sustituidos íntegramente por los del fichero.
-
-RF-EXPORT-03.3. El sistema mostrará un informe con el resultado de la importación.
+RF-CAL-05.2. The deletion shall be carried out in cascade: all `Day`, `PeriodicEvent`, `PuntualEvent` and `EventRequest` records associated with the calendar shall be deleted.
 
 ---
 
-**RF-EXPORT-04: Exportar calendario en formato CSV para Google Calendar**
+#### RF-EVENT — Event management (→ UR5)
 
-RF-EXPORT-04.1. El sistema generará un fichero CSV con el formato de importación de Google Calendar a partir del horario del calendario seleccionado.
+**RF-EVENT-01: Create recurring event** *(ROLE_ADMIN only)*
 
-RF-EXPORT-04.2. El fichero generado estará en codificación UTF-8 y seguirá el estándar de campos de Google Calendar (Subject, Start Date, Start Time, End Date, End Time, Description, Location).
+RF-EVENT-01.1. The system shall request the following data:
 
-RF-EXPORT-04.3. El sistema iniciará la descarga automática del fichero en el navegador del usuario.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.1. Group or groups (`groups`).
 
-RF-EXPORT-04.4. Esta funcionalidad está disponible desde la vista del calendario de semestre para todos los perfiles, incluyendo usuarios no autenticados (invitados).
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.1.1. Mandatory. The administrator may select one or more groups.
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.2. Classroom or classrooms (`classrooms`).
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.2.1. Optional.
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.3. Start time (`startTime`).
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.3.1. Mandatory. Format `HH:MM`.
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.4. End time (`endTime`).
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.4.1. Mandatory. Format `HH:MM`.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.4.2. Must be later than the start time.
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.5. Day of the week (`weekDay`).
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.5.1. Mandatory. The administrator shall select one of the values: `L` (Monday), `M` (Tuesday), `X` (Wednesday), `J` (Thursday), `V` (Friday).
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.6. Repetition frequency (`eventCharacter`).
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.6.1. Mandatory. Determines on which teaching days of the calendar the event will appear. The system shall offer the following options:
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.6.1.1. Weekly: the event appears on all teaching days of the calendar that match the selected `weekDay`.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.6.1.2. Biweekly — even weeks: the event appears on teaching days labelled as even weeks in the calendar.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.6.1.3. Biweekly — odd weeks: the event appears on teaching days labelled as odd weeks in the calendar.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.6.1.4. Custom: the administrator defines a custom character that is manually assigned to calendar days.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The technical implementation of this character system, including the internal values and the expansion engine, is described in §5.2.6.
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.7. Event type (`eventType`).
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.7.1. Mandatory. The system shall accept the following values:
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.7.1.1. `Class` (internally `NORMAL`): ordinary teaching session. Counts towards the group's planned hours budget and is included in `.txt` exports.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.7.1.2. `Evaluation` (internally `EVALUACION`): exam or formal assessment. Does not consume planned hours. Displayed on the calendar with the prefix `EV·`.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.7.1.3. `Review` (internally `REVISION`): exam review session. Does not consume planned hours. Displayed with the prefix `RE·`.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.7.1.4. `Others` (internally `OTRO`): any other activity with a classroom booking that does not consume planned hours (talks, workshops, etc.). Displayed with the prefix `OT·`.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.1.7.1.5. `Independent` (internally `BLOCKER`): classroom booking without an associated subject or group, to block a space for non-academic reasons.
+
+RF-EVENT-01.2. If the end time is not later than the start time, the system shall display an error message and shall not complete the creation.
+
+RF-EVENT-01.3. The `Independent` type does not require group or subject selection, as it represents a classroom booking without a teaching link. For all other types (`Class`, `Evaluation`, `Review`, `Others`), selecting at least one group is mandatory.
+
+RF-EVENT-01.4. The system shall execute the conflict detection algorithm (RF-EVENT-03) with the entered data.
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.4.1. If a conflict is detected, the system shall display a detailed error message indicating the conflicting event and the affected resource (group or classroom), and shall prevent saving the event.
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-01.4.2. If no conflict is detected, the system shall create the `PeriodicEvent` record and establish the relationships with the selected groups and classrooms in the corresponding junction tables.
 
 ---
 
-**RF-EXPORT-05: Exportar calendario en formato TXT nativo**
+**RF-EVENT-02: Create one-off event** *(ROLE_ADMIN only)*
 
-RF-EXPORT-05.1. El sistema permitirá descargar el calendario de un semestre en los ficheros `.txt` nativos de la aplicación directamente desde la vista del calendario de semestre.
+RF-EVENT-02.1. The system shall request the following data:
 
-RF-EXPORT-05.2. Esta funcionalidad está disponible para todos los perfiles, incluyendo usuarios no autenticados (invitados).
+&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-02.1.1. Calendar day (`day`).
 
-RF-EXPORT-05.3. La descarga generará los ficheros `.txt` con el contenido actualmente visible en el calendario.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-02.1.1.1. Mandatory. Must be a `Day` record belonging to the active calendar.
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-02.1.2. Group or groups.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-02.1.2.1. Mandatory for all event types except `Independent`, which does not require a group or subject (see RF-EVENT-01.3).
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-02.1.3. Classroom or classrooms.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-02.1.3.1. Optional.
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-02.1.4. Start time and end time.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-02.1.4.1. Both are mandatory. The end time must be later than the start time.
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-02.1.5. Event type.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-02.1.5.1. Mandatory, with the same values as in RF-EVENT-01.1.7.1.
+
+RF-EVENT-02.2. If the selected day is marked as a holiday (`dayCharacter` holiday), the system shall display a warning to the administrator. The creation can continue if the administrator confirms.
+
+RF-EVENT-02.3. The system shall execute the conflict detection algorithm (RF-EVENT-03) for the specific date and time slot of the one-off event.
 
 ---
 
-#### RF-AUDIT — Auditoría y trazabilidad (→ UR10)
+**RF-EVENT-03: Schedule conflict detection**
 
-**RF-AUDIT-01: Registro automático de metadatos de auditoría**
+This module is invoked internally before creating or modifying any event (recurring or one-off) and before approving any change request.
 
-RF-AUDIT-01.1. Todas las entidades del sistema heredan de la clase abstracta `AuditedEntity`, que añade automáticamente los siguientes campos a cada tabla de base de datos:
+RF-EVENT-03.1. The system shall determine the set of days affected by the new event:
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-AUDIT-01.1.1. `createdAt`: timestamp de creación del registro. Se establece automáticamente en la inserción y no se modifica posteriormente.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-03.1.1. For a recurring event: all teaching days of the calendar whose `dayCharacter` corresponds to the selected day of the week.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-AUDIT-01.1.2. `createdBy`: email del usuario que creó el registro. Se extrae del payload del token JWT en la petición de creación.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-03.1.2. For a one-off event: only the specific day selected.
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-AUDIT-01.1.3. `updatedAt`: timestamp de la última modificación del registro. Se actualiza automáticamente en cada operación de actualización.
+RF-EVENT-03.2. For each day in the set determined in RF-EVENT-03.1, the system shall check whether there is any active (non-cancelled) event that simultaneously:
 
-&nbsp;&nbsp;&nbsp;&nbsp;RF-AUDIT-01.1.4. `updatedBy`: email del usuario que realizó la última modificación. Se extrae del payload del token JWT en la petición de actualización.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-03.2.1. Shares at least one of the selected groups, **and**
 
-RF-AUDIT-01.2. Las entidades auditadas son: `Degree`, `Course`, `Calendar`, `Day`, `Subject`, `Group`, `Classroom`, `PeriodicEvent`, `PuntualEvent`, `EventRequest` y `CalendarSync`.
+&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-03.2.2. Overlaps in time: `startTime_A < endTime_B AND endTime_A > startTime_B`.
 
-RF-AUDIT-01.3. El registro de auditoría se realiza de forma automática mediante middleware del servidor; no requiere ninguna acción adicional por parte de los controladores ni de los usuarios.
+RF-EVENT-03.3. The system shall perform the same check for the selected classrooms.
+
+RF-EVENT-03.4. If at least one group conflict is detected, the system shall generate an error message indicating the name of the conflicting group, the name of the existing event and the time slot.
+
+RF-EVENT-03.5. If at least one classroom conflict is detected, the system shall generate an error message indicating the conflicting classroom code and the existing event.
+
+RF-EVENT-03.6. If conflicts are detected, the system shall block the operation and display all conflicts found. The maximum response time of this module shall be 500 ms for calendars with up to 500 events.
+
+RF-EVENT-03.7. If no conflict is detected, the operation shall continue.
+
+---
+
+**RF-EVENT-04: Modify recurring event** *(ROLE_ADMIN only)*
+
+RF-EVENT-04.1. The system shall allow modifying the groups, classrooms, schedule, days of the week, event type and repetition frequency of an existing recurring event.
+
+RF-EVENT-04.2. The system shall execute the conflict detection algorithm (RF-EVENT-03) with the new parameters before saving the change.
+
+---
+
+**RF-EVENT-05: Cancel one-off event** *(ROLE_ADMIN only)*
+
+RF-EVENT-05.1. The system shall mark the `PuntualEvent` record with `cancelled = true`, without deleting it from the database.
+
+RF-EVENT-05.2. Cancelled events shall be displayed on the calendar with a differentiated visual indication and shall not be counted in occupancy statistics.
+
+---
+
+**RF-EVENT-06: Delete event** *(ROLE_ADMIN only)*
+
+RF-EVENT-06.1. For recurring events, the administrator may delete a specific occurrence or the entire series:
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-06.1.1. Delete a specific occurrence: the system shall create a `PuntualEvent` record with `cancelled = true` and `periodicEventSourceId` pointing to the source `PeriodicEvent`, selectively cancelling that occurrence without affecting the rest of the series.
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-EVENT-06.1.2. Delete the entire series: the system shall display a warning dialog and, after confirmation, delete the `PeriodicEvent` record and its relationships in the junction tables.
+
+RF-EVENT-06.2. For non-cancelled one-off events, the system shall delete the `PuntualEvent` record after requesting confirmation.
+
+---
+
+**RF-EVENT-07: Revert cancellation of a one-off event** *(ROLE_ADMIN only)*
+
+RF-EVENT-07.1. The system shall allow the administrator to revert the cancellation of a one-off event that has `cancelled = true`.
+
+RF-EVENT-07.2. The system shall update the `PuntualEvent` record setting `cancelled = false`.
+
+RF-EVENT-07.3. The event shall be displayed again on the calendar with its normal visual state.
+
+---
+
+#### RF-VIEW — Schedule consultation (→ UR6)
+
+**RF-VIEW-01: Public schedule consultation**
+
+RF-VIEW-01.1. The system shall allow access to the calendar view without requiring authentication.
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-VIEW-01.1.1. Unauthenticated users shall only be able to access calendars whose academic course has status `ACTIVO`.
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-VIEW-01.1.2. Authenticated users shall be able to access calendars in any status.
+
+RF-VIEW-01.2. The system shall ask the user to select the calendar to display via the hierarchy: degree → academic course → semester.
+
+RF-VIEW-01.3. The system shall dynamically expand the recurring events of the calendar into their specific occurrences on each teaching day, respecting the day character system (`dayCharacter`) and the character of each recurring event (`eventCharacter`).
+
+RF-VIEW-01.4. The system shall present the events in a calendar view with the following available modes:
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-VIEW-01.4.1. Full week view.
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-VIEW-01.4.2. Work week view.
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-VIEW-01.4.3. Day view.
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-VIEW-01.4.4. Month view.
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-VIEW-01.4.5. Agenda view.
+
+RF-VIEW-01.5. The system shall allow applying the following filters on the visible events:
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-VIEW-01.5.1. Group year (`0` = elective, `1`, `2`, `3`, `4`).
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-VIEW-01.5.2. Subject.
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-VIEW-01.5.3. Group type (`T`, `S`, `L`, `TG`).
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-VIEW-01.5.4. Specific group.
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-VIEW-01.5.5. Classroom.
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-VIEW-01.5.6. Language (`ES`, `EN`).
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-VIEW-01.5.7. Event type (`Class`, `Evaluation`, `Review`, `Others`, `Independent`, or cancelled).
+
+RF-VIEW-01.5.8. *(Property of the filter system, not an additional filter.)* Filters combine their criteria with AND logic between categories and OR within each category. Filter selections are automatically persisted in the user's browser between sessions.
+
+RF-VIEW-01.6. Clicking on an event shall display a side panel with the event details: subject, group, event type, classroom, schedule and comments if any.
+
+RF-VIEW-01.7. Events with `cancelled = true` shall be displayed with differentiated visual styling (strikethrough text, muted colour). Events from change requests in `PENDING` status shall be displayed with reduced opacity and a dashed border, indicating they are pending approval.
+
+---
+
+#### RF-REQ — Change requests (→ UR7)
+
+**RF-REQ-01: Create change request** *(ROLE_PROFESSOR only)*
+
+RF-REQ-01.1. The system shall allow the lecturer to create change requests of four types:
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-REQ-01.1.1. `CREATE` — proposal to create a new event. The `originalEventId` field shall be null. The lecturer shall provide the complete data for the new event in the `eventData` field.
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-REQ-01.1.2. `EDIT` — proposal to modify an existing event.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-REQ-01.1.2.1. The lecturer shall select the original event. The system shall store its identifier in `originalEventId`. Mandatory.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-REQ-01.1.2.2. The lecturer shall provide the modified data in `eventData`.
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-REQ-01.1.3. `CANCEL` — proposal to cancel a specific occurrence of an event.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-REQ-01.1.3.1. The lecturer shall select the original event (`originalEventId`). Mandatory.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-REQ-01.1.3.2. The lecturer shall indicate the date of the occurrence to cancel in `eventData`.
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-REQ-01.1.4. `REPLACE` — proposal to cancel an occurrence and create a new event in its place.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-REQ-01.1.4.1. The lecturer shall select the original event and the occurrence to cancel. Mandatory.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RF-REQ-01.1.4.2. The lecturer shall provide the data for the replacement event in `eventData`.
+
+RF-REQ-01.2. Before sending, the system shall execute the conflict detection algorithm (RF-EVENT-03) with the data from `eventData` and inform the lecturer of the result. This check is advisory; the lecturer may send the request regardless of the result.
+
+RF-REQ-01.3. Upon sending the request, the system shall create the `EventRequest` record with `status = PENDING` and send an email notification to all users with the `ROLE_ADMIN` role.
+
+---
+
+**RF-REQ-02: View own requests** *(ROLE_PROFESSOR only)*
+
+RF-REQ-02.1. The system shall display to the lecturer the list of their own requests with: request type, submission date, status (`PENDING`, `APPROVED`, `REJECTED`) and reviewer comments (if any).
+
+RF-REQ-02.2. The list shall implement pagination (10 rows per page) and allow filtering by status (`PENDING`, `APPROVED`, `REJECTED`, or all). The default filter status when opening the page is `PENDING`.
+
+---
+
+**RF-REQ-03: Delete own request** *(ROLE_PROFESSOR only)*
+
+RF-REQ-03.1. The system shall check that the request belongs to the authenticated lecturer and that its status is `PENDING`.
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-REQ-03.1.1. If the request has already been reviewed, the system shall display an error message (*"You cannot delete an already processed request"*) and shall not perform the deletion.
+
+RF-REQ-03.2. If the request is in `PENDING` status, the system shall delete the `EventRequest` record after requesting confirmation.
+
+---
+
+**RF-REQ-04: View all requests** *(ROLE_ADMIN only)*
+
+RF-REQ-04.1. The system shall display the list of all requests in the system with: type, requesting lecturer, calendar, submission date and status.
+
+RF-REQ-04.2. The system shall allow filtering by status (`PENDING`, `APPROVED`, `REJECTED`), by degree and by calendar.
+
+RF-REQ-04.3. Requests with `PENDING` status shall be shown with a differentiated visual indication.
+
+---
+
+**RF-REQ-05: Approve request** *(ROLE_ADMIN only)*
+
+RF-REQ-05.1. The system shall check that the request status is `PENDING`. If not, the system shall display an error message (*"This request has already been processed"*).
+
+RF-REQ-05.2. The system shall display to the administrator the result of the conflict detection algorithm (RF-EVENT-03) applied to the data in `eventData` in the current state of the calendar.
+
+RF-REQ-05.3. Before confirming the approval, the administrator may adjust the frequency, dates and times of the proposed event. The subject, group and classroom fields are read-only (fixed by the lecturer in the request) and cannot be modified during the review.
+
+RF-REQ-05.4. If the administrator confirms the approval, the system shall automatically execute the corresponding action for the request type with the definitive data (including any adjustments from the previous step):
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-REQ-05.4.1. `CREATE`: the system shall create the event with the data from `eventData`.
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-REQ-05.4.2. `EDIT`: the system shall modify the event referenced in `originalEventId` with the data from `eventData`.
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-REQ-05.4.3. `CANCEL`: the system shall mark the occurrence indicated in `eventData` as cancelled (`cancelled = true`).
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-REQ-05.4.4. `REPLACE`: the system shall cancel the original occurrence and create the new one-off event with the data from `eventData`, linking it to the original occurrence via `replacementEventId`.
+
+RF-REQ-05.5. The system shall update the `EventRequest` record with `status = APPROVED`, `reviewedBy` (administrator's email) and `reviewedAt` (current timestamp).
+
+RF-REQ-05.6. The system shall send an email notification to the lecturer informing them of the approval.
+
+---
+
+**RF-REQ-06: Reject request** *(ROLE_ADMIN only)*
+
+RF-REQ-06.1. The system shall check that the request status is `PENDING`. If not, it shall display an error message.
+
+RF-REQ-06.2. The system shall offer the administrator a field to enter the reason for rejection (`comments`).
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-REQ-06.2.1. It is a recommended but not technically mandatory field (the field is nullable in the database). If omitted, the lecturer shall receive the rejection notification without detailed justification.
+
+RF-REQ-06.3. The system shall update the `EventRequest` record with `status = REJECTED`, `reviewedBy`, `reviewedAt` and `comments` (or null if not provided).
+
+RF-REQ-06.4. The system shall send an email notification to the lecturer with the reason for rejection, if any.
+
+---
+
+#### RF-SYNC — Google Calendar synchronisation (→ UR8)
+
+**RF-SYNC-01: Initialise synchronisation entries**
+
+RF-SYNC-01.1. Upon completing the connection of a Google account (RF-AUTH-05), the system shall automatically call the endpoint `POST /calendar-sync/initialize`.
+
+RF-SYNC-01.2. The system shall query all active academic calendars in the system and create a `CalendarSync` record with initial idle status for each one that does not already have a synchronisation record associated with the user. State values are defined in §5.2.7.
+
+---
+
+**RF-SYNC-02: Synchronise academic calendar with Google Calendar** *(ROLE_ADMIN only)*
+
+RF-SYNC-02.1. The administrator shall select the academic calendar to synchronise from the `/calendar-sync` page and launch the synchronisation.
+
+RF-SYNC-02.2. The system shall update the `CalendarSync` status to synchronisation in progress.
+
+RF-SYNC-02.3. The system shall automatically renew the Google `access_token` if it has expired or is about to expire, using the `refresh_token` stored encrypted in the database (RF-SYNC-03).
+
+RF-SYNC-02.4. The system shall identify all classrooms that have events in the selected calendar.
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-SYNC-02.4.1. For each new classroom (without a previous Google Calendar), the system shall create a new Google Calendar via the API with the classroom code as the name and store the `googleCalendarId` in a new `GoogleClassroomCalendar` record.
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-SYNC-02.4.2. For existing classroom Google Calendars, the system shall first delete all previous events of the academic calendar in that Google Calendar.
+
+RF-SYNC-02.5. The system shall create the academic calendar events in the Google Calendar of the corresponding classroom, with: title (subject and group), date and time, and classroom code as location.
+
+RF-SYNC-02.6. All calls to the Google Calendar API shall respect the system's quota control so as not to exceed the project-level limit. If the limit is reached, the system shall pause calls until the time window is renewed before automatically continuing. The justification and details of the quota strategy are described in §3.3.3 and §5.2.7.
+
+RF-SYNC-02.7. The system shall update progress in real time in the `CalendarSync` record: number of classroom calendars processed out of the total.
+
+RF-SYNC-02.8. Upon completion, the system shall update the `CalendarSync` status according to the result of the operation: success, unrecoverable error or recoverable error with retry possibility. The specific state values are defined in the design model (§5.2.7).
+
+---
+
+**RF-SYNC-03: Automatic Google token renewal**
+
+RF-SYNC-03.1. Before making any call to the Google Calendar API, the system shall check the validity of the stored `access_token`.
+
+RF-SYNC-03.2. If the `access_token` has expired or is about to expire, the system shall use the stored `refresh_token` to obtain a new `access_token` from Google and update the database record with the new token and its expiration date.
+
+RF-SYNC-03.3. If the `refresh_token` has been revoked or is invalid, the system shall mark the `CalendarSync` with error status and an error message indicating that the user must reconnect their Google account.
+
+---
+
+**RF-SYNC-04: Delete individual synchronisation** *(ROLE_ADMIN only)*
+
+RF-SYNC-04.1. The administrator may delete the synchronisation of a specific academic calendar from the `/calendar-sync` page.
+
+RF-SYNC-04.2. The system shall display a confirmation dialog with the name of the affected calendar before proceeding.
+
+RF-SYNC-04.3. If the administrator confirms, the system shall update the synchronisation status to a deletion-in-progress state (persistent in the database to survive page reloads) and begin the cleanup process. State values are defined in §5.2.7.
+
+RF-SYNC-04.4. The system shall delete the events of that academic calendar in each affected classroom Google Calendar, respecting the quota control described in RF-SYNC-02.6.
+
+RF-SYNC-04.5. If a classroom Google Calendar is left without events from any academic calendar (even if it was already empty before the operation), the system shall delete it from Google and remove the corresponding `GoogleClassroomCalendar` record from the database.
+
+RF-SYNC-04.6. The system shall delete the `CalendarSync` record from the database.
+
+---
+
+#### RF-EXPORT — Interoperability with the legacy system (→ UR9)
+
+**RF-EXPORT-01: Export calendar in ZIP format** *(ROLE_ADMIN only)*
+
+RF-EXPORT-01.1. The system shall generate a compressed file in ZIP format containing the following five text files:
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-EXPORT-01.1.1. `ubicaciones.txt`: list of classrooms in the format `CLASSROOM_CODE:GIS_URL`, sorted by classroom code in ascending order.
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-EXPORT-01.1.2. `asignaturas.txt`: catalogue of subjects with their groups by type and language, in the 12-field `:` separated format of the legacy system, sorted by acronym.
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-EXPORT-01.1.3. `calendario.txt`: teaching days of the calendar with their corresponding day characters.
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-EXPORT-01.1.4. `horarios.txt`: recurring events of the calendar in the legacy system's format, linking each group to a day of the week, time slot and classroom.
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-EXPORT-01.1.5. `excepciones.txt`: one-off events of the calendar, including cancellations of specific occurrences.
+
+RF-EXPORT-01.2. Only events of type `Class` (`eventType = 'Class'`) shall be included in the export. Events of type `Evaluation`, `Review`, `Others` and `Independent` shall not be included.
+
+RF-EXPORT-01.3. All files in the ZIP shall be generated with UTF-8 encoding.
+
+RF-EXPORT-01.4. The ZIP generation time shall not exceed 10 seconds for calendars with up to 200 events.
+
+RF-EXPORT-01.5. The system shall automatically initiate the file download in the administrator's browser.
+
+---
+
+**RF-EXPORT-02: Import calendar from `.txt` files** *(ROLE_ADMIN only)*
+
+RF-EXPORT-02.1. The system shall accept the upload of `.txt` files from the legacy system to create a new calendar. Required: `asignaturas.txt`, `calendario.txt`, `horarios.txt` and `ubicaciones.txt`. The `excepciones.txt` file is optional.
+
+RF-EXPORT-02.2. The system shall parse and validate the content of each file, checking that the format is correct (`:` separator, expected number of fields per line, UTF-8 encoding).
+
+RF-EXPORT-02.3. The system shall display a preview of the data to be imported (number of subjects, groups, events) before proceeding.
+
+RF-EXPORT-02.4. After the administrator's confirmation, the system shall create the corresponding entities in the target calendar.
+
+RF-EXPORT-02.5. The system shall display a report with the successfully imported data and the errors found, indicating the line and the reason for the error in each case.
+
+---
+
+**RF-EXPORT-03: Import exceptions onto an existing calendar** *(ROLE_ADMIN only)*
+
+RF-EXPORT-03.1. The system shall allow the administrator to upload an `excepciones.txt` file onto an already existing calendar to add or update one-off events.
+
+RF-EXPORT-03.2. The system shall offer two import modes that the administrator must select before confirming:
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-EXPORT-03.2.1. Add: the events from the file are added to the already existing one-off events in the calendar, without deleting any of the existing ones.
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-EXPORT-03.2.2. Replace: all existing one-off events in the calendar are deleted and completely replaced by those from the file.
+
+RF-EXPORT-03.3. The system shall display a report with the result of the import.
+
+---
+
+**RF-EXPORT-04: Export calendar in CSV format for Google Calendar**
+
+RF-EXPORT-04.1. The system shall generate a CSV file in Google Calendar import format from the schedule of the selected calendar.
+
+RF-EXPORT-04.2. The generated file shall be in UTF-8 encoding and shall follow the Google Calendar field standard (Subject, Start Date, Start Time, End Date, End Time, Description, Location).
+
+RF-EXPORT-04.3. The system shall automatically initiate the file download in the user's browser.
+
+RF-EXPORT-04.4. This functionality is available from the semester calendar view for all profiles, including unauthenticated (guest) users.
+
+---
+
+**RF-EXPORT-05: Export calendar in native TXT format**
+
+RF-EXPORT-05.1. The system shall allow downloading the schedule of a semester in the application's native `.txt` files directly from the semester calendar view.
+
+RF-EXPORT-05.2. This functionality is available for all profiles, including unauthenticated (guest) users.
+
+RF-EXPORT-05.3. The download shall generate the `.txt` files with the content currently visible on the calendar.
+
+---
+
+#### RF-AUDIT — Audit and traceability (→ UR10)
+
+**RF-AUDIT-01: Automatic recording of audit metadata**
+
+RF-AUDIT-01.1. All system entities inherit from the abstract class `AuditedEntity`, which automatically adds the following fields to each database table:
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-AUDIT-01.1.1. `createdAt`: creation timestamp of the record. Set automatically on insertion and not modified thereafter.
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-AUDIT-01.1.2. `createdBy`: email of the user who created the record. Extracted from the JWT token payload in the creation request.
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-AUDIT-01.1.3. `updatedAt`: timestamp of the last modification of the record. Updated automatically on each update operation.
+
+&nbsp;&nbsp;&nbsp;&nbsp;RF-AUDIT-01.1.4. `updatedBy`: email of the user who made the last modification. Extracted from the JWT token payload in the update request.
+
+RF-AUDIT-01.2. The audited entities are: `Degree`, `Course`, `Calendar`, `Day`, `Subject`, `Group`, `Classroom`, `PeriodicEvent`, `PuntualEvent`, `EventRequest` and `CalendarSync`.
+
+RF-AUDIT-01.3. The audit record is made automatically via server middleware; no additional action is required from controllers or users.
 
 ---
 
 ### 4.1.2 Domain Data Model
 
-El modelo de datos del sistema se organiza en cuatro grupos de entidades: estructura académica, eventos, solicitudes de cambio e integración con Google Calendar. Todas las entidades heredan de `AuditedEntity`.
+The system's data model is organised into four groups of entities: academic structure, events, change requests and Google Calendar integration. All entities inherit from `AuditedEntity`.
 
-**Figura 4.1 — Diagrama de clases del dominio**
+**Figure 4.1 — Domain class diagram**
 
 ```mermaid
 classDiagram
     class AuditedEntity {
-        <<abstract>>
-        +UUID id
-        +DateTime createdAt
-        +String createdBy
-        +DateTime updatedAt
-        +String updatedBy
+        +createdAt
+        +createdBy
+        +updatedAt
+        +updatedBy
     }
-
-    class Degree {
-        +String name
-        +String acronym
-    }
-
-    class Course {
-        +Int startYear
-        +Int endYear
-        +CourseState status
-    }
-
-    class Calendar {
-        +Date start
-        +Date end
-        +Int semester
-        +String charactersInUse
-    }
-
-    class Day {
-        +Date date
-        +String dayCharacter
-    }
-
-    class Subject {
-        +String acronym
-        +String name
-        +Int year
-        +Int semester
-        +String siesCode
-    }
-
-    class Group {
-        +Int number
-        +GroupType type
-        +Language language
-        +Int planifiedHours
-    }
-
-    class Classroom {
-        +String code
-        +String gisUrl
-    }
-
-    class PeriodicEvent {
-        +Time startTime
-        +Time endTime
-        +WeekDay weekDay
-        +String eventCharacter
-        +EventType eventType
-    }
-
-    class PuntualEvent {
-        +Time startTime
-        +Time endTime
-        +Boolean cancelled
-        +String comment
-        +EventType eventType
-        +UUID replacementEventId
-        +UUID periodicEventSourceId
-    }
-
-    class EventRequest {
-        +RequestType requestType
-        +EventType eventType
-        +RequestStatus status
-        +UUID originalEventId
-        +JSON eventData
-        +String reviewedBy
-        +String comments
-    }
-
-    class CalendarSync {
-        +SyncStatus syncStatus
-        +DateTime lastSyncAt
-        +String errorMessage
-    }
-
-    class GoogleClassroomCalendar {
-        +String googleCalendarId
-    }
-
-    class ApiQuotaCounter {
-        +Int minuteCount
-        +Int dayCount
-    }
+    class Degree
+    class Course
+    class Calendar
+    class Day
+    class Subject
+    class Group
+    class Classroom
+    class PeriodicEvent
+    class PuntualEvent
+    class EventRequest
+    class CalendarSync
+    class GoogleClassroomCalendar
 
     AuditedEntity <|-- Degree
     AuditedEntity <|-- Course
@@ -1168,283 +1086,279 @@ classDiagram
     AuditedEntity <|-- PuntualEvent
     AuditedEntity <|-- EventRequest
     AuditedEntity <|-- CalendarSync
+    AuditedEntity <|-- GoogleClassroomCalendar
 
     Degree "1" --> "N" Course
+    Degree "1" --> "N" Subject
     Course "1" --> "N" Calendar
-    Calendar "1" --> "N" Day
-    Calendar "1" --> "N" Subject
-    Calendar "1" --> "N" PeriodicEvent
-    Day "1" --> "N" PuntualEvent
     Subject "1" --> "N" Group
-    Group "N" --> "M" PeriodicEvent : PERIODIC_EVENTS_GROUPS
-    Group "N" --> "M" PuntualEvent : PUNTUAL_EVENTS_GROUPS
-    Classroom "N" --> "M" PeriodicEvent : PERIODIC_EVENTS_CLASSROOMS
-    Classroom "N" --> "M" PuntualEvent : PUNTUAL_EVENTS_CLASSROOMS
-    PuntualEvent --> PuntualEvent : replacementEventId
-    PuntualEvent --> PeriodicEvent : periodicEventSourceId
+    Calendar "1" --> "N" Day
     Calendar "1" --> "N" EventRequest
-    CalendarSync --> Calendar
-    GoogleClassroomCalendar --> Calendar
-    GoogleClassroomCalendar --> Classroom
+    Calendar "1" --> "N" CalendarSync
+    Day "1" --> "N" PuntualEvent
+    PeriodicEvent "N" --> "M" Group : assigned to
+    PeriodicEvent "N" --> "M" Classroom : uses
+    PuntualEvent "N" --> "M" Group : assigned to
+    PuntualEvent "N" --> "M" Classroom : uses
+    Classroom "1" --> "N" GoogleClassroomCalendar
 ```
 
-**Enumeraciones:**
+The complete class diagram with all attributes is found in §5.2.3 (Detailed design). The entity structure by functional groups is summarised below:
 
-| Enumeración | Valores |
+- **Academic structure**: `Degree` → `Course` → `Calendar` → `Day` / `Subject` → `Group` → `Classroom`
+- **Events**: `PeriodicEvent` (N:M with `Group` and `Classroom`) and `PuntualEvent` (N:M with `Group` and `Classroom`; linked to a specific `Day`)
+- **Change requests**: `EventRequest` (linked to the `Calendar`)
+- **Google Calendar integration**: `CalendarSync` (synchronisation status per user and calendar) and `GoogleClassroomCalendar` (mapping between `Classroom` and its Google Calendar ID)
+
+All entities inherit from `AuditedEntity`, which automatically records the user and date of creation and last modification of each record.
+
+**Enumerations:**
+
+| Enumeration | Values |
 |---|---|
 | `CourseState` | `PLANIFICADO`, `ACTIVO`, `FINALIZADO` |
-| `GroupType` | `T` (Teoría), `S` (Seminario), `L` (Laboratorio), `TG` (Tutoría Grupal) |
+| `GroupType` | `T` (Theory), `S` (Seminar), `L` (Laboratory), `TG` (Group Tutoring) |
 | `Language` | `ES`, `EN` |
 | `EventType` | `Class`, `Evaluation`, `Review`, `Others`, `Independent` |
 | `WeekDay` | `L`, `M`, `X`, `J`, `V` |
 | `RequestType` | `CREATE`, `EDIT`, `CANCEL`, `REPLACE` |
 | `RequestStatus` | `PENDING`, `APPROVED`, `REJECTED` |
-| `SyncStatus` | `IDLE`, `SYNCING`, `SUCCESS`, `ERROR`, `DELETING`, `PENDING_RETRY` |
+| `SyncStatus` | Values defined in §5.2.7 |
 
-**Relaciones destacadas:**
+**Key relationships:**
 
-- `PuntualEvent.replacementEventId` — autorreferencia: apunta al evento puntual que reemplaza a este (flujo REPLACE de solicitudes de cambio).
-- `PuntualEvent.periodicEventSourceId` — referencia al `PeriodicEvent` del que deriva esta cancelación puntual, permitiendo cancelar selectivamente una ocurrencia sin afectar al resto de la serie.
-- `GoogleClassroomCalendar` — almacena el mapeo entre cada aula y su Google Calendar ID, permitiendo añadir y eliminar eventos en el calendario correcto durante la sincronización.
-- `ApiQuotaCounter` — contador global (no por usuario) del consumo de cuota de la API de Google Calendar, reflejando cómo Google aplica los límites a nivel de proyecto.
+- `PuntualEvent.replacementEventId` — self-reference: points to the one-off event that replaces this one (REPLACE flow of change requests).
+- `PuntualEvent.periodicEventSourceId` — reference to the `PeriodicEvent` from which this cancellation derives, allowing selective cancellation of an occurrence without affecting the rest of the series.
+- `GoogleClassroomCalendar` — stores the mapping between each classroom and its Google Calendar ID, allowing events to be added and removed in the correct calendar during synchronisation.
+- `ApiQuotaCounter` — global counter (not per user) of Google Calendar API quota consumption, reflecting how Google applies limits at the project level.
 
 ---
 
 ### 4.1.3 User Interface
 
-Esta sección describe la estructura de navegación de la aplicación y las pantallas principales. Las capturas de pantalla se presentan como figuras sugeridas.
+This section describes the navigation structure of the application and the main screens. The figures below correspond to screenshots of the functional application; the actual images are included in the project presentation.
 
-#### Estructura de navegación
+#### Navigation structure
 
-La aplicación tiene cuatro rutas públicas sin layout de aplicación y el resto organizado bajo un layout común con barra lateral. El contenido visible en la barra lateral varía según el rol del usuario.
+The application has four public routes without an application layout and the rest organised under a common layout with a sidebar. The content visible in the sidebar varies according to the user's role.
 
-**Figura 4.2 — Mapa de navegación de la aplicación**
+**Figure 4.2 — Application navigation map**
 
 ```
-Rutas públicas (sin barra lateral):
-  /              → Pantalla de bienvenida
-  /login         → Formulario de inicio de sesión
-  /forgot-password → Recuperación de contraseña (3 pasos: email → OTP → nueva contraseña)
-  /activate      → Activación de cuenta
+Public routes (no sidebar):
+  /              → Welcome screen
+  /login         → Login form
+  /forgot-password → Password recovery (3 steps: email → OTP → new password)
+  /activate      → Account activation
 
-Rutas con barra lateral (AppLayout):
-  Sección "Main" — visible para todos los perfiles:
-    /home                                                        → Calendario global
-    /degrees                                                     → Lista de titulaciones
-    /degrees/:acronym/courses                                    → Cursos de una titulación
-    /degrees/:acronym/courses/:startYear/:endYear/semester/:n/calendar   → Vista de calendario
-    /degrees/:acronym/courses/:startYear/:endYear/semester/:n/subjects   → Asignaturas
-    /degrees/:acronym/courses/:startYear/:endYear/semester/:n/groups     → Grupos
-    /degrees/:acronym/courses/:startYear/:endYear/semester/:n/solicitudes → Solicitudes (admin)
-    /classrooms                                                  → Lista de aulas
+Routes with sidebar (authenticated layout):
+  Section "Main" — visible to all profiles:
+    /home                                                        → Global calendar
+    /degrees                                                     → Degree list
+    /degrees/:acronym/courses                                    → Courses of a degree
+    /degrees/:acronym/courses/:startYear/:endYear/semester/:n/calendar   → Calendar view
+    /degrees/:acronym/courses/:startYear/:endYear/semester/:n/subjects   → Subjects
+    /degrees/:acronym/courses/:startYear/:endYear/semester/:n/groups     → Groups
+    /degrees/:acronym/courses/:startYear/:endYear/semester/:n/solicitudes → Requests (admin)
+    /classrooms                                                  → Classroom list
 
-  Sección "System" — solo usuarios autenticados:
-    Administrador:
-      /users        → Gestión de usuarios
-      /solicitudes  → Panel global de solicitudes de cambio
-    Docente:
-      /my-requests  → Mis solicitudes de cambio
+  Section "System" — authenticated users only:
+    Administrator:
+      /users        → User management
+      /solicitudes  → Global change request panel
+    Lecturer:
+      /my-requests  → My change requests
 
-  Área de usuario (accesible desde el pie de la barra lateral):
-    /settings       → Perfil y conexión con Google Calendar
-    /calendar-sync  → Gestión de sincronización con Google Calendar
+  User area (accessible from the bottom of the sidebar):
+    /settings       → Profile and Google Calendar connection
+    /calendar-sync  → Google Calendar synchronisation management
 ```
 
-La barra lateral incluye un sistema de breadcrumbs que muestra la ruta de navegación actual y permite saltar a cualquier nivel anterior con un clic. Los usuarios invitados (sin autenticación) solo pueden acceder a calendarios de cursos en estado `ACTIVO`.
+The sidebar includes a breadcrumb system that shows the current navigation path and allows jumping to any previous level with a click. Guest users (unauthenticated) can only access calendars of courses in `ACTIVO` status.
 
-#### Pantallas principales
+#### Main screens
 
-> 📷 **Figura 4.3 — Pantalla de bienvenida** (`/`): tarjeta central con el título de la aplicación y dos botones: *"Continuar como invitado"* e *"Iniciar sesión"*.
+> 📷 **Figure 4.3 — Welcome screen** (`/`): central card with the application title and two buttons: *"Continue as guest"* and *"Log in"*.
 
-> 📷 **Figura 4.4 — Formulario de inicio de sesión** (`/login`): campos de email y contraseña, botón *"Iniciar sesión"* y enlace *"¿Olvidó su contraseña?"*.
+> 📷 **Figure 4.4 — Login form** (`/login`): email and password fields, *"Log in"* button and *"Forgot your password?"* link.
 
-> 📷 **Figura 4.5 — Vista de calendario semanal** (`/home` o ruta de semestre): selector de calendario en la parte superior; barra de filtros lateral (titulación, asignatura, tipo de grupo, grupo, aula, idioma); cinco botones de vista (Semana, Semana laboral, Día, Mes, Agenda); navegación temporal (anterior, hoy, siguiente); eventos coloreados por tipo sobre la cuadrícula horaria; panel de detalles lateral al hacer clic sobre un evento.
+> 📷 **Figure 4.5 — Weekly calendar view** (`/home` or semester route): calendar selector at the top; side filter bar (degree, subject, group type, group, classroom, language); five view buttons (Week, Work week, Day, Month, Agenda); time navigation (previous, today, next); events coloured by type on the time grid; side details panel when clicking on an event.
 
-> 📷 **Figura 4.6 — Dialog de detección de conflicto**: mensaje de advertencia en el momento de intentar crear o editar un evento que solapa en horario con otro evento del mismo grupo o aula, indicando el nombre del evento en conflicto y la franja afectada.
+> 📷 **Figure 4.6 — Conflict detection dialog**: warning message when attempting to create or edit an event that overlaps with another event of the same group or classroom, indicating the conflicting event name and the affected time slot.
 
-> 📷 **Figura 4.7 — Panel de solicitudes de cambio (administrador)** (`/solicitudes`): tabla de solicitudes con columnas de estado, docente solicitante, tipo de solicitud y fecha; filtros por estado (pendiente, aprobado, rechazado); botones de aprobar y rechazar por fila; indicador visual destacado para las solicitudes en estado `PENDING`.
+> 📷 **Figure 4.7 — Change request panel (administrator)** (`/solicitudes`): request table with columns for status, requesting lecturer, request type and date; filters by status (pending, approved, rejected); approve and reject buttons per row; prominent visual indicator for requests in `PENDING` status.
 
-> 📷 **Figura 4.8 — Dialog de nueva solicitud (docente)**: formulario para crear una solicitud de cambio con selector de tipo (`CREATE`, `EDIT`, `CANCEL`, `REPLACE`), selector de evento origen (para tipos que requieren `originalEventId`), campos de fecha, hora, asignatura, grupo y aula, y campo de comentario. Indicador de conflictos en tiempo real antes de enviar.
+> 📷 **Figure 4.8 — New request dialog (lecturer)**: form for creating a change request with type selector (`CREATE`, `EDIT`, `CANCEL`, `REPLACE`), source event selector (for types that require `originalEventId`), date, time, subject, group and classroom fields, and comment field. Real-time conflict indicator before sending.
 
-> 📷 **Figura 4.9 — Página de sincronización con Google Calendar** (`/calendar-sync`): tabla con una fila por cada calendario académico activo, columnas de estado (`IDLE`, `SYNCING`, `SUCCESS`, `ERROR`, `DELETING`), barra de progreso durante la sincronización (calendarios procesados / total), botón *"Sincronizar"* y botón de eliminar sincronización. Widget de cuota de API con el consumo acumulado del proyecto.
+> 📷 **Figure 4.9 — Google Calendar synchronisation page** (`/calendar-sync`): table with one row per active academic calendar, columns for status (`IDLE`, `SYNCING`, `SUCCESS`, `ERROR`, `DELETING`), progress bar during synchronisation (calendars processed / total), *"Synchronise"* button and delete synchronisation button. API quota widget with the project's accumulated consumption.
 
-> 📷 **Figura 4.10 — Vista en dispositivo móvil**: barra lateral colapsada en menú hamburguesa; vista de calendario en modo agenda (más adecuado para pantallas estrechas); panel de filtros ocultable.
+> 📷 **Figure 4.10 — Mobile device view**: sidebar collapsed into a hamburger menu; calendar view in agenda mode (more suitable for narrow screens); hideable filter panel.
 
-#### Convenios de diálogo
+#### Dialog conventions
 
-- Los campos obligatorios en formularios se marcan con un asterisco rojo (`*`) y el componente `RequiredLabel`.
-- Los errores de validación se muestran en tiempo real bajo el campo afectado, sin esperar al envío del formulario.
-- Las acciones destructivas (eliminar entidades, eliminar sincronización) requieren un diálogo de confirmación explícita antes de ejecutarse.
-- Las operaciones largas (sincronización, importación) muestran indicadores de progreso y no bloquean la navegación.
-- La interfaz está completamente internacionalizada en español e inglés mediante un sistema de internacionalización (i18n).
+- Mandatory fields in forms are marked with a red asterisk (`*`) and the `RequiredLabel` component.
+- Validation errors are displayed in real time below the affected field, without waiting for form submission.
+- Destructive actions (deleting entities, deleting synchronisation) require an explicit confirmation dialog before being executed.
+- Long operations (synchronisation, import) display progress indicators and do not block navigation.
+- The interface is fully internationalised in Spanish and English via an internationalisation (i18n) system.
 
 ---
 
 ## 4.2 Non-Functional Requirements
 
-### 4.2.1 Rendimiento
+### 4.2.1 Performance
 
-| ID | Operación | Tiempo máximo | Condiciones |
+| ID | Operation | Maximum time | Conditions |
 |---|---|---|---|
-| RNF-PERF-01 | Login | 1 segundo | 95% de los casos |
-| RNF-PERF-02 | Listado de entidades (usuarios, asignaturas, etc.) | 2 segundos | Hasta 1.000 registros |
-| RNF-PERF-03 | Crear o editar entidad | 1 segundo | Operación simple |
-| RNF-PERF-04 | Crear evento con validación de conflictos | 3 segundos | Calendario con hasta 500 eventos |
-| RNF-PERF-05 | Cargar vista de horarios | 3 segundos | Carga inicial del calendario |
-| RNF-PERF-06 | Duplicar calendario | 10 segundos | Hasta 200 eventos |
-| RNF-PERF-07 | Sincronización con Google Calendar | 2 minutos | Hasta 100 eventos |
-| RNF-PERF-08 | Exportar calendario a ZIP | 10 segundos | Hasta 200 eventos |
+| RNF-PERF-01 | Login | 1 second | 95% of cases |
+| RNF-PERF-02 | Entity listing (users, subjects, etc.) | 2 seconds | Up to 1,000 records |
+| RNF-PERF-03 | Create or edit entity | 1 second | Simple operation |
+| RNF-PERF-04 | Create event with conflict validation | 3 seconds | Calendar with up to 500 events |
+| RNF-PERF-05 | Load schedule view | 3 seconds | Initial calendar load |
+| RNF-PERF-06 | Duplicate calendar | 10 seconds | Up to 200 events |
+| RNF-PERF-07 | Google Calendar synchronisation | 2 minutes | Up to 100 events |
+| RNF-PERF-08 | Export calendar to ZIP | 10 seconds | Up to 200 events |
 
-### 4.2.2 Escalabilidad
+### 4.2.2 Scalability
 
-- El sistema soportará al menos **200 usuarios concurrentes** en operaciones normales y **500 en consultas públicas** de solo lectura.
-- El volumen de datos estimado a 5 años: hasta 500 asignaturas, 2.000 grupos, 10.000 eventos periódicos y 5.000 eventos puntuales.
-- La arquitectura de microservicios permite escalar el `planner_service` (el más exigente computacionalmente) de forma independiente sin replicar los servicios de autenticación y usuarios.
+- The system shall support at least **200 concurrent users** in normal operations and **500 in public read-only queries**.
+- Estimated data volume at 5 years: up to 500 subjects, 2,000 groups, 10,000 recurring events and 5,000 one-off events.
+- The microservices architecture allows scaling the `planner_service` (the most computationally demanding) independently without replicating the authentication and user services.
 
-### 4.2.3 Disponibilidad
+### 4.2.3 Availability
 
-- **Objetivo de disponibilidad:** 99,5% de uptime anual (máximo 43,8 horas de caída por año).
-- Los mantenimientos programados se realizarán exclusivamente en períodos no lectivos con al menos 7 días de preaviso.
-- **RTO** (Recovery Time Objective): 4 horas. **RPO** (Recovery Point Objective): 24 horas.
+- **Availability target:** 99.5% annual uptime (maximum 43.8 hours of downtime per year).
+- Scheduled maintenance shall be carried out exclusively during non-teaching periods with at least 7 days' notice.
+- **RTO** (Recovery Time Objective): 4 hours. **RPO** (Recovery Point Objective): 24 hours.
 
-### 4.2.4 Seguridad
+### 4.2.4 Security
 
-Las medidas de seguridad implementadas se organizan en capas:
+The implemented security measures are organised in layers:
 
-**Transporte:** HTTPS obligatorio en toda la comunicación cliente-servidor. El servidor web (Caddy) gestiona TLS con el certificado institucional GEANT proporcionado por el SUTIC, con redirección automática HTTP → HTTPS y HSTS habilitado.
+**Transport:** HTTPS mandatory for all client-server communication. TLS is managed at the web server layer with an institutional certificate, with automatic HTTP → HTTPS redirection and HSTS enabled.
 
-**Autenticación:** tokens JWT firmados con HS256, expiración de 1 hora. El secreto de firma se configura mediante variable de entorno (`JWT_SECRET`); no existe valor por defecto en el código. Los tokens no contienen información sensible: solo `userId`, `email` y `role`.
+**Authentication:** Signed authentication tokens with 1-hour expiration. The signing secret is configured via environment variable with no default value in the code. Tokens contain only user identity and role information.
 
-**Credenciales:** contraseñas almacenadas con bcrypt (factor 10). Nunca se almacenan ni transmiten en texto plano. Los campos de contraseña permiten copiar y pegar (compatible con gestores de contraseñas).
+**Credentials:** passwords stored with an industry-standard adaptive hashing function. Never stored or transmitted in plain text. Password fields allow copying and pasting (compatible with password managers).
 
-**Tokens de terceros:** los `access_token` y `refresh_token` de Google OAuth se almacenan cifrados en la base de datos (AES-256 mediante la clave `ENCRYPTION_KEY` en variables de entorno).
+**Third-party tokens:** Google OAuth tokens are stored encrypted in the database using a key configured via environment variable.
 
-**Control de acceso:** RBAC con dos roles (`ADMIN`, `PROFESSOR`). El gateway aplica CORS con lista blanca de orígenes explícita (sin wildcard `*`). La verificación del JWT se realiza en cada servicio de forma independiente.
+**Access control:** RBAC with two roles (administrator and lecturer). The gateway applies CORS with an explicit origin whitelist. Token verification is performed in each service independently.
 
-**Secretos:** ninguna contraseña, API key ni secreto está hardcodeado en el código fuente. Todos se gestionan mediante variables de entorno (`.env`) y GitHub Secrets en el pipeline de CI/CD.
+**Secrets:** no password, API key or secret is hardcoded in the source code. All are managed via environment variables and secrets stored in the CI/CD pipeline.
 
-**Deudas técnicas de seguridad conocidas:**
+**Known security technical debt:**
 
-- *Sistema de autenticación propio:* el sistema gestiona credenciales propias (email + contraseña) en lugar de delegar en un proveedor externo. Esto constituye una limitación de seguridad reconocida, asumida por falta de disponibilidad del SSO institucional en el momento del desarrollo (ver §3.3.1). La integración con el SSO de la Universidad de Oviedo (Microsoft/Azure AD) queda documentada como trabajo futuro en el capítulo 8.
-- *Sin WAF:* el sistema está desplegado detrás de la infraestructura universitaria sin WAF dedicado. Se documenta como mejora futura.
-- *Sin rate limiting en API:* no se ha implementado limitación de tasa en los endpoints de la API en v1.0. Se documenta como mejora futura.
-- *SonarQube no integrado en pipeline:* SonarQube está configurado y puede ejecutarse manualmente, pero no forma parte del pipeline CI/CD automatizado en v1.0. Se documenta como mejora futura.
+- *Custom authentication system:* the system manages its own credentials (email + password) instead of delegating to an external provider. This constitutes a recognised security limitation, assumed due to the unavailability of the institutional SSO at the time of development (see §3.3.1). Integration with the University of Oviedo SSO (Microsoft/Azure AD) is documented as future work in chapter 8.
+- *No WAF:* the system is deployed behind the university infrastructure without a dedicated WAF. Documented as a future improvement.
+- *No rate limiting on API:* rate limiting on API endpoints has not been implemented in v1.0. Documented as a future improvement.
+- *SonarQube not integrated in pipeline:* SonarQube is configured and can be run manually, but is not part of the automated CI/CD pipeline in v1.0. Documented as a future improvement.
 
-### 4.2.5 Usabilidad y accesibilidad
+### 4.2.5 Usability and accessibility
 
-- La interfaz cumplirá con las pautas **WCAG 2.1 nivel AA**: contraste de color mínimo 4,5:1 para texto, navegación completa por teclado, etiquetas ARIA en elementos interactivos, y textos alternativos en imágenes.
-- Los campos obligatorios se marcan visualmente con el componente `RequiredLabel`. Los mensajes de error son específicos y orientados a la acción.
-- La interfaz es **responsive**: diseño adaptativo para móvil (<768 px), tableta (768–1.024 px) y escritorio (>1.024 px).
-- La interfaz está completamente **internacionalizada** en español e inglés.
+- The interface shall comply with **WCAG 2.1 level AA** guidelines: minimum colour contrast of 4.5:1 for text, full keyboard navigation, ARIA labels on interactive elements, and alternative texts on images.
+- Mandatory fields are visually marked with a consistent indicator. Error messages are specific and action-oriented.
+- The interface is **responsive**: adaptive design for mobile, tablet and desktop screen sizes.
+- The interface is fully **internationalised** in Spanish and English.
 
-### 4.2.6 Portabilidad y despliegue
+### 4.2.6 Portability and deployment
 
-- El sistema se despliega íntegramente mediante **Docker** y **Docker Compose**. Cada componente (webapp, gateway, auth, user, planner, dos instancias MariaDB) tiene su propio `Dockerfile`.
-- Compatible con Linux (Ubuntu 20.04+) y cualquier plataforma que soporte Docker Engine.
-- Navegadores soportados: las dos últimas versiones de Chrome, Firefox, Safari y Edge.
+- **RNF-PORT-01:** The system shall be deployable without modification on any platform that supports standard containerisation technology. The build and execution environment shall be fully reproducible from a configuration file without manual dependency installation steps.
+- **RNF-PORT-02:** The system shall be accessible from the last two major versions of the main desktop browsers (Chrome, Firefox, Safari and Edge).
 
-### 4.2.7 Mantenibilidad
+### 4.2.7 Maintainability
 
-- Código TypeScript con modo `strict` habilitado en todos los servicios.
-- Linting con ESLint y formateo con Prettier configurados de forma consistente.
-- Cobertura de tests objetivo: >70% de líneas, ramas y funciones.
-- Pipeline CI/CD con GitHub Actions que ejecuta tests automáticamente antes de autorizar merges.
+- **RNF-MAINT-01:** The system's automated test suite shall achieve a minimum line and branch coverage of 70%.
+- **RNF-MAINT-02:** All changes to the main branch shall pass the automated test pipeline before being accepted.
 
 ---
 
 ## 4.3 Test Plan
 
-### 4.3.1 Estrategia general
+### 4.3.1 General strategy
 
-La estrategia de testing de TeachingPlanner se estructura en tres niveles complementarios que cubren distintas capas del sistema, desde el análisis estático hasta los flujos completos de usuario.
+The TeachingPlanner testing strategy is structured in three complementary levels covering different layers of the system, from static analysis to complete user flows.
 
-**Tabla 4.1 — Niveles de prueba**
+**Table 4.1 — Test levels**
 
-| Nivel | Tipo | Scope | Herramienta | Nº tests |
+| Level | Type | Scope | Tool | No. tests |
 |---|---|---|---|---|
-| 0 | Análisis estático de código | Todos los servicios (backend + frontend) | SonarQube | — |
-| 1 | Tests de integración | Backend — lógica de negocio con BD real | Jest 30 + Testcontainers (MariaDB 11) | 27 |
-| 2 | Tests E2E | Flujos completos de usuario a través de la interfaz | Playwright 1.58 (Chromium) | 57 |
+| 0 | Static code analysis | All services (backend + frontend) | SonarQube | — |
+| 1 | Integration tests | Backend — business logic with real DB | Jest + Testcontainers | 27 |
+| 2 | E2E tests | Complete user flows through the interface | Playwright (Chromium) | 57 |
 
-La ausencia de tests unitarios con mocks es una decisión deliberada: la lógica de negocio más crítica del sistema implica invariablemente operaciones de base de datos (restricciones de unicidad, cascadas de borrado, relaciones lazy/eager) que los mocks no reproducen fielmente. Los tests de integración con Testcontainers ejecutan contra una instancia real de MariaDB en un contenedor efímero, verificando exactamente el comportamiento que se desplegará en producción.
-
----
-
-### 4.3.2 Nivel 0 — Análisis estático (SonarQube)
-
-**Objetos de prueba:** código TypeScript de los cuatro servicios backend y el frontend.
-
-**Herramienta:** SonarQube, ejecutado manualmente mediante `sonar-scanner` con la configuración de `sonar-project.properties`.
-
-**Qué se analiza:** bugs potenciales y code smells; cobertura de código a partir de los informes LCOV generados por Jest; duplicación de código; complejidad ciclomática.
-
-**Umbrales verificados antes de merge a `main`:** nuevos issues respecto a `main` = 0; duplicación < 30%; cobertura > 70%; complejidad ciclomática < 15 por función.
+The absence of unit tests with mocks is a deliberate decision: the most critical business logic of the system invariably involves database operations (uniqueness constraints, delete cascades, lazy/eager relationships) that mocks do not faithfully reproduce. Integration tests with Testcontainers run against a real database instance in an ephemeral container, verifying exactly the behaviour that will be deployed in production.
 
 ---
 
-### 4.3.3 Nivel 1 — Tests de integración (backend)
+### 4.3.2 Level 0 — Static analysis (SonarQube)
 
-**Objetos de prueba:** capa de datos y servicios de `planner_service`, `auth_service` y `user_service`.
+**Test objects:** TypeScript code from the four backend services and the frontend.
 
-**Herramienta:** Jest 30 con soporte TypeScript (`ts-jest`) y Testcontainers (`@testcontainers/mariadb 11.2`). Cada suite arranca un contenedor MariaDB efímero, ejecuta los tests y destruye el contenedor al finalizar, garantizando aislamiento completo entre suites.
+**Tool:** SonarQube.
 
-**Categorías de verificación:**
-- Eliminación en cascada: al borrar una entidad de alto nivel (Degree, Calendar, Subject, Classroom), se eliminan transaccionalmente todas las entidades subordinadas; las entidades fuera del subárbol permanecen intactas.
-- Lógica de borrado condicional: el flag `force` en la eliminación de aulas debe respetarse.
-- Restricciones de unicidad a nivel de base de datos: campos únicos (código de aula, acrónimo de asignatura, nombre de titulación, email de usuario) deben generar una violación de constraint en MariaDB, no solo en la capa de aplicación.
-- Integridad de campos en entidades: los campos específicos del dominio (`planifiedHours`, `eventCharacter`, `dayCharacter`) se persisten correctamente.
-- Contrato de autenticación: el registro almacena un hash bcrypt (nunca texto plano); el login emite un JWT válido con credenciales correctas y lo rechaza con credenciales incorrectas; el email es único.
+**What is analysed:** potential bugs and code smells; code coverage; code duplication; cyclomatic complexity.
 
-**Total: 27 casos de prueba distribuidos en 8 ficheros de test.**
-
-**Cobertura:** Jest genera informes LCOV consumidos por SonarQube para calcular la cobertura de líneas y ramas.
+**Acceptance criteria:** no new issues introduced; coverage above the minimum target; duplication and complexity within configured thresholds.
 
 ---
 
-### 4.3.4 Nivel 2 — Tests E2E (frontend)
+### 4.3.3 Level 1 — Integration tests (backend)
 
-**Objetos de prueba:** flujos completos de usuario desde el navegador hasta la base de datos, pasando por todos los microservicios.
+**Test objects:** data layer and business logic of the backend services.
 
-**Herramienta:** Playwright 1.58 configurado sobre Chromium. Los tests se ubican en `webapp/e2e/`.
+**Tool:** Jest with Testcontainers. Each suite starts an isolated database container, runs the tests and destroys it upon completion, guaranteeing complete isolation between suites.
 
-**Aislamiento de datos:** antes de cada suite, el endpoint `POST /test/reset-database` borra en cascada los registros de 9 tablas del dominio de planificación, garantizando la idempotencia de cada test independientemente del orden de ejecución. Este endpoint solo está activo cuando `NODE_ENV=development` o `NODE_ENV=test`.
+**Verification categories:**
+- Cascade deletion: when deleting a high-level entity (Degree, Calendar, Subject, Classroom), all subordinate entities are transactionally deleted; entities outside the subtree remain intact.
+- Conditional deletion logic: the `force` flag on classroom deletion must be respected.
+- Database-level uniqueness constraints: unique fields must generate a constraint violation at the database layer, not only at the application layer.
+- Field integrity in entities: domain-specific fields are correctly persisted with their expected values and constraints.
+- Authentication contract: registration stores a hashed password (never plain text); login issues a valid authentication token with correct credentials and rejects it with incorrect credentials; email is unique.
 
-**Tabla 4.2 — Suites de tests E2E**
+**Total: 27 test cases distributed across 8 test files.**
 
-| Suite | Módulo | Aspectos verificados | Tests |
-|---|---|---|---|
-| `auth.spec.ts` | Autenticación | Renderizado del formulario; validación de campos vacíos; error en credenciales incorrectas; login exitoso y redirección; navegación autenticada; logout | 6 |
-| `classroom.spec.ts` | Aulas | Listado; creación con código único; error en código duplicado; edición (campo `code` de solo lectura); borrado sin eventos; borrado forzado con eventos; cancelación; filtro por código | 8 |
-| `course.spec.ts` | Cursos académicos | Listado; creación; error en año duplicado; edición de estado; borrado; cancelación; filtrado; validación de campos obligatorios; estado por defecto `PLANIFICADO` | 9 |
-| `degree.spec.ts` | Titulaciones | Listado; creación; error en acrónimo duplicado; edición; borrado; cancelación; filtro por nombre; validación de campos obligatorios; conversión automática a mayúsculas del acrónimo | 9 |
-| `subject.spec.ts` | Asignaturas | Listado; creación; error en acrónimo duplicado; edición; borrado; cancelación; validación de campos; nombre en mayúsculas; opciones de año (0–4); borrado múltiple | 10 |
-| `calendar.spec.ts` | Calendarios | Listado; creación con fechas y semestre; validación fecha fin < inicio; edición; borrado con advertencia de cascada; cancelación; filtro por semestre; validación de campos obligatorios | 8 |
-| `group.spec.ts` | Grupos | Listado; creación con horas planificadas; error de validación con horas a cero; edición; borrado; cancelación; validación de campos obligatorios | 7 |
-| **Total** | | | **57** |
+**Coverage:** the test runner generates coverage reports consumed by the static analysis tool to calculate line and branch coverage.
 
-**Infraestructura CI** (job `e2e-tests` del pipeline GitHub Actions):
-1. MariaDB 11 arranca como servicio Docker con credenciales de test.
-2. Se crean las dos bases de datos de test (`planner_db_test`, `management_db_test`).
-3. Los cuatro servicios backend se compilan y arrancan en background con `NODE_ENV=test`.
-4. Se siembra un usuario administrador de test mediante script.
-5. Se ejecuta `playwright test` con el reporter `html,github` generando artefactos (screenshots, vídeos, trazas) en caso de fallo.
+---
 
-**Fuera del alcance de los tests automatizados:**
-- Gestión de usuarios (creación, activación por email, recuperación de contraseña): requieren servidor SMTP real.
-- Sincronización con Google Calendar: requiere cuenta Google con OAuth configurado.
-- Tests de carga o rendimiento.
-- Accesibilidad (validación manual con herramientas WCAG).
+### 4.3.4 Level 2 — E2E tests (frontend)
 
-**Cobertura de riesgo por funcionalidad:**
+**Test objects:** complete user flows from the browser to the database, passing through all microservices.
 
-| Funcionalidad | Nivel de cobertura |
+**Tool:** Playwright configured on Chromium. Tests are located in the frontend project under a dedicated E2E directory.
+
+**Data isolation:** before each suite, a reset endpoint cascade-deletes the planning domain data, guaranteeing the idempotence of each test regardless of execution order.
+
+**Table 4.2 — E2E test suites**
+
+| Module | Aspects verified | Tests |
+|---|---|---|
+| Authentication | Form rendering; empty field validation; error on incorrect credentials; successful login and redirect; authenticated navigation; logout | 6 |
+| Classrooms | Listing; creation with unique code; error on duplicate code; editing (read-only code field); deletion without events; forced deletion with events; cancellation; filter by code | 8 |
+| Academic courses | Listing; creation; error on duplicate year; status editing; deletion; cancellation; filtering; mandatory field validation; default initial status | 9 |
+| Degrees | Listing; creation; error on duplicate acronym; editing; deletion; cancellation; filter by name; mandatory field validation; automatic uppercase conversion of acronym | 9 |
+| Subjects | Listing; creation; error on duplicate acronym; editing; deletion; cancellation; field validation; name in uppercase; year options; multiple deletion | 10 |
+| Calendars | Listing; creation with dates and semester; validation of end date before start date; editing; deletion with cascade warning; cancellation; filter by semester; mandatory field validation | 8 |
+| Groups | Listing; creation with planned hours; validation error with zero hours; editing; deletion; cancellation; mandatory field validation | 7 |
+| **Total** | | **57** |
+
+**Outside the scope of automated tests:**
+- User management (creation, email activation, password recovery): requires a real SMTP server.
+- Google Calendar synchronisation: requires a Google account with OAuth configured.
+- Load or performance tests.
+- Accessibility (manual validation with WCAG tools).
+
+**Risk coverage by functionality:**
+
+| Functionality | Coverage level |
 |---|---|
-| Autenticación (login, logout) | Alta — E2E |
-| CRUD estructura académica (titulaciones, cursos, asignaturas, grupos, aulas, calendarios) | Alta — E2E + integración |
-| Integridad referencial y restricciones de unicidad | Alta — integración |
-| Detección de conflictos de horario | Alta — integración |
-| Solicitudes de cambio | Media — integración parcial |
-| Exportación ZIP / importación `.txt` | Media — integración parcial |
-| Sincronización Google Calendar | Baja — solo manual |
-| Interfaz responsive | Baja — solo manual |
-| Accesibilidad WCAG | Baja — solo manual |
+| Authentication (login, logout) | High — E2E |
+| CRUD academic structure (degrees, courses, subjects, groups, classrooms, calendars) | High — E2E + integration |
+| Referential integrity and uniqueness constraints | High — integration |
+| Schedule conflict detection | High — integration |
+| Change requests | Medium — partial integration |
+| ZIP export / `.txt` import | Medium — partial integration |
+| Google Calendar synchronisation | Low — manual only |
+| Responsive interface | Low — manual only |
+| WCAG accessibility | Low — manual only |

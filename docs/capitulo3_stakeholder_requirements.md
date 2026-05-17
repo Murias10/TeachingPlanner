@@ -1,901 +1,909 @@
-# Capítulo 3 — STAKEHOLDER REQUIREMENTS (REQUISITOS DE USUARIO)
+# Chapter 3 — STAKEHOLDER REQUIREMENTS
 
 ---
 
 ## 3.1 System Scope
 
-### 3.1.1 Contexto y origen del proyecto
+### 3.1.1 Context and Project Origin
 
-TeachingPlanner es un proyecto encargado por la Escuela de Ingeniería Informática (EII) de la Universidad de Oviedo para sustituir el sistema de gestión de horarios académicos actualmente en uso. Se trata de un encargo real de la propia institución, motivado por las limitaciones operativas acumuladas del sistema heredado, que con el paso del tiempo han dificultado de forma creciente el trabajo del personal administrativo y docente del centro.
+TeachingPlanner is a project commissioned by the School of Computer Engineering (EII) of the University of Oviedo to replace the academic schedule management system currently in use. It is a real commission from the institution itself, motivated by the accumulated operational limitations of the legacy system, which over time have increasingly hindered the work of the administrative and teaching staff.
 
-La aplicación está actualmente desplegada en una máquina virtual de la propia universidad, accesible a través de la VPN institucional, y ha sido presentada formalmente al personal de la EII como propuesta de sustitución del sistema en producción. Este capítulo recoge los requisitos identificados durante el proceso de análisis previo al desarrollo, organizados desde la perspectiva de los usuarios y otras partes interesadas.
+The application is currently deployed on a university virtual machine, accessible via the institutional VPN, and has been formally presented to EII staff as a proposed replacement for the production system. This chapter collects the requirements identified during the analysis process prior to development, organised from the perspective of users and other stakeholders.
 
-### 3.1.2 Situación actual del sistema (AS-IS)
+### 3.1.2 Current System (AS-IS)
 
-Para entender el alcance del proyecto es necesario conocer cómo funciona actualmente la gestión de horarios en la EII. El sistema heredado consta de dos componentes independientes: un **visualizador público** desplegado en los servidores de la universidad, que permite consultar los horarios de los grupos del grado en tres formatos (lista web, tabla y CSV para Google Calendar) e incluye enlaces al sistema GIS para localizar cada aula; y un conjunto de **cinco ficheros de texto plano** por semestre que alimentan dicho visualizador, cuyo mantenimiento es enteramente manual.
+To understand the project scope it is necessary to know how schedule management currently works at the EII. The legacy system consists of two independent components: a **public viewer** deployed on the university servers, which allows querying group schedules in three formats (web list, table and CSV for Google Calendar) and includes links to the GIS system to locate each classroom; and a set of **five plain-text files** per semester that feed that viewer, whose maintenance is entirely manual.
 
-No existe ninguna interfaz web de administración. Toda la gestión de datos se realiza conectándose por SSH al puerto 22 de la máquina virtual que aloja la aplicación y editando directamente los ficheros con un editor de línea de comandos. Los cinco ficheros tienen el carácter `:` como separador de campos y cumplen las siguientes funciones:
+There is no web administration interface. All data management is done by connecting via SSH to port 22 of the virtual machine hosting the application and directly editing the files with a command-line editor. The five files use the `:` character as a field separator and serve the following purposes:
 
-- `asignaturas.txt` — catálogo de asignaturas con sus grupos por tipo (teoría, seminario, laboratorio, tutoría grupal) e idioma (español e inglés).
-- `calendario.txt` — calendario lectivo, con cada fecha etiquetada mediante un código de letra que indica el tipo de sesión que corresponde ese día.
-- `horarios.txt` — eventos periódicos, vinculando cada grupo a un día de la semana, una franja horaria y un aula.
-- `excepciones.txt` — eventos puntuales y cancelaciones.
-- `ubicaciones.txt` — asociación entre código de aula y su URL en el sistema GIS de la universidad.
+- `asignaturas.txt` — catalogue of subjects with their groups by type (theory, seminar, laboratory, group tutoring) and language (Spanish and English).
+- `calendario.txt` — academic calendar, with each date labelled with a letter code indicating the type of session for that day.
+- `horarios.txt` — recurring events, linking each group to a day of the week, a time slot and a classroom.
+- `excepciones.txt` — one-off events and cancellations.
+- `ubicaciones.txt` — mapping between classroom code and its URL in the university GIS system.
 
-> 📷 **Figura sugerida 1 — Fragmento de `horarios.txt` abierto en una sesión SSH**, ilustrando el proceso de edición manual en línea de comandos.
+> 📷 **Suggested Figure 1 — Fragment of `horarios.txt` open in an SSH session**, illustrating the manual command-line editing process.
 
-Este enfoque presenta limitaciones importantes en cuatro áreas:
+This approach has significant limitations in four areas:
 
-**Sin validación de formato ni de conflictos.** Si al editar un fichero se introduce un error de sintaxis, el sistema no lo detecta ni avisa: el dato erróneo queda registrado silenciosamente. Del mismo modo, al guardar un cambio no se comprueba si genera solapamientos con otros eventos: un aula puede quedar asignada dos veces a la misma hora sin que el sistema emita ninguna advertencia.
+**No format or conflict validation.** If a syntax error is introduced when editing a file, the system does not detect or warn about it: the erroneous data is silently recorded. Likewise, when saving a change, no check is made as to whether it creates overlaps with other events: a classroom can be assigned twice at the same time without the system issuing any warning.
 
-**Fragilidad del mecanismo de códigos-letra.** La periodicidad de los grupos no semanales depende de que el código de letra en `calendario.txt` y en `horarios.txt` sea exactamente el mismo en ambos ficheros. Una mayúscula distinta o un espacio de más hace que el grupo desaparezca silenciosamente del horario publicado sin producir ningún error visible.
+**Fragility of the letter-code mechanism.** The periodicity of non-weekly groups depends on the letter code in `calendario.txt` and `horarios.txt` being exactly the same in both files. A different capitalisation or an extra space causes the group to silently disappear from the published schedule without producing any visible error.
 
-**Proceso de solicitudes de cambio por correo electrónico.** Cuando un docente necesita modificar una clase, el canal habitual es el correo electrónico a jefatura de estudios. Este proceso puede derivar en hilos de correo largos y difíciles de gestionar, con riesgo de malentendidos y de mensajes sin respuesta. El docente no dispone de ninguna herramienta para saber de antemano si su solicitud genera un conflicto.
+**Change request process by email.** When a lecturer needs to modify a class, the usual channel is email to the head of studies. This process can result in long, difficult-to-manage email threads, with the risk of misunderstandings and unanswered messages. The lecturer has no tool to know in advance whether their request creates a conflict.
 
-**Doble mantenimiento manual y falta de interoperabilidad.** Existe otra aplicación en el ecosistema de la EII que se alimenta de los mismos calendarios de Google y de los mismos ficheros `.txt`. Cualquier cambio en los horarios debe propagarse manualmente tanto a los ficheros como al calendario de Google correspondiente, creando un proceso de doble mantenimiento propenso a desincronizaciones. Adicionalmente, el visualizador carece de diseño responsive y no funciona correctamente en dispositivos móviles.
+**Double manual maintenance and lack of interoperability.** There is another application in the EII ecosystem that is fed by the same Google Calendars and the same `.txt` files. Any change to schedules must be manually propagated both to the files and to the corresponding Google Calendar, creating a double-maintenance process prone to desynchronisation. Additionally, the viewer lacks responsive design and does not work correctly on mobile devices.
 
-> 📷 **Figura sugerida 2 — Captura del visualizador heredado en un dispositivo móvil**, mostrando la ausencia de diseño responsive.
+> 📷 **Suggested Figure 2 — Screenshot of the legacy viewer on a mobile device**, showing the absence of responsive design.
 
-### 3.1.3 Objetivos del sistema (TO-BE)
+### 3.1.3 System Objectives (TO-BE)
 
-TeachingPlanner es una aplicación web desarrollada desde cero para sustituir el sistema descrito y resolver todas las limitaciones identificadas. Los objetivos del nuevo sistema son:
+TeachingPlanner is a web application developed from scratch to replace the system described above and resolve all identified limitations. The objectives of the new system are:
 
-- Proporcionar una **interfaz web de administración** completa, accesible desde cualquier navegador y sin necesidad de conocimientos técnicos, que permita gestionar toda la información académica (titulaciones, cursos, asignaturas, grupos, aulas, calendarios y eventos) con formularios validados y retroalimentación inmediata.
-- **Detectar automáticamente conflictos de horario** antes de confirmar cualquier asignación o cambio, impidiendo que solapamientos erróneos lleguen a guardarse.
-- Incorporar un **sistema integrado de solicitudes de cambio** que reemplace el flujo basado en correo electrónico, con visibilidad del estado para docente y administrador en todo momento.
-- **Sincronizar automáticamente con Google Calendar**, generando un calendario independiente por aula, de modo que otras aplicaciones del ecosistema de la EII puedan consumir datos siempre actualizados sin intervención manual.
-- **Mantener la compatibilidad con el sistema heredado**, permitiendo importar y exportar los cinco ficheros `.txt` para facilitar la migración inicial y la coexistencia con otras herramientas que dependen de ese formato.
-- Conservar la **consulta pública de horarios sin autenticación**, equivalente a la funcionalidad del visualizador existente, y añadir la exportación a CSV compatible con Google Calendar para uso de los estudiantes.
-- Ofrecer una interfaz **responsive** que funcione correctamente en dispositivos móviles, y **completamente internacionalizada** en español e inglés.
+- Provide a complete **web administration interface**, accessible from any browser without requiring technical knowledge, that allows managing all academic information (degrees, courses, subjects, groups, classrooms, calendars and events) with validated forms and immediate feedback.
+- **Automatically detect schedule conflicts** before confirming any assignment or change, preventing erroneous overlaps from being saved.
+- Incorporate an **integrated change request system** that replaces the email-based flow, with status visibility for both lecturer and administrator at all times.
+- **Automatically synchronise with Google Calendar**, generating one independent calendar per classroom so that other applications in the EII ecosystem can consume always up-to-date data without manual intervention.
+- **Maintain compatibility with the legacy system**, allowing import and export of the five `.txt` files to facilitate the initial migration and coexistence with other tools that depend on that format.
+- Preserve **public schedule consultation without authentication**, equivalent to the functionality of the existing viewer, and add CSV export compatible with Google Calendar for student use.
+- Offer a **responsive** interface that works correctly on mobile devices, and is **fully internationalised** in Spanish and English.
 
-### 3.1.4 Partes interesadas (Stakeholders)
+### 3.1.4 Stakeholders
 
-| ID | Stakeholder | Rol en el sistema | Necesidades principales |
+| ID | Stakeholder | Role in the system | Main needs |
 |---|---|---|---|
-| STK-01 | Subdirección de Ordenación Académica (EII) | Cliente y usuario principal (administrador) | Eliminar la edición manual de ficheros; detección automática de conflictos; gestión integrada de solicitudes; trazabilidad de cambios |
-| STK-02 | Profesorado de la EII | Usuario secundario (docente) | Consultar su propio horario; solicitar cambios sin usar correo electrónico; sincronizar con Google Calendar personal |
-| STK-03 | Estudiantes y público general | Usuario de consulta | Acceder a los horarios publicados sin autenticación, desde cualquier dispositivo |
-| STK-04 | Otras aplicaciones del ecosistema EII | Sistema externo dependiente | Seguir recibiendo los cinco ficheros `.txt` y los calendarios de Google en el formato esperado, sin intervención manual |
-| STK-05 | Servicio de Informática (SUTIC) | Responsable de infraestructura | Sistema desplegable en la VM universitaria y mantenible con Docker |
-| STK-06 | Equipo de desarrollo (TFG) | Desarrollador | Requisitos claros y alcance viable en el marco del TFG |
+| STK-01 | Academic Planning Deputy Directorate (EII) | Client and main user (administrator) | Eliminate manual file editing; automatic conflict detection; integrated request management; change traceability |
+| STK-02 | EII Teaching Staff | Secondary user (lecturer) | View their own schedule; submit change requests without using email; synchronise with personal Google Calendar |
+| STK-03 | Students and general public | Read-only user | Access published schedules without authentication, from any device |
+| STK-04 | Other EII ecosystem applications | Dependent external system | Continue receiving the five `.txt` files and Google Calendars in the expected format, without manual intervention |
+| STK-05 | IT Service (SUTIC) | Infrastructure owner | System deployable on the university VM and maintainable with Docker |
+| STK-06 | Development team (Final Year Project) | Developer | Clear requirements and achievable scope within the Final Year Project framework |
 
 ---
 
 ## 3.2 User Requirements
 
-Los requisitos de usuario se organizan en grupos funcionales y se expresan en lenguaje conciso desde la perspectiva del usuario, sin entrar en detalles de implementación. Los requisitos no funcionales se recogen al final de esta sección en formato de tabla.
+User requirements are organised into functional groups and expressed in concise language from the user's perspective, without going into implementation details. Non-functional requirements are collected at the end of this section in table format.
 
-### Requisitos funcionales
+### Functional requirements
 
-**UR1 — Acceso al sistema y perfil**
+**UR1 — System access and profile**
 
-UR1.1. El sistema permitirá a los usuarios registrados iniciar sesión en la aplicación.
+**UR1.1.** The system shall allow registered users to log in to the application.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR1.1.1. El sistema solicitará los siguientes datos al usuario:
+&nbsp;&nbsp;&nbsp;&nbsp;**UR1.1.1.** The system shall request the following data from the user:
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR1.1.1.1. Correo electrónico.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR1.1.1.1.** Email address.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR1.1.1.1.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR1.1.1.1.1.** It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR1.1.1.2. Contraseña.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR1.1.1.2.** Password.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR1.1.1.2.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR1.1.1.2.1.** It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR1.1.2. Si las credenciales son correctas, el sistema redirigirá al usuario a la pantalla principal según su rol.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR1.1.2.** If the credentials are correct, the system shall redirect the user to the main screen according to their role.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR1.1.3. Si el correo electrónico no existe en el sistema o la contraseña es incorrecta, el sistema mostrará un mensaje de error genérico y el usuario no quedará autenticado.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR1.1.3.** If the email address does not exist in the system or the password is incorrect, the system shall display a generic error message and the user shall not be authenticated.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR1.1.4. Si la cuenta existe pero no ha sido activada, el sistema mostrará un mensaje indicando al usuario que debe activar su cuenta antes de poder acceder.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR1.1.4.** If the account exists but has not been activated, the system shall display a message indicating that the user must activate their account before being able to access.
 
-UR1.2. El sistema permitirá a los usuarios recuperar el acceso a su cuenta si han olvidado su contraseña. El proceso se realizará en tres pasos:
+**UR1.2.** The system shall allow users to recover access to their account if they have forgotten their password. The process shall be carried out in three steps:
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR1.2.1. Primer paso — solicitud de código de verificación:
+&nbsp;&nbsp;&nbsp;&nbsp;**UR1.2.1.** First step — request for verification code:
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR1.2.1.1. El sistema solicitará al usuario su correo electrónico.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR1.2.1.1.** The system shall request the user's email address.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR1.2.1.1.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR1.2.1.1.1.** It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR1.2.1.2. El sistema enviará un código de verificación de seis dígitos al correo indicado, con una validez de 15 minutos.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR1.2.1.2.** The system shall send a six-digit verification code to the indicated email address, valid for 15 minutes.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR1.2.1.3. El sistema no revelará si el correo electrónico está registrado o no, mostrando siempre el mismo mensaje de confirmación.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR1.2.1.3.** The system shall not reveal whether the email address is registered or not, always showing the same confirmation message.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR1.2.1.4. El sistema no permitirá solicitar un nuevo código hasta que hayan transcurrido 60 segundos desde la solicitud anterior.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR1.2.1.4.** The system shall not allow requesting a new code until 60 seconds have elapsed since the previous request.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR1.2.2. Segundo paso — verificación del código:
+&nbsp;&nbsp;&nbsp;&nbsp;**UR1.2.2.** Second step — code verification:
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR1.2.2.1. El sistema solicitará al usuario el código de seis dígitos recibido por correo.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR1.2.2.1.** The system shall request the six-digit code received by email.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR1.2.2.1.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR1.2.2.1.1.** It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR1.2.2.2. Si el código es correcto y no ha expirado, el sistema pasará al tercer paso.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR1.2.2.2.** If the code is correct and has not expired, the system shall proceed to the third step.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR1.2.2.3. Si el código ha expirado, el sistema mostrará un mensaje de error e invitará al usuario a solicitar un nuevo código.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR1.2.2.3.** If the code has expired, the system shall display an error message and invite the user to request a new code.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR1.2.2.4. Si el código es incorrecto, el sistema mostrará un mensaje de error.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR1.2.2.4.** If the code is incorrect, the system shall display an error message.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR1.2.3. Tercer paso — establecer nueva contraseña:
+&nbsp;&nbsp;&nbsp;&nbsp;**UR1.2.3.** Third step — set new password:
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR1.2.3.1. El sistema solicitará al usuario los siguientes datos:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR1.2.3.1.** The system shall request the following data from the user:
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR1.2.3.1.1. Nueva contraseña.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR1.2.3.1.1.** New password.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR1.2.3.1.1.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR1.2.3.1.1.1.** It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR1.2.3.1.1.2. Debe tener al menos 8 caracteres.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR1.2.3.1.1.2.** It must be at least 8 characters long.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR1.2.3.1.1.3. Debe contener al menos una letra mayúscula.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR1.2.3.1.1.3.** It must contain at least one uppercase letter.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR1.2.3.1.1.4. Debe contener al menos una letra minúscula.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR1.2.3.1.1.4.** It must contain at least one lowercase letter.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR1.2.3.1.1.5. Debe contener al menos un número.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR1.2.3.1.1.5.** It must contain at least one digit.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR1.2.3.1.1.6. Debe contener al menos un carácter especial.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR1.2.3.1.1.6.** It must contain at least one special character.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR1.2.3.1.2. Confirmación de la nueva contraseña.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR1.2.3.1.2.** Confirmation of the new password.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR1.2.3.1.2.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR1.2.3.1.2.1.** It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR1.2.3.1.2.2. Debe coincidir con la nueva contraseña introducida.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR1.2.3.1.2.2.** It must match the new password entered.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR1.2.3.2. Si la contraseña no cumple los requisitos de complejidad, el sistema mostrará un mensaje de error indicando qué condición no se ha satisfecho y no actualizará la contraseña.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR1.2.3.2.** If the password does not meet the complexity requirements, the system shall display an error message indicating which condition has not been satisfied and shall not update the password.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR1.2.3.3. Si las contraseñas no coinciden, el sistema mostrará un mensaje de error y no actualizará la contraseña.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR1.2.3.3.** If the passwords do not match, the system shall display an error message and shall not update the password.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR1.2.3.4. Si los datos son válidos, el sistema actualizará la contraseña y redirigirá al usuario al formulario de inicio de sesión.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR1.2.3.4.** If the data are valid, the system shall update the password and redirect the user to the login form.
 
-UR1.3. El sistema permitirá a los usuarios autenticados cerrar su sesión activa.
+**UR1.3.** The system shall allow authenticated users to close their active session.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR1.3.1. El sistema cerrará la sesión del usuario y lo redirigirá a la pantalla de inicio.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR1.3.1.** The system shall close the user's session and redirect them to the home screen.
 
-UR1.4. El sistema permitirá a los usuarios autenticados consultar y modificar los datos de su propio perfil.
+**UR1.4.** The system shall allow authenticated users to view and modify their own profile data.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR1.4.1. El usuario podrá modificar su nombre, apellidos, correo electrónico y usuario UniOvi.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR1.4.1.** The user shall be able to modify their first name, last name(s), email address and UniOvi username.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR1.4.2. El usuario podrá cambiar su contraseña introduciendo la contraseña actual y una nueva contraseña que cumpla los mismos requisitos de complejidad establecidos en UR1.2.3.1.1.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR1.4.2.** The user shall be able to change their password by entering their current password and a new password that meets the same complexity requirements as established in UR1.2.3.1.1.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR1.4.2.1. Si la contraseña actual introducida no es correcta, el sistema mostrará un mensaje de error y no realizará el cambio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR1.4.2.1.** If the current password entered is incorrect, the system shall display an error message and shall not make the change.
 
-UR1.5. Cuando el administrador crea una cuenta nueva, el usuario recibirá un correo electrónico con un enlace de activación.
+**UR1.5.** When the administrator creates a new account, the user shall receive an email with an activation link.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR1.5.1. Al acceder al enlace, el sistema solicitará al usuario que establezca su contraseña personal, cumpliendo los requisitos de complejidad indicados en UR1.2.3.1.1.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR1.5.1.** Upon accessing the link, the system shall ask the user to set their personal password, meeting the complexity requirements indicated in UR1.2.3.1.1.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR1.5.2. Si el enlace ha caducado, el sistema indicará al usuario que contacte con el administrador para que le reenvíe el correo de activación.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR1.5.2.** If the link has expired, the system shall indicate to the user that they should contact the administrator to have the activation email resent.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR1.5.3. Si los datos son válidos, el sistema activará la cuenta y redirigirá al usuario al formulario de inicio de sesión.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR1.5.3.** If the data are valid, the system shall activate the account and redirect the user to the login form.
 
-UR1.6. El sistema permitirá a los usuarios autenticados vincular su cuenta con una cuenta de Google para habilitar la sincronización de calendarios académicos con Google Calendar.
+**UR1.6.** The system shall allow authenticated users to link their account with a Google account to enable synchronisation of academic calendars with Google Calendar.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR1.6.1. El usuario será redirigido a la pantalla de consentimiento de Google, donde autorizará el acceso al sistema.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR1.6.1.** The user shall be redirected to the Google consent screen, where they will authorise access to the system.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR1.6.2. Si el usuario autoriza el acceso, el sistema vinculará la cuenta de Google y mostrará el correo electrónico de la cuenta Google vinculada como confirmación.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR1.6.2.** If the user authorises access, the system shall link the Google account and display the email address of the linked Google account as confirmation.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR1.6.3. Si el usuario deniega el acceso, el sistema mostrará un mensaje informativo y no vinculará ninguna cuenta.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR1.6.3.** If the user denies access, the system shall display an informational message and shall not link any account.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR1.6.4. El sistema permitirá al usuario desconectar su cuenta de Google. Al desconectarse, el sistema eliminará los calendarios de Google creados por ese usuario y eliminará la vinculación almacenada.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR1.6.4.** The system shall allow the user to disconnect their Google account. Upon disconnection, the system shall delete the Google Calendars created by that user and remove the stored link.
 
 ---
 
-**UR2 — Gestión de usuarios** *(solo administrador)*
+**UR2 — User management** *(administrator only)*
 
-UR2.1. El sistema permitirá al administrador registrar nuevos usuarios en el sistema.
+**UR2.1.** The system shall allow the administrator to register new users in the system.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR2.1.1. El sistema solicitará los siguientes datos al administrador:
+&nbsp;&nbsp;&nbsp;&nbsp;**UR2.1.1.** The system shall request the following data from the administrator:
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR2.1.1.1. Nombre.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR2.1.1.1.** First name.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR2.1.1.1.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR2.1.1.1.1.** It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR2.1.1.2. Primer apellido.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR2.1.1.2.** First surname.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR2.1.1.2.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR2.1.1.2.1.** It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR2.1.1.3. Segundo apellido.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR2.1.1.3.** Second surname.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR2.1.1.3.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR2.1.1.3.1.** It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR2.1.1.4. Correo electrónico.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR2.1.1.4.** Email address.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR2.1.1.4.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR2.1.1.4.1.** It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR2.1.1.4.2. El sistema comprobará que el formato del correo es válido.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR2.1.1.4.2.** The system shall check that the email format is valid.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR2.1.1.4.3. El sistema comprobará que el correo no está ya registrado en el sistema.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR2.1.1.4.3.** The system shall check that the email is not already registered in the system.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR2.1.1.5. Rol.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR2.1.1.5.** Role.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR2.1.1.5.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR2.1.1.5.1.** It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR2.1.1.5.2. El sistema permitirá elegir entre los siguientes roles: Administrador o Docente.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR2.1.1.5.2.** The system shall allow choosing between the following roles: Administrator or Lecturer.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR2.1.1.6. Usuario UniOvi.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR2.1.1.6.** UniOvi username.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR2.1.1.6.1. Es un dato opcional.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR2.1.1.6.1.** It is an optional field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR2.1.2. Si el correo electrónico ya está registrado en el sistema, el sistema mostrará un mensaje de error y no completará el registro.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR2.1.2.** If the email address is already registered in the system, the system shall display an error message and shall not complete the registration.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR2.1.3. Si el formato del correo electrónico no es válido, el sistema mostrará un mensaje de error y no completará el registro.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR2.1.3.** If the email address format is not valid, the system shall display an error message and shall not complete the registration.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR2.1.4. Si el registro es correcto, el sistema creará la cuenta con estado inactivo y enviará al nuevo usuario un correo electrónico con un enlace para activar su cuenta y establecer su contraseña.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR2.1.4.** If the registration is correct, the system shall create the account with inactive status and send the new user an email with a link to activate their account and set their password.
 
-UR2.2. El sistema permitirá al administrador importar usuarios de forma masiva desde un fichero Excel.
+**UR2.2.** The system shall allow the administrator to bulk import users from an Excel file.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR2.2.1. El sistema solicitará al administrador que cargue un fichero en formato `.xlsx`.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR2.2.1.** The system shall ask the administrator to upload a file in `.xlsx` format.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR2.2.2. El fichero deberá contener las siguientes columnas:
+&nbsp;&nbsp;&nbsp;&nbsp;**UR2.2.2.** The file must contain the following columns:
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR2.2.2.1. Usuario UniOvi. Es un dato obligatorio por fila.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR2.2.2.1.** UniOvi username. It is a mandatory field per row.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR2.2.2.2. Nombre. Es un dato obligatorio por fila.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR2.2.2.2.** First name. It is a mandatory field per row.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR2.2.2.3. Apellidos. Es un dato obligatorio por fila. El sistema dividirá internamente este campo en primer apellido y segundo apellido.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR2.2.2.3.** Surnames. It is a mandatory field per row. The system shall internally split this field into first surname and second surname.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR2.2.2.4. Correo electrónico. Es un dato obligatorio por fila. Debe ser único en el sistema.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR2.2.2.4.** Email address. It is a mandatory field per row. Must be unique in the system.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR2.2.3. El sistema validará cada fila del fichero de forma independiente.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR2.2.3.** The system shall validate each row of the file independently.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR2.2.4. El sistema creará los usuarios de las filas válidas con estado inactivo y enviará a cada uno un correo de activación.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR2.2.4.** The system shall create users from valid rows with inactive status and send each one an activation email.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR2.2.5. El sistema mostrará un informe indicando cuántos usuarios se crearon correctamente y qué filas contuvieron errores y por qué motivo.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR2.2.5.** The system shall display a report indicating how many users were created successfully and which rows contained errors and for what reason.
 
-UR2.3. El sistema permitirá al administrador consultar el listado de usuarios registrados en el sistema.
+**UR2.3.** The system shall allow the administrator to view the list of users registered in the system.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR2.3.1. El sistema mostrará para cada usuario: nombre completo, correo electrónico, rol, estado (activo o inactivo) y fecha de registro.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR2.3.1.** The system shall display for each user: full name, email address, role, status (active or inactive) and registration date.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR2.3.2. El sistema permitirá filtrar el listado por rol y por estado.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR2.3.2.** The system shall allow filtering the list by role and by status.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR2.3.3. El sistema permitirá buscar usuarios por nombre o correo electrónico.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR2.3.3.** The system shall allow searching for users by name or email address.
 
-UR2.4. El sistema permitirá al administrador modificar los datos de un usuario existente.
+**UR2.4.** The system shall allow the administrator to modify the data of an existing user.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR2.4.1. El administrador podrá modificar el nombre, los apellidos, el rol y el estado (activo o inactivo) del usuario.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR2.4.1.** The administrator shall be able to modify the user's first name, surname(s), role and status (active or inactive).
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR2.4.2. El sistema impedirá que el administrador cambie el rol o desactive al último administrador activo del sistema.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR2.4.2.** The system shall prevent the administrator from changing the role or deactivating the last active administrator in the system.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR2.4.3. El sistema impedirá que el administrador desactive su propia cuenta.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR2.4.3.** The system shall prevent the administrator from deactivating their own account.
 
-UR2.5. El sistema permitirá al administrador eliminar un usuario del sistema.
+**UR2.5.** The system shall allow the administrator to delete a user from the system.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR2.5.1. El sistema solicitará confirmación explícita antes de proceder con la eliminación.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR2.5.1.** The system shall request explicit confirmation before proceeding with the deletion.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR2.5.2. El sistema impedirá eliminar al último administrador activo del sistema.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR2.5.2.** The system shall prevent deleting the last active administrator in the system.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR2.5.3. El sistema impedirá que el administrador elimine su propia cuenta.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR2.5.3.** The system shall prevent the administrator from deleting their own account.
 
-UR2.6. El sistema permitirá al administrador reenviar el correo electrónico de activación a usuarios que hayan sido registrados pero aún no hayan activado su cuenta. El proceso de activación que seguirá el usuario al recibir el correo reenviado es idéntico al descrito en UR1.5.
+**UR2.6.** The system shall allow the administrator to resend the activation email to users who have been registered but have not yet activated their account. The activation process that the user will follow upon receiving the resent email is identical to that described in UR1.5.
 
-UR2.7. El sistema gestionará tres perfiles de acceso con niveles diferenciados:
+**UR2.7.** The system shall manage three access profiles with differentiated levels:
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR2.7.1. Administrador: acceso completo a todas las funciones de gestión del sistema.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR2.7.1.** Administrator: full access to all system management functions.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR2.7.2. Docente: acceso a la consulta de horarios y a la creación y gestión de sus propias solicitudes de cambio.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR2.7.2.** Lecturer: access to schedule consultation and to creating and managing their own change requests.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR2.7.3. Invitado (usuario no autenticado): acceso de solo lectura a los horarios de calendarios de cursos en estado Activo, sin necesidad de cuenta en el sistema.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR2.7.3.** Guest (unauthenticated user): read-only access to schedules of academic courses in Active status, without needing an account in the system.
 
 ---
 
-**UR3 — Gestión de la estructura académica** *(solo administrador)*
+**UR3 — Academic structure management** *(administrator only)*
 
-UR3.1. El sistema permitirá al administrador gestionar titulaciones.
+**UR3.1.** The system shall allow the administrator to manage degrees.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR3.1.1. El sistema permitirá crear una nueva titulación. El sistema solicitará los siguientes datos:
+&nbsp;&nbsp;&nbsp;&nbsp;**UR3.1.1.** The system shall allow creating a new degree. The system shall request the following data:
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.1.1.1. Nombre.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.1.1.1.** Name.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.1.1.1.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.1.1.1.1.** It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.1.1.1.2. El sistema comprobará que el nombre no está ya registrado en el sistema.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.1.1.1.2.** The system shall check that the name is not already registered in the system.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.1.1.2. Acrónimo.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.1.1.2.** Acronym.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.1.1.2.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.1.1.2.1.** It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.1.1.2.2. El sistema comprobará que el acrónimo no está ya registrado en el sistema.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.1.1.2.2.** The system shall check that the acronym is not already registered in the system.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.1.1.3. Si el nombre o el acrónimo ya existen, el sistema mostrará un mensaje de error específico y no completará la creación.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.1.1.3.** If the name or acronym already exist, the system shall display a specific error message and shall not complete the creation.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.1.1.4. Si los datos son válidos, el sistema creará la titulación y mostrará una confirmación.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.1.1.4.** If the data are valid, the system shall create the degree and display a confirmation.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR3.1.2. El sistema permitirá consultar el listado de titulaciones existentes.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR3.1.2.** The system shall allow viewing the list of existing degrees.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR3.1.3. El sistema permitirá modificar el nombre y el acrónimo de una titulación existente, con las mismas validaciones de unicidad que en la creación.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR3.1.3.** The system shall allow modifying the name and acronym of an existing degree, with the same uniqueness validations as in creation.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR3.1.4. El sistema permitirá eliminar una titulación.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR3.1.4.** The system shall allow deleting a degree.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.1.4.1. Si la titulación tiene cursos académicos asociados, el sistema mostrará un mensaje de error y no completará la eliminación.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.1.4.1.** If the degree has associated academic courses, the system shall display an error message and shall not complete the deletion.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.1.4.2. Si la titulación no tiene cursos asociados, el sistema solicitará confirmación y eliminará la titulación.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.1.4.2.** If the degree has no associated courses, the system shall request confirmation and delete the degree.
 
-UR3.2. El sistema permitirá al administrador gestionar cursos académicos asociados a una titulación.
+**UR3.2.** The system shall allow the administrator to manage academic courses associated with a degree.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR3.2.1. El sistema permitirá crear un nuevo curso académico. El sistema solicitará los siguientes datos:
+&nbsp;&nbsp;&nbsp;&nbsp;**UR3.2.1.** The system shall allow creating a new academic course. The system shall request the following data:
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.2.1.1. Titulación a la que pertenece el curso.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.2.1.1.** Degree to which the course belongs.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.2.1.1.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.2.1.1.1.** It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.2.1.2. Año de inicio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.2.1.2.** Start year.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.2.1.2.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.2.1.2.1.** It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.2.1.3. Año de fin.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.2.1.3.** End year.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.2.1.3.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.2.1.3.1.** It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.2.1.3.2. Debe ser posterior al año de inicio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.2.1.3.2.** It must be later than the start year.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.2.1.4. Si ya existe un curso con los mismos años en esa titulación, el sistema mostrará un mensaje de error y no completará la creación.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.2.1.4.** If a course with the same years already exists for that degree, the system shall display an error message and shall not complete the creation.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.2.1.5. Si los datos son válidos, el sistema creará el curso con estado inicial «En planificación».
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.2.1.5.** If the data are valid, the system shall create the course with the initial status «Planning».
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR3.2.2. Cada curso académico tendrá un estado que el administrador podrá modificar:
+&nbsp;&nbsp;&nbsp;&nbsp;**UR3.2.2.** Each academic course shall have a status that the administrator can modify:
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.2.2.1. En planificación.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.2.2.1.** Planning.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.2.2.2. Activo.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.2.2.2.** Active.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.2.2.3. Finalizado.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.2.2.3.** Finished.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.2.2.4. Las transiciones de estado son unidireccionales: En planificación → Activo → Finalizado. No es posible revertir un curso a un estado anterior.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.2.2.4.** Status transitions are unidirectional: Planning → Active → Finished. It is not possible to revert a course to a previous status.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR3.2.3. El sistema permitirá eliminar un curso académico.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR3.2.3.** The system shall allow deleting an academic course.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.2.3.1. Si el curso tiene calendarios con eventos asociados, el sistema mostrará un mensaje de error y no completará la eliminación.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.2.3.1.** If the course has calendars with associated events, the system shall display an error message and shall not complete the deletion.
 
-UR3.3. El sistema permitirá al administrador gestionar asignaturas asociadas a una titulación.
+**UR3.3.** The system shall allow the administrator to manage subjects associated with a degree.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR3.3.1. El sistema permitirá crear una nueva asignatura. El sistema solicitará los siguientes datos:
+&nbsp;&nbsp;&nbsp;&nbsp;**UR3.3.1.** The system shall allow creating a new subject. The system shall request the following data:
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.3.1.1. Nombre.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.3.1.1.** Name.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.3.1.1.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.3.1.1.1.** It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.3.1.1.2. Debe ser único dentro de la misma titulación.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.3.1.1.2.** Must be unique within the same degree.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.3.1.2. Acrónimo.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.3.1.2.** Acronym.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.3.1.2.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.3.1.2.1.** It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.3.1.2.2. Debe ser único dentro de la misma titulación.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.3.1.2.2.** Must be unique within the same degree.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.3.1.3. Código SIES.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.3.1.3.** SIES code.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.3.1.3.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.3.1.3.1.** It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.3.1.3.2. No será modificable una vez creada la asignatura.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.3.1.3.2.** It shall not be modifiable once the subject has been created.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.3.1.4. Titulación a la que pertenece.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.3.1.4.** Degree to which it belongs.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.3.1.4.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.3.1.4.1.** It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.3.1.5. Semestre en el que se imparte.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.3.1.5.** Semester in which it is taught.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.3.1.5.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.3.1.5.1.** It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.3.1.5.2. El sistema permitirá elegir entre el primer semestre y el segundo semestre.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.3.1.5.2.** The system shall allow choosing between the first semester and the second semester.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.3.1.6. Curso en el que se imparte.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.3.1.6.** Year in which it is taught.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.3.1.6.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.3.1.6.1.** It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.3.1.6.2. El sistema permitirá elegir entre: primero, segundo, tercero, cuarto, o sin curso específico (para asignaturas optativas o de libre elección).
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.3.1.6.2.** The system shall allow choosing between: first, second, third, fourth, or no specific year (for elective or free-choice subjects).
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR3.3.2. El sistema permitirá consultar y filtrar el listado de asignaturas por titulación, semestre y curso.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR3.3.2.** The system shall allow viewing and filtering the list of subjects by degree, semester and year.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR3.3.3. El sistema permitirá modificar todos los campos de una asignatura excepto el código SIES.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR3.3.3.** The system shall allow modifying all fields of a subject except the SIES code.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR3.3.4. El sistema permitirá eliminar una asignatura.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR3.3.4.** The system shall allow deleting a subject.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.3.4.1. El sistema mostrará un aviso indicando que la eliminación también eliminará todos los grupos asociados y los eventos de esos grupos.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.3.4.1.** The system shall display a warning indicating that the deletion will also delete all associated groups and the events of those groups.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.3.4.2. Tras la confirmación del administrador, el sistema eliminará la asignatura junto con sus grupos y eventos asociados.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.3.4.2.** After the administrator's confirmation, the system shall delete the subject along with its associated groups and events.
 
-UR3.4. El sistema permitirá al administrador gestionar grupos dentro de una asignatura.
+**UR3.4.** The system shall allow the administrator to manage groups within a subject.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR3.4.1. El sistema permitirá crear un nuevo grupo. El sistema solicitará los siguientes datos:
+&nbsp;&nbsp;&nbsp;&nbsp;**UR3.4.1.** The system shall allow creating a new group. The system shall request the following data:
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.4.1.1. Asignatura a la que pertenece.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.4.1.1.** Subject to which it belongs.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.4.1.1.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.4.1.1.1.** It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.4.1.2. Tipo de grupo.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.4.1.2.** Group type.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.4.1.2.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.4.1.2.1.** It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.4.1.2.2. El sistema permitirá elegir entre: Teoría (T), Seminario (S), Prácticas de Laboratorio (L), Tutoría Grupal (TG).
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.4.1.2.2.** The system shall allow choosing between: Theory (T), Seminar (S), Laboratory Practice (L), Group Tutoring (TG).
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.4.1.3. Idioma.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.4.1.3.** Language.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.4.1.3.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.4.1.3.1.** It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.4.1.3.2. El sistema permitirá elegir entre: Español e Inglés.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.4.1.3.2.** The system shall allow choosing between: Spanish and English.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.4.1.4. Horas planificadas.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.4.1.4.** Planned hours.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.4.1.4.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.4.1.4.1.** It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.4.1.4.2. Debe ser un número positivo múltiplo de 0,5 (por ejemplo: 0, 0.5, 1, 1.5, 6). No se aceptan valores negativos ni decimales que no sean múltiplos de 0,5.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.4.1.4.2.** It must be a positive number that is a multiple of 0.5 (e.g.: 0, 0.5, 1, 1.5, 6). Negative values and decimals that are not multiples of 0.5 are not accepted.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.4.1.5. El número de grupo es asignado automáticamente por el sistema. El sistema asignará el siguiente número disponible para la combinación de asignatura, tipo e idioma seleccionados.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.4.1.5.** The group number is automatically assigned by the system. The system shall assign the next available number for the selected combination of subject, type and language.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.4.1.6. Si el sistema no puede asignar un número único para la combinación de asignatura, tipo e idioma indicada, mostrará un mensaje de error y no completará la creación.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.4.1.6.** If the system cannot assign a unique number for the indicated combination of subject, type and language, it shall display an error message and shall not complete the creation.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR3.4.2. El sistema permitirá consultar el listado de grupos de una asignatura.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR3.4.2.** The system shall allow viewing the list of groups of a subject.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR3.4.3. El sistema permitirá modificar los datos de un grupo existente, con las mismas validaciones de unicidad que en la creación.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR3.4.3.** The system shall allow modifying the data of an existing group, with the same uniqueness validations as in creation.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR3.4.4. El sistema permitirá eliminar un grupo. El sistema solicitará confirmación antes de proceder.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR3.4.4.** The system shall allow deleting a group. The system shall request confirmation before proceeding.
 
-UR3.5. El sistema permitirá al administrador gestionar aulas.
+**UR3.5.** The system shall allow the administrator to manage classrooms.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR3.5.1. El sistema permitirá crear una nueva aula. El sistema solicitará los siguientes datos:
+&nbsp;&nbsp;&nbsp;&nbsp;**UR3.5.1.** The system shall allow creating a new classroom. The system shall request the following data:
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.5.1.1. Código del aula.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.5.1.1.** Classroom code.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.5.1.1.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.5.1.1.1.** It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.5.1.1.2. El sistema comprobará que el código no está ya registrado en el sistema.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.5.1.1.2.** The system shall check that the code is not already registered in the system.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.5.1.2. Enlace de ubicación geográfica (URL GIS).
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.5.1.2.** Geographic location link (GIS URL).
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.5.1.2.1. Es un dato opcional.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.5.1.2.1.** It is an optional field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.5.1.2.2. Si se proporciona, el sistema comprobará que el valor tiene formato de URL válido.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.5.1.2.2.** If provided, the system shall check that the value has a valid URL format.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.5.1.3. Si el código ya existe, el sistema mostrará un mensaje de error y no completará la creación.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.5.1.3.** If the code already exists, the system shall display an error message and shall not complete the creation.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR3.5.2. El sistema permitirá consultar el listado de aulas registradas.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR3.5.2.** The system shall allow viewing the list of registered classrooms.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR3.5.3. El sistema permitirá modificar el código y el enlace GIS de un aula existente.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR3.5.3.** The system shall allow modifying the code and GIS link of an existing classroom.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR3.5.4. El sistema permitirá eliminar un aula.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR3.5.4.** The system shall allow deleting a classroom.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR3.5.4.1. Si el aula tiene eventos asociados, el sistema solicitará confirmación adicional advirtiendo de que la eliminación afectará a los eventos y solicitará al administrador confirmar explícitamente.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR3.5.4.1.** If the classroom has associated events, the system shall request additional confirmation warning that the deletion of the classroom will also permanently delete all events assigned to that classroom. The administrator must explicitly confirm before proceeding.
 
 ---
 
-**UR4 — Gestión de calendarios académicos** *(solo administrador)*
+**UR4 — Academic calendar management** *(administrator only)*
 
-UR4.1. El sistema permitirá al administrador crear un calendario académico. El sistema solicitará los siguientes datos:
+**UR4.1.** The system shall allow the administrator to create an academic calendar. The system shall request the following data:
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR4.1.1. Curso académico al que pertenece el calendario.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR4.1.1.** Academic course to which the calendar belongs.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR4.1.1.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR4.1.1.1.** It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR4.1.2. Semestre.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR4.1.2.** Semester.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR4.1.2.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR4.1.2.1.** It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR4.1.2.2. El sistema permitirá elegir entre el primer semestre y el segundo semestre.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR4.1.2.2.** The system shall allow choosing between the first semester and the second semester.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR4.1.3. Fecha de inicio.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR4.1.3.** Start date.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR4.1.3.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR4.1.3.1.** It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR4.1.4. Fecha de fin.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR4.1.4.** End date.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR4.1.4.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR4.1.4.1.** It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR4.1.4.2. Debe ser posterior a la fecha de inicio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR4.1.4.2.** It must be later than the start date.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR4.1.5. Si ya existe un calendario para el mismo curso académico y semestre, el sistema mostrará un mensaje de error y no completará la creación.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR4.1.5.** If a calendar already exists for the same academic course and semester, the system shall display an error message and shall not complete the creation.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR4.1.6. Si la fecha de fin no es posterior a la fecha de inicio, el sistema mostrará un mensaje de error y no completará la creación.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR4.1.6.** If the end date is not later than the start date, the system shall display an error message and shall not complete the creation.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR4.1.7. Si los datos son válidos, el sistema creará el calendario y generará automáticamente un día lectivo por cada día laborable (de lunes a viernes) comprendido entre las fechas de inicio y fin.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR4.1.7.** If the data are valid, the system shall create the calendar and automatically generate one teaching day for each working day (Monday to Friday) between the start and end dates.
 
-UR4.2. El sistema permitirá al administrador marcar días individuales del calendario como festivos o no lectivos, y desmarcarlos para recuperar su estado lectivo.
+**UR4.2.** The system shall allow the administrator to mark individual days on the calendar as holidays or non-teaching days, and unmark them to restore their teaching status.
 
-UR4.3. El sistema permitirá al administrador consultar el listado de calendarios académicos existentes, con la posibilidad de filtrar por curso y semestre.
+**UR4.3.** The system shall allow the administrator to view the list of existing academic calendars, with the ability to filter by course and semester.
 
-UR4.4. El sistema permitirá al administrador duplicar un calendario existente para crear uno nuevo en otro curso o semestre.
+**UR4.4.** The system shall allow the administrator to duplicate an existing calendar to create a new one for another course or semester.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR4.4.1. El sistema solicitará el curso académico destino y el semestre destino.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR4.4.1.** The system shall request the target academic course and target semester.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR4.4.1.1. Son datos obligatorios.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR4.4.1.1.** These are mandatory fields.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR4.4.2. El sistema solicitará las nuevas fechas de inicio y fin.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR4.4.2.** The system shall request the new start and end dates.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR4.4.2.1. Son datos obligatorios.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR4.4.2.1.** These are mandatory fields.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR4.4.3. Si ya existe un calendario para el curso y semestre destino, el sistema mostrará un mensaje de error y no completará la duplicación.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR4.4.3.** If a calendar already exists for the target course and semester, the system shall display an error message and shall not complete the duplication.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR4.4.4. Si los datos son válidos, el sistema creará el nuevo calendario copiando la estructura de días del calendario origen (incluidos los días marcados como festivos, ajustados proporcionalmente a las nuevas fechas) y los eventos periódicos del calendario origen.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR4.4.4.** If the data are valid, the system shall create the new calendar copying the day structure from the source calendar (including days marked as holidays, proportionally adjusted to the new dates) and the recurring events from the source calendar.
 
-UR4.5. El sistema permitirá al administrador eliminar un calendario y todos sus datos asociados.
+**UR4.5.** The system shall allow the administrator to delete a calendar and all its associated data.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR4.5.1. El sistema informará al administrador del número de días y eventos que se eliminarán y solicitará confirmación explícita antes de proceder.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR4.5.1.** The system shall inform the administrator of the number of days and events that will be deleted and shall request explicit confirmation before proceeding.
 
 ---
 
-**UR5 — Gestión de eventos** *(solo administrador)*
+**UR5 — Event management** *(administrator only)*
 
-UR5.1. El sistema permitirá al administrador crear eventos periódicos (clases que se repiten con un patrón regular en el calendario). El sistema solicitará los siguientes datos:
+**UR5.1.** The system shall allow the administrator to create recurring events (classes that repeat with a regular pattern in the calendar). The system shall request the following data:
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR5.1.1. Grupo o grupos a los que afecta el evento.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR5.1.1.** Group or groups affected by the event.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR5.1.1.1. Es un dato obligatorio para todos los tipos de evento excepto Independiente. El administrador podrá seleccionar uno o varios grupos. Los eventos de tipo Independiente no requieren grupo ni asignatura asociada.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR5.1.1.1.** It is a mandatory field for all event types except Independent. The administrator can select one or more groups. Independent-type events do not require an associated group or subject.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR5.1.2. Aula o aulas asignadas al evento.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR5.1.2.** Classroom or classrooms assigned to the event.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR5.1.2.1. Es un dato opcional. El administrador podrá seleccionar una o varias aulas, o ninguna.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR5.1.2.1.** It is an optional field. The administrator can select one or more classrooms, or none.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR5.1.3. Hora de inicio.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR5.1.3.** Start time.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR5.1.3.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR5.1.3.1.** It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR5.1.4. Hora de fin.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR5.1.4.** End time.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR5.1.4.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR5.1.4.1.** It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR5.1.4.2. Debe ser posterior a la hora de inicio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR5.1.4.2.** It must be later than the start time.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR5.1.5. Día de la semana en el que se repite el evento.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR5.1.5.** Day of the week on which the event repeats.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR5.1.5.1. Es un dato obligatorio. El administrador seleccionará uno de los días: lunes, martes, miércoles, jueves o viernes.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR5.1.5.1.** It is a mandatory field. The administrator shall select one of the days: Monday, Tuesday, Wednesday, Thursday or Friday.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR5.1.6. Frecuencia de repetición.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR5.1.6.** Repetition frequency.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR5.1.6.1. Es un dato obligatorio. El sistema permitirá elegir entre los siguientes patrones:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR5.1.6.1.** It is a mandatory field. The system shall allow choosing from the following patterns:
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR5.1.6.1.1. Semanal: el evento se repite todas las semanas en el día seleccionado.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR5.1.6.1.1.** Weekly: the event repeats every week on the selected day.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR5.1.6.1.2. Quincenal — semanas pares: el evento se repite cada dos semanas, en las semanas pares del calendario.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR5.1.6.1.2.** Biweekly — even weeks: the event repeats every two weeks, in even-numbered weeks of the calendar.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR5.1.6.1.3. Quincenal — semanas impares: el evento se repite cada dos semanas, en las semanas impares del calendario.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR5.1.6.1.3.** Biweekly — odd weeks: the event repeats every two weeks, in odd-numbered weeks of the calendar.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR5.1.6.1.4. Personalizado: el administrador define un patrón de repetición propio mediante caracteres de día del calendario.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR5.1.6.1.4.** Custom: the administrator defines their own repetition pattern using calendar day characters.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR5.1.7. Tipo de evento.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR5.1.7.** Event type.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR5.1.7.1. Es un dato obligatorio. El sistema permitirá elegir entre los siguientes tipos:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR5.1.7.1.** It is a mandatory field. The system shall allow choosing from the following types:
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR5.1.7.1.1. Clase: sesión docente ordinaria. Consume las horas planificadas del grupo y se incluye en las exportaciones del calendario.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR5.1.7.1.1.** Class: ordinary teaching session. Consumes the group's planned hours and is included in calendar exports.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR5.1.7.1.2. Evaluación: examen o actividad de evaluación formal. No consume horas planificadas.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR5.1.7.1.2.** Evaluation: exam or formal assessment activity. Does not consume planned hours.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR5.1.7.1.3. Revisión: sesión de revisión de examen. No consume horas planificadas.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR5.1.7.1.3.** Review: exam review session. Does not consume planned hours.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR5.1.7.1.4. Otros: cualquier actividad que requiera reserva de aula sin consumir horas planificadas (charlas, talleres, jornadas de puertas abiertas, etc.).
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR5.1.7.1.4.** Others: any activity requiring a classroom booking without consuming planned hours (talks, workshops, open days, etc.).
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR5.1.7.1.5. Independiente: reserva de aula sin asignatura ni grupo asociado (para usos no académicos como mantenimiento o reservas externas).
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR5.1.7.1.5.** Independent: classroom booking without an associated subject or group (for non-academic uses such as maintenance or external bookings).
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR5.1.8. Si la hora de fin no es posterior a la hora de inicio, el sistema mostrará un mensaje de error y no completará la creación.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR5.1.8.** If the end time is not later than the start time, the system shall display an error message and shall not complete the creation.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR5.1.9. Antes de guardar el evento, el sistema comprobará si existe un conflicto de horario con otros eventos ya registrados:
+&nbsp;&nbsp;&nbsp;&nbsp;**UR5.1.9.** Before saving the event, the system shall check whether a schedule conflict exists with other already registered events:
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR5.1.9.1. Se considerará conflicto que un grupo seleccionado tenga otro evento en el mismo día de la semana y en una franja horaria que se solape con la del nuevo evento.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR5.1.9.1.** A conflict shall be considered to exist when a selected group has another event on the same day of the week and in a time slot that overlaps with the new event's slot.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR5.1.9.2. Se considerará conflicto que un aula seleccionada esté asignada a otro evento en el mismo día de la semana y en una franja horaria que se solape.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR5.1.9.2.** A conflict shall be considered to exist when a selected classroom is assigned to another event on the same day of the week and in an overlapping time slot.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR5.1.9.3. Si se detecta un conflicto, el sistema mostrará un mensaje de error indicando qué evento y qué recurso (grupo o aula) genera el conflicto, e impedirá guardar el evento hasta que sea resuelto.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR5.1.9.3.** If a conflict is detected, the system shall display an error message indicating which event and which resource (group or classroom) generates the conflict, and shall prevent saving the event until it is resolved.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR5.1.9.4. Si no se detecta ningún conflicto, el sistema guardará el evento.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR5.1.9.4.** If no conflict is detected, the system shall save the event.
 
-UR5.2. El sistema permitirá al administrador crear eventos puntuales (sesiones únicas en una fecha específica). El sistema solicitará los siguientes datos:
+**UR5.2.** The system shall allow the administrator to create one-off events (single sessions on a specific date). The system shall request the following data:
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR5.2.1. Fecha específica dentro del calendario.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR5.2.1.** Specific date within the calendar.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR5.2.1.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR5.2.1.1.** It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR5.2.1.2. La fecha debe pertenecer al calendario seleccionado.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR5.2.1.2.** The date must belong to the selected calendar.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR5.2.2. Grupo o grupos a los que afecta el evento.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR5.2.2.** Group or groups affected by the event.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR5.2.2.1. Es un dato obligatorio para todos los tipos de evento excepto Independiente, que no requiere grupo ni asignatura asociada.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR5.2.2.1.** It is a mandatory field for all event types except Independent, which does not require an associated group or subject.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR5.2.3. Aula o aulas asignadas.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR5.2.3.** Classroom or classrooms assigned.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR5.2.3.1. Es un dato opcional.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR5.2.3.1.** It is an optional field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR5.2.4. Hora de inicio.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR5.2.4.** Start time.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR5.2.4.1. Es un dato obligatorio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR5.2.4.1.** It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR5.2.5. Hora de fin.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR5.2.5.** End time.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR5.2.5.1. Es un dato obligatorio. Debe ser posterior a la hora de inicio.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR5.2.5.1.** It is a mandatory field. It must be later than the start time.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR5.2.6. Tipo de evento.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR5.2.6.** Event type.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR5.2.6.1. Es un dato obligatorio, con las mismas opciones que en UR5.1.7.1.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR5.2.6.1.** It is a mandatory field, with the same options as in UR5.1.7.1.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR5.2.7. Si el día seleccionado está marcado como festivo, el sistema mostrará una advertencia al administrador; la creación podrá continuar si el administrador confirma.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR5.2.7.** If the selected day is marked as a holiday, the system shall display a warning to the administrator; the creation can continue if the administrator confirms.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR5.2.8. El sistema aplicará la misma detección de conflictos que en UR5.1.9, pero para la fecha y franja horaria específicas del evento puntual.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR5.2.8.** The system shall apply the same conflict detection as in UR5.1.9, but for the specific date and time slot of the one-off event.
 
-UR5.3. El sistema permitirá al administrador modificar un evento existente, con las mismas validaciones de conflicto aplicadas a los nuevos datos.
+**UR5.3.** The system shall allow the administrator to modify an existing event.
 
-UR5.4. El sistema permitirá al administrador cancelar un evento puntual.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR5.3.1.** For recurring events, the modifiable fields are: groups, classrooms, start time, end time, day of the week, repetition frequency and event type.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR5.4.1. El sistema marcará el evento como cancelado, sin eliminarlo del sistema.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR5.3.2.** For one-off events, the modifiable fields are: groups, classrooms, start time, end time and event type.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR5.4.2. Los eventos cancelados permanecerán visibles en el calendario con una indicación visual diferenciada.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR5.3.3.** The system shall apply the same conflict detection as in UR5.1.9 or UR5.2.8 to the new data before saving the change.
 
-UR5.5. El sistema permitirá al administrador eliminar eventos.
+**UR5.4.** The system shall allow the administrator to cancel a one-off event.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR5.5.1. Para eventos periódicos, el administrador podrá eliminar una ocurrencia concreta o toda la serie. El sistema solicitará confirmación antes de proceder en ambos casos.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR5.4.1.** The system shall mark the event as cancelled, without deleting it from the system.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR5.5.2. Para eventos puntuales no cancelados, el administrador podrá eliminarlos permanentemente.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR5.4.2.** Cancelled events shall remain visible on the calendar with a differentiated visual indication.
 
-UR5.6. El sistema permitirá al administrador revertir la cancelación de un evento puntual que haya sido previamente cancelado, restaurándolo a su estado activo original.
+**UR5.5.** The system shall allow the administrator to delete events.
+
+&nbsp;&nbsp;&nbsp;&nbsp;**UR5.5.1.** For recurring events, the administrator shall be able to delete a specific occurrence or the entire series. The system shall request confirmation before proceeding in both cases.
+
+&nbsp;&nbsp;&nbsp;&nbsp;**UR5.5.2.** For non-cancelled one-off events, the administrator shall be able to permanently delete them.
+
+**UR5.6.** The system shall allow the administrator to revert the cancellation of a one-off event that was previously cancelled, restoring it to its original active state.
 
 ---
 
-**UR6 — Consulta de horarios** *(todos los usuarios, incluido público sin autenticación)*
+**UR6 — Schedule consultation** *(all users, including unauthenticated public)*
 
-UR6.1. El sistema permitirá a cualquier persona consultar los horarios académicos publicados sin necesidad de autenticarse.
+**UR6.1.** The system shall allow any person to view published academic schedules without needing to authenticate.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR6.1.1. Los usuarios no autenticados solo podrán acceder a los calendarios de cursos académicos en estado Activo.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR6.1.1.** Unauthenticated users shall only be able to access calendars of academic courses in Active status.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR6.1.2. Los usuarios autenticados podrán acceder a los calendarios de cursos en cualquier estado.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR6.1.2.** Authenticated users shall be able to access calendars of courses in any status.
 
-UR6.2. El sistema permitirá seleccionar el calendario a consultar a partir de la titulación, el curso académico y el semestre.
+**UR6.2.** The system shall allow selecting the calendar to view based on degree, academic course and semester.
 
-UR6.3. El sistema mostrará los eventos del calendario seleccionado en una vista de tipo calendario. El sistema ofrecerá las siguientes vistas:
+**UR6.3.** The system shall display the events of the selected calendar in a calendar view. The system shall offer the following views:
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR6.3.1. Vista de semana completa.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR6.3.1.** Full week view.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR6.3.2. Vista de semana laboral (lunes a viernes).
+&nbsp;&nbsp;&nbsp;&nbsp;**UR6.3.2.** Work week view (Monday to Friday).
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR6.3.3. Vista de día.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR6.3.3.** Day view.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR6.3.4. Vista de mes.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR6.3.4.** Month view.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR6.3.5. Vista de agenda.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR6.3.5.** Agenda view.
 
-UR6.4. El sistema permitirá filtrar los eventos visibles en el calendario según los siguientes criterios:
+**UR6.4.** The system shall allow filtering the visible events on the calendar according to the following criteria:
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR6.4.1. Curso del grupo (primero, segundo, tercero, cuarto u optativa).
+&nbsp;&nbsp;&nbsp;&nbsp;**UR6.4.1.** Group year (first, second, third, fourth or elective).
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR6.4.2. Asignatura.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR6.4.2.** Subject.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR6.4.3. Tipo de grupo.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR6.4.3.** Group type.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR6.4.4. Grupo concreto.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR6.4.4.** Specific group.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR6.4.5. Aula.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR6.4.5.** Classroom.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR6.4.6. Idioma.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR6.4.6.** Language.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR6.4.7. Tipo de evento (clase, evaluación, revisión, otros, cancelado).
+&nbsp;&nbsp;&nbsp;&nbsp;**UR6.4.7.** Event type (class, evaluation, review, others, cancelled).
 
-UR6.5. Al seleccionar un evento en el calendario, el sistema mostrará sus detalles: asignatura, grupo, tipo de evento, aula, horario y comentarios si los hubiera.
+**UR6.5.** When selecting an event on the calendar, the system shall display its details: subject, group, event type, classroom, schedule and comments if any.
 
-UR6.6. Los eventos cancelados y los eventos de solicitudes pendientes de revisión se mostrarán visualmente diferenciados del resto de eventos activos.
+**UR6.6.** Cancelled events and events from requests pending review shall be visually differentiated from other active events.
 
-UR6.7. La interfaz de consulta de horarios funcionará correctamente en dispositivos móviles.
+**UR6.7.** The schedule consultation interface shall work correctly on mobile devices.
 
-UR6.8. El sistema guardará automáticamente las selecciones de filtros del calendario en el navegador del usuario, de modo que se mantengan entre sesiones sin necesidad de reconfigurarlos.
-
----
-
-**UR7 — Solicitudes de cambio** *(docente crea; administrador gestiona)*
-
-UR7.1. El sistema permitirá al docente crear solicitudes de cambio sobre los eventos del calendario, sin necesidad de usar el correo electrónico. El docente podrá abrir el formulario de solicitud mediante el botón de la barra de herramientas del calendario o haciendo clic y arrastrando sobre una franja horaria vacía para prerellenar automáticamente la fecha y el horario. El sistema ofrecerá los siguientes tipos de solicitud:
-
-&nbsp;&nbsp;&nbsp;&nbsp;UR7.1.1. Solicitud de creación de un nuevo evento: el docente proporcionará los datos del evento que desea crear, con los mismos campos que en la creación directa de un evento (UR5.1 o UR5.2).
-
-&nbsp;&nbsp;&nbsp;&nbsp;UR7.1.2. Solicitud de edición de un evento existente: el docente seleccionará el evento original y proporcionará los datos modificados propuestos.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR7.1.2.1. La selección del evento original es un dato obligatorio.
-
-&nbsp;&nbsp;&nbsp;&nbsp;UR7.1.3. Solicitud de cancelación de una ocurrencia de un evento existente: el docente seleccionará el evento original y la fecha concreta de la ocurrencia que desea cancelar.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR7.1.3.1. La selección del evento original y de la fecha de la ocurrencia son datos obligatorios.
-
-&nbsp;&nbsp;&nbsp;&nbsp;UR7.1.4. Solicitud de sustitución de una ocurrencia: el docente seleccionará el evento original, la ocurrencia a cancelar, y proporcionará los datos del nuevo evento que debe sustituirla.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR7.1.4.1. La selección del evento original y la ocurrencia son datos obligatorios.
-
-&nbsp;&nbsp;&nbsp;&nbsp;UR7.1.5. En todos los tipos de solicitud, el sistema indicará al docente si los datos propuestos generan un conflicto de horario con el estado actual del calendario antes de enviar la solicitud. Esta información es orientativa; el docente podrá enviar la solicitud igualmente.
-
-&nbsp;&nbsp;&nbsp;&nbsp;UR7.1.6. Al enviar la solicitud, el sistema notificará a los administradores por correo electrónico.
-
-UR7.2. El sistema permitirá al docente consultar el listado de sus propias solicitudes y ver el estado actualizado y los comentarios del revisor en cada una de ellas. El listado implementará paginación y permitirá filtrar por estado (pendiente, aprobada, rechazada, todas).
-
-UR7.3. El sistema permitirá al docente eliminar sus propias solicitudes que estén pendientes de revisión.
-
-&nbsp;&nbsp;&nbsp;&nbsp;UR7.3.1. Si la solicitud ya ha sido revisada (aprobada o rechazada), el sistema mostrará un mensaje de error y no permitirá eliminarla.
-
-UR7.4. El sistema permitirá al administrador consultar el listado de todas las solicitudes recibidas.
-
-&nbsp;&nbsp;&nbsp;&nbsp;UR7.4.1. El sistema permitirá filtrar las solicitudes por estado: pendiente, aprobada o rechazada.
-
-&nbsp;&nbsp;&nbsp;&nbsp;UR7.4.2. Las solicitudes pendientes de revisión se mostrarán con una indicación visual diferenciada.
-
-UR7.5. El sistema permitirá al administrador aprobar una solicitud pendiente.
-
-&nbsp;&nbsp;&nbsp;&nbsp;UR7.5.1. El sistema mostrará al administrador si los datos de la solicitud generan conflictos con el estado actual del calendario.
-
-&nbsp;&nbsp;&nbsp;&nbsp;UR7.5.2. Antes de confirmar la aprobación, el administrador podrá ajustar la frecuencia, las fechas y las horas del evento propuesto. Los campos de asignatura, grupo y aula son de solo lectura y no podrán modificarse.
-
-&nbsp;&nbsp;&nbsp;&nbsp;UR7.5.3. Si el administrador aprueba la solicitud, el sistema ejecutará automáticamente la acción correspondiente al tipo de solicitud (crear, editar, cancelar o sustituir el evento) con los datos definitivos tras el posible ajuste.
-
-&nbsp;&nbsp;&nbsp;&nbsp;UR7.5.4. El sistema notificará al docente por correo electrónico indicando que su solicitud ha sido aprobada.
-
-UR7.6. El sistema permitirá al administrador rechazar una solicitud pendiente.
-
-&nbsp;&nbsp;&nbsp;&nbsp;UR7.6.1. El sistema permitirá al administrador introducir el motivo del rechazo.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR7.6.1.1. Es un dato recomendado. Si se omite, el docente recibirá la notificación de rechazo sin justificación detallada.
-
-&nbsp;&nbsp;&nbsp;&nbsp;UR7.6.2. El sistema notificará al docente por correo electrónico indicando que su solicitud ha sido rechazada y el motivo proporcionado por el administrador, si lo hubiera.
+**UR6.8.** The system shall automatically save calendar filter selections in the user's browser, so that they are maintained between sessions without needing to reconfigure them.
 
 ---
 
-**UR8 — Sincronización con Google Calendar** *(solo administrador)*
+**UR7 — Change requests** *(lecturer creates; administrator manages)*
 
-UR8.1. El sistema permitirá al administrador sincronizar un calendario académico completo con Google Calendar.
+**UR7.1.** The system shall allow the lecturer to create change requests about calendar events, without needing to use email. The lecturer can open the request form using the button in the calendar toolbar or by clicking and dragging over an empty time slot to automatically pre-fill the date and time. The system shall offer the following request types:
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR8.1.1. El administrador seleccionará el calendario académico que desea sincronizar.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR7.1.1.** Request to create a new event: the lecturer shall provide the data for the event they wish to create, with the same fields as in direct event creation (UR5.1 or UR5.2).
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR8.1.2. El sistema creará un calendario de Google independiente por cada aula que tenga eventos en el calendario académico seleccionado. El nombre de cada calendario de Google será el código del aula correspondiente.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR7.1.2.** Request to edit an existing event: the lecturer shall select the original event and provide the proposed modified data.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR8.1.3. El sistema publicará los eventos del calendario académico en el calendario de Google del aula correspondiente.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR7.1.2.1.** Selection of the original event is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR8.1.4. El sistema mostrará al administrador el progreso de la sincronización en tiempo real, indicando cuántos calendarios de aula se han procesado sobre el total.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR7.1.3.** Request to cancel an occurrence of an existing event: the lecturer shall select the original event and the specific date of the occurrence they wish to cancel.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR8.1.5. Al finalizar, el sistema indicará si la sincronización ha concluido correctamente o si se ha producido algún error, con un mensaje de diagnóstico en caso de fallo.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR7.1.3.1.** Selection of the original event and of the occurrence date are mandatory fields.
 
-UR8.2. El sistema garantizará que, al ejecutar una sincronización, el estado de los calendarios de Google quede completamente alineado con el estado actual del sistema, eliminando y recreando los eventos desde cero.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR7.1.4.** Request to replace an occurrence: the lecturer shall select the original event, the occurrence to cancel, and provide the data for the new event to replace it.
 
-UR8.3. El sistema permitirá al administrador consultar el estado de sincronización de cada calendario académico: pendiente de sincronizar, en proceso, sincronizado correctamente o con error.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR7.1.4.1.** Selection of the original event and the occurrence are mandatory fields.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR8.3.1. El sistema permitirá filtrar la lista de calendarios por titulación.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR7.1.5.** For all request types, the system shall inform the lecturer whether the proposed data generates a schedule conflict with the current state of the calendar before sending the request. This information is advisory; the lecturer may send the request regardless.
 
-UR8.4. El sistema permitirá al administrador eliminar la sincronización de un calendario académico concreto.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR7.1.6.** Upon sending the request, the system shall notify the administrators by email.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR8.4.1. El sistema solicitará confirmación antes de proceder.
+**UR7.2.** The system shall allow the lecturer to view the list of their own requests and see the updated status and reviewer comments on each. The list shall implement pagination and allow filtering by status (pending, approved, rejected, all).
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR8.4.2. El sistema eliminará los eventos de ese calendario académico en los calendarios de Google de las aulas afectadas. Si algún calendario de Google queda vacío, el sistema lo eliminará también.
+**UR7.3.** The system shall allow the lecturer to delete their own requests that are pending review.
 
----
+&nbsp;&nbsp;&nbsp;&nbsp;**UR7.3.1.** If the request has already been reviewed (approved or rejected), the system shall display an error message and shall not allow it to be deleted.
 
-**UR9 — Interoperabilidad con el sistema heredado**
+**UR7.4.** The system shall allow the administrator to view the list of all requests received in the system.
 
-UR9.1. El sistema permitirá al administrador exportar un calendario académico completo en el formato del sistema heredado.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR7.4.1.** The system shall allow filtering requests by status (pending, approved or rejected), by degree and by calendar.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR9.1.1. El sistema generará un archivo comprimido en formato ZIP que contendrá los cinco ficheros `.txt` del sistema anterior: `ubicaciones.txt`, `asignaturas.txt`, `calendario.txt`, `horarios.txt` y `excepciones.txt`.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR7.4.2.** Requests pending review shall be shown with a differentiated visual indication.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR9.1.2. La exportación incluirá únicamente los eventos de tipo Clase; los eventos de tipo Evaluación, Revisión, Otros e Independiente no se incluirán.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR7.4.3.** The list shall implement pagination.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR9.1.3. El archivo se descargará automáticamente en el navegador del administrador.
+**UR7.5.** The system shall allow the administrator to approve a pending request.
 
-UR9.2. El sistema permitirá a cualquier usuario descargar el calendario de un semestre en formato de texto nativo de la aplicación (ficheros `.txt`).
+&nbsp;&nbsp;&nbsp;&nbsp;**UR7.5.1.** The system shall show the administrator whether the request data generates conflicts with the current state of the calendar.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR9.2.1. Esta exportación estará disponible desde la vista del calendario de semestre.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR7.5.2.** Before confirming the approval, the administrator shall be able to adjust the frequency, dates and times of the proposed event. The subject, group and classroom fields are read-only and cannot be modified.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR9.2.2. La descarga generará los ficheros `.txt` con el contenido actualmente visible en el calendario.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR7.5.3.** If the administrator approves the request, the system shall automatically execute the corresponding action for the request type (create, edit, cancel or replace the event) with the definitive data after any possible adjustment.
 
-UR9.3. El sistema permitirá al administrador crear un nuevo calendario académico a partir de los cinco ficheros `.txt` del sistema heredado, para facilitar la migración inicial sin necesidad de introducir los datos manualmente.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR7.5.4.** The system shall notify the lecturer by email indicating that their request has been approved.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR9.3.1. El administrador cargará los ficheros `.txt` del sistema anterior (se requieren: `asignaturas.txt`, `calendario.txt`, `horarios.txt`, `ubicaciones.txt`; el fichero `excepciones.txt` es opcional).
+**UR7.6.** The system shall allow the administrator to reject a pending request.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR9.3.2. Tras la confirmación del administrador, el sistema creará un nuevo calendario académico con todas las entidades (asignaturas, grupos, aulas, días lectivos y eventos) extraídas de los ficheros.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR7.6.1.** The system shall allow the administrator to enter the reason for rejection.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR9.3.3. El sistema mostrará un informe con los datos importados correctamente y los errores encontrados.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR7.6.1.1.** It is a recommended field. If omitted, the lecturer shall receive the rejection notification without a detailed justification.
 
-UR9.4. El sistema permitirá al administrador cargar excepciones sobre un calendario existente desde un fichero `.txt`.
-
-&nbsp;&nbsp;&nbsp;&nbsp;UR9.4.1. El administrador deberá seleccionar obligatoriamente uno de los dos modos de importación antes de confirmar:
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR9.4.1.1. Agregar: las excepciones del fichero se añaden a las ya existentes en el calendario.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR9.4.1.2. Reemplazar: las excepciones existentes en el calendario son sustituidas completamente por las del fichero.
-
-&nbsp;&nbsp;&nbsp;&nbsp;UR9.4.2. El sistema no iniciará la importación hasta que el administrador haya seleccionado explícitamente uno de los dos modos.
-
-UR9.5. El sistema permitirá exportar el horario de un calendario en formato CSV compatible con Google Calendar, para que los usuarios puedan importarlo en su aplicación de calendario personal.
-
-&nbsp;&nbsp;&nbsp;&nbsp;UR9.5.1. Esta exportación estará disponible desde la vista del calendario de semestre para cualquier usuario.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR7.6.2.** The system shall notify the lecturer by email indicating that their request has been rejected and the reason provided by the administrator, if any.
 
 ---
 
-**UR10 — Auditoría y trazabilidad**
+**UR8 — Google Calendar synchronisation** *(administrator only)*
 
-UR10.1. El sistema registrará automáticamente información de auditoría en todas las entidades gestionadas.
+**UR8.1.** The system shall allow the administrator to synchronise a complete academic calendar with Google Calendar.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR10.1.1. Para cada entidad, el sistema almacenará los siguientes datos de forma automática:
+&nbsp;&nbsp;&nbsp;&nbsp;**UR8.1.1.** The administrator shall select the academic calendar to synchronise.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR10.1.1.1. Usuario que creó el registro.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR8.1.2.** The system shall create one independent Google Calendar per classroom that has events in the selected academic calendar. The name of each Google Calendar shall be the corresponding classroom code.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR10.1.1.2. Fecha y hora de creación.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR8.1.3.** The system shall publish the events of the academic calendar in the Google Calendar of the corresponding classroom.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR10.1.1.3. Usuario que realizó la última modificación.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR8.1.4.** The system shall show the administrator the synchronisation progress in real time, indicating how many classroom calendars have been processed out of the total.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;UR10.1.1.4. Fecha y hora de la última modificación.
+&nbsp;&nbsp;&nbsp;&nbsp;**UR8.1.5.** Upon completion, the system shall indicate whether the synchronisation has finished successfully or whether an error occurred, with a diagnostic message in case of failure.
 
-&nbsp;&nbsp;&nbsp;&nbsp;UR10.1.2. Este registro se realizará de forma automática en cada operación de creación o modificación, sin necesidad de ninguna acción adicional por parte del usuario.
+**UR8.2.** The system shall guarantee that, when running a synchronisation, the state of the Google Calendars is completely aligned with the current state of the system, deleting and recreating events from scratch.
+
+**UR8.3.** The system shall allow the administrator to check the synchronisation status of each academic calendar: pending synchronisation, in progress, successfully synchronised or with error.
+
+&nbsp;&nbsp;&nbsp;&nbsp;**UR8.3.1.** The system shall allow filtering the calendar list by degree.
+
+**UR8.4.** The system shall allow the administrator to delete the synchronisation of a specific academic calendar.
+
+&nbsp;&nbsp;&nbsp;&nbsp;**UR8.4.1.** The system shall request confirmation before proceeding.
+
+&nbsp;&nbsp;&nbsp;&nbsp;**UR8.4.2.** The system shall delete the events of that academic calendar from the Google Calendars of the affected classrooms. If any Google Calendar becomes empty, the system shall delete it as well.
 
 ---
 
-### Requisitos no funcionales
+**UR9 — Interoperability with the legacy system**
 
-| ID | Atributo | Descripción |
+**UR9.1.** The system shall allow the administrator to export a complete academic calendar in the legacy system's format.
+
+&nbsp;&nbsp;&nbsp;&nbsp;**UR9.1.1.** The system shall generate a compressed file in ZIP format containing the five `.txt` files of the previous system: `ubicaciones.txt`, `asignaturas.txt`, `calendario.txt`, `horarios.txt` and `excepciones.txt`.
+
+&nbsp;&nbsp;&nbsp;&nbsp;**UR9.1.2.** The export shall include only events of type Class; events of type Evaluation, Review, Others and Independent shall not be included.
+
+&nbsp;&nbsp;&nbsp;&nbsp;**UR9.1.3.** The file shall automatically download in the administrator's browser.
+
+**UR9.2.** The system shall allow any user to download the schedule of a semester in the application's native text format (`.txt` files).
+
+&nbsp;&nbsp;&nbsp;&nbsp;**UR9.2.1.** This export shall be available from the semester calendar view.
+
+&nbsp;&nbsp;&nbsp;&nbsp;**UR9.2.2.** The download shall generate the `.txt` files with the content currently visible on the calendar.
+
+**UR9.3.** The system shall allow the administrator to create a new academic calendar from the five `.txt` files of the legacy system, to facilitate the initial migration without needing to enter data manually.
+
+&nbsp;&nbsp;&nbsp;&nbsp;**UR9.3.1.** The administrator shall upload the `.txt` files of the previous system (required: `asignaturas.txt`, `calendario.txt`, `horarios.txt`, `ubicaciones.txt`; the `excepciones.txt` file is optional).
+
+&nbsp;&nbsp;&nbsp;&nbsp;**UR9.3.2.** After the administrator's confirmation, the system shall create a new academic calendar with all entities (subjects, groups, classrooms, teaching days and events) extracted from the files.
+
+&nbsp;&nbsp;&nbsp;&nbsp;**UR9.3.3.** The system shall display a report with the successfully imported data and the errors found.
+
+**UR9.4.** The system shall allow the administrator to load exceptions onto an existing calendar from a `.txt` file.
+
+&nbsp;&nbsp;&nbsp;&nbsp;**UR9.4.1.** The administrator must mandatorily select one of two import modes before confirming:
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR9.4.1.1.** Add: the exceptions from the file are added to those already existing in the calendar.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR9.4.1.2.** Replace: the existing exceptions in the calendar are completely replaced by those from the file.
+
+&nbsp;&nbsp;&nbsp;&nbsp;**UR9.4.2.** The system shall not start the import until the administrator has explicitly selected one of the two modes.
+
+**UR9.5.** The system shall allow exporting the schedule of a calendar in CSV format compatible with Google Calendar, so that users can import it into their personal calendar application.
+
+&nbsp;&nbsp;&nbsp;&nbsp;**UR9.5.1.** This export shall be available from the semester calendar view for any user.
+
+---
+
+**UR10 — Audit and traceability**
+
+**UR10.1.** The system shall automatically record audit information on all managed entities.
+
+&nbsp;&nbsp;&nbsp;&nbsp;**UR10.1.1.** For each entity, the system shall automatically store the following data:
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR10.1.1.1.** User who created the record.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR10.1.1.2.** Creation date and time.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR10.1.1.3.** User who made the last modification.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**UR10.1.1.4.** Date and time of the last modification.
+
+&nbsp;&nbsp;&nbsp;&nbsp;**UR10.1.2.** This record shall be made automatically in each creation or modification operation, without requiring any additional action from the user.
+
+---
+
+### Non-functional requirements
+
+| ID | Attribute | Description |
 |---|---|---|
-| RNF-01 | Disponibilidad | El sistema estará operativo 24/7 y accesible desde cualquier navegador moderno. |
-| RNF-02 | Rendimiento | Las operaciones habituales (consultas, creación de entidades) responderán en menos de 2 segundos en condiciones normales de uso. |
-| RNF-03 | Portabilidad | El sistema será desplegable en la infraestructura de la universidad mediante contenedores Docker, sin dependencias específicas del sistema operativo subyacente. |
-| RNF-04 | Privacidad | El sistema cumplirá con el Reglamento General de Protección de Datos (RGPD) en el tratamiento de datos personales de los usuarios. |
-| RNF-05 | Usabilidad | La interfaz será accesible para los perfiles de administrador y docente sin formación técnica previa. Los campos obligatorios estarán claramente indicados y los errores se describirán de forma comprensible. |
-| RNF-06 | Accesibilidad | La interfaz cumplirá con las pautas WCAG 2.1 nivel AA. |
-| RNF-07 | Internacionalización | La interfaz estará disponible en español e inglés. |
-| RNF-08 | Compatibilidad | La interfaz funcionará correctamente en las dos últimas versiones de Chrome, Firefox, Safari y Edge. |
-| RNF-09 | Responsive | La interfaz se adaptará a dispositivos móviles, tabletas y escritorio. |
-| RNF-10 | Seguridad | Toda la comunicación se cifrará mediante HTTPS. Las contraseñas se almacenarán cifradas y nunca se transmitirán en texto plano. |
-| RNF-11 | Escalabilidad | El sistema soportará al menos 200 usuarios concurrentes sin degradación perceptible del rendimiento. |
-| RNF-12 | Mantenibilidad | El sistema dispondrá de una suite de pruebas automáticas que valide las funcionalidades principales antes de cada despliegue. |
+| RNF-01 | Availability | The system shall be operational 24/7 and accessible from any modern browser. |
+| RNF-02 | Performance | Routine operations (queries, entity creation) shall respond in less than 2 seconds under normal usage conditions. |
+| RNF-03 | Portability | The system shall be deployable on the university infrastructure using Docker containers, without dependencies on the underlying operating system. |
+| RNF-04 | Privacy | The system shall comply with the General Data Protection Regulation (GDPR) in the processing of users' personal data. |
+| RNF-05 | Usability | The interface shall be accessible to administrator and lecturer profiles without prior technical training. Mandatory fields shall be clearly indicated and errors shall be described in an understandable way. |
+| RNF-06 | Accessibility | The interface shall comply with WCAG 2.1 level AA guidelines. |
+| RNF-07 | Internationalisation | The interface shall be available in Spanish and English. |
+| RNF-08 | Compatibility | The interface shall work correctly in the last two versions of Chrome, Firefox, Safari and Edge. |
+| RNF-09 | Responsive | The interface shall adapt to mobile devices, tablets and desktop. |
+| RNF-10 | Security | All communication shall be encrypted using HTTPS. Passwords shall be stored encrypted and shall never be transmitted in plain text. |
+| RNF-11 | Scalability | The system shall support at least 200 concurrent users without noticeable performance degradation. |
+| RNF-12 | Maintainability | The system shall have an automated test suite that validates the main functionalities before each deployment. |
 
 ---
 
 ## 3.3 Alternatives
 
-En esta sección se describen las decisiones en las que existía libertad de elección entre alternativas funcionales o técnicas, detallando los pros y contras de cada opción y la justificación de la alternativa seleccionada.
+This section describes the decisions where there was freedom of choice between functional or technical alternatives, detailing the pros and cons of each option and the justification for the selected alternative.
 
-### 3.3.1 Sistema de autenticación
+### 3.3.1 Authentication system
 
-El sistema requiere gestionar la identidad de los usuarios que acceden a las funciones de administración y docencia. Se evaluaron tres alternativas:
+The system requires managing the identity of users who access the administration and teaching functions. Three alternatives were evaluated:
 
-**Opción A — Sistema de autenticación propio** (email + contraseña con activación por correo): proporciona control total sobre el proceso de acceso y no introduce dependencias externas para la función crítica de login. Requiere gestionar el ciclo de vida completo de las credenciales: almacenamiento seguro de contraseñas, mecanismo de recuperación y tokens de activación. Introduce responsabilidad directa sobre la seguridad de las credenciales de los usuarios.
+**Option A — Custom authentication system** (email + password with email activation): provides full control over the access process and introduces no external dependencies for the critical login function. Requires managing the complete credential lifecycle: secure password storage, recovery mechanism and activation tokens. Introduces direct responsibility for the security of users' credentials.
 
-**Opción B — SSO institucional de la Universidad de Oviedo** (Microsoft/Azure AD): elimina la gestión de contraseñas, delega la seguridad en el proveedor institucional e integra de forma natural a todo el personal universitario. Es la opción con mejor relación seguridad/coste de mantenimiento. **No estaba disponible** para integración por aplicaciones externas en el momento del desarrollo, pendiente de configuración por parte del SUTIC.
+**Option B — University of Oviedo institutional SSO** (Microsoft/Azure AD): eliminates password management, delegates security to the institutional provider and naturally integrates all university staff. It is the option with the best security/maintenance cost ratio. **It was not available** for integration by external applications at the time of development, pending configuration by SUTIC.
 
-**Opción C — Google OAuth como único mecanismo de autenticación**: elimina igualmente la gestión de contraseñas y delega la seguridad en Google. Introduce dependencia de un servicio externo para el acceso a la función más crítica del sistema.
+**Option C — Google OAuth as the sole authentication mechanism**: equally eliminates password management and delegates security to Google. Introduces dependency on an external service for access to the most critical function of the system.
 
-**Opción elegida: Opción A**, por descarte. La opción B, que habría sido la más adecuada desde el punto de vista de seguridad, no estaba disponible en el momento del desarrollo. La opción C introduce una dependencia externa inaceptable para el control de acceso. Se reconoce esta decisión como una **limitación conocida del sistema**: al gestionar contraseñas propias se asumen riesgos que un sistema de autenticación delegado evitaría. La integración con el SSO institucional queda documentada como trabajo futuro.
+**Chosen option: Option A**, by elimination. Option B, which would have been the most appropriate from a security standpoint, was not available at the time of development. Option C introduces an unacceptable external dependency for access control. This decision is acknowledged as a **known system limitation**: by managing its own passwords the system assumes risks that a delegated authentication system would avoid. Integration with the institutional SSO is documented as future work.
 
-*Nota:* Google OAuth sí se utiliza en el sistema, pero únicamente para habilitar la sincronización de calendarios con Google Calendar (UR1.6), no como mecanismo de login.
-
----
-
-### 3.3.2 Tipo de aplicación web
-
-Se evaluó qué modelo de aplicación web se ajustaba mejor a las necesidades del sistema:
-
-**Opción A — SPA (Single Page Application) con backend API independiente**: la interfaz se carga una vez y las interacciones posteriores se realizan mediante llamadas a la API sin recargar la página. El backend y el frontend son componentes independientes que evolucionan de forma autónoma. Toda la funcionalidad requiere JavaScript activo en el navegador.
-
-**Opción B — Aplicación con renderizado en servidor (SSR)** (por ejemplo, Next.js): el servidor genera el HTML de cada página antes de enviarla al cliente, lo que mejora el tiempo de primera carga y el posicionamiento en buscadores. Sin beneficio real en este contexto, dado que todas las rutas de gestión requieren autenticación previa y la consulta pública de horarios no necesita indexación por buscadores.
-
-**Opción C — Aplicación monolítica tradicional**: menor complejidad inicial al no separar frontend y backend. Dificulta el escalado independiente de los diferentes componentes del sistema.
-
-**Opción elegida: Opción A.** El SSR no aporta valor para este sistema ya que todas las rutas de gestión están protegidas por autenticación. La SPA permite una interfaz más reactiva, especialmente en la vista de calendario con múltiples filtros interactivos. La separación frontend/backend facilita además el desarrollo y mantenimiento independiente de cada parte.
+*Note:* Google OAuth is used in the system, but only to enable calendar synchronisation with Google Calendar (UR1.6), not as a login mechanism.
 
 ---
 
-### 3.3.3 Modelo de sincronización con Google Calendar
+### 3.3.2 Type of web application
 
-La integración con Google Calendar requería decidir cuándo y cómo propagar los cambios del sistema hacia los calendarios de Google:
+The most suitable web application model for the system's needs was evaluated:
 
-**Opción A — Sincronización incremental** (propagar cada cambio individual en tiempo real):
-- *Pro:* el calendario de Google refleja siempre el estado más actualizado del sistema.
-- *Contra:* la cuota de la API de Google Calendar es compartida a nivel de proyecto de Google Cloud (no por usuario). El volumen de cambios durante la planificación semestral —cientos de creaciones, modificaciones y cancelaciones de eventos— agotaría la cuota disponible en cuestión de horas.
+**Option A — SPA (Single Page Application) with independent API backend**: the interface is loaded once and subsequent interactions are made via API calls without reloading the page. The backend and frontend are independent components that evolve autonomously. All functionality requires JavaScript active in the browser.
 
-**Opción B — Sincronización completa bajo demanda** (el administrador lanza la sincronización manualmente; el sistema borra y recrea todos los eventos desde el estado actual):
-- *Pro:* garantiza consistencia total entre el sistema y Google Calendar con un único lanzamiento, eliminando cualquier desincronización acumulada. El consumo de cuota es predecible y acotado.
-- *Contra:* los cambios no se reflejan en Google Calendar hasta que el administrador lanza explícitamente la sincronización.
+**Option B — Server-side rendering (SSR) application** (e.g. Next.js): the server generates the HTML of each page before sending it to the client, improving the first load time and search engine positioning. No real benefit in this context, given that all management routes require prior authentication and the public schedule consultation does not need search engine indexing.
 
-**Opción elegida: Opción B.** La cuota de la API de Google Calendar (400 operaciones por minuto a nivel de proyecto) hace inviable la sincronización incremental para un calendario con cientos de eventos en periodos de planificación intensiva. El patrón de uso real —cambios en bloque al inicio de semestre— se adapta bien a una sincronización completa bajo demanda. Además, otra aplicación del ecosistema de la EII consume directamente estos calendarios de Google, por lo que la consistencia total en el momento de la sincronización es más importante que la propagación inmediata de cada cambio individual.
+**Option C — Traditional monolithic application**: lower initial complexity by not separating frontend and backend. Makes independent scaling of the different system components more difficult.
+
+**Chosen option: Option A.** SSR adds no value for this system since all management routes are protected by authentication. The SPA allows a more reactive interface, especially in the calendar view with multiple interactive filters. The frontend/backend separation also facilitates independent development and maintenance of each part.
 
 ---
 
-### 3.3.4 Acceso público a los horarios
+### 3.3.3 Google Calendar synchronisation model
 
-Se evaluó si la consulta de horarios debía estar disponible para cualquier persona o restringida a usuarios autenticados:
+Google Calendar integration required deciding when and how to propagate changes from the system to Google Calendars:
 
-**Opción A — Acceso público sin autenticación** (como el visualizador heredado): cualquier persona puede consultar los horarios sin necesidad de registrarse.
+**Option A — Incremental synchronisation** (propagate each individual change in real time):
+- *Pro:* the Google Calendar always reflects the most up-to-date state of the system.
+- *Con:* the Google Calendar API quota is shared at the Google Cloud project level (not per user). The volume of changes during semester planning — hundreds of event creations, modifications and cancellations — would exhaust the available quota within hours.
 
-**Opción B — Acceso restringido a usuarios autenticados**: solo el personal con cuenta en el sistema puede consultar los horarios.
+**Option B — Full on-demand synchronisation** (the administrator manually triggers synchronisation; the system deletes and recreates all events from the current state):
+- *Pro:* guarantees complete consistency between the system and Google Calendar with a single run, eliminating any accumulated desynchronisation. Quota consumption is predictable and bounded.
+- *Con:* changes are not reflected in Google Calendar until the administrator explicitly triggers the synchronisation.
 
-**Opción elegida: Opción A.** El sistema sustituye a una herramienta de consulta pública existente utilizada por estudiantes y público general. Exigir autenticación para ver los horarios representaría una regresión funcional sin justificación. El acceso público es un requisito no negociable dictado por el contexto de uso.
+**Chosen option: Option B.** The Google Calendar API quota (400 operations per minute at project level) makes incremental synchronisation unviable for a calendar with hundreds of events during intensive planning periods. The actual usage pattern — bulk changes at the beginning of the semester — is well suited to full on-demand synchronisation. Furthermore, another application in the EII ecosystem directly consumes these Google Calendars, so complete consistency at the time of synchronisation is more important than the immediate propagation of each individual change.
 
 ---
 
-### 3.3.5 Alcance de la sincronización de Google Calendar por rol
+### 3.3.4 Public access to schedules
 
-Se evaluó qué roles de usuario podían gestionar la sincronización con Google Calendar:
+Whether schedule consultation should be available to anyone or restricted to authenticated users was evaluated:
 
-**Opción A — Sincronización disponible para todos los usuarios autenticados** (docentes y administradores): cualquier usuario con cuenta puede conectar su Google y sincronizar calendarios.
+**Option A — Public access without authentication** (as the legacy viewer): anyone can view schedules without needing to register.
 
-**Opción B — Sincronización restringida al rol administrador**: solo los administradores pueden gestionar la sincronización de los calendarios de aulas con Google.
+**Option B — Access restricted to authenticated users**: only staff with an account in the system can view schedules.
 
-**Opción elegida: Opción B.** La cuota de la API de Google Calendar se consume a nivel de proyecto de Google Cloud, no por usuario individual. Si múltiples docentes pudieran sincronizar sus propias copias del calendario, el consumo de cuota sería proporcional al número de usuarios activos, haciendo la funcionalidad inviable a escala. Centralizar la sincronización en el rol administrador permite un control estricto del consumo de cuota y garantiza que los calendarios de Google que consume otra aplicación del ecosistema de la EII sean siempre gestionados por personal autorizado.
+**Chosen option: Option A.** The system replaces an existing public consultation tool used by students and the general public. Requiring authentication to view schedules would represent a functional regression without justification. Public access is a non-negotiable requirement dictated by the usage context.
+
+---
+
+### 3.3.5 Scope of Google Calendar synchronisation by role
+
+Which user roles could manage Google Calendar synchronisation was evaluated:
+
+**Option A — Synchronisation available to all authenticated users** (lecturers and administrators): any user with an account can connect their Google account and synchronise calendars.
+
+**Option B — Synchronisation restricted to the administrator role**: only administrators can manage the synchronisation of classroom calendars with Google.
+
+**Chosen option: Option B.** The Google Calendar API quota is consumed at the Google Cloud project level, not per individual user. If multiple lecturers could synchronise their own copies of the calendar, quota consumption would be proportional to the number of active users, making the functionality unviable at scale. Centralising synchronisation in the administrator role allows strict control of quota consumption and guarantees that the Google Calendars consumed by another EII ecosystem application are always managed by authorised staff.

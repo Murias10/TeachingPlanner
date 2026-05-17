@@ -44,19 +44,19 @@ export class User {
 
   // Google OAuth fields
   @Column('text', { name: 'GOOGLE_ACCESS_TOKEN', nullable: true })
-  googleAccessToken?: string;
+  googleAccessToken?: string | null;
 
   @Column('text', { name: 'GOOGLE_REFRESH_TOKEN', nullable: true })
-  googleRefreshToken?: string;
+  googleRefreshToken?: string | null;
 
   @Column('varchar', { length: 255, name: 'GOOGLE_ID', nullable: true })
-  googleId?: string;
+  googleId?: string | null;
 
   @Column('varchar', { length: 255, name: 'GOOGLE_EMAIL', nullable: true })
-  googleEmail?: string;
+  googleEmail?: string | null;
 
   @Column('datetime', { name: 'GOOGLE_TOKEN_EXPIRY', nullable: true })
-  googleTokenExpiry?: Date;
+  googleTokenExpiry?: Date | null;
 
   @Column('boolean', { name: 'GOOGLE_CALENDAR_SYNC_ENABLED', default: false })
   googleCalendarSyncEnabled!: boolean;

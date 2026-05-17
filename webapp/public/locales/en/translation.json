@@ -1699,8 +1699,11 @@
             "syncing": "Syncing",
             "success": "Success",
             "error": "Error",
-            "deleting": "Deleting"
+            "deleting": "Deleting",
+            "pendingRetry": "Retrying"
         },
+        "retryInfo": "Automatic retry in ~{{minutes}} min (attempt {{attempt}}/{{maxAttempts}})",
+        "retryImminent": "Retrying in less than 1 minute...",
         "card": {
             "title": "Academic Calendars",
             "description": "Enable or disable synchronization of academic calendars with Google Calendar"
@@ -1745,7 +1748,8 @@
             "serverError": "Temporary Google Calendar error ({{status}}). Try again in a few minutes.",
             "networkError": "Network error connecting to Google Calendar. Check your internet connection.",
             "partialFailure": "{{created}} calendars created successfully. {{failed}} failed: {{classrooms}}. Please try again.",
-            "unknown": "Unexpected Google Calendar error (code {{status}}). Please try again."
+            "unknown": "Unexpected Google Calendar error (code {{status}}). Please try again.",
+            "SYNC_INTERRUPTED": "Sync was interrupted. Please try again."
         }
     },
     "myRequests": {

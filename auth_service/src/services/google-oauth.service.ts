@@ -186,11 +186,11 @@ export class GoogleOAuthService {
                 }
             }
 
-            user.googleAccessToken = undefined;
-            user.googleRefreshToken = undefined;
-            user.googleId = undefined;
-            user.googleEmail = undefined;
-            user.googleTokenExpiry = undefined;
+            user.googleAccessToken = null;
+            user.googleRefreshToken = null;
+            user.googleId = null;
+            user.googleEmail = null;
+            user.googleTokenExpiry = null;
             user.googleCalendarSyncEnabled = false;
             user.googleDisconnecting = false;
 

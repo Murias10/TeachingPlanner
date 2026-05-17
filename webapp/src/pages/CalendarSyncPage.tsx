@@ -43,6 +43,12 @@ const DEFAULT_QUOTA = {
 
 const GOOGLE_ERROR_PREFIX = 'errorCode:';
 
+function calcMinutesUntil(isoDate?: string): number {
+    if (!isoDate) return 15;
+    const diffMs = new Date(isoDate).getTime() - Date.now();
+    return Math.max(1, Math.ceil(diffMs / 60_000));
+}
+
 /**
  * Maps a structured backend error token (errorCode:<CODE>[:<JSON>]) to a translated string.
  * Falls back to displaying the raw message for legacy non-structured errors.
@@ -148,11 +154,12 @@ const CalendarSyncPage = () => {
 
     const getSyncStatusBadge = (status: string) => {
         const statusMap: Record<string, { label: string; variant: "secondary" | "default" | "destructive" }> = {
-            [SyncStatus.IDLE]:     { label: t("calendarSync.status.idle"),     variant: 'secondary' },
-            [SyncStatus.SYNCING]:  { label: t("calendarSync.status.syncing"),  variant: 'default' },
-            [SyncStatus.SUCCESS]:  { label: t("calendarSync.status.success"),  variant: 'default' },
-            [SyncStatus.ERROR]:    { label: t("calendarSync.status.error"),    variant: 'destructive' },
-            [SyncStatus.DELETING]: { label: t("calendarSync.status.deleting"), variant: 'secondary' },
+            [SyncStatus.IDLE]:          { label: t("calendarSync.status.idle"),          variant: 'secondary' },
+            [SyncStatus.SYNCING]:       { label: t("calendarSync.status.syncing"),       variant: 'default' },
+            [SyncStatus.SUCCESS]:       { label: t("calendarSync.status.success"),       variant: 'default' },
+            [SyncStatus.ERROR]:         { label: t("calendarSync.status.error"),         variant: 'destructive' },
+            [SyncStatus.DELETING]:      { label: t("calendarSync.status.deleting"),      variant: 'secondary' },
+            [SyncStatus.PENDING_RETRY]: { label: t("calendarSync.status.pendingRetry"),  variant: 'secondary' },
         };
 
         const config = statusMap[status] ?? { label: status, variant: 'secondary' as const };
@@ -336,7 +343,22 @@ const CalendarSyncPage = () => {
                                                 <TableCell>
                                                     <div className="flex flex-col gap-2">
                                                         {getSyncStatusBadge(sync.syncStatus)}
-                                                        {sync.errorMessage && (
+                                                        {sync.syncStatus === SyncStatus.PENDING_RETRY && (() => {
+                                                            const minutes = calcMinutesUntil(sync.nextRetryAt);
+                                                            return (
+                                                                <span className="text-xs text-muted-foreground">
+                                                                    {minutes <= 1
+                                                                        ? t("calendarSync.retryImminent")
+                                                                        : t("calendarSync.retryInfo", {
+                                                                            attempt: sync.retryCount ?? 1,
+                                                                            maxAttempts: 5,
+                                                                            minutes
+                                                                        })
+                                                                    }
+                                                                </span>
+                                                            );
+                                                        })()}
+                                                        {sync.errorMessage && sync.syncStatus !== SyncStatus.PENDING_RETRY && (
                                                             <span className="text-xs text-destructive">
                                                                 {parseErrorMessage(sync.errorMessage)}
                                                             </span>
@@ -360,9 +382,9 @@ const CalendarSyncPage = () => {
                                                                     variant="outline"
                                                                     size="icon"
                                                                     onClick={() => handleSyncNow(sync.id)}
-                                                                    disabled={isLoading || sync.syncStatus === SyncStatus.SYNCING || sync.syncStatus === SyncStatus.DELETING}
+                                                                    disabled={isLoading || sync.syncStatus === SyncStatus.SYNCING || sync.syncStatus === SyncStatus.DELETING || sync.syncStatus === SyncStatus.PENDING_RETRY}
                                                                 >
-                                                                    {sync.syncStatus === SyncStatus.SYNCING ? (
+                                                                    {(sync.syncStatus === SyncStatus.SYNCING || sync.syncStatus === SyncStatus.PENDING_RETRY) ? (
                                                                         <Spinner />
                                                                     ) : (
                                                                         <RefreshCw className="h-4 w-4" />
@@ -380,7 +402,7 @@ const CalendarSyncPage = () => {
                                                                         variant="outline"
                                                                         size="icon"
                                                                         onClick={() => setSyncToDelete({ id: sync.id, degreeName: sync.degreeName, courseName: sync.courseName, semester: semesterLabels[sync.semester] ?? sync.semester })}
-                                                                        disabled={isLoading || sync.syncStatus === SyncStatus.SYNCING || sync.syncStatus === SyncStatus.DELETING}
+                                                                        disabled={isLoading || sync.syncStatus === SyncStatus.SYNCING || sync.syncStatus === SyncStatus.DELETING || sync.syncStatus === SyncStatus.PENDING_RETRY}
                                                                     >
                                                                         {sync.syncStatus === SyncStatus.DELETING ? (
                                                                             <Spinner />

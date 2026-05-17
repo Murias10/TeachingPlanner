@@ -73,6 +73,19 @@ function buildGoogleErrorCode(status: number, body: string): string {
 }
 
 /**
+ * Returns true for error codes that are transient and worth retrying automatically.
+ * Token errors and unknown errors are not retryable — they require user action.
+ */
+function isRetryableErrorCode(errorToken: string): boolean {
+    return (
+        errorToken.includes('GOOGLE_QUOTA_EXCEEDED') ||
+        errorToken.includes('GOOGLE_RATE_LIMIT') ||
+        errorToken.includes('GOOGLE_SERVER_ERROR') ||
+        errorToken.includes('GOOGLE_NETWORK_ERROR')
+    );
+}
+
+/**
  * Service for synchronizing academic calendars with Google Calendar
  * New architecture:
  * - One Google Calendar per classroom (created on Google connect)
@@ -92,6 +105,16 @@ export class GoogleCalendarService {
     // (distinct from the general request quota). Empirically ~1 per 5s is safe.
     private static readonly CALENDAR_CREATION_DELAY_MS = 5000;
     private static readonly QUOTA_KEY = 'google_calendar';
+
+    // Retry backoff schedule for quota-exceeded errors: 15m, 15m, 30m, 30m, 30m (~2h total)
+    private static readonly RETRY_DELAYS_MS = [
+        15 * 60 * 1000,
+        15 * 60 * 1000,
+        30 * 60 * 1000,
+        30 * 60 * 1000,
+        30 * 60 * 1000,
+    ] as const;
+    private static readonly MAX_RETRIES = 5;
 
     // In-memory cache — loaded from DB on startup via initQuotaCounters()
     private static requestCount = 0;
@@ -521,21 +544,27 @@ export class GoogleCalendarService {
 
             console.log(`[SYNC] User already has ${existingGoogleCals.length} Google Calendars`);
 
-            // Create Google Calendars for missing classrooms (on-demand)
+            // Create Google Calendars for missing classrooms (on-demand).
+            // On a retry run, restrict to the IDs that previously failed to avoid duplicates.
             const classroomRepo = AppDataSource.getRepository(Classroom);
-            const classroomsToCreate = Array.from(neededClassrooms).filter(id => !classroomToGoogleCal[id]);
+            const pendingIds: string[] | null = sync.pendingClassroomIds
+                ? (JSON.parse(sync.pendingClassroomIds) as string[])
+                : null;
+            const classroomsToCreate = pendingIds
+                ?? Array.from(neededClassrooms).filter(id => !classroomToGoogleCal[id]);
 
             if (classroomsToCreate.length > 0) {
                 console.log(`[SYNC] Need to create ${classroomsToCreate.length} new Google Calendars`);
 
-                // Update progress
                 sync.totalCalendars = classroomsToCreate.length;
                 sync.processedCalendars = 0;
                 sync.currentOperation = `Creando ${classroomsToCreate.length} calendarios nuevos...`;
                 await syncRepo.save(sync);
 
                 let createdCount = 0;
-                const failedClassrooms: string[] = [];
+                // Store both ID (for retry) and code (for user-facing messages)
+                const failedClassroomIds: string[] = [];
+                const failedClassroomCodes: string[] = [];
                 let lastErrorCode = '';
 
                 for (const classroomId of classroomsToCreate) {
@@ -560,26 +589,42 @@ export class GoogleCalendarService {
                     } catch (err: unknown) {
                         const errorCode = err instanceof Error ? err.message : String(err);
                         lastErrorCode = errorCode;
-                        failedClassrooms.push(classroom.code);
+                        failedClassroomIds.push(classroomId);
+                        failedClassroomCodes.push(classroom.code);
                         console.error(`[SYNC] Failed to create Google Calendar for classroom ${classroom.code}:`, errorCode);
 
-                        // A token error will affect every subsequent call — abort early
                         if (errorCode.includes('GOOGLE_TOKEN_EXPIRED')) {
                             throw new Error(`${GOOGLE_ERROR_PREFIX}GOOGLE_TOKEN_EXPIRED`);
                         }
                     }
                 }
 
-                const successCount = createdCount - failedClassrooms.length;
-                console.log(`[SYNC] Created ${successCount} new Google Calendars (${failedClassrooms.length} failed)`);
+                const successCount = createdCount - failedClassroomIds.length;
+                console.log(`[SYNC] Created ${successCount} new Google Calendars (${failedClassroomIds.length} failed)`);
 
-                if (failedClassrooms.length > 0) {
+                if (failedClassroomIds.length > 0) {
+                    if (isRetryableErrorCode(lastErrorCode) && sync.retryCount < GoogleCalendarService.MAX_RETRIES) {
+                        const delayMs = GoogleCalendarService.RETRY_DELAYS_MS[sync.retryCount] ?? GoogleCalendarService.RETRY_DELAYS_MS[GoogleCalendarService.RETRY_DELAYS_MS.length - 1];
+                        const retryIn = Math.round(delayMs / 60_000);
+                        sync.syncStatus = SyncStatus.PENDING_RETRY;
+                        sync.pendingClassroomIds = JSON.stringify(failedClassroomIds);
+                        sync.nextRetryAt = new Date(Date.now() + delayMs);
+                        sync.retryCount = sync.retryCount + 1;
+                        sync.errorMessage = undefined;
+                        sync.currentOperation = `Esperando cuota de Google (intento ${sync.retryCount}/${GoogleCalendarService.MAX_RETRIES}). Reintentando en ${retryIn} min...`;
+                        sync.totalCalendars = undefined;
+                        sync.processedCalendars = undefined;
+                        await syncRepo.save(sync);
+                        console.log(`[SYNC] Scheduled retry ${sync.retryCount}/${GoogleCalendarService.MAX_RETRIES} for sync ${syncId} in ${retryIn} min`);
+                        return { success: true, message: 'pending_retry' };
+                    }
+
+                    // Non-retryable error or retries exhausted — fall through to throw
                     const params = JSON.stringify({
                         created: successCount,
-                        failed: failedClassrooms.length,
-                        classrooms: failedClassrooms.join(', ')
+                        failed: failedClassroomIds.length,
+                        classrooms: failedClassroomCodes.join(', ')
                     });
-                    // Propagate the root cause if it's a known structured code, otherwise use partialFailure
                     const isStructuredError = lastErrorCode.startsWith(GOOGLE_ERROR_PREFIX);
                     if (successCount === 0 && isStructuredError) {
                         throw new Error(lastErrorCode);
@@ -589,6 +634,11 @@ export class GoogleCalendarService {
             } else {
                 console.log(`[SYNC] All needed Google Calendars already exist`);
             }
+
+            // Clear retry state now that all calendars are in place
+            sync.pendingClassroomIds = undefined;
+            sync.retryCount = 0;
+            sync.nextRetryAt = undefined;
 
             // 4. Distribute events to classroom Google Calendars using batch insert
             const eventsByCalendar: Record<string, any[]> = {};
@@ -692,6 +742,18 @@ export class GoogleCalendarService {
 
         console.log(`[DELETE ALL USER SYNCS] Starting cleanup for user ${userId}`);
         console.log(`[DELETE ALL USER SYNCS] Access token provided: ${!!accessToken}`);
+
+        // Diagnostic: log all distinct userIds present in both tables
+        const syncUserIds = await syncRepo
+            .createQueryBuilder('sync')
+            .select('DISTINCT sync.userId', 'userId')
+            .getRawMany<{ userId: string }>();
+        const gcalUserIds = await googleCalendarRepo
+            .createQueryBuilder('gcal')
+            .select('DISTINCT gcal.userId', 'userId')
+            .getRawMany<{ userId: string }>();
+        console.log(`[DELETE ALL USER SYNCS] UserIds in CALENDAR_SYNCS:`, syncUserIds.map(r => r.userId));
+        console.log(`[DELETE ALL USER SYNCS] UserIds in GOOGLE_CLASSROOM_CALENDARS:`, gcalUserIds.map(r => r.userId));
 
         let deletedGoogleCalendars = 0;
 
@@ -800,47 +862,6 @@ export class GoogleCalendarService {
         } catch (error) {
             console.error(`Error deleting Google Calendar ${googleCalendarId}:`, error);
             return false;
-        }
-    }
-
-    /**
-     * Insert or update an event in Google Calendar
-     */
-    private static async upsertGoogleEvent(
-        accessToken: string,
-        googleCalendarId: string,
-        event: GoogleCalendarEvent,
-        existingEventId?: string
-    ): Promise<string | null> {
-        try {
-            const url = existingEventId
-                ? `${this.GOOGLE_CALENDAR_API}/calendars/${encodeURIComponent(googleCalendarId)}/events/${encodeURIComponent(existingEventId)}`
-                : `${this.GOOGLE_CALENDAR_API}/calendars/${encodeURIComponent(googleCalendarId)}/events`;
-
-            const method = existingEventId ? 'PUT' : 'POST';
-
-            console.log('Upserting event to Google Calendar:', JSON.stringify(event, null, 2));
-
-            const response = await fetch(url, {
-                method,
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(event)
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Failed to upsert Google event:', errorText);
-                return null;
-            }
-
-            const result = await response.json();
-            return result.id;
-        } catch (error) {
-            console.error('Error upserting Google event:', error);
-            return null;
         }
     }
 
@@ -1040,5 +1061,73 @@ export class GoogleCalendarService {
             }
             // colorId removed - events will inherit the calendar's color
         };
+    }
+
+    /**
+     * Called at server startup to reset any syncs that were left in SYNCING state
+     * due to a crash or unexpected restart, preventing them from being stuck forever.
+     */
+    static async recoverStuckSyncs(): Promise<void> {
+        const syncRepo = AppDataSource.getRepository(CalendarSync);
+        const stuck = await syncRepo.find({ where: { syncStatus: SyncStatus.SYNCING } });
+        if (stuck.length === 0) return;
+
+        for (const sync of stuck) {
+            sync.syncStatus = SyncStatus.ERROR;
+            sync.errorMessage = `${GOOGLE_ERROR_PREFIX}SYNC_INTERRUPTED`;
+            sync.currentOperation = undefined;
+            sync.totalCalendars = undefined;
+            sync.processedCalendars = undefined;
+            await syncRepo.save(sync);
+        }
+        console.log(`[CRASH RECOVERY] Reset ${stuck.length} stuck sync(s) to ERROR`);
+    }
+
+    /**
+     * Periodic job: retries calendar creation for syncs in PENDING_RETRY state
+     * whose nextRetryAt has elapsed. Called every 60s from index.ts.
+     */
+    static async processPendingRetries(): Promise<void> {
+        const syncRepo = AppDataSource.getRepository(CalendarSync);
+        const authServiceUrl = process.env.AUTH_SERVICE_URL || 'http://auth_service:5003';
+
+        const due = await syncRepo
+            .createQueryBuilder('sync')
+            .where('sync.syncStatus = :status', { status: SyncStatus.PENDING_RETRY })
+            .andWhere('sync.nextRetryAt <= :now', { now: new Date() })
+            .getMany();
+
+        if (due.length === 0) return;
+
+        console.log(`[RETRY JOB] Processing ${due.length} pending retry(s)`);
+
+        for (const sync of due) {
+            let accessToken: string | undefined;
+            try {
+                const tokenRes = await fetch(`${authServiceUrl}/auth/google/token/${sync.userId}`, {
+                    headers: { 'X-Internal-Service': 'planner_service' }
+                });
+                if (tokenRes.ok) {
+                    const tokenData = await tokenRes.json() as { success: boolean; data?: { accessToken?: string } };
+                    accessToken = tokenData.success ? tokenData.data?.accessToken : undefined;
+                }
+            } catch (err) {
+                console.error(`[RETRY JOB] Failed to fetch access token for user ${sync.userId}:`, err);
+            }
+
+            if (!accessToken) {
+                sync.syncStatus = SyncStatus.ERROR;
+                sync.errorMessage = `${GOOGLE_ERROR_PREFIX}GOOGLE_TOKEN_EXPIRED`;
+                sync.currentOperation = undefined;
+                sync.pendingClassroomIds = undefined;
+                sync.nextRetryAt = undefined;
+                await syncRepo.save(sync);
+                console.log(`[RETRY JOB] No access token for sync ${sync.id} — marked as ERROR`);
+                continue;
+            }
+
+            console.log(`[RETRY JOB] Retrying sync ${sync.id} (attempt ${sync.retryCount}/${this.MAX_RETRIES})`);
+            await this.syncCalendarToGoogle(sync.id, accessToken);
+        }
     }
 }

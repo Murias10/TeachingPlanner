@@ -9,6 +9,7 @@ export enum SyncStatus {
     SUCCESS = 'SUCCESS',
     ERROR = 'ERROR',
     DELETING = 'DELETING',
+    PENDING_RETRY = 'PENDING_RETRY',
 }
 
 export interface CalendarSync {
@@ -25,11 +26,13 @@ export interface CalendarSync {
     totalCalendars?: number;
     processedCalendars?: number;
     currentOperation?: string;
+    nextRetryAt?: string;
+    retryCount?: number;
 }
 
 export const CALENDAR_SYNCS_QUERY_KEY = ['calendarSyncs'] as const;
 
-const ACTIVE_STATUSES = new Set<SyncStatus>([SyncStatus.SYNCING, SyncStatus.DELETING]);
+const ACTIVE_STATUSES = new Set<SyncStatus>([SyncStatus.SYNCING, SyncStatus.DELETING, SyncStatus.PENDING_RETRY]);
 
 export const useCalendarSync = () => {
     const queryClient = useQueryClient();
@@ -105,8 +108,10 @@ export const useCalendarSync = () => {
                 headers: getAuthHeaders(),
             });
             const data = await response.json();
-            await refetchSyncs();
-            if (!response.ok) return { success: false, message: data.message || 'Error al sincronizar' };
+            if (!response.ok) {
+                await refetchSyncs();
+                return { success: false, message: data.message || 'Error al sincronizar' };
+            }
             return { success: true, message: data.message };
         } catch (error) {
             queryClient.setQueryData(CALENDAR_SYNCS_QUERY_KEY, oldData);

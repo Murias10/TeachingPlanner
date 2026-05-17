@@ -26,7 +26,6 @@ export const useRateLimitStatus = (syncs: CalendarSync[]) => {
     const { data } = useQuery<RateLimitStatus | null>({
         queryKey: ['rateLimitStatus', isSyncing],
         queryFn: async () => {
-            console.log('[RateLimit] fetching, isSyncing=', isSyncing);
             const response = await fetch(`${VITE_GATEWAY_API_URL}/calendar-sync/rate-limit-status`, {
                 method: 'GET',
                 headers: getAuthHeaders(),
@@ -38,7 +37,6 @@ export const useRateLimitStatus = (syncs: CalendarSync[]) => {
             }
 
             const result = await response.json();
-            console.log('[RateLimit] data:', result.data);
             return result.success ? result.data : null;
         },
         refetchInterval: isSyncing ? 3000 : 30000,

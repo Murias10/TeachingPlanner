@@ -16,6 +16,13 @@ const port = process.env.PLANNER_SERVICE_PORT;
 const startServer = async () => {
     await connectToPlannerDatabase();
     await GoogleCalendarService.initQuotaCounters();
+    await GoogleCalendarService.recoverStuckSyncs();
+
+    // Retry pending calendar creations every 60 seconds
+    setInterval(() => {
+        GoogleCalendarService.processPendingRetries()
+            .catch(err => console.error('[RETRY JOB] Unhandled error:', err));
+    }, 60_000);
 
     app.use(degreeRouter);
     app.use(courseRouter);

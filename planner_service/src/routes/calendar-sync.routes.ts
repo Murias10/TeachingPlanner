@@ -101,7 +101,9 @@ router.get('/calendar-sync', authenticateToken, async (req: AuthRequest, res: Re
                 errorMessage: sync.errorMessage,
                 totalCalendars: sync.totalCalendars,
                 processedCalendars: sync.processedCalendars,
-                currentOperation: sync.currentOperation
+                currentOperation: sync.currentOperation,
+                nextRetryAt: sync.nextRetryAt,
+                retryCount: sync.retryCount
             }))
         });
     } catch (error: any) {
@@ -130,21 +132,22 @@ router.delete('/calendar-sync/:id', authenticateToken, async (req: AuthRequest, 
 });
 
 router.post('/calendar-sync/:id/sync-now', authenticateToken, async (req: AuthRequest, res: Response) => {
-    try {
-        if (!req.user) {
-            res.status(401).json({ success: false, message: 'Unauthorized' });
-            return;
-        }
-        const accessToken = await getGoogleAccessToken(req.user.userId);
-        if (!accessToken) {
-            res.status(401).json({ success: false, message: 'Failed to get Google access token. Please reconnect your Google account.' });
-            return;
-        }
-        const result = await GoogleCalendarService.syncCalendarToGoogle(req.params.id, accessToken);
-        res.json({ success: result.success, message: result.message });
-    } catch (error: any) {
-        res.status(500).json({ success: false, message: error.message || 'Failed to sync calendar' });
+    if (!req.user) {
+        res.status(401).json({ success: false, message: 'Unauthorized' });
+        return;
     }
+    const accessToken = await getGoogleAccessToken(req.user.userId);
+    if (!accessToken) {
+        res.status(401).json({ success: false, message: 'Failed to get Google access token. Please reconnect your Google account.' });
+        return;
+    }
+
+    // Respond immediately — the client polls syncStatus via GET /calendar-sync
+    res.json({ success: true, message: 'Sync started' });
+
+    // Process in background so long-running syncs never timeout the HTTP connection
+    GoogleCalendarService.syncCalendarToGoogle(req.params.id, accessToken)
+        .catch(err => console.error(`[SYNC] Background sync error for ${req.params.id}:`, err));
 });
 
 export default router;

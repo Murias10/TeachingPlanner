@@ -52,6 +52,9 @@ export class User {
   @Column('varchar', { length: 255, name: 'GOOGLE_ID', nullable: true })
   googleId?: string;
 
+  @Column('varchar', { length: 255, name: 'GOOGLE_EMAIL', nullable: true })
+  googleEmail?: string | null;
+
   @Column('datetime', { name: 'GOOGLE_TOKEN_EXPIRY', nullable: true })
   googleTokenExpiry?: Date;
 

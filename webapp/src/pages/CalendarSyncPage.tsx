@@ -358,7 +358,12 @@ const CalendarSyncPage = () => {
                                                                 </span>
                                                             );
                                                         })()}
-                                                        {sync.errorMessage && sync.syncStatus !== SyncStatus.PENDING_RETRY && (
+                                                        {sync.syncStatus === SyncStatus.SYNCING && sync.currentOperation && (
+                                                            <span className="text-xs text-muted-foreground">
+                                                                {sync.currentOperation}
+                                                            </span>
+                                                        )}
+                                                        {sync.errorMessage && sync.syncStatus === SyncStatus.ERROR && (
                                                             <span className="text-xs text-destructive">
                                                                 {parseErrorMessage(sync.errorMessage)}
                                                             </span>

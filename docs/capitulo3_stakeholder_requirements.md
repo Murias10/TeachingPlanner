@@ -115,15 +115,17 @@ TeachingPlanner is a web application developed from scratch to replace the syste
 
 **UR4 — Academic calendar management** *(administrator only)*
 
-**UR4.1.** The system shall allow the administrator to create an academic calendar for a given semester through any of three available modes: (a) manual creation, specifying start and end dates and selecting holidays; (b) import from the legacy system's `.txt` files (see UR9.2); or (c) duplication of an existing calendar (see UR4.4).
+**UR4.1.** The system shall allow the administrator to create an academic calendar for a given semester by manually specifying the start and end dates and optionally marking holidays or non-lective days within that range.
 
-**UR4.2.** The system shall allow the administrator to mark individual days of the calendar as holidays or non-lective, and restore their lective condition.
+**UR4.2.** The system shall allow the administrator to create a calendar by importing the five `.txt` files of the legacy system, which reconstructs the complete calendar including days, subjects, groups, classrooms and events (see UR9.2).
 
-**UR4.3.** The system shall allow the administrator to consult and filter the list of existing calendars.
+**UR4.3.** The system shall allow the administrator to create a calendar by duplicating an existing one, copying its structure — days, subjects, groups and standard recurring events — and adjusting it to new dates.
 
-**UR4.4.** The system shall allow the administrator to duplicate an existing calendar to create a new one for another academic course or semester, preserving the structure of recurring events and the distribution of holidays.
+**UR4.4.** The system shall allow the administrator to mark individual days of the calendar as holidays or non-lective, and restore their lective condition.
 
-**UR4.5.** The system shall allow the administrator to delete a calendar and all its associated data.
+**UR4.5.** The system shall allow the administrator to consult and filter the list of existing calendars.
+
+**UR4.6.** The system shall allow the administrator to delete a calendar and all its associated data.
 
 ---
 

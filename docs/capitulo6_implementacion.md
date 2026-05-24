@@ -4,269 +4,76 @@
 
 ## 6.1 Application Structure
 
-The overall system architecture, including the component block diagram and the deployment diagram, has been described in **§5.1 of Chapter 5**. This section describes the internal code organisation of each component following the white-box view of the ARC42 standard (*Building Block View, Level 2*).
+The architecture diagrams and deployment topology are covered in **§5.1 of Chapter 5**. What follows here is the internal organisation of each component — how each one is structured and what it exposes — following the ARC42 Building Block View at level 2.
 
 ---
 
 ### 6.1.1 webapp — Frontend application
 
-The frontend is a single-page application (*SPA*) built with React 19 and TypeScript. Its internal structure follows an organisation by functional domain, which facilitates the location and maintenance of each module.
+The frontend is a single-page application that runs entirely in the browser; it communicates exclusively with the API gateway. The code is organised by functional domain — calendar, classroom, degree, group, subject, user, and change requests — each with its own pages, components, and data-fetching hooks. Shared UI primitives and layout components live in a common layer used across all domains. A global authentication context controls access to protected pages based on the user's role.
 
-```mermaid
-graph TD
-    subgraph "webapp/src/"
-        APP["App.tsx\n(Main router — 17 routes)"]
-        MAIN["main.tsx\n(Entry point · QueryClient · i18n)"]
+The application has 17 routes. Some are public, others require an authenticated session, and a few are restricted to a specific role (administrator or professor):
 
-        subgraph "pages/ — 20 pages"
-            PUB["Public without layout\n/ · /login · /activate · /forgot-password"]
-            LAYOUT_PUB["Public with layout\n/home · /degrees · /courses\n/calendar · /classrooms\n/groups · /subjects · /solicitudes"]
-            LAYOUT_PROT["Protected\n/users · /settings · /calendar-sync · /solicitudes · /my-requests"]
-        end
-
-        subgraph "components/ — by domain"
-            COMP_CAL["calendar/"]
-            COMP_CLASS["classroom/"]
-            COMP_COURSE["course/"]
-            COMP_DEG["degree/"]
-            COMP_GRP["group/"]
-            COMP_SUBJ["subject/"]
-            COMP_USR["user/"]
-            COMP_SOL["solicitud/ · event-request/"]
-            COMP_UI["ui/\n(Radix UI primitives · DataTable·T· · FormDrawer)"]
-            COMP_CMN["common/ · AppLayout · app-sidebar"]
-        end
-
-        subgraph "hooks/ — hooks by domain"
-            H_CAL["calendar/ · course/ · degree/"]
-            H_REST["classroom/ · group/ · subject/\nuser/ · event-request/"]
-        end
-
-        subgraph "Infrastructure"
-            CTX["contexts/\nAuthContext.tsx"]
-            SVC["services/\nauth.services.ts"]
-            I18N["i18n/ · types/ · utils/\nconfig/ · constants/"]
-        end
-    end
-
-    MAIN --> APP
-    APP --> PUB
-    APP --> LAYOUT_PUB
-    APP --> LAYOUT_PROT
-    LAYOUT_PROT -->|"ProtectedRoute"| CTX
-    LAYOUT_PUB --> COMP_CAL
-    LAYOUT_PUB --> COMP_CLASS
-    LAYOUT_PUB --> COMP_DEG
-    COMP_CAL --> H_CAL
-    COMP_CLASS --> H_REST
-    H_CAL --> SVC
-    H_REST --> SVC
-    CTX --> SVC
-```
-
-**Generic components in `ui/`:**
-
-The `components/ui/` folder contains 40 files: **32 Radix UI primitives** generated with shadcn/ui (not directly modified) and **8 project-owned components** maintained manually. The three most relevant for the form architecture are:
-
-| Component | Description | Direct uses |
+| Route | Description | Access |
 |---|---|---|
-| `DataTable<T>` | Generic table with TanStack React Table: column filtering, column visibility, sorting, pagination (10 rows/page) and optional multi-selection. Replaces the ~40 lines of repeated logic across 5 identical tables (Classroom, Course, Degree, Subject, User). | 5 domain tables |
-| `FormDrawer` | Generic form drawer with i18n header, scrollable content area and footer with Cancel/Save buttons (disabled according to `isValid` and `isLoading`). Replaces the repeated shell across 10 creation/editing drawers. | 10 domain drawers |
-| `RequiredLabel` | Wraps a `<label>` adding a red asterisk and `(required)` text accessible to screen readers. Standardises the visual marking of required fields across project forms. | Creation/editing forms |
-
-The five additional project-owned components (`spinner.tsx`, `time-picker.tsx`, `searchable-select.tsx`, `password-requirements.tsx`, `multi-select.tsx`) encapsulate input controls that have no direct equivalent in the shadcn/ui library.
-
-**Application routes:**
-
-| Route | Component | Access |
-|---|---|---|
-| `/` | Start | Public |
-| `/login` | LoginPage | Public |
-| `/forgot-password` | ForgotPasswordPage | Public |
-| `/activate` | ActivatePage | Public |
-| `/home` | HomePage | With layout |
-| `/degrees` | DegreePage | With layout |
-| `/degrees/:acronym/courses` | CoursePage | With layout |
-| `/degrees/:acronym/courses/:startYear/:endYear/semester/:semester/calendar` | CalendarPage | With layout |
-| `/degrees/:acronym/courses/.../solicitudes` | SolicitudPage | With layout |
-| `/degrees/:acronym/courses/.../groups` | GroupPage | With layout |
-| `/degrees/:acronym/courses/.../subjects` | SubjectPage | With layout |
-| `/classrooms` | ClassroomPage | With layout |
-| `/settings` | SettingsPage | **Protected** |
-| `/calendar-sync` | CalendarSyncPage | **Protected** |
-| `/users` | UserPage | **Protected** |
-| `/solicitudes` | AllSolicitudesPage | **Protected** (ADMIN) |
-| `/my-requests` | MyRequestsPage | **Protected** (PROFESSOR) |
+| `/` | Landing page | Public |
+| `/login` | Login | Public |
+| `/forgot-password` | Password recovery | Public |
+| `/activate` | Account activation | Public |
+| `/home` | Home page | With layout |
+| `/degrees` | Degree programme listing | With layout |
+| `/degrees/:acronym/courses` | Academic years for a degree | With layout |
+| `/degrees/:acronym/courses/:startYear/:endYear/semester/:semester/calendar` | Calendar view for a course | With layout |
+| `/degrees/:acronym/courses/.../solicitudes` | Change requests for a course | With layout |
+| `/degrees/:acronym/courses/.../groups` | Groups for a course | With layout |
+| `/degrees/:acronym/courses/.../subjects` | Subjects for a course | With layout |
+| `/classrooms` | Classroom listing | With layout |
+| `/settings` | User settings | **Protected** |
+| `/calendar-sync` | Google Calendar synchronisation | **Protected** |
+| `/users` | User management | **Protected** |
+| `/solicitudes` | All change requests | **Protected** (ADMIN) |
+| `/my-requests` | My submitted requests | **Protected** (PROFESSOR) |
 | `*` | — | Redirect to `/` |
 
-> **Note:** the files `webapp/src/pages/LogsPage.tsx` and `webapp/src/pages/ReportPage.tsx` exist in the source code but have no registered route in `App.tsx`. They are pages under development pending inclusion in the router.
+> **Note:** two additional pages — for audit logs and for reports — exist in the source but are not yet connected to the router. They are planned extensions described in §8.2.
+
+The shared UI layer provides generic components that eliminate repeated patterns across the application. Three of them underpin most of the form and table structure:
+
+| Component | Description | Used by |
+|---|---|---|
+| Generic data table | Table with column filtering, visibility toggling, sorting, pagination, and optional multi-selection; used by all five main entity listings. | 5 domain listings |
+| Generic form drawer | Slide-in panel with a header, scrollable body, and a footer with Cancel/Save buttons that disable when the form is invalid or a request is in progress; used by all creation and editing forms. | 10 domain forms |
+| Required field label | Label wrapper that adds a visible asterisk and screen-reader-accessible text to mark mandatory fields consistently across all forms. | All creation and editing forms |
+
+Five additional custom components cover input controls — a time picker, a searchable dropdown, a multi-value selector, a password-strength indicator, and a loading spinner — that have no direct equivalent in the shared UI library.
 
 ---
 
-### 6.1.2 gateway_service — API Gateway
+### 6.1.2 gateway\_service — API Gateway
 
-The gateway acts as the sole external entry point for the backend. Its structure is deliberately simple: it contains no business logic or database access.
-
-```
-gateway_service/src/
-├── app.ts                        # Express initialisation, CORS, Multer, route registration
-├── index.ts                      # Entry point (listen)
-├── config/
-│   └── services.ts               # Base URLs of the internal services
-├── controllers/
-│   ├── auth.controller.ts        # Proxy to auth_service
-│   ├── planner.controller.ts     # Proxy to planner_service (largest volume of endpoints)
-│   ├── user.controller.ts        # Proxy to user_service
-│   └── status.controller.ts      # Health endpoint /status
-├── routes/
-│   ├── auth.routes.ts
-│   ├── planner.routes.ts
-│   ├── user.routes.ts
-│   └── status.routes.ts
-└── utils/
-    └── proxy.ts                  # Abstraction of the outgoing HTTP call (Axios)
-```
+The gateway is the sole external entry point for all backend traffic: it receives requests from the frontend, routes them to the appropriate internal service (authentication, user management, or scheduling), and returns the response. It contains no business logic and touches no database.
 
 ---
 
-### 6.1.3 auth_service — Authentication service
+### 6.1.3 auth\_service — Authentication service
 
-Manages user identity: registration, activation, JWT login, Google OAuth integration and password reset.
-
-```
-auth_service/src/
-├── app.ts · index.ts · env.ts
-├── config/
-│   └── data-source.ts            # TypeORM connection → management_database
-├── controllers/
-│   └── auth.controller.ts
-├── entities/
-│   └── user.entity.ts            # User entity (shared DB management with user_service)
-├── middleware/
-│   ├── auth.middleware.ts        # Incoming JWT validation
-│   └── validate.middleware.ts    # Request body validation with Zod
-├── routes/
-│   └── auth.routes.ts            # POST /login /validate /logout /forgot-password /verify-otp /reset-password /activate · GET /profile · GET+POST /google/*
-├── schemas/
-│   └── auth.schemas.ts           # Zod validation schemas
-├── services/
-│   ├── auth.service.ts           # Main authentication logic
-│   ├── email.service.ts          # Email sending (activation, reset)
-│   ├── google-oauth.service.ts   # Google OAuth 2.0 integration
-│   └── password-reset.service.ts
-├── scripts/
-│   └── seed-database.ts          # Data initialisation script
-├── types/
-│   └── auth.types.ts
-└── utils/
-    └── jwt.ts                    # JWT token generation and verification
-```
+The authentication service manages all aspects of user identity. It handles account registration and activation, login with email and password, password recovery via one-time code sent by email, JWT token issuance and validation, and the OAuth flow used to link a user's account to their Google profile (required for calendar synchronisation). It exposes an HTTP API consumed exclusively through the gateway and shares the user database with the user management service.
 
 ---
 
-### 6.1.4 user_service — User management service
+### 6.1.4 user\_service — User management service
 
-Manages the user lifecycle (creation, deletion, modification, query) and allows bulk import from **Excel (XLSX)** files. User creation includes email format validation (Zod schema) and duplicate email detection: if the email already exists in the database, the service returns **HTTP 409** with a localised error message (ES/EN).
-
-```
-user_service/src/
-├── app.ts · index.ts · env.ts
-├── config/
-│   ├── data-source.ts            # TypeORM connection → management_database
-│   └── email.config.ts
-├── controllers/
-│   └── user.controller.ts
-├── entities/
-│   └── user.entity.ts
-├── middleware/
-│   ├── error.middleware.ts
-│   └── validate.middleware.ts
-├── routes/
-│   └── user.routes.ts            # CRUD + bulk import
-├── schemas/
-│   └── user.schemas.ts
-├── service/                      # Note: singular folder name
-│   ├── user.service.ts
-│   ├── user-import.service.ts    # Excel/XLSX processing (bulk import)
-│   └── email.service.ts
-├── types/
-│   └── user.types.ts
-└── utils/
-    └── jwt.ts
-```
+The user management service is responsible for user account administration — including bulk import from Excel files — and shares the user database with the authentication service. All its operations are exposed through the gateway.
 
 ---
 
-### 6.1.5 planner_service — Scheduling service (business core)
+### 6.1.5 planner\_service — Scheduling service (business core)
 
-It is the most complex component of the system. It manages all academic domain entities and exposes 9 route groups.
+The scheduling service is the most complex component in the system. It owns the entire academic domain: degree programmes, academic years, calendars, subjects, groups, classrooms, one-off events, recurring events, change requests, and Google Calendar synchronisation state. It is structured into three internal layers — presentation (routes and controllers), business logic (services), and data access (entities) — and communicates with the Google Calendar API as an external dependency. Conflict detection across all event operations is handled by a dedicated utility that checks both group-level and classroom-level overlaps before any write is committed.
 
-```
-planner_service/src/
-├── app.ts · index.ts · env.ts
-├── config/
-│   └── data-source.ts            # TypeORM connection → planner_database
-├── constants/
-│   └── event-characters.constants.ts
-├── controllers/           # 8 controllers
-│   ├── calendar.controller.ts
-│   ├── classroom.controller.ts
-│   ├── course.controller.ts
-│   ├── degree.controller.ts
-│   ├── event-request.controller.ts
-│   ├── group.controller.ts
-│   ├── subject.controller.ts
-│   └── test.controller.ts        # Cleanup endpoint for tests
-├── entities/              # 15 entity files; 13 registered in the DataSource (excludes audited.entity —abstract class— and request.entity —unregistered auxiliary—)
-│   ├── audited.entity.ts         # Abstract base class (id, createdAt/By, updatedAt/By)
-│   ├── api-quota-counter.entity.ts  # Global counters for Google Calendar API quota
-│   ├── calendar.entity.ts
-│   ├── calendar-sync.entity.ts
-│   ├── classroom.entity.ts
-│   ├── course.entity.ts
-│   ├── day.entity.ts
-│   ├── degree.entity.ts
-│   ├── event-request.entity.ts
-│   ├── google-classroom-calendar.entity.ts
-│   ├── group.entity.ts
-│   ├── periodic_event.entity.ts
-│   ├── puntual_event.entity.ts
-│   ├── request.entity.ts
-│   └── subject.entity.ts
-├── middleware/
-│   ├── auth.middleware.ts
-│   └── require-role.middleware.ts
-├── routes/                # 9 route files
-│   ├── calendar.routes.ts
-│   ├── calendar-sync.routes.ts
-│   ├── classrooms.routes.ts
-│   ├── course.routes.ts
-│   ├── degree.routes.ts
-│   ├── event-request.routes.ts
-│   ├── group.routes.ts
-│   ├── subject.routes.ts
-│   └── test.routes.ts
-├── services/              # 7 services
-│   ├── calendar-events.service.ts    # Expansion of recurring events to concrete dates; round-robin algorithm for groups with shared hours
-│   ├── calendar-formatting.service.ts
-│   ├── calendar-import.service.ts
-│   ├── calendar-repository.service.ts
-│   ├── event-request.service.ts
-│   ├── google-calendar.service.ts    # Communication with Google Calendar API v3
-│   └── validation.service.ts         # UUID validation and entity existence checks
-├── utils/
-│   └── conflict-detection.utils.ts  # Schedule conflict detection (group/classroom) across 6 operations
-└── __tests__/
-    ├── setup/
-    │   └── testDatabase.ts       # Testcontainers setup/teardown
-    └── integration/
-        ├── calendar.delete.test.ts
-        └── classroom.delete.test.ts
-```
+The calendar event expansion service combines one-off and recurring events into the flat, date-ordered list consumed by both the frontend and the Google Calendar sync. For recurring events bound by a planned-hours budget, it uses a **round-robin algorithm** to distribute sessions equitably across all sharing groups — no group accumulates more sessions than another before the budget is exhausted.
 
-The `calendar-events.service.ts` service deserves special mention for its complexity. Its public method `generateCalendarEvents(calendarId)` combines one-off and recurring events into a chronologically sorted list. For recurring events of type `N` (Normal) with `planifiedHours` configured, it implements a **round-robin algorithm**: it distributes each teaching week's sessions equitably among all groups sharing a hours budget, so that no group accumulates more sessions than another before the group's total budget is exhausted. This mechanism guarantees that the count of delivered hours respects the academic contract defined in `Group.planifiedHours`.
-
-The following diagram illustrates the internal layered architecture of `planner_service`:
+The following diagram illustrates the internal layered architecture of the scheduling service:
 
 ```mermaid
 graph LR
@@ -303,7 +110,7 @@ graph LR
     SV --> GCAL
 ```
 
-**Calendar controller endpoints** (`calendar.controller.ts`):
+**Calendar management endpoints**:
 
 The calendar controller is the most extensive in the system, with 20 endpoints covering the full management of the academic calendar and its events:
 
@@ -336,29 +143,20 @@ The calendar controller is the most extensive in the system, with 20 endpoints c
 
 The system uses two completely independent MariaDB 11 databases:
 
-| Database | Owning service | Managed entities |
+| Database | Owning services | Managed entities |
 |---|---|---|
-| `management_database` | `auth_service`, `user_service` | `User` (authentication and user profile) |
-| `planner_database` | `planner_service` | 13 academic domain entities registered in the DataSource |
+| Authentication and user database | Authentication service, user management service | User accounts (credentials and profile) |
+| Scheduling database | Scheduling service | 13 academic domain entities (calendars, events, groups, classrooms, etc.) |
 
 This separation guarantees that a failure or migration in the scheduling database does not affect authentication, and vice versa.
 
----
-
-### 6.1.7 Deployment view — Textual summary
-
-See **§5.1.3** of Chapter 5 for the complete UML deployment diagram. The most relevant aspects from the implementation perspective are:
-
-- Each component has its own `Dockerfile` (7 in total). The `webapp` image uses **Caddy** as the web server, configured to serve HTTPS using the university-issued GEANT TLS certificate supplied via GitHub Secrets.
-- In the development environment, all services are started with `docker-compose.dev.yml`, which mounts the source directories as volumes to allow hot-reload.
-- In production (Azure VM), `docker-compose.azure.yml` uses pre-built images published in GitHub Container Registry following the convention `ghcr.io/murias10/teachingplanner/{service}:latest`. Only `gateway_service` (port 8080) and `webapp` (443/80) are accessible from the outside.
-- The CI/CD pipeline (GitHub Actions) runs tests on each *pull request* before authorising the merge. The manual deployment mechanism (`workflow_dispatch`) and its justification are described in **§5.1.3**.
+The deployment configuration — Dockerfiles, Docker Compose profiles, and CI/CD pipeline structure — is described in **§5.1.3 of Chapter 5**.
 
 ---
 
 ## 6.2 Test Implementation
 
-The testing strategy and design (what is tested and why) have been defined in **§5.3 of Chapter 5**. This section describes the concrete implementation: tools, scripts, test cases with their expected results and the continuous integration mechanism.
+The testing strategy — what is tested and why — is defined in **§5.3 of Chapter 5**. This section covers the concrete implementation: execution scripts, test case tables, and the CI/CD pipeline.
 
 ---
 
@@ -366,15 +164,7 @@ The testing strategy and design (what is tested and why) have been defined in **
 
 #### Infrastructure
 
-The integration tests are distributed across **`planner_service/src/__tests__/integration/`**, **`auth_service/src/__tests__/integration/`** and **`user_service/src/__tests__/integration/`**, and run with **Jest 30** and TypeScript support via `ts-jest`. The distinctive feature of this suite is the use of **Testcontainers** (`@testcontainers/mariadb 11.2`): before each suite begins, an ephemeral MariaDB container is automatically started with a dedicated test database where TypeORM synchronises the full schema (`synchronize: true`). Upon completion, the container is destroyed. The suite totals **8 test files and 27 test cases**.
-
-The lifecycle of each suite is:
-
-```
-beforeAll  → setupTestDatabase()    — starts MariaDB 11.2 container (timeout: 120 s)
-afterEach  → cleanDatabase()        — deletes all records between tests
-afterAll   → teardownTestDatabase() — destroys the container
-```
+Each integration test suite starts its own ephemeral database container, runs against it, and tears it down on completion. The schema is synchronised automatically at startup, and the database is wiped between individual tests so each one starts clean. The full suite is designed for **27 test cases across 8 files**; 7 of those cases (2 files) are currently implemented and the rest are planned.
 
 #### Execution scripts
 
@@ -384,7 +174,7 @@ cd planner_service
 # Run all tests
 npm test
 
-# With coverage report (generates coverage/lcov-report/index.html)
+# With coverage report
 npm run test:coverage
 
 # Integration tests only
@@ -393,95 +183,85 @@ npm run test:integration
 # Watch mode (during development)
 npm run test:watch
 
-# CI mode (--ci --coverage --maxWorkers=2)
+# CI mode (single worker, with coverage)
 npm run test:ci
 ```
 
-**Relevant `jest.config.js` configuration:**
-
-| Parameter | Value | Reason |
-|---|---|---|
-| `preset` | `ts-jest` | TypeScript support |
-| `testEnvironment` | `node` | Node.js environment (not DOM) |
-| `testTimeout` | `60000` ms | Testcontainers startup time |
-| `forceExit` | `true` | Prevents Jest from hanging after destroying the container |
-| `clearMocks` | `true` | Clears mocks between tests |
-| `resetMocks` | `true` | Resets mock state between tests |
-| `restoreMocks` | `true` | Restores original implementations between tests |
+The test timeout is set to 60 seconds to accommodate the time needed to start the database container.
 
 #### Test cases
 
-**File: `calendar.delete.test.ts`**
+**Calendar deletion tests**
 
 | ID | Description | Precondition | Expected result |
 |---|---|---|---|
-| TC-INT-01 | Cascade deletion of Calendar with dependent entities | Calendar with 1 Subject, 1 Group, 2 Days, 1 PuntualEvent and 1 PeriodicEvent | Calendar, Subject, Group, Days, PuntualEvent and PeriodicEvent deleted; Degree and Course remain |
+| TC-INT-01 | Cascade deletion of Calendar with dependent entities | Calendar with 1 Subject, 1 Group, 2 Days, 1 one-off event and 1 recurring event | Calendar, Subject, Group, Days and all events deleted; Degree and Course remain |
 | TC-INT-02 | Deletion of Calendar with no dependent entities | Empty Calendar (no events, no groups, no days) | Calendar deleted; Degree and Course remain |
 
-**File: `classroom.delete.test.ts`**
+**Classroom deletion tests**
 
 | ID | Description | Precondition | Expected result |
 |---|---|---|---|
-| TC-INT-03 | Forced deletion of Classroom with events (`force=true`) | Classroom with 1 PuntualEvent and 1 PeriodicEvent associated | Classroom and both events deleted; Group and Calendar remain |
-| TC-INT-04 | Rejection of deletion when `force=false` and events exist | Classroom with 1 associated PuntualEvent | Classroom not deleted; `totalRelatedEvents > 0` and `force === false` (409 Conflict logic verified) |
-| TC-INT-05 | Deletion of Classroom with no events | Classroom with no associated events | Classroom deleted; `count() === 0` |
-| TC-INT-06 | Classroom code uniqueness — duplicate rejected | Classroom with code `UNIQUE-CODE` already existing | `classroomRepo.save(classroom2)` throws an exception |
-| TC-INT-07 | Creation of two Classrooms with different codes | Empty database | Both records created; `count() === 2` |
+| TC-INT-03 | Forced deletion of Classroom with related events | Classroom with 1 one-off event and 1 recurring event | Classroom and both events deleted; Group and Calendar remain |
+| TC-INT-04 | Rejection of deletion when the classroom has related events | Classroom with 1 associated one-off event | Deletion rejected; HTTP 409 returned because the classroom still has related events |
+| TC-INT-05 | Deletion of Classroom with no events | Classroom with no associated events | Classroom no longer exists in the database |
+| TC-INT-06 | Classroom code uniqueness — duplicate rejected | Classroom with a given code already existing | Second creation rejected with a uniqueness error |
+| TC-INT-07 | Creation of two Classrooms with different codes | Empty database | Both records are present in the database |
 
-**File: `subject.delete.test.ts`**
+**Subject deletion tests**
 
 | ID | Description | Precondition | Expected result |
 |---|---|---|---|
-| TC-INT-08 | Cascade deletion of Subject with groups and events | Subject with 2 Groups, each with PuntualEvent and PeriodicEvent | Subject, Groups and all associated events deleted; Calendar and Course remain |
+| TC-INT-08 | Cascade deletion of Subject with groups and events | Subject with 2 Groups, each with one-off and recurring events | Subject, Groups and all associated events deleted; Calendar and Course remain |
 | TC-INT-09 | Deletion of Subject with no groups | Empty Subject (no groups) | Subject deleted; Calendar and Course remain |
-| TC-INT-10 | Subject acronym uniqueness — duplicate rejected | Subject with acronym `SUBJ-DUP` already existing | `subjectRepo.save()` throws unique key violation (error 1062) |
+| TC-INT-10 | Subject acronym uniqueness — duplicate rejected | Subject with a given acronym already existing | Creation rejected with a uniqueness constraint error |
 
-**File: `degree.cascade.test.ts`**
-
-| ID | Description | Precondition | Expected result |
-|---|---|---|---|
-| TC-INT-11 | Full cascade deletion Degree → Course → Calendar → events | Degree with 1 Course, 1 Calendar, 1 Subject, 1 Group, 2 Days, 1 PuntualEvent, 1 PeriodicEvent | All entities deleted; `count() === 0` for each repository |
-| TC-INT-12 | Deletion of Degree with no associated courses | Degree with no courses | Degree deleted; `count() === 0` |
-| TC-INT-13 | Degree name uniqueness — duplicate rejected | Degree with name `INGENIERÍA TEST` already existing | `degreeRepo.save()` throws unique key violation |
-
-**File: `group.hours.test.ts`**
+**Degree cascade deletion tests**
 
 | ID | Description | Precondition | Expected result |
 |---|---|---|---|
-| TC-INT-14 | Creation of Group with valid planifiedHours | Calendar and Subject existing; planifiedHours = 60 | Group created; `planifiedHours === 60` in the retrieved entity |
-| TC-INT-15 | Multiple groups within same Subject — independent planifiedHours | Subject with 2 Groups (30h and 45h) | Both groups exist; hours are stored independently |
-| TC-INT-16 | Deletion of Group deletes associated events | Group with 1 PuntualEvent and 1 PeriodicEvent | Group and both events deleted; Subject and Calendar remain |
+| TC-INT-11 | Full cascade deletion Degree → Course → Calendar → events | Degree with 1 Course, 1 Calendar, 1 Subject, 1 Group, 2 Days, 1 one-off event, 1 recurring event | All entities deleted; nothing remains in the database |
+| TC-INT-12 | Deletion of Degree with no associated courses | Degree with no courses | Degree no longer exists in the database |
+| TC-INT-13 | Degree name uniqueness — duplicate rejected | Degree with a given name already existing | Creation rejected with a uniqueness constraint error |
 
-**File: `periodicEvent.create.test.ts`**
-
-| ID | Description | Precondition | Expected result |
-|---|---|---|---|
-| TC-INT-17 | Creation of PeriodicEvent with eventCharacter N | Group and Classroom existing | PeriodicEvent created with `eventCharacter = 'N'`; `count() === 1` |
-| TC-INT-18 | Creation of PeriodicEvent with eventCharacter P | Group and Classroom existing | PeriodicEvent created with `eventCharacter = 'P'`; `count() === 1` |
-| TC-INT-19 | Multiple PeriodicEvents in same Group with different characters | Group with PeriodicEvents N and I | Both events exist; retrievable and distinguishable by `eventCharacter` |
-
-**File: `day.create.test.ts`**
+**Group planned-hours tests**
 
 | ID | Description | Precondition | Expected result |
 |---|---|---|---|
-| TC-INT-20 | Creation of Day with dayCharacter P | Calendar existing | Day persisted with `dayCharacter = 'P'` and correct `date`; `count() === 1` |
-| TC-INT-21 | Creation of Days with different dayCharacters in same Calendar | Calendar existing | 3 Days (P, I, custom A) created; retrievable by `dayCharacter` |
+| TC-INT-14 | Creation of Group with valid planned hours | Calendar and Subject existing; 60 planned hours configured | Group created with 60 planned hours; value correctly persisted |
+| TC-INT-15 | Multiple groups within same Subject — independent planned hours | Subject with 2 Groups (30h and 45h) | Both groups exist; hours are stored independently |
+| TC-INT-16 | Deletion of Group deletes associated events | Group with 1 one-off event and 1 recurring event | Group and both events deleted; Subject and Calendar remain |
 
-**File: `auth.integration.test.ts`** (`auth_service/src/__tests__/integration/`)
-
-| ID | Description | Precondition | Expected result |
-|---|---|---|---|
-| TC-INT-22 | Successful user registration stores hashed password | Empty users table | User created; stored `passwordHash` differs from plain text; `bcrypt.compare()` returns true |
-| TC-INT-23 | Login with correct credentials returns JWT | User registered in DB | Response includes `accessToken`; JWT payload contains `userId` and `role` |
-| TC-INT-24 | Login with incorrect password rejected | User registered in DB | `bcrypt.compare()` returns false; no token issued |
-| TC-INT-25 | Duplicate email registration rejected | User with email `test@uni.es` already existing | `userRepo.save()` throws unique key violation |
-
-**File: `user.integration.test.ts`** (`user_service/src/__tests__/integration/`)
+**Recurring event creation tests**
 
 | ID | Description | Precondition | Expected result |
 |---|---|---|---|
-| TC-INT-26 | User creation with role ROLE_ADMIN | Empty users table | User created; `role === 'ROLE_ADMIN'`; `count() === 1` |
-| TC-INT-27 | Role update persisted correctly | User with role `ROLE_USER` | After update; `role === 'ROLE_ADMIN'` in re-fetched entity |
+| TC-INT-17 | Creation of recurring event with weekly recurrence (type N) | Group and Classroom existing | Recurring event created with weekly recurrence; one record in the database |
+| TC-INT-18 | Creation of recurring event with bi-weekly even-week recurrence (type P) | Group and Classroom existing | Recurring event created with bi-weekly even-week recurrence; one record in the database |
+| TC-INT-19 | Multiple recurring events in same Group with different recurrence types | Group with two recurring events of different types | Both events exist and are distinguishable by their recurrence type |
+
+**Calendar day creation tests**
+
+| ID | Description | Precondition | Expected result |
+|---|---|---|---|
+| TC-INT-20 | Creation of a day with even-week character | Calendar existing | Day correctly persisted with even-week recurrence character |
+| TC-INT-21 | Creation of days with different recurrence characters in same Calendar | Calendar existing | 3 days (even-week, odd-week, custom) created and retrievable by their recurrence character |
+
+**Authentication integration tests**
+
+| ID | Description | Precondition | Expected result |
+|---|---|---|---|
+| TC-INT-22 | Successful user registration stores hashed password | Empty users table | User created; password stored in hashed form; login with original password succeeds |
+| TC-INT-23 | Login with correct credentials returns a token | User registered in the database | Response includes a valid access token containing the user's identity and role |
+| TC-INT-24 | Login with incorrect password rejected | User registered in the database | Authentication rejected; no token issued |
+| TC-INT-25 | Duplicate email registration rejected | User with a given email already existing | Registration rejected with a uniqueness constraint error |
+
+**User management integration tests**
+
+| ID | Description | Precondition | Expected result |
+|---|---|---|---|
+| TC-INT-26 | User creation with administrator role | Empty users table | User created with administrator role; one record in the database |
+| TC-INT-27 | Role update persisted correctly | User with standard user role | Role updated to administrator; change correctly persisted |
 
 The following is a representative fragment of test TC-INT-01, illustrating the *Arrange–Act–Assert* pattern used:
 
@@ -509,25 +289,13 @@ expect(await degreeRepo.count()).toBe(1);
 expect(await courseRepo.count()).toBe(1);
 ```
 
-#### Coverage report generation
-
-```bash
-npm run test:coverage
-# HTML report available at: planner_service/coverage/lcov-report/index.html
-```
-
 ---
 
 ### 6.2.2 End-to-end tests — Playwright
 
 #### Infrastructure
 
-The data isolation strategy and the rationale for the `POST /test/reset-database` endpoint are described in **§5.3.4 of Chapter 5**.
-
-**Prerequisites for local execution:**
-1. All backend services running: `auth_service` (5003), `gateway_service` (8080), `planner_service` (5001), `user_service` (5002).
-2. Test user created (`npm run seed:test-user` in `user_service`): `admin@test.com` / `Admin123!` with role `ROLE_ADMIN`.
-3. `NODE_ENV=development` in the `.env` file.
+The data isolation strategy is described in **§5.3.4 of Chapter 5**. To run the suite locally, all four backend services must be running, a test administrator account must exist (created with the provided seeding script), and the environment must be set to development mode.
 
 #### Execution scripts
 
@@ -556,113 +324,105 @@ npm run test:e2e:debug
 npm run test:e2e:report
 ```
 
-**Relevant `playwright.config.ts` configuration:**
-
-| Parameter | Development | CI |
-|---|---|---|
-| `baseURL` | `http://localhost:5173` | `http://localhost:5173` |
-| `retries` | 0 | 2 |
-| `workers` | unlimited (parallel) | 1 (sequential) |
-| `screenshot` | On failure only | On failure only |
-| `video` | On failure only | On failure only |
-| `trace` | On first retry | On first retry |
-| `devServer timeout` | 120 s | 120 s |
+Tests run in parallel locally and sequentially in CI. Retries are enabled only in CI (up to 2 per test). Screenshots and videos are captured on failure in both environments.
 
 #### Test cases
 
-**Suite: `auth.spec.ts` — 6 tests**
+**Authentication tests — 6 tests**
 
 | ID | Test name | Main verification |
 |---|---|---|
-| TC-E2E-01 | should display login form | URL `/login`; visibility of email, password and button fields |
-| TC-E2E-02 | should show validation error for empty fields | Submission without filling fields; remains on `/login` |
-| TC-E2E-03 | should show error for incorrect credentials | Wrong email/password; error message visible |
-| TC-E2E-04 | should login successfully with valid credentials | Login with `admin@test.com`; redirect to `/home` |
-| TC-E2E-05 | should navigate to different pages after login | Navigation to `/classrooms` and `/degrees` without session loss |
-| TC-E2E-06 | should logout successfully | Click on logout; redirect to `/` |
+| TC-E2E-01 | should display login form | Login page visible; email, password and submit fields present |
+| TC-E2E-02 | should show validation error for empty fields | Submission without filling fields; page remains on login |
+| TC-E2E-03 | should show error for incorrect credentials | Wrong credentials; error message visible |
+| TC-E2E-04 | should login successfully with valid credentials | Login with a valid administrator account; redirect to home page |
+| TC-E2E-05 | should navigate to different pages after login | Navigation to classrooms and degrees pages without session loss |
+| TC-E2E-06 | should logout successfully | Click on logout; redirect to landing page |
 
-**Suite: `classroom.spec.ts` — 8 tests**
+**Classroom tests — 8 tests**
 
 | ID | Test name | Main verification |
 |---|---|---|
-| TC-E2E-07 | should display classrooms list | URL `/classrooms`; correct table headers |
-| TC-E2E-08 | should create new classroom successfully | Creation with code `TEST-{timestamp}`; "Classroom created" alert; row visible in table |
+| TC-E2E-07 | should display classrooms list | Classrooms page visible; correct table headers present |
+| TC-E2E-08 | should create new classroom successfully | Creation with a unique code generated for the test; success alert; row visible in table |
 | TC-E2E-09 | should show error when creating classroom with duplicate code | Second classroom with same code; error message |
-| TC-E2E-10 | should edit classroom successfully | `code` field read-only; GIS URL updated; "Classroom edited" alert |
-| TC-E2E-11 | should delete classroom without events | Confirmation dialog; "Classroom deleted" alert; row removed from table |
-| TC-E2E-12 | should delete classroom with related events (force delete) | Dialog with cascade events warning; forced deletion |
-| TC-E2E-13 | should cancel delete operation | Click "Cancel"; classroom remains in the table |
-| TC-E2E-14 | should filter classrooms by code | Filter by code; only the corresponding row is shown |
+| TC-E2E-10 | should edit classroom successfully | Code field is read-only after creation; GIS URL updated; success alert |
+| TC-E2E-11 | should delete classroom without events | Confirmation dialog; success alert; row removed from table |
+| TC-E2E-12 | should delete classroom with related events (force delete) | Dialog with cascade events warning; forced deletion confirmed |
+| TC-E2E-13 | should cancel delete operation | Cancel clicked; classroom remains in the table |
+| TC-E2E-14 | should filter classrooms by code | Filter applied; only the matching row is shown |
 
-**Suite: `course.spec.ts` — 9 tests**
+**Academic year tests — 9 tests**
 
 | ID | Test name | Main verification |
 |---|---|---|
-| TC-E2E-15 | should display courses list | Listing of academic year courses |
+| TC-E2E-15 | should display courses list | Academic year listing visible |
 | TC-E2E-16 | should create new course successfully | Creation with unique start/end year; confirmation visible |
 | TC-E2E-17 | should show error when creating course with duplicate year | Same academic year; error message |
 | TC-E2E-18 | should edit course state successfully | State change; confirmation alert |
 | TC-E2E-19 | should delete course successfully | Confirmation dialog; course deleted |
-| TC-E2E-20 | should cancel delete operation | Click cancel; course remains |
-| TC-E2E-21 | should filter courses by academic year | Functional filter by year |
-| TC-E2E-22 | should validate required fields in create form | Save button disabled if fields are missing |
-| TC-E2E-23 | should have default state as PLANIFICADO | Initial state `PLANIFICADO` when creating a new academic year |
+| TC-E2E-20 | should cancel delete operation | Cancel clicked; course remains |
+| TC-E2E-21 | should filter courses by academic year | Filter applied; matching rows shown |
+| TC-E2E-22 | should validate required fields in create form | Save button disabled if required fields are missing |
+| TC-E2E-23 | should have default state as Planned | The default state when creating a new academic year is "Planned" |
 
-**Suite: `degree.spec.ts` — 9 tests**
+**Degree programme tests — 9 tests**
 
 | ID | Test name | Main verification |
 |---|---|---|
-| TC-E2E-24 | should display degrees list | URL `/degrees`; name and acronym headers |
-| TC-E2E-25 | should create new degree successfully | Creation with unique name and acronym; "Degree created" alert |
+| TC-E2E-24 | should display degrees list | Degree programmes page visible; name and acronym columns present |
+| TC-E2E-25 | should create new degree successfully | Creation with unique name and acronym; success alert |
 | TC-E2E-26 | should show error when creating degree with duplicate acronym | Duplicate acronym; error message |
-| TC-E2E-27 | should edit degree successfully | Name and acronym modification; "Degree updated" alert |
-| TC-E2E-28 | should delete degree successfully | Dialog with cascade warning over academic years/subjects; "Degree deleted" alert |
-| TC-E2E-29 | should cancel delete operation | Click cancel; degree programme remains |
-| TC-E2E-30 | should filter degrees by name | Functional filter; shows only the searched degree programme |
-| TC-E2E-31 | should validate required fields in create form | Button disabled with empty or partially filled fields |
-| TC-E2E-32 | should enforce uppercase on acronym field | Lowercase input `abc` → converted to `ABC` |
+| TC-E2E-27 | should edit degree successfully | Name and acronym modification; success alert |
+| TC-E2E-28 | should delete degree successfully | Dialog with cascade warning; success alert |
+| TC-E2E-29 | should cancel delete operation | Cancel clicked; degree programme remains |
+| TC-E2E-30 | should filter degrees by name | Filter applied; only the matching degree shown |
+| TC-E2E-31 | should validate required fields in create form | Save button disabled with empty or partially filled fields |
+| TC-E2E-32 | should enforce uppercase on acronym field | Lowercase input automatically converted to uppercase |
 
-**Suite: `subject.spec.ts` — 10 tests**
+**Subject tests — 10 tests**
 
 | ID | Test name | Main verification |
 |---|---|---|
-| TC-E2E-33 | should display subjects list | Listing of calendar subjects |
+| TC-E2E-33 | should display subjects list | Subject listing visible |
 | TC-E2E-34 | should create new subject successfully | Creation with unique acronym and SIES code; confirmation |
 | TC-E2E-35 | should show error when creating subject with duplicate acronym | Duplicate acronym; error message |
 | TC-E2E-36 | should edit subject successfully | Field modification; confirmation alert |
 | TC-E2E-37 | should delete subject successfully | Confirmation dialog; subject deleted |
-| TC-E2E-38 | should cancel delete operation | Click cancel; subject remains |
-| TC-E2E-39 | should validate required fields in create form | Button disabled if required fields are missing |
+| TC-E2E-38 | should cancel delete operation | Cancel clicked; subject remains |
+| TC-E2E-39 | should validate required fields in create form | Save button disabled if required fields are missing |
 | TC-E2E-40 | should enforce uppercase on name field | Subject name automatically converted to uppercase |
 | TC-E2E-41 | should display correct year options (0–4) | Year selector shows options from 0 to 4 |
 | TC-E2E-42 | should delete multiple subjects in bulk | Multiple selection and bulk deletion; all selected records deleted |
 
-**Suite: `calendar.spec.ts` — 8 tests**
+**Calendar tests — 8 tests**
 
 | ID | Test name | Main verification |
 |---|---|---|
-| TC-E2E-43 | should display calendars list | URL `/calendars`; semester and date columns visible |
-| TC-E2E-44 | should create new calendar successfully | Creation with start/end date and semester; "Calendar created" alert; row visible in table |
+| TC-E2E-43 | should display calendars list | Calendars page visible; semester and date columns present |
+| TC-E2E-44 | should create new calendar successfully | Creation with start/end date and semester; success alert; row visible in table |
 | TC-E2E-45 | should show error when end date is before start date | Invalid date range; error message visible |
-| TC-E2E-46 | should edit calendar dates successfully | Date modification; "Calendar updated" alert |
-| TC-E2E-47 | should delete calendar successfully | Cascade warning dialog; "Calendar deleted" alert; row removed |
-| TC-E2E-48 | should cancel delete operation | Click "Cancel"; calendar remains in table |
-| TC-E2E-49 | should filter calendars by semester | Filter by semester; only matching rows shown |
+| TC-E2E-46 | should edit calendar dates successfully | Date modification; success alert |
+| TC-E2E-47 | should delete calendar successfully | Cascade warning dialog; success alert; row removed |
+| TC-E2E-48 | should cancel delete operation | Cancel clicked; calendar remains in table |
+| TC-E2E-49 | should filter calendars by semester | Filter applied; only matching rows shown |
 | TC-E2E-50 | should validate required fields in create form | Save button disabled if start date, end date or semester is missing |
 
-**Suite: `group.spec.ts` — 7 tests**
+**Group tests — 7 tests**
 
 | ID | Test name | Main verification |
 |---|---|---|
-| TC-E2E-51 | should display groups list | Listing with name and planified hours columns |
-| TC-E2E-52 | should create new group successfully | Creation with name and hours; "Group created" alert; row visible in table |
-| TC-E2E-53 | should show error when planified hours is zero or negative | Validation error for non-positive hours value |
-| TC-E2E-54 | should edit group successfully | Hours modification; "Group updated" alert |
-| TC-E2E-55 | should delete group successfully | Confirmation dialog; "Group deleted" alert; row removed |
-| TC-E2E-56 | should cancel delete operation | Click "Cancel"; group remains in table |
-| TC-E2E-57 | should validate required fields in create form | Save button disabled if name or planified hours is missing |
+| TC-E2E-51 | should display groups list | Group listing visible with name and planned hours columns |
+| TC-E2E-52 | should create new group successfully | Creation with name and hours; success alert; row visible in table |
+| TC-E2E-53 | should show error when planned hours is zero or negative | Validation error for non-positive hours value |
+| TC-E2E-54 | should edit group successfully | Hours modification; success alert |
+| TC-E2E-55 | should delete group successfully | Confirmation dialog; success alert; row removed |
+| TC-E2E-56 | should cancel delete operation | Cancel clicked; group remains in table |
+| TC-E2E-57 | should validate required fields in create form | Save button disabled if name or planned hours is missing |
 
 **Total: 57 E2E tests** (6 + 8 + 9 + 9 + 10 + 8 + 7).
+
+> *The authentication, classroom, academic year, degree, and subject suites are currently implemented (42 tests). The calendar and group suites are designed and planned for implementation.*
 
 The following is a representative fragment of an E2E test (degree programme creation), illustrating the use of semantic selectors and the timestamp-based unique data strategy:
 
@@ -687,7 +447,7 @@ test('should create new degree successfully', async ({ page }) => {
 
 ### 6.2.3 CI/CD execution — GitHub Actions
 
-Tests run on **GitHub Actions** as part of the deployment workflows, triggered manually from the *Actions* tab of the repository. There is no independent workflow for tests: both `deploy_azure.yml` and `deploy_selfhosted.yml` include the `unit-tests` and `e2e-tests` jobs directly. When launching either of these workflows, the responsible person selects via checkboxes which jobs to run, being able to choose to run only the tests, only the deployment, or the full pipeline.
+Tests run on **GitHub Actions** as part of the deployment workflows, triggered manually from the repository's Actions tab. There is no standalone test workflow: integration and end-to-end jobs are embedded directly in the deployment workflows. When starting a run, the operator selects via checkboxes whether to run tests only, the deployment only, or the full pipeline.
 
 ```mermaid
 flowchart TD
@@ -722,36 +482,28 @@ flowchart TD
     E9 -->|"No"| E10 --> FAIL2["❌ Tests failed"]
 ```
 
-**Services and ports verified in CI** (script `webapp/scripts/wait-for-services.ts`):
+**Services verified in CI:**
 
-The script accesses each service directly by its port (without going through the gateway), since in CI all services run on `localhost`:
+In the CI environment all services run on the same host, so each one is accessed directly by its port rather than going through the gateway:
 
 | Service | Port | Health check (direct access) |
 |---|---|---|
-| gateway_service | 8080 | `GET http://localhost:8080/api/degrees` |
-| planner_service | 5001 | `GET http://localhost:5001/degrees` |
-| user_service | 5002 | `GET http://localhost:5002/health` |
-| auth_service | 5003 | `GET http://localhost:5003/health` |
+| Gateway service | 8080 | `GET http://localhost:8080/api/degrees` |
+| Scheduling service | 5001 | `GET http://localhost:5001/degrees` |
+| User management service | 5002 | `GET http://localhost:5002/health` |
+| Authentication service | 5003 | `GET http://localhost:5003/health` |
 | MariaDB (CI) | 3306 | `mariadb-admin ping` (Docker service health check) |
 
-**Databases in CI:**
-- `planner_db_test` — scheduling domain entities
-- `management_db_test` — user and authentication entities
+Two isolated test databases are used: one for the scheduling domain and one for user and authentication entities.
 
-**Artefacts generated on failure:**
-- Playwright HTML report (`playwright-report/`)
-- Screenshots of failed tests
-- Videos of failed runs
-- Backend service logs
+On failure, the workflow uploads screenshots, videos, backend logs, and an HTML report as artefacts. These are retained for **7 days** and are accessible from the Actions tab under the failed run.
 
-Artefacts are retained for **7 days** and are accessible from the *Actions* tab of the repository → failed workflow → *Artifacts* section.
-
-**Estimated CI execution times:**
+**Estimated execution times:**
 
 | Phase | Estimated time |
 |---|---|
 | MariaDB setup + dependency installation + compilation | ~3–4 minutes |
 | Service startup and wait | ~30–60 seconds |
 | Integration tests (Jest + Testcontainers) | ~30–60 seconds |
-| E2E tests (57 Playwright tests) | ~3–4 minutes |
+| E2E tests (Playwright) | ~3–4 minutes |
 | **Total** | **~7–9 minutes** |

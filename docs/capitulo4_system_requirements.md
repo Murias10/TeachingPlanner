@@ -516,63 +516,59 @@ Administrator-only module (see Figure 4.1).
 
 #### Detailed functional requirements — RF-CAL (→ UR4)
 
-**RF-CAL-01.** The system shall allow the administrator to create an academic calendar through three available modes:
+**RF-CAL-01.** The system shall allow the administrator to create an academic calendar for a given semester by manually specifying its parameters (→ UR4.1). The system shall request the following data:
 
-&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-01.A.** **Manual creation from scratch**, by entering the calendar parameters directly. The system shall request the following data:
+&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-01.1.** Academic course to which the calendar belongs.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-01.A.1.** Academic course to which the calendar belongs.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-01.1.1.** It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-01.A.1.1.** It is a mandatory field.
+&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-01.2.** Semester.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-01.A.2.** Semester.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-01.2.1.** It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-01.A.2.1.** It is a mandatory field.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-01.2.2.** The system shall allow choosing between the first semester and the second semester.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-01.A.2.2.** The system shall allow choosing between the first semester and the second semester.
+&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-01.3.** Start date.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-01.A.3.** Start date.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-01.3.1.** It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-01.A.3.1.** It is a mandatory field.
+&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-01.4.** End date.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-01.A.4.** End date.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-01.4.1.** It is a mandatory field.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-01.A.4.1.** It is a mandatory field.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-01.4.2.** It must be later than the start date.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-01.A.4.2.** It must be later than the start date.
+&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-01.5.** If a calendar already exists for the same academic course and semester, the system shall display an error message and shall not complete the creation.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-01.A.5.** If a calendar already exists for the same academic course and semester, the system shall display an error message and shall not complete the creation.
+&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-01.6.** If the end date is not later than the start date, the system shall display an error message and shall not complete the creation.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-01.A.6.** If the end date is not later than the start date, the system shall display an error message and shall not complete the creation.
+&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-01.7.** If the data is valid, the system shall create the calendar and shall automatically generate one lective day for each working day (Monday to Friday) within the start and end dates.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-01.A.7.** If the data is valid, the system shall create the calendar and shall automatically generate one lective day for each working day (Monday to Friday) within the start and end dates.
+&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-01.8.** Optionally, during creation, the administrator may select holidays or non-lective days within the date range. Each holiday admits an optional descriptive comment.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-01.A.8.** Optionally, during creation, the administrator may select holidays or non-lective days within the date range. Each holiday admits an optional descriptive comment.
+**RF-CAL-02.** The system shall allow the administrator to create a calendar by importing the five `.txt` files of the legacy system, which reconstructs the complete calendar including days, subjects, groups, classrooms and events (→ UR4.2). The detailed specification of this mode is described in RF-EXPORT-03.
 
-&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-01.B.** **Import from the legacy system**: the administrator uploads the five `.txt` files of the legacy system and the system reconstructs the complete calendar (days, subjects, groups, classrooms and events). The detailed specification of this mode is described in RF-EXPORT-03.
+**RF-CAL-03.** The system shall allow the administrator to create a calendar by duplicating an existing one, copying its structure and adjusting it to new dates (→ UR4.3).
 
-&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-01.C.** **Duplication of an existing calendar**: the administrator copies the structure of a previous calendar (days, subjects, groups and standard recurring events) adjusting it to new dates. The detailed specification of this mode is described in RF-CAL-04.
+&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-03.1.** The system shall request the target academic course and target semester.
 
-**RF-CAL-02.** The holidays or non-lective days of the calendar are managed at the time of its creation or import. The administrator shall be able to indicate which days within the date range are non-lective and add descriptive comments to each one.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-03.1.1.** They are mandatory fields.
 
-**RF-CAL-03.** The system shall allow the administrator to consult the list of existing academic calendars.
+&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-03.2.** The system shall request the new start and end dates.
 
-**RF-CAL-04.** The system shall allow the administrator to duplicate an existing calendar to create a new one for another academic course or semester.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-03.2.1.** They are mandatory fields.
 
-&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-04.1.** The system shall request the target academic course and target semester.
+&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-03.3.** If a calendar already exists for the target academic course and semester, the system shall display an error message and shall not complete the duplication.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-04.1.1.** They are mandatory fields.
+&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-03.4.** If the data is valid, the system shall create the new calendar by copying from the source calendar: the day structure (with the days marked as holidays adjusted proportionally to the new dates), the subjects, the groups and the recurring events with a standard pattern (weekly, bi-weekly on even weeks or bi-weekly on odd weeks). One-off events and events with custom recurrence patterns are not copied.
 
-&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-04.2.** The system shall request the new start and end dates.
+**RF-CAL-04.** The system shall allow the administrator to mark individual days of the calendar as holidays or non-lective, and restore their lective condition (→ UR4.4). The administrator shall be able to add an optional descriptive comment to each non-lective day.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-04.2.1.** They are mandatory fields.
+**RF-CAL-05.** The system shall allow the administrator to consult the list of existing academic calendars (→ UR4.5).
 
-&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-04.3.** If a calendar already exists for the target academic course and semester, the system shall display an error message and shall not complete the duplication.
+**RF-CAL-06.** The system shall allow the administrator to delete a calendar and all its associated data (→ UR4.6).
 
-&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-04.4.** If the data is valid, the system shall create the new calendar by copying from the source calendar: the day structure (with the days marked as holidays adjusted proportionally to the new dates), the subjects, the groups and the recurring events with a standard pattern (weekly, bi-weekly on even weeks or bi-weekly on odd weeks). One-off events and events with custom recurrence patterns are not copied.
-
-**RF-CAL-05.** The system shall allow the administrator to delete a calendar and all its associated data.
-
-&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-05.1.** The system shall request explicit confirmation from the administrator, indicating which calendar (semester and academic course) shall be deleted, before proceeding with the deletion.
+&nbsp;&nbsp;&nbsp;&nbsp;**RF-CAL-06.1.** The system shall request explicit confirmation from the administrator, indicating which calendar (semester and academic course) shall be deleted, before proceeding with the deletion.
 
 ---
 

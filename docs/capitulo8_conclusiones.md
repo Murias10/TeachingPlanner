@@ -2,7 +2,13 @@
 
 ## 8.1 Conclusions
 
-*(To be written.)*
+The main goal of this project was to give the Escuela de Ingeniería Informática a working replacement for its legacy scheduling system, and that goal has been achieved. The application is deployed, real users can access it, and it has been presented to EII staff as a candidate to take over from the previous toolchain.
+
+This project also shows that a complete system with real users, real infrastructure, and real deployment constraints can be built within the scope of a Final Degree Project — and still be done properly. The decision to use microservices, invest in automated testing, set up a CI/CD pipeline, and keep the data model flexible was not about making the project look ambitious; those choices are what made the system actually work in practice, and what will keep it working as it gets maintained over time.
+
+The features described in the next section as future work were not dropped — they were deferred on purpose. The audit fields are already in place, the navigation sections exist and are ready to be filled, and the code structure was designed with growth in mind. The EII does not just receive a tool that works today; it receives something that can be extended gradually, without having to tear anything down first.
+
+---
 
 ## 8.2 Future Work
 
@@ -12,7 +18,7 @@ This section describes possible lines of future work that, although not incorpor
 
 The system currently implements a custom authentication mechanism based on JWT, with internal password management, email-based recovery, and OTP verification. While this solution is functional and secure, it requires each user to remember application-specific credentials that are separate from those they already use in their day-to-day university activities.
 
-A natural improvement would be to integrate federated authentication using the OAuth 2.0 / OpenID Connect standard with Microsoft, leveraging the institutional accounts of the University of Oviedo (`uoXXXXXX@uniovi.es`). The university uses Microsoft 365, so all users — teachers and administrators alike — already have an active and familiar account. This integration would eliminate the need to manage a proprietary identity system and would align the application with the technological ecosystem already established at the institution.
+A natural improvement would be to integrate federated authentication using the OAuth 2.0 / OpenID Connect standard with Microsoft, leveraging the institutional accounts of the Universidad de Oviedo (`uoXXXXXX@uniovi.es`). The university uses Microsoft 365, so all users — teachers and administrators alike — already have an active and familiar account. This integration would eliminate the need to manage a proprietary identity system and would align the application with the technological ecosystem already established at the institution.
 
 It is worth noting that the project already has a Google OAuth integration, but this was implemented exclusively for synchronising the classroom calendar with Google Calendar, not for user authentication. The extension proposed here is independent of that functionality and would focus on the login flow.
 
@@ -23,7 +29,7 @@ The advantages of this extension are multiple:
 - **Natural integration with the university environment:** by using the same `uniovi.es` accounts, user provisioning and deprovisioning would be partially tied to the institutional directory, reducing administrative overhead.
 - **Standards compliance:** OAuth 2.0 / OIDC are widely adopted protocols, which facilitates security audits and interoperability with other university systems.
 
-This extension was not included in the project due to time constraints and because its implementation required registering the application in the university's Azure portal, which involved organisational and institutional decisions outside the scope of a Bachelor's thesis.
+This extension was not included in the project due to time constraints and because its implementation required registering the application in the university's Azure portal, which involved organisational and institutional decisions outside the scope of a Final Degree Project.
 
 ### 8.2.2 Audit Log System with Query Interface
 
@@ -46,23 +52,7 @@ Implementing an action history (command pattern) in the frontend, complemented b
 
 This extension was not included primarily due to the complexity it adds to the data model and business logic, especially in the case of periodic events, whose generation involves sophisticated logic for distributing sessions across weeks and consuming the planned-hours budget.
 
-### 8.2.4 Administrator Statistics and Analytics Dashboard
-
-The application manages a considerable amount of academic data: calendars, groups, subjects, classrooms, events, and requests. However, there is currently no consolidated view that allows administrators to obtain global system metrics in a visual format.
-
-A dedicated analytics and statistics page is proposed for the system section, which could include:
-
-- Distribution of teaching load by classroom, subject, or group.
-- Change-request statistics: number of approved, rejected, or pending requests, and trends by period.
-- Percentage of planned hours versus hours actually generated by the calendar.
-- Classroom occupancy throughout the academic year.
-- Activity per user (complementing the audit log described in the previous section).
-
-The component library used in the frontend includes a rich set of visualisation elements — charts and data tables among them — that would make this implementation viable in a manner consistent with the current design. This page would complement the audit log page naturally, offering both a quantitative view (statistics) and a qualitative one (action traceability).
-
-This functionality was not developed in the current project given that prioritising the core features of the planning system required all available time.
-
-### 8.2.5 Real-Time Notifications
+### 8.2.4 Real-Time Notifications
 
 Currently, when an administrator approves or rejects an event change request, the teacher involved can only learn the outcome by manually accessing the requests section. Similarly, when changes occur in calendars that affect multiple users, no immediate alert mechanism exists.
 
@@ -72,4 +62,4 @@ The project's microservices architecture is compatible with this improvement, as
 
 ---
 
-> It is important to note that all extensions described in this section are compatible with the current system architecture. During the project design phase, decisions were made with future extensibility in mind: the separation into independent microservices, the use of audit fields in all domain model entities, the existence of navigation sections ready to receive content, and the compatibility of the data model with future external integrations are clear examples of this long-term vision. The primary reason these features were not included in the project scope was the time constraint inherent to a Bachelor's thesis, not any technical or architectural incompatibility.
+> It is important to note that all extensions described in this section are compatible with the current system architecture. During the project design phase, decisions were made with future extensibility in mind: the separation into independent microservices, the use of audit fields in all domain model entities, the existence of navigation sections ready to receive content, and the compatibility of the data model with future external integrations are clear examples of this long-term vision. The primary reason these features were not included in the project scope was the time constraint inherent to a Final Degree Project, not any technical or architectural incompatibility.

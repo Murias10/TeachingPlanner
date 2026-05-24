@@ -59,11 +59,47 @@ The gateway is the sole external entry point for all backend traffic: it receive
 
 The authentication service manages all aspects of user identity. It handles account registration and activation, login with email and password, password recovery via one-time code sent by email, JWT token issuance and validation, and the OAuth flow used to link a user's account to their Google profile (required for calendar synchronisation). It exposes an HTTP API consumed exclusively through the gateway and shares the user database with the user management service.
 
+**Authentication and identity endpoints**:
+
+| Verb | Route | Required role | Description |
+|---|---|---|---|
+| `GET` | `/health` | — | Service health check; returns `{ status: "ok", service: "auth" }` |
+| `POST` | `/auth/login` | — | Authenticates with email and password; returns a signed JWT and user data on success |
+| `POST` | `/auth/validate` | — | Validates a JWT from the `Authorization` header; returns the decoded identity |
+| `POST` | `/auth/logout` | — | Stateless logout; the client discards the token |
+| `POST` | `/auth/forgot-password` | — | Generates a one-time reset code and sends it to the provided email address |
+| `POST` | `/auth/verify-otp` | — | Verifies the one-time code; returns a short-lived reset token on success |
+| `POST` | `/auth/reset-password` | — | Sets a new password using the reset token obtained from OTP verification |
+| `POST` | `/auth/activate` | — | Activates a new account using the activation token sent by email; sets the initial password |
+| `GET` | `/auth/profile` | Authenticated | Returns the profile of the currently authenticated user |
+| `GET` | `/auth/google/initiate` | Authenticated | Starts the Google OAuth 2.0 authorisation flow; returns the authorisation URL |
+| `GET` | `/auth/google/callback` | — | Receives the Google OAuth redirect, stores the tokens, and redirects to the frontend |
+| `POST` | `/auth/google/disconnect` | Authenticated | Revokes the linked Google account and triggers calendar sync cleanup in the scheduling service |
+| `GET` | `/auth/google/status` | Authenticated | Returns whether the user currently has a Google account linked |
+| `GET` | `/auth/google/token/:userId` | Internal | Returns a valid Google access token for a user; requires the `x-internal-service: planner_service` header |
+
 ---
 
 ### 6.1.4 user\_service — User management service
 
 The user management service is responsible for user account administration — including bulk import from Excel files — and shares the user database with the authentication service. All its operations are exposed through the gateway.
+
+**User management endpoints**:
+
+| Verb | Route | Required role | Description |
+|---|---|---|---|
+| `GET` | `/health` | — | Service health check; returns `{ status: "ok", service: "user" }` |
+| `POST` | `/user` | ADMIN | Creates a single user account; returns 409 if the email is already registered |
+| `GET` | `/users` | ADMIN | Returns all user accounts |
+| `GET` | `/user/:id` | ADMIN | Returns a user by ID; returns 404 if not found |
+| `PUT` | `/user/:id` | ADMIN | Replaces a user's editable fields; returns 404 if not found |
+| `DELETE` | `/user/:id` | ADMIN | Deletes a user account; returns 404 if not found |
+| `GET` | `/user/role/:role` | ADMIN | Returns all users with the given role |
+| `GET` | `/users/search` | ADMIN | Searches users by name or email using the `q` query parameter |
+| `PATCH` | `/user/:id/password` | ADMIN | Updates a user's password; validates the current password before applying the change |
+| `POST` | `/user/:id/send-activation` | ADMIN | Sends an activation email to the user |
+| `POST` | `/user/import/preview` | ADMIN | Validates an Excel file and returns a preview of valid and invalid rows without creating any accounts |
+| `POST` | `/user/import` | ADMIN | Bulk-imports user accounts from a validated Excel file; optionally sends activation emails if `sendEmail=true` |
 
 ---
 
@@ -121,21 +157,93 @@ The calendar controller is the most extensive in the system, with 20 endpoints c
 | `GET` | `/calendar/:id/days` | — | Calendar days with their one-off events |
 | `GET` | `/calendar/:id/events` | — | All expanded events of the calendar |
 | `GET` | `/calendar/:id/pending-requests` | ADMIN or PROFESSOR | Pending requests represented as events |
-| `GET` | `/calendar/:id/export` | — | Exports the calendar to a ZIP file with TXT files |
+| `GET` | `/calendar/:id/export` | — | Exports the calendar as a ZIP containing 5 TXT files in the import format (calendar days, schedule, subjects, classrooms, one-off events) |
 | `POST` | `/calendar` | ADMIN | Creates a new empty calendar |
-| `POST` | `/calendar/import` | ADMIN | Creates a calendar from an Excel file |
+| `POST` | `/calendar/import` | ADMIN | Creates a new calendar from TXT import files (calendar days, schedule, subjects, classrooms, exceptions); requires `courseId` and `semester` |
 | `POST` | `/calendar/:calendarId/import-exceptions` | ADMIN | Imports exceptions (public holidays, special days) |
-| `POST` | `/calendar/duplicate` | ADMIN | Duplicates an existing calendar |
+| `POST` | `/calendar/duplicate` | ADMIN | Duplicates a calendar's N/P/I recurring events, subjects, and groups into a new date range for a target course |
 | `POST` | `/calendar/puntual-event` | ADMIN | Creates a one-off event |
 | `POST` | `/calendar/periodic-event` | ADMIN | Creates a standard recurring event (N/P/I) |
 | `POST` | `/calendar/custom-periodic-event` | ADMIN | Creates a recurring event with a custom character |
-| `POST` | `/calendar/replace-event` | ADMIN | Cancels a recurring event and creates its replacement |
+| `POST` | `/calendar/replace-event` | ADMIN | Atomically creates a cancellation puntual event and a replacement puntual event for a recurring event occurrence; both are linked via `replacementEventId` |
 | `PUT` | `/calendar/puntual-event/:eventId` | ADMIN | Edits a one-off event |
 | `PUT` | `/calendar/periodic-event/:eventId` | ADMIN | Edits a standard recurring event |
 | `PUT` | `/calendar/custom-periodic-event` | ADMIN | Edits a recurring event with a custom character |
-| `DELETE` | `/calendar/puntual-event/:eventId` | ADMIN | Deletes a one-off event |
-| `DELETE` | `/calendar/periodic-event/:eventId` | ADMIN | Deletes a recurring event |
+| `DELETE` | `/calendar/puntual-event/:eventId` | ADMIN | Deletes a puntual event; if paired with a replacement, deletes both atomically; auto-rejects any pending requests referencing this event |
+| `DELETE` | `/calendar/periodic-event/:eventId` | ADMIN | Deletes a recurring event series; cleans up its custom character from calendar and days if no longer used; auto-rejects any pending requests referencing it |
 | `DELETE` | `/calendar/:id` | ADMIN | Deletes a calendar and all its dependent entities |
+
+**Degree programme endpoints**:
+
+| Verb | Route | Required role | Description |
+|---|---|---|---|
+| `GET` | `/degrees` | — | Returns all degree programmes |
+| `GET` | `/degree/acronym/:acronym` | — | Returns a degree programme by acronym; 404 if not found |
+| `POST` | `/degree` | ADMIN | Creates a new degree programme; validates acronym uniqueness |
+| `PATCH` | `/degree/:id` | ADMIN | Updates the name and acronym of a degree programme |
+| `DELETE` | `/degree/:id` | ADMIN | Deletes a degree programme and all its cascading entities (courses, calendars, subjects, groups, events) |
+
+**Academic year (course) endpoints**:
+
+| Verb | Route | Required role | Description |
+|---|---|---|---|
+| `GET` | `/courses` | — | Returns all academic years |
+| `GET` | `/courses/degree/:id` | — | Returns academic years for a degree identified by ID |
+| `GET` | `/courses/degree/acronym/:acronym` | — | Returns academic years for a degree identified by acronym |
+| `POST` | `/course` | ADMIN | Creates a new academic year |
+| `PATCH` | `/course/:id` | ADMIN | Updates an academic year |
+| `DELETE` | `/course/:id` | ADMIN | Deletes an academic year and all its cascading entities (calendars, subjects, groups, events) |
+
+**Classroom endpoints**:
+
+| Verb | Route | Required role | Description |
+|---|---|---|---|
+| `GET` | `/classrooms` | — | Returns all classrooms ordered by code |
+| `POST` | `/classroom` | ADMIN | Creates a classroom with a unique code and an optional GIS URL |
+| `PATCH` | `/classroom/:id` | ADMIN | Updates the GIS URL of a classroom (code is read-only after creation) |
+| `DELETE` | `/classroom/:id` | ADMIN | Deletes a classroom; returns 409 if events are linked unless the `force=true` query parameter is set, in which case linked events are deleted first |
+
+**Subject endpoints**:
+
+| Verb | Route | Required role | Description |
+|---|---|---|---|
+| `GET` | `/subjects` | — | Returns all subjects |
+| `GET` | `/subjects/calendar/:id` | — | Returns subjects belonging to a specific calendar |
+| `GET` | `/subjects/groups/by-calendar/:calendarId` | — | Returns subjects together with their groups for a specific calendar |
+| `POST` | `/subject` | ADMIN | Creates a new subject |
+| `PATCH` | `/subject/:id` | ADMIN | Updates a subject |
+| `DELETE` | `/subject/:id` | ADMIN | Deletes a subject and all its groups and associated events |
+
+**Group endpoints**:
+
+| Verb | Route | Required role | Description |
+|---|---|---|---|
+| `POST` | `/group` | ADMIN | Creates a group with a planned-hours budget |
+| `PATCH` | `/group/:id/planified-hours` | ADMIN | Updates the planned-hours budget for a group |
+| `DELETE` | `/group/:id` | ADMIN | Deletes a group and removes it from all event junction tables |
+
+**Change request endpoints**:
+
+| Verb | Route | Required role | Description |
+|---|---|---|---|
+| `POST` | `/event-request` | PROFESSOR | Submits a new change request (CREATE, EDIT, REPLACE, or CANCEL) |
+| `GET` | `/event-requests` | ADMIN | Returns all change requests; supports optional filters by status, calendarId, and professorId |
+| `GET` | `/my-event-requests` | PROFESSOR | Returns the authenticated professor's own change requests; supports optional status filter |
+| `GET` | `/event-request/:id` | Authenticated | Returns the details of a specific change request |
+| `PATCH` | `/event-request/:id/approve` | ADMIN | Approves a change request and applies the corresponding event creation or modification |
+| `PATCH` | `/event-request/:id/reject` | ADMIN | Rejects a change request; accepts optional review comments |
+| `DELETE` | `/event-request/:id` | PROFESSOR | Deletes an own pending change request; returns 403 if the request belongs to another professor or is not pending |
+
+**Google Calendar sync endpoints**:
+
+| Verb | Route | Required role | Description |
+|---|---|---|---|
+| `GET` | `/calendar-sync` | Authenticated | Lists all Google Calendar sync entries for the authenticated user, including status and last sync time |
+| `POST` | `/calendar-sync/:id/sync-now` | Authenticated | Triggers an immediate background sync of a calendar to Google Calendar; responds immediately with HTTP 200 while processing continues asynchronously |
+| `DELETE` | `/calendar-sync/:id` | Authenticated | Removes a Google Calendar sync entry |
+| `GET` | `/calendar-sync/rate-limit-status` | Authenticated | Returns the current Google Calendar API quota usage |
+| `POST` | `/calendar-sync/initialize` | Internal | Initialises sync entries for a user after Google account connection; called by `auth_service` with the `x-internal-service` header |
+| `DELETE` | `/calendar-sync/cleanup` | Internal | Removes all sync entries and associated Google calendars for a user on disconnect; called by `auth_service` |
 
 ---
 

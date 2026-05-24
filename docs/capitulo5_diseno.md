@@ -6,11 +6,11 @@
 
 ### 5.1.1 Introduction and architectural rationale
 
-TeachingPlanner has been designed following a **microservices architecture with an API Gateway pattern**, a style formally defined by Newman [1] as the decomposition of a system into small, independently deployable services with well-defined domain boundaries and communication through lightweight interfaces (HTTP/REST). This choice does not stem solely from technological trends, but from concrete requirements identified during the analysis phase: the need to evolve authentication and scheduling independently, to scale the most computationally intensive service in isolation, and to deploy changes with minimal operational risk. Three driving factors justify this decision:
+TeachingPlanner has been designed following a **microservices architecture with an API Gateway pattern**. Newman [1] characterises this style as the decomposition of a system into small, independently deployable services that communicate through lightweight interfaces — each service owns its domain and can evolve without coordinating with the rest of the system. The choice here does not stem solely from technological trends, but from concrete requirements identified during the analysis phase: the need to evolve authentication and scheduling independently, to scale the most computationally intensive component in isolation, and to deploy changes with minimal operational risk. Three driving factors justify this decision:
 
-- **Domain separation**: authentication and user management logic is structurally independent from academic scheduling logic. Isolating them into services with their own databases eliminates coupling between change cycles that evolve at different rates; modifying the password-reset flow, for instance, does not risk regressions in calendar generation.
-- **Independent scalability**: the scheduling service (`planner_service`) is the most computationally demanding component — it generates complete calendars with recurring event expansion, handles export and Google Calendar synchronisation — and can scale autonomously without replicating the authentication services, which have comparatively low and uniform load.
-- **Continuous, low-risk deployment**: each microservice is containerised and published as an independent image; deploying a change to `auth_service` does not require restarting `planner_service`, which reduces the operational risk window and shortens the mean time to recovery in case of failure.
+- **Domain separation**: authentication and user management are structurally independent from academic scheduling. Isolating them into services with their own databases eliminates coupling between change cycles that evolve at different rates; modifying the password-reset flow, for instance, carries no risk of regressions in calendar generation.
+- **Independent scalability**: the scheduling service is the most computationally demanding component — it generates complete calendars with recurring event expansion, handles export and Google Calendar synchronisation — and can scale autonomously without replicating the authentication services, which have comparatively low and uniform load.
+- **Continuous, low-risk deployment**: each microservice is containerised and published as an independent image; deploying a change to the authentication service does not require restarting the scheduling service, which reduces the operational risk window and shortens the mean time to recovery in case of failure.
 
 To justify the choice of specific technologies within this architectural style, Table 5.1 summarises the main decisions made and the alternatives that were evaluated before reaching them.
 
@@ -29,7 +29,7 @@ The resulting component decomposition is described in detail in the following se
 
 ### 5.1.2 Block diagram — Component view
 
-The system is divided into **seven deployable components**: a frontend application (`webapp`), an API Gateway (`gateway_service`), three backend services (`auth_service`, `user_service`, `planner_service`) and two relational databases (`management_database`, `planner_database`). Figure 5.1 shows the components and their communication relationships.
+The system is divided into **seven deployable components** organised across four layers: a frontend web application, an API gateway that acts as the single entry point, three backend services each responsible for a distinct domain (authentication, user management and academic scheduling), and two relational databases that persist their data independently. Figure 5.1 shows the components and their communication relationships.
 
 **Figure 5.1 — System block diagram**
 
@@ -84,11 +84,11 @@ graph TD
 | `gateway_service` | Single entry point for all frontend requests; routes and forwards HTTP requests to internal services; manages CORS and multipart file uploads | Express 5, TypeScript, Axios, Multer |
 | `auth_service` | JWT authentication; account registration and activation; Google OAuth 2.0 integration; password reset with OTP via email | Express 5, TypeORM, bcrypt, jsonwebtoken, Nodemailer |
 | `user_service` | User CRUD management; role control (`ADMIN`, `PROFESSOR`); bulk import from Excel (XLSX) files | Express 5, TypeORM, xlsx |
-| `planner_service` | Business core of the system: manages calendars, degree programmes, academic years, subjects, groups, classrooms, recurring events and one-off events; processes change requests from teaching staff; synchronises academic calendars with Google Calendar; handles Excel import/export and generates ZIP archives; audits all write operations | Express 5, TypeORM, xlsx, archiver |
+| `planner_service` | Business core of the system: manages calendars, degree programmes, academic years, subjects, groups, classrooms, recurring events and one-off events; processes change requests from teaching staff; synchronises academic calendars with Google Calendar; imports timetables from plain-text files and exports them as ZIP archives; audits all write operations | Express 5, TypeORM, xlsx, archiver |
 | `management_database` | Relational store for users and credentials; shared between `auth_service` and `user_service` | MariaDB 11 |
 | `planner_database` | Relational store for all academic information; exclusive use of `planner_service` | MariaDB 11 |
 
-**Public exposure perimeter:** a key security property of this decomposition is that only `gateway_service` (port 8080) and `webapp` (ports 80/443) are accessible from the outside. The three backend services (`auth_service`, `user_service`, `planner_service`) and both databases reside in the internal Docker network `app_network` and have no port exposed to the host or the Internet. This design decision limits the attack surface: any request to the backend must pass through the gateway, where the CORS policy is enforced and multipart files are handled.
+**Public exposure perimeter:** a key security property of this decomposition is that only the API gateway (port 8080) and the web frontend (ports 80/443) are accessible from outside the server. The three backend services and both databases reside in an isolated internal network with no ports exposed to the host or the Internet. This deliberate boundary limits the attack surface: every request to the backend must pass through the gateway, where the CORS policy is enforced and multipart file handling is centralised.
 
 ---
 
@@ -96,9 +96,9 @@ graph TD
 
 The system is deployed using Docker containers orchestrated with Docker Compose. Three deployment profiles are maintained:
 
-- **Local development** (`docker-compose.dev.yml`): compilation from source, ports exposed on the host, hot-reload volumes.
-- **Production on Azure VM** (`docker-compose.azure.yml`): pre-built images published in GitHub Container Registry (`ghcr.io/murias10/teachingplanner`), public exposure limited to the gateway and the frontend, internal network for the rest of the services.
-- **Quality analysis** (`docker-compose.sonarqube.yml`): local SonarQube instance for static code analysis.
+- **Local development**: compiles all services from source with ports exposed on the host machine and hot-reload volumes for immediate feedback during development.
+- **Production on Azure VM**: pulls pre-built images from the container registry, limits public exposure to the gateway and the frontend, and keeps the remaining services on an isolated internal network.
+- **Quality analysis**: starts a local SonarQube instance to run the static code analysis pipeline against the full codebase.
 
 **Figure 5.2 — Deployment diagram**
 
@@ -158,19 +158,19 @@ graph TB
 
 The deployment process is designed for deliberate, controlled releases rather than fully automated continuous deployment. It is structured in four configurable jobs defined in two GitHub Actions workflow files: `deploy_azure.yml` (public Azure VM, SSH access) and `deploy_selfhosted.yml` (university private network VM, self-hosted runner). Both workflows share the same structure, and each job can be independently enabled or disabled at run time:
 
-1. **`unit-tests`** (optional): runs the integration tests for `planner_service` with Jest 30 and Testcontainers on Node.js 20.
-2. **`e2e-tests`** (optional, depends on `unit-tests`): starts all backend services in the background, launches MariaDB as a Docker service, seeds a test administrator user and runs the Playwright tests on Chromium.
-3. **`build-and-push-images`** (optional): builds the Docker images for all services and publishes them to `ghcr.io/murias10/teachingplanner/<service>`.
-4. **`deploy`** (optional): in `deploy_azure.yml`, connects to the Azure VM via SSH and runs `docker compose pull` + `docker compose up -d`; in `deploy_selfhosted.yml`, the job runs directly on the runner installed on the university VM and performs the same operations without an incoming SSH connection.
+1. **Integration tests** (`unit-tests`, optional): runs the scheduling service's integration tests against a real database container on Node.js 20.
+2. **End-to-end tests** (`e2e-tests`, optional — depends on the previous step): starts all backend services in the background, launches MariaDB as a Docker service, seeds a test administrator user and runs the browser-based tests on Chromium.
+3. **Image build and publish** (`build-and-push-images`, optional): builds the Docker images for all services and publishes them to the project's container registry.
+4. **Deployment** (`deploy`, optional): in the Azure workflow, connects to the remote VM via SSH and restarts the services with the newly published images; in the self-hosted workflow, the same operations run directly on the university runner without an incoming SSH connection.
 
-Both workflows are triggered exclusively via `workflow_dispatch` (manual activation) from the *Actions* tab of the GitHub repository. When starting a run, the responsible person selects via checkboxes which jobs to execute, allowing combinations such as running only the tests, only the build, or the full pipeline. No `push` to `main` triggers an automatic deployment, ensuring that the decision to go to production is always conscious and deliberate. The detailed operational steps are described in the [Installation Manual](./manual_instalacion.md).
+Both workflows are triggered exclusively by manual activation from the repository's Actions tab. When starting a run, the responsible person selects via checkboxes which jobs to execute, allowing combinations such as running only the tests, only the build, or the full pipeline. No code push triggers an automatic deployment; the decision to promote a build to production is always explicit and deliberate. The detailed operational steps are described in the [Installation Manual](./manual_instalacion.md).
 
 **Key aspects of the production deployment:**
 
-- Databases include *health checks* (`mysqladmin ping -u root -p$MYSQL_ROOT_PASSWORD`) before dependent services start, ensuring that `auth_service`, `user_service` and `planner_service` do not initiate the TypeORM connection on an unavailable database.
-- Only `gateway_service` (port 8080) and `webapp` (ports 80/443) are accessible from the outside. Backend services and databases reside in the internal `app_network` network.
-- The frontend is served from a **Caddy** container configured to serve the application over HTTPS using a certificate issued by the university's IT department (GEANT TLS, valid for `*.ingenieriainformatica.uniovi.es`). The certificate and private key are stored as encrypted GitHub Actions secrets and written to the server automatically on each workflow run.
-- TypeORM operates with `synchronize: true` in both production and integration tests, meaning the database schema is automatically synchronised with the TypeORM entities on each service start. This configuration is appropriate for the scope of this project: the system is deployed to a single-tenant university environment with no concurrent schema-migration constraints, and the development cadence favours rapid iteration over a formal migration pipeline. In a multi-tenant or high-availability production system this option would be replaced by a migration tool such as TypeORM Migrations or Flyway; the `AuditedEntity` base class and the well-defined entity structure already provide the foundation to adopt that approach without further redesign. In integration tests with Testcontainers this configuration is equally valid, since the ephemeral database always starts from scratch.
+- Databases include *health checks* before dependent services start, ensuring that the backend services do not attempt to open database connections before the database engine is ready to accept them.
+- Only the API gateway and the web frontend are reachable from outside the server. All backend services and databases operate within an isolated internal network with no ports exposed to the host or the Internet.
+- The frontend is served from a **Caddy** container configured for HTTPS using a certificate issued by the university's IT department (GEANT TLS, valid for `*.ingenieriainformatica.uniovi.es`). The certificate and private key are stored as encrypted repository secrets and written to the server automatically on each deployment run.
+- Database schema management follows an automatic synchronisation model: on each service start, the ORM compares the current schema with the entity definitions and applies any structural differences without manual intervention. This removes the need for an explicit migration pipeline, which is appropriate for the scope of this project — a single-tenant university deployment with a development cadence that favours iteration speed. In a multi-tenant or high-availability context this approach would be replaced by a versioned migration tool; the well-defined entity structure and shared audited base class already provide a clean foundation for that transition. Integration tests benefit from the same configuration, since each suite starts from an empty, freshly created database.
 
 ---
 
@@ -191,7 +191,7 @@ Both workflows are triggered exclusively via `workflow_dispatch` (manual activat
 | CI/CD | — | YAML | GitHub Actions | — | — | GitHub Container Registry |
 | Code quality | — | — | SonarQube | — | — | — |
 
-> ¹ Node.js 23 is used in production Docker images (`node:23-alpine`) as it was the current active release at the time of deployment. The CI environment (GitHub Actions) runs on Node.js 20, the Long-Term Support release pinned in the workflow configuration at the time of project setup. Both versions are fully compatible with the Express 5 and TypeORM 0.3 APIs used by the services; the version gap does not introduce behavioural differences in the tested code paths.
+> ¹ Node.js 23 is used in the production container images, as it was the current active release at the time of deployment. The CI environment runs on Node.js 20, the Long-Term Support release that was pinned in the workflow configuration at project setup. Both versions are fully compatible with the framework and ORM versions used by the services; the version gap does not introduce behavioural differences in the tested code paths.
 
 ---
 
@@ -209,13 +209,13 @@ The following subsections describe the design of each layer in detail.
 
 #### JWT-based authentication (stateless)
 
-The system uses JWT tokens signed with the HS256 algorithm using a symmetric secret configured in the `JWT_SECRET` environment variable. The token payload contains exclusively the `userId`, `email` and `role` fields, with no sensitive information. Tokens are stateless on the server: there is no session table or revocation list; token validity is determined solely by the cryptographic signature.
+The system uses JWT tokens signed with a symmetric secret. The token payload carries only the minimum identity data needed by the backend — user identifier, email address and role — with no sensitive information. Tokens are stateless on the server: there is no session table or revocation list; validity is determined solely by the cryptographic signature and the expiry timestamp embedded in the token itself.
 
-The absence of a server-side session store or token revocation list is an intentional trade-off appropriate for this system's scope: TeachingPlanner is an internal university tool with a small, known user base, where the risk of a compromised token remaining valid until its natural expiry is acceptable. In a higher-security context (e.g. a financial application), this design would be complemented with a token blacklist or short-lived access tokens paired with refresh-token rotation.
+The absence of a server-side session store or revocation mechanism is an intentional trade-off appropriate for this system's scope: TeachingPlanner is an internal university tool with a small, known user base, where the risk of a compromised token remaining valid until its natural expiry is acceptable. In a higher-security context (e.g. a financial application), this design would be complemented with a token blacklist or short-lived access tokens paired with refresh-token rotation.
 
 A further design decision is that token verification is performed **in each backend service independently**, not at the gateway. The gateway acts as an opaque proxy and forwards the token without validating it. This allows any service to be deployed and invoked directly — for example, from integration scripts or integration tests — without depending on the gateway as the authentication authority, which increases resilience and testability.
 
-Account activation and password reset follow asynchronous flows via email. When a user registers, the system generates a random `activationToken` that is stored in the `User` entity and sent by email; the account remains inactive (`isActive = false`) until the user visits the activation link. Password reset generates a single-use OTP with an expiry date (`resetTokenExpiry`), also sent by email.
+Account activation and password reset follow asynchronous flows via email. When a user registers, the system generates a random activation token that is stored against the account and sent by email; the account remains inactive until the user follows the activation link. Password reset generates a single-use one-time password with an expiry timestamp, also delivered by email.
 
 Figure 5.3 shows the user account lifecycle.
 
@@ -232,14 +232,14 @@ stateDiagram-v2
 
 #### Password hashing (bcrypt)
 
-Passwords are never stored in plain text. The `password` field of the `User` entity always stores the result of `bcrypt.hash(plaintext, saltRounds)`, where `saltRounds` is configurable via an environment variable. Credential verification at login is performed with `bcrypt.compare`, which incorporates the salt stored in the hash itself, preventing rainbow table attacks.
+Passwords are never stored in plain text. Each password is run through an irreversible hashing function with a unique random salt before it is persisted — the cost factor that controls hashing strength is configurable via an environment variable. Verification at login works by applying the same hashing function to the supplied password and comparing the result against the stored hash; the original password is never recovered or compared directly, which makes precomputed dictionary attacks ineffective.
 
 #### Role-based access control (RBAC)
 
 The system defines two roles with clearly delimited permissions:
 
-- **`ADMIN`**: full read and write access to all system entities; user management; approval or rejection of change requests proposed by teaching staff.
-- **`PROFESSOR`**: read access to calendars and events; ability to create `EventRequest` (change requests on already scheduled events) for review by the administrator.
+- **Administrator** (`ADMIN`): full read and write access to all system entities; responsible for user management and for approving or rejecting change requests proposed by teaching staff.
+- **Professor** (`PROFESSOR`): read access to calendars and scheduled events; can submit change requests — proposals to modify or cancel already scheduled events — which are then queued for the administrator's review.
 
 Authorisation verification is applied via a chain of three Express middlewares that act before the controller on all protected routes:
 
@@ -247,23 +247,21 @@ Authorisation verification is applied via a chain of three Express middlewares t
 authenticateToken → requireAuth → requireRole('ADMIN' | 'PROFESSOR') → controller
 ```
 
-- `authenticateToken` (`auth.middleware.ts`): extracts the Bearer token from the `Authorization` header and verifies it with `jwt.verify`. If the token is valid, it attaches the decoded payload to `req.user`. If it is invalid or absent, it does not reject the request but leaves `req.user` as `undefined`.
-- `requireAuth`: rejects with `401 Unauthorized` if `req.user` is `undefined`.
-- `requireRole(role)`: rejects with `403 Forbidden` if `req.user.role` does not match the required role.
+The chain works in three steps: first, the identity extractor reads the Bearer token from the request header and, if the signature is valid, attaches the decoded user data to the request context — if the token is missing or invalid it simply leaves the user context empty without rejecting outright. Second, the authentication guard rejects the request with `401 Unauthorized` if no valid user context was established. Third, the role guard rejects with `403 Forbidden` if the authenticated user does not hold the required role.
 
-This separation into three handlers allows `authenticateToken` to be reused in routes that need to identify the user but do not require a specific role (for example, retrieving one's own profile).
+Splitting these responsibilities across three separate handlers means the identity-extraction step can be reused on routes that need to know who the caller is without requiring a specific role — for example, when a user retrieves their own profile.
 
 #### Transport layer security (HTTPS/TLS)
 
-In production, all external traffic to `webapp` goes through Caddy on port 443, with TLS provided by a certificate issued by the university's systems administration team (GEANT TLS, scoped to `*.ingenieriainformatica.uniovi.es`). The certificate and its private key are stored as encrypted repository secrets (`SSL_CERT`, `SSL_KEY`) and written to the server by the deployment workflow on each run, eliminating the need for manual file transfers. HTTP traffic on port 80 is redirected to HTTPS. The gateway is exposed on port 8080 and also receives HTTPS connections (the web client configures the API base URL with `https://`).
+In production, all external traffic to the frontend goes through Caddy on port 443, with TLS provided by a certificate issued by the university's systems administration team (GEANT TLS, scoped to `*.ingenieriainformatica.uniovi.es`). The certificate and its private key are stored as encrypted repository secrets and written to the server automatically by the deployment workflow on each run, eliminating the need for manual file transfers. HTTP traffic on port 80 is redirected to HTTPS. The gateway is exposed on port 8080 and also receives HTTPS connections.
 
-Communication between services within the Docker `app_network` uses HTTP without TLS, which is acceptable from a security standpoint because the traffic never leaves the virtual machine and the Docker bridge network is isolated from external traffic.
+Communication between services within the internal Docker network uses HTTP without TLS, which is acceptable from a security standpoint because the traffic never leaves the virtual machine and the Docker bridge network is isolated from external traffic.
 
 #### CORS protection
 
-The gateway implements a CORS policy with an allowlist of permitted origins, built dynamically from the `DOMAIN` (production domain) and `SERVER_IP` (server public IP) environment variables. Only the frontend deployed at those origins can read API responses from a browser, preventing unauthorised cross-origin data access.
+The gateway implements a CORS policy with an allowlist of permitted origins, built dynamically from environment-supplied values for the production domain and the server's public IP address. Only the frontend deployed at those origins can read API responses from a browser, preventing unauthorised cross-origin data access.
 
-It is worth noting that this system is **not vulnerable to classical CSRF attacks**: all API requests are authenticated by including the JWT in the `Authorization: Bearer` HTTP header, not in a cookie. Browsers do not automatically attach custom headers to cross-site requests, so a malicious third-party page cannot forge authenticated requests on behalf of a logged-in user. CORS reinforces this by additionally blocking unauthorised origins from reading any response that the browser does receive, providing defence in depth against cross-origin data exfiltration.
+It is worth noting that this system is **not vulnerable to classical CSRF attacks**: all API requests are authenticated by including the token in a custom HTTP request header, not in a cookie. Browsers do not automatically attach custom headers to cross-site requests, so a malicious third-party page cannot forge authenticated requests on behalf of a logged-in user. CORS reinforces this by additionally blocking unauthorised origins from reading any response that the browser does receive, providing defence in depth against cross-origin data exfiltration.
 
 ---
 
@@ -271,7 +269,7 @@ It is worth noting that this system is **not vulnerable to classical CSRF attack
 
 ### 5.2.1 Code structure
 
-The three backend microservices (`auth_service`, `user_service`, `planner_service`) share an identical **layered architecture** that separates the responsibility of routing, request processing, business logic and data access. This uniformity facilitates navigation between services and reduces the learning curve for new contributors.
+The three backend services share an identical **layered architecture** that separates the responsibility of routing, request processing, business logic and data access. This structural uniformity means that a developer familiar with one service can navigate any other without relearning the codebase conventions.
 
 **Figure 5.4 — Backend layered architecture (pattern common to all three microservices)**
 
@@ -286,11 +284,11 @@ graph LR
 
 The flow of an HTTP request through the layers is as follows:
 
-1. **`routes/*.routes.ts`**: registers the HTTP verbs and routes, composes the middleware chain and associates the final controller handler.
-2. **`middleware/`**: contains the cross-cutting middlewares. `auth.middleware.ts` verifies the JWT; `require-role.middleware.ts` validates the role; Zod schemas validate the request body before the controller processes it.
-3. **`controllers/*.controller.ts`**: receives the Express `Request` object, extracts the necessary parameters, delegates to the corresponding service and builds the HTTP response (status code, headers, JSON body).
-4. **`services/*.service.ts`**: contains the pure business logic. Uses TypeORM repositories to read and write data; it is the only place where domain rules, business validations and data transformations are executed.
-5. **`TypeORM Repository`**: abstracts database access. Controllers and services never write SQL directly; they use the TypeORM API (`find`, `save`, `remove`, `createQueryBuilder`).
+1. **Route definition layer** (`routes/`): registers the HTTP verbs and paths, composes the middleware chain and associates the final controller handler for each endpoint.
+2. **Middleware layer** (`middleware/`): contains cross-cutting concerns applied before the controller. One middleware verifies the JWT and identifies the caller; a second enforces the required role; a third validates the request body against a schema before any business logic runs.
+3. **Controller layer** (`controllers/`): receives the incoming request, extracts the necessary parameters, delegates to the corresponding service and assembles the HTTP response — status code, headers and JSON body.
+4. **Service layer** (`services/`): contains the pure business logic. It reads and writes data through the repository abstraction and is the only place where domain rules, business validations and data transformations are executed.
+5. **Repository layer** (TypeORM): abstracts database access. Controllers and services never write SQL directly; they interact with the database through the ORM's query API.
 
 The directory structure of each backend microservice is:
 
@@ -323,7 +321,7 @@ webapp/src/
 └── utils/           # Presentation and formatting utilities
 ```
 
-The separation between `hooks/` (data logic with TanStack Query) and `pages/` (presentation) applies the Single Responsibility Principle to the React component model: each page component is responsible solely for rendering and user interaction, while the corresponding domain hook encapsulates all fetching, caching and error-handling concerns. Page components are therefore unaware of Axios URLs, query keys or retry strategies; they simply invoke the domain hook and react to the `data`, `isLoading` and `error` states it exposes. This decoupling also makes it straightforward to replace the data layer (e.g. switching from REST to a different protocol) without touching any presentation component.
+The separation between the hooks directory (data logic) and the pages directory (presentation) applies the Single Responsibility Principle to the React component model: each page component is responsible solely for rendering and user interaction, while the corresponding domain hook encapsulates all fetching, caching and error-handling concerns. Page components are therefore unaware of the API endpoint details, cache configuration or retry strategies — they simply invoke the domain hook and react to the loading, data and error states it exposes. This decoupling also makes it straightforward to replace the data layer without touching any presentation component.
 
 ---
 
@@ -347,7 +345,7 @@ Table 5.3 summarises the five design patterns applied in TeachingPlanner before 
 
 **Name:** API Gateway
 
-**Motivation:** the frontend should not know the internal URLs or ports of each microservice. A single entry point abstracts the internal topology of the backend, applies CORS and multipart handling uniformly, and simplifies the HTTP client configuration in the webapp to a single base URL.
+**Motivation:** the frontend should not need to know how the backend is decomposed internally — which services exist, on which ports they listen, or how requests are routed among them. A single entry point abstracts this topology, applies CORS and multipart handling uniformly, and reduces the HTTP client configuration in the web application to a single base URL.
 
 **Instantiation: REST request routing**
 
@@ -365,7 +363,7 @@ Table 5.3 summarises the five design patterns applied in TeachingPlanner before 
 
 **Name:** Repository
 
-**Motivation:** controllers and services should not construct raw SQL queries or depend on database-engine-specific APIs. TypeORM's Repository abstraction decouples business logic from the relational storage layer, yielding two concrete benefits: (1) services are testable in isolation from the database by substituting the repository with a test double; and (2) query construction is expressed in terms of the domain model rather than table and column names, reducing the surface area for SQL injection and making schema refactors safer.
+**Motivation:** business logic should not depend on how or where data is physically stored. The repository abstraction provided by the ORM decouples service code from the relational storage layer, with two concrete benefits: services can be tested in isolation by substituting a repository implementation; and queries are expressed in terms of the domain model rather than raw table and column names, which reduces the risk of injection vulnerabilities and makes schema changes less disruptive.
 
 **Instantiation: Data access in planner_service**
 
@@ -382,9 +380,9 @@ Table 5.3 summarises the five design patterns applied in TeachingPlanner before 
 
 **Name:** Middleware Chain (instantiation of the Chain of Responsibility pattern on Express)
 
-**Motivation:** Express processes HTTP requests through a chain of middleware functions. This allows cross-cutting concerns (authentication, authorisation, body validation) to be applied in a composable, reusable and correctly ordered way, without polluting the controller logic.
+**Motivation:** HTTP request processing is rarely a single operation — it involves authentication, authorisation, input validation, and only then the actual business logic. Structuring these steps as a composable chain of independent middleware functions allows each concern to be written, tested and reused in isolation, without polluting the controller with responsibilities that are orthogonal to its domain purpose.
 
-**Instantiation: Protecting admin routes in planner_service**
+**Instantiation: Protecting admin routes in the scheduling service**
 
 The full chain for an administrator-protected route is the following sequence of four handlers:
 
@@ -401,7 +399,7 @@ The full chain for an administrator-protected route is the following sequence of
 
 **Name:** Context (global state propagation pattern in React)
 
-**Motivation:** React's component model encourages composing the UI from a tree of independent, reusable components. However, certain state information — authenticated user session, global alerts, active breadcrumb path — must be available in any component of the application without the need for prop-drilling through multiple levels of the component tree. The Context API provides a scoped dependency injection mechanism that makes this shared state accessible to any subscriber without coupling intermediate components to data they do not use.
+**Motivation:** React's component model encourages composing the UI from a tree of independent, reusable components. However, some state is genuinely global — the authenticated user session, in-flight alerts, the active breadcrumb path — and must be available anywhere in the application without manually threading it through every intermediate component. The Context API provides a scoped dependency injection mechanism that makes this shared state accessible to any subscriber without coupling intermediate components to data they do not use.
 
 **The system uses four contexts:**
 
@@ -437,7 +435,7 @@ The full chain for an administrator-protected route is the following sequence of
 
 **Name:** Custom Hook (data logic composition with TanStack React Query)
 
-**Motivation:** React re-renders components reactively when state changes, but the logic that drives those state changes — HTTP fetching, cache invalidation, error handling, optimistic updates — is identical in structure across every domain entity. Encapsulating this logic in domain-specific custom hooks built on top of TanStack React Query eliminates duplication, keeps page components free of data-fetching concerns, and provides a consistent, predictable interface (`data`, `isLoading`, `error`, mutation functions) across the entire frontend.
+**Motivation:** React re-renders components reactively when state changes, but the logic that drives those state changes — HTTP fetching, cache invalidation, error handling, optimistic updates — follows the same structure for every domain entity in the application. Encapsulating this logic in domain-specific custom hooks eliminates duplication, keeps page components free of data-fetching concerns, and exposes a consistent, predictable interface — loading state, data, error, and mutation functions — across the entire frontend.
 
 **Instantiation: Degree management hook (representative example)**
 
@@ -447,13 +445,21 @@ The full chain for an administrator-protected route is the following sequence of
 | QueryClient | Configured in `webapp/src/main.tsx` | Manages the global query cache, retry configuration and in-memory data TTLs |
 | Consumer component | `webapp/src/pages/DegreePage.tsx` | Invokes the hook and renders based on the exposed states, with no coupling to Axios or the API URL |
 
-This pattern is replicated for all application domains: `calendar/`, `classroom/`, `course/`, `degree/`, `subject/`, `group/`, `user/`, `event-request/` and `google/`.
+This pattern is replicated uniformly across all application domains: calendars, classrooms, academic years, degree programmes, subjects, groups, users, change requests and Google Calendar integration.
 
 ---
 
 ### 5.2.3 Domain model — Main entities
 
-The following diagram shows the domain entities managed by `planner_service` and their relationships. All business entities extend `AuditedEntity`, which provides the traceability fields common to all write operations.
+The shape of the scheduling domain model is the result of a deliberate architectural choice between two fundamentally different approaches.
+
+The alternative not taken would have modelled events the way a conventional calendar application does: each class occurrence stored as a concrete record with a specific date, a start time and an end time, with no notion of recurrence patterns, day characters, or group-level hours budgets. This is the model used by Google Calendar and most general-purpose scheduling applications, and it would have made the calendar view straightforward to implement — displaying events would simply mean reading stored records.
+
+The approach taken instead mirrors the structure of the plain-text file format used across the school's institutional software ecosystem. In that format, a recurring class is described by its day of the week, its recurrence character, and the total hours planned for the group — not by an explicit list of dates. The domain model preserves this structure: recurring events have no stored dates, groups carry a hours budget, and teaching days carry characters that drive expansion. The reason for this choice is the institutional constraint the project must honour: TeachingPlanner must be able to import timetable data from existing files and export it back in exactly the same format, so that the other applications in the ecosystem — the one that assigns timetables to individual students, the one consumed by the head of studies — can continue to operate without modification. With a conventional date-based model, generating the required export files would demand a complex inverse transformation from concrete dates back to the recurrence-pattern format the ecosystem expects, with a real risk of information loss or ambiguity. With the current model, the export is a direct transcription and the import is a faithful reconstruction.
+
+The trade-off is that generating the calendar view requires expanding the recurrence patterns at runtime — the more complex operation described in section 5.2.8 — rather than simply reading stored dates. This runtime complexity is the deliberate cost of maintaining full compatibility with the institutional ecosystem from the first day of deployment.
+
+The following diagram shows the domain entities managed by the scheduling service and their relationships. All business entities inherit from a shared audited base class that automatically records the author and timestamp of every write operation.
 
 **Figure 5.5a — Class diagram of the scheduling domain (`planner_db`)**
 
@@ -605,26 +611,26 @@ classDiagram
     }
 ```
 
-`User` is managed exclusively in `management_db` by `auth_service` (authentication, Google OAuth) and `user_service` (CRUD, bulk import). It does not appear in `planner_db`; `planner_service` references users only by their `userId` (UUID extracted from the JWT) in the `userId` fields of `CalendarSync` and `GoogleClassroomCalendar`, and by their email address in the `AuditedEntity.createdBy` / `updatedBy` audit fields. There is no foreign key constraint between the two databases — referential integrity across the database boundary is enforced at the application layer.
+The user entity lives exclusively in the management database, where it is owned jointly by the authentication service and the user management service. It does not exist in the scheduling database: the scheduling service references users only by the identifier extracted from the JWT token — stored in the sync state and classroom calendar records — and by the email address recorded in the audit fields of every write operation. There is no foreign key constraint crossing the database boundary; referential integrity between the two databases is enforced at the application layer.
 
 **Notes on the domain model:**
 
-- `Group.planifiedHours` is stored as `decimal(10,2)` nullable in the database. A `null` value indicates that the group has no configured hours budget and its recurring events of type `N` expand without an hours limit.
+- Each group optionally carries a planned hours budget. Groups that have no recurring events of the standard type — for instance, those created to define the subject structure before any schedule is assigned — will have no budget set. Creating a standard recurring event for such a group requires the administrator to provide a budget at that point. Special-purpose event types (room blocks, revision sessions, assessments) do not require a budget and can be assigned to any group; when the system generates events for a group with no budget configured, it includes all of them without applying any hours limit.
 
-- `EventRequest` is a coordination entity between roles: it has no direct foreign key relationship with `PuntualEvent` or `PeriodicEvent`. The reference to the event to be modified or cancelled is stored in the JSON field `eventData` (field `originalEventId`), which allows representing any type of event — whether one-off or recurring — without requiring schema changes when new request types are added. The trade-off of this design is the loss of referential integrity at the database level: if a referenced event is deleted before the request is processed, the system must handle the stale reference gracefully at the application layer rather than relying on a cascade or restrict constraint.
+- A change request (`EventRequest`) is a coordination entity between roles: it carries no direct foreign key to the event it targets. Instead, the reference to the event to be modified or cancelled is stored inside a JSON payload, which allows representing any type of event — whether one-off or recurring — without requiring schema changes when new request types are added. The trade-off of this design is the loss of referential integrity at the database level: if a referenced event is deleted before the request is processed, the system must handle the stale reference gracefully at the application layer rather than relying on a cascade or restrict constraint.
 
-- `CourseState` is an enumeration with three values representing the lifecycle of an academic year: `PLANIFICADO` (planned — before the semester begins), `ACTIVO` (active — semester in progress) and `FINALIZADO` (concluded — semester ended). This state gates editing operations on the associated calendar: in `PLANIFICADO` and `ACTIVO` states, all calendar and event management operations are available; once a course reaches `FINALIZADO`, write operations are blocked to preserve the integrity of the historical record. Only `ADMIN` users can advance a course through the state machine.
+- An academic year moves through three stages during its lifetime: planned, before the semester begins; active, while it is in progress; and concluded, once it ends. This progression gates editing operations on the associated calendar — all management operations remain available in the first two stages, but once a course is concluded write operations are blocked to preserve the integrity of the historical record. Only administrators can advance a course to the next stage.
 
-- `SyncStatus` is an enumeration with the values `IDLE`, `SYNCING`, `SUCCESS`, `ERROR` and `DELETING`, reflecting the state of the last synchronisation process with Google Calendar for a (user, academic calendar) pair. The `DELETING` state is activated when the user initiates the deletion of an individual sync and allows the interface to display the correct state even if the user reloads the page during the deletion process.
+- For each combination of user and academic calendar, the system tracks the current synchronisation state, which covers the full range of possibilities a sync process can be in: idle, in progress, completed successfully, failed, or being deleted. The deletion state deserves special mention — it is recorded as soon as the user initiates the removal, before the Google API calls complete, so that the interface shows the correct state even if the page is reloaded mid-operation.
 
-- `ApiQuotaCounter` is an infrastructure entity (not a business one) that persists the Google Calendar API quota counters between server restarts. It is effectively a **singleton record**: there is at most one row in this table, identified by the fixed key `'google_calendar'`. The `apiKey` primary key is therefore a semantic identifier of the monitored API rather than a discriminator over a set of business instances. The `minuteCount`/`minuteWindowStart` fields implement a 1-minute sliding window for the per-minute limit; `dailyCount`, `dailyCalendarCreations` and `dailyWindowStart` control the daily quotas. Persisting these counters in the database — rather than in memory — ensures that quota state survives service restarts and remains consistent if the service is ever scaled to multiple replicas. This entity does not extend `AuditedEntity` because it is purely operational and does not benefit from creation/modification traceability.
+- Quota tracking for the Google Calendar API is handled by a dedicated infrastructure entity — not a business one — that persists the request counters between service restarts. It is effectively a singleton: at most one row exists in its table, identified by a fixed key for the monitored API. The counters implement both a per-minute sliding window and a daily budget. Persisting this state in the database rather than in memory ensures the quota tracking survives service restarts and remains consistent if the service is ever scaled to multiple replicas. This entity does not extend the audited base class because it is purely operational and does not benefit from creation and modification traceability.
 
-- **Domain uniqueness constraints** (business invariants implemented as unique indexes in the database):
-  - `Calendar`: `UNIQUE(courseId, semester)` — an academic year cannot have two calendars of the same semester.
-  - `Subject`: `UNIQUE(name, calendarId)` and `UNIQUE(acronym, calendarId)` — two subjects of the same calendar cannot share name or acronym.
-  - `Group`: `UNIQUE(calendarId, subjectId, number, type, language)` — the combination of calendar, subject, group number, type and language uniquely identifies a group.
-  - `Classroom`: `UNIQUE(code)` — the classroom code is unique across the entire system.
-  - `GoogleClassroomCalendar`: `UNIQUE(userId, classroomId)` — each user has at most one Google Calendar associated with each classroom.
+- **Domain uniqueness constraints** (business invariants enforced as unique indexes in the database):
+  - An academic year cannot have two calendars covering the same semester.
+  - Within a given calendar, no two subjects may share the same name, and no two may share the same acronym.
+  - A group is uniquely identified within a calendar by the combination of subject, group number, type and language of instruction.
+  - Classroom codes are unique across the entire system, regardless of calendar or degree programme.
+  - Each user may have at most one Google Calendar linked to any given classroom.
 
 ---
 
@@ -670,9 +676,9 @@ sequenceDiagram
 
 #### Flow 2: Google account linking
 
-The second flow allows an already authenticated user to **connect their Google account** to enable synchronisation of the academic calendar with Google Calendar. It is not an alternative authentication flow: the route `GET /auth/google/initiate` requires the `authenticateToken` middleware, so it is only accessible with a valid JWT. The user initiates the process from the `/settings` page.
+The second flow allows an already authenticated user to **connect their Google account** to enable synchronisation of the academic calendar with Google Calendar. It is not an alternative login path: the initiation endpoint requires a valid session token and is only reachable by users who are already logged in. The user triggers the process from the settings page.
 
-This flow justifies the existence of the `googleId`, `googleAccessToken`, `googleRefreshToken` and `googleTokenExpiry` fields in the `User` entity. Note that OAuth tokens are stored **encrypted** in the database; `auth_service` encrypts them before writing and decrypts them when providing them to `planner_service` on request. The diagram distinguishes the two databases involved: `management_database` (owned by `auth_service`, stores user credentials and OAuth tokens) and `planner_database` (owned by `planner_service`, stores the `CalendarSync` entries).
+This flow justifies the presence of Google identity and token fields in the user record. OAuth tokens are stored **encrypted** in the database; the authentication service handles encryption before writing and decryption when providing the tokens to the scheduling service on demand. The diagram distinguishes the two databases involved: the management database, which holds user credentials and OAuth tokens, and the scheduling database, which holds the synchronisation state records.
 
 **Figure 5.7 — Google account linking sequence**
 
@@ -707,9 +713,11 @@ sequenceDiagram
 
 ---
 
-### 5.2.5 Sequence diagram — Change request flow
+### 5.2.5 Change request design
 
-Change requests allow teaching staff (`PROFESSOR`) to propose modifications to already scheduled events. The administrator (`ADMIN`) reviews and approves or rejects each request without interrupting the normal workflow.
+The teaching calendar is a shared institutional resource. Giving teaching staff direct write access to it would mean that any scheduling error or uncoordinated change would immediately affect what every other user sees. Rather than prevent professors from proposing changes altogether, the system introduces a review layer: professors submit requests describing the change they need, and administrators evaluate and execute those requests. Under this model, the calendar only changes when an administrator explicitly decides that a change is correct and approves it. Professors have a structured channel to communicate scheduling needs, but no direct ability to modify the calendar that other users see.
+
+The sequence below shows how a request travels from submission to resolution.
 
 **Figure 5.8 — Change request flow sequence**
 
@@ -759,9 +767,7 @@ sequenceDiagram
 | `APPROVED` | Administrator approves; the change contained in `eventData` is applied to the original event | — (terminal state) |
 | `REJECTED` | Administrator rejects; the original event is not modified | — (terminal state) |
 
-The request flow involves two webapp routes:
-- `/degrees/.../solicitudes` (`SolicitudPage`): semester-level view, accessible to ADMIN
-- `/my-requests` (`MyRequestsPage`): personal view for the professor with all their requests across semesters, accessible to PROFESSOR; allows filtering by status and withdrawing pending requests
+The request flow involves two dedicated views in the web application: an administrator-facing view that lists all pending requests for a given semester, and a professor-facing personal view that shows all requests submitted by the logged-in user across all semesters, with the ability to filter by status and withdraw requests that are still pending.
 
 **Request types (`requestType`):**
 
@@ -772,25 +778,53 @@ The request flow involves two webapp routes:
 | `CANCEL` | Cancellation of an existing event (a specific occurrence of a recurring series, or a one-off event) | Required |
 | `REPLACE` | Cancellation of the original event (a specific occurrence of a recurring series, or a one-off event) and creation of a new one-off event in its place | Required |
 
-`originalEventId` is required for `EDIT`, `CANCEL` and `REPLACE` because those operations are defined relative to an event that already exists in the system — the administrator must be able to identify and locate the target event to apply or reject the change. `CREATE` does not reference any existing event: the full specification of the new event is contained entirely within `eventData`.
+A reference to an existing event is required for modification, cancellation and replacement requests because those operations are defined relative to something that already exists in the schedule — the administrator must be able to identify and locate the target event to apply or reject the change. Creation requests carry no such reference: the full specification of the new event is contained entirely within the request payload.
+
+#### Four types of request
+
+Not all scheduling changes are equivalent, and the design reflects this with four distinct request types, each with its own approval behaviour. The distinction is not merely organisational: each type triggers a different execution path at approval time. A single generic "change request" type would work as a free-text description that the administrator would have to interpret before knowing what to do — the four types make the intended operation unambiguous, so the system can execute it automatically and consistently the moment the administrator approves.
+
+A *creation request* proposes adding a new event — one-off or recurring — that does not yet exist in the calendar. The request carries the full specification of the event to be created, and approval causes that event to appear in the calendar.
+
+An *edit request* asks for a change to an event that already exists — typically a time adjustment or a note update. The original event remains in place until the administrator approves the request and applies the modification.
+
+A *cancellation request* asks the system to suppress a specific occurrence of a recurring event — for instance, the class scheduled for a particular date that falls on a public holiday or an exam period. Cancelling that one occurrence does not mean the class no longer exists in the semester: the recurring definition remains intact and continues generating occurrences on all other applicable dates. Removing the definition entirely would wipe out the entire series for the rest of the semester, which is not the intended outcome. The cancellation request therefore targets only the date in question, leaving everything else untouched.
+
+A *replacement request* covers the case where a class is not simply cancelled but moved — to a different day, time, or room. The professor is not removing the class from the semester; they are relocating it. This requires two things to happen together: the original occurrence must be suppressed, and a new event must appear in its place. The two operations are linked — the new event exists precisely because the original is being displaced — and they are applied as a single atomic action. If either part of the operation fails, neither is applied. This prevents the calendar from ending up in an inconsistent state where the original has been cancelled but no replacement exists, leaving a gap in the teaching schedule, or where the replacement has appeared but the original is still visible, creating a double-booking.
+
+#### The lifecycle of a request
+
+Every request enters the system in a pending state. While pending, the professor who submitted it can withdraw it without any administrator involvement — useful when the need changes between submission and review. The administrator can either approve the request, which triggers immediate execution of the corresponding calendar change, or reject it with a written comment explaining the reason. Once approved or rejected, the request is closed and cannot be revisited.
+
+#### Field completion at approval time
+
+Professors and administrators have access to different information. A professor knows what scheduling change they need — they want to move their class to a different room on a specific date — but they may not know which rooms are available at that time, or what the group's planned hours figure is if the group is not one they normally manage. Requiring the professor to complete those fields before submitting would force them to first ask the administrator for the missing data, defeating the purpose of the request system. Instead, the design allows a professor to submit a request with those logistical fields left empty. The administrator, who has full visibility of room availability and group configurations, fills them in at approval time. The information flows in the right direction: from the professor (intent) to the administrator (execution details), in a single cycle.
+
+#### Conflict detection at approval time
+
+The system checks for time-slot conflicts — between groups and between classrooms — at the moment of approval, not at the moment of submission. This is a deliberate choice. Consider two professors who submit requests on the same day for the same room at the same time: neither request conflicts with anything at the time of submission, because neither has been approved yet and neither appears in the calendar. If conflicts were validated only at submission time, both requests would pass validation and both could later be approved, producing a genuine double-booking. Checking at approval time prevents this: when the administrator approves the first request and it enters the calendar, the second request will fail its conflict check and cannot be approved in its current form. The calendar state at the moment of approval is the only state that matters for determining whether a change is safe to apply.
+
+#### Automatic cleanup of stale requests
+
+If an event that a pending request references — the target of an edit, cancellation or replacement — is deleted from the system, that request becomes impossible to execute: there is nothing left to edit, cancel or replace. Leaving it in the pending state would create a problem for the administrator: it would appear in the review queue as a normal pending request, but attempting to approve it would produce an error with no clear explanation of what went wrong. The administrator would have to investigate the discrepancy manually to understand why approval failed. The system prevents this by automatically rejecting all pending requests that reference a deleted event, and recording the reason in the rejection note. The professor is informed that the request was closed because its target no longer exists, and the administrator's queue stays free of requests that cannot be actioned.
 
 ---
 
 ### 5.2.6 Event system design: types, recurrence and characters
 
-The event system is the most complex part of the scheduling domain. Its design is driven directly by the structure of real academic timetables as exported from the SIES (Sistema de Información de la Escuela de Ingeniería — the School of Engineering Information System), which is the authoritative source of timetable data for the institution. SIES timetables combine three types of recurrence: regular weekly classes that repeat on every teaching week, fortnightly alternating classes (odd-week/even-week groups sharing a classroom), and arbitrary institution-defined patterns where a specific character is assigned to each teaching day. The event model described below is a faithful representation of this three-tier recurrence structure.
+The event system is the most complex part of the scheduling domain. Its design is driven directly by the timetable format used across the school's institutional software ecosystem: multiple applications within that ecosystem — including the system responsible for assigning timetables to individual students — share the same plain-text file format and the same recurrence conventions. That format distinguishes three types of recurrence: regular weekly classes that repeat on every teaching week, fortnightly alternating classes (odd-week/even-week groups sharing a classroom or time slot), and arbitrary patterns where a specific character is assigned to each teaching day. The event model described below is a faithful representation of this three-tier recurrence structure, designed to remain compatible with all applications that consume or produce the shared format.
 
 #### Event types: one-off vs. recurring
 
 The system distinguishes two structurally different types of events:
 
-- **`PuntualEvent`**: a one-off event tied directly to a specific `Day` of the calendar. It can be marked as `cancelled = true` to reflect that a class has been cancelled that day. The `periodicEventSourceId` field stores the reference to the `PeriodicEvent` that generated this one-off event (if it is a cancellation of a recurring occurrence). The `replacementEventId` field points to the one-off event that replaces it if it has been rescheduled.
+- **One-off event** (`PuntualEvent`): tied directly to a specific day of the calendar. It can be flagged as cancelled to reflect that a class did not take place that day. When a cancellation suppresses a specific occurrence of a recurring series, the one-off event stores a reference to that series (`periodicEventSourceId`) — this is what makes the cancellation selective: the system knows which recurring event was blocked on that date without touching the series definition itself. If the class was not simply cancelled but moved to a different time or day, a second reference (`replacementEventId`) links the cancelled event to the new one-off event that replaced it, establishing bidirectional traceability: from the cancelled occurrence you can reach the replacement, and from the replacement you can reach what it displaced.
 
-- **`PeriodicEvent`**: a recurring event not tied to any specific `Day`, but defined via `weekDay` (day of the week) and `year` (academic year within the semester). It has no fixed date; the service `CalendarEventsService.generateCalendarEvents()` dynamically expands it to all teaching days of the calendar where it applies, according to its `eventCharacter`.
+- **Recurring event** (`PeriodicEvent`): not tied to any specific calendar day, but defined by the day of the week and the academic year within the semester. It has no fixed date in the database; the calendar generation service dynamically expands it to all teaching days where it applies, according to its recurrence character.
 
 #### The event character system (`eventCharacter`)
 
-The `eventCharacter` is the central mechanism that determines the recurrence of each `PeriodicEvent`. The system defines three standard characters and a pool of custom characters:
+The recurrence character (`eventCharacter`) is the central mechanism that determines which teaching days each recurring event expands to. The system defines three standard values and a pool of custom ones:
 
 **Table 5.5 — Expansion behaviour by `eventCharacter`**
 
@@ -801,13 +835,13 @@ The `eventCharacter` is the central mechanism that determines the recurrence of 
 | `I` (Odd) | Teaching weeks with an odd number from the start of the semester | Fortnightly class on odd weeks |
 | Custom (e.g. `A`, `Α`, `А`) | `Day` entries whose `dayCharacter` field contains that character | Recurrence defined by the imported timetable |
 
-The `Calendar.charactersInUse` field maintains a record of all custom characters currently assigned in the calendar. When a new custom recurring event type is created, the function `findAvailableCharacter(charactersInUse)` in the file `event-characters.constants.ts` iterates through the pool of ~90 available characters (Latin letters excluding N/P/I, uppercase Greek alphabet, uppercase Cyrillic alphabet and digits 0–9) and returns the first unassigned character. When the number of distinct event types in a calendar reaches 90, the system throws an explanatory error.
+The calendar maintains a record of all custom characters currently in use. When a new custom recurring event type is created, the system picks the first available character from a pool of roughly 90 options — Latin letters (excluding the reserved N, P and I), uppercase Greek, uppercase Cyrillic and digits — and returns it automatically. When all available characters have been assigned, the system raises an explanatory error.
 
-The `Day` entries of the calendar have a `dayCharacter` field assigned during timetable import from Excel. This character identifies which type of custom recurring event occurs on that day, allowing the expansion engine to precisely determine which events should be generated on each teaching date.
+Each teaching day in the calendar carries a day character assigned during the timetable import from the plain-text files. This character identifies which type of custom recurring event falls on that day, allowing the expansion engine to determine precisely which events should be generated on each teaching date.
 
 #### Event types (`eventType`)
 
-Regardless of their recurrence, each event — one-off or recurring — has an `eventType` that determines its business semantics and its behaviour in the hours accounting and export:
+Regardless of their recurrence pattern, events are also classified by their functional purpose — a separate type attribute that determines how each event is counted towards teaching hours and how it is treated during data export:
 
 **Table 5.6 — Behaviour by `eventType`**
 
@@ -819,22 +853,19 @@ Regardless of their recurrence, each event — one-off or recurring — has an `
 | `EVALUACION` | No | No | Yes |
 | `OTRO` | No | No | Yes |
 
-- `NORMAL` is the standard class type. The `Group.planifiedHours` field defines the total hours budget of the group; the system counts the hours of non-cancelled `NORMAL` events to determine how many weeks of recurring classes remain to be delivered.
-- `BLOCKER` reserves a classroom for non-academic use without associating it with any subject or group.
-- `REVISION`, `EVALUACION` and `OTRO` represent academic activities that occupy the time slot but do not consume the teaching hours budget. They allow assigning multiple groups and classrooms simultaneously.
+- The standard class type (`NORMAL`) is the only one that counts towards the group's hours budget; the system tracks only non-cancelled events of this type when calculating how many teaching hours remain.
+- The blocker type (`BLOCKER`) reserves a classroom for non-academic use without associating it with any subject or group.
+- The remaining three types — revision, assessment and other (`REVISION`, `EVALUACION`, `OTRO`) — represent academic activities that occupy a time slot but do not consume the teaching hours budget, and allow assigning multiple groups and classrooms simultaneously.
 
 #### Cancellation and replacement of recurring occurrences
 
-When a specific occurrence of a `PeriodicEvent` is cancelled (for example, the Tuesday 14 October class), the system creates a `PuntualEvent` on that specific `Day` with `cancelled = true` and `periodicEventSourceId` pointing to the source `PeriodicEvent`. This mechanism guarantees two important properties:
+When a specific occurrence of a recurring event is cancelled — for example, the Tuesday 14 October class — the system creates a one-off event on that date flagged as cancelled, with a reference to the source recurring series. This approach keeps the cancellation isolated: the recurring series itself is not modified, so all other occurrences continue to be generated normally. It also keeps the cancellation stable: if the recurring series is later modified or deleted, the already-created one-off cancellation remains in place and is not affected by changes to the series.
 
-1. The cancellation is selective: the remaining occurrences of the `PeriodicEvent` are not affected.
-2. If the recurring series is subsequently modified or deleted, the previous one-off cancellations do not propagate to new series that may occupy the same time slot.
-
-Replacement follows the same mechanism: the cancellation `PuntualEvent` is created and, additionally, a second `PuntualEvent` with the new event data, with `replacementEventId` pointing to the cancelled event, thus establishing bidirectional traceability of the change.
+When the class is not just cancelled but relocated — moved to a different day, time, or room — the mechanism extends to cover traceability of the move. The system creates two records: a one-off event on the original date marked as cancelled (referencing the source recurring series), and a second one-off event on the new date with the updated details. The two are linked to each other: the cancelled event holds a reference to the replacement (`replacementEventId`), and the replacement holds a reference back to what it displaced. This bidirectional link allows the interface to show the full history of a rescheduled class — where it originally was, and where it ended up — without any ambiguity.
 
 #### Conflict detection
 
-The system prevents two events from overlapping in time if they share any class group or any classroom. The detection algorithm compares time intervals using a standard overlap condition (`startA < endB && endA > startB`) and then checks whether the two events share at least one group (by `groupId` intersection) or at least one classroom (by `classroomId` intersection). If either condition is met and the time slots overlap, a conflict is reported. This validation is executed in six different event operations, implemented in `calendar.controller.ts` with the help of the `conflict-detection.utils.ts` utility:
+The system prevents two events from overlapping in time if they share any class group or any classroom. The detection algorithm first applies a standard interval overlap check — two time slots conflict when one starts before the other ends — and then verifies whether the two events share at least one group or at least one classroom. If either condition holds and the time slots overlap, a conflict is reported. This validation is executed in six different event operations:
 
 | Operation | What is checked |
 |---|---|
@@ -845,7 +876,7 @@ The system prevents two events from overlapping in time if they share any class 
 | Edit `PeriodicEvent` (batch) | Vs. all expanded events, excluding the edited ones |
 | Revert cancellation | Vs. active PuntualEvents + PeriodicEvents on that day (the restored recurring event must not clash) |
 
-When a conflict is detected, the API responds with **HTTP 409** and includes up to 5 conflict entries, each containing: the conflicting event type (one-off or recurring), the time slot, the affected groups and the classroom codes. Error messages are fully localised in Spanish and English via i18n keys to support the bilingual interface:
+When a conflict is detected, the API responds with HTTP 409 and includes up to five conflict entries, each describing the conflicting event type, the time slot, the affected groups and the classroom codes. Error messages are fully localised in Spanish and English to support the bilingual interface:
 
 | i18n key | Condition |
 |---|---|
@@ -859,37 +890,35 @@ When a conflict is detected, the API responds with **HTTP 409** and includes up 
 
 ### 5.2.7 Google Calendar integration design
 
-The Google Calendar integration allows administrators to synchronise the TeachingPlanner academic calendar with Google Calendar, enabling teaching staff to consult their timetable from external applications (Google Calendar, mobile apps, etc.).
+The scheduling data built in TeachingPlanner exists within the system, but the people who need to consult it day to day — teaching staff — already live in tools like Google Calendar and the mobile apps connected to it. Without a bridge between the two, professors would have to check a separate application every time they wanted to know their timetable. The Google Calendar integration eliminates that friction: it exports the academic calendar into Google Calendar so that teaching staff can access their schedule from the tools they already use, without any manual effort on their part.
 
 #### Integration architecture
 
-The design introduces two new domain entities and one dedicated service class.
+Two design decisions shape the integration's architecture. First, rather than exporting everything into a single shared Google Calendar, the system creates one Google Calendar per physical classroom: this way, a professor can subscribe only to the rooms where they teach and see a clean, relevant feed rather than a wall of unrelated events. Second, because a synchronisation can take several minutes for a large calendar with hundreds of events, the synchronisation state cannot be held in server memory — if the administrator reloads the page mid-operation, the state would be lost. It is persisted in the database so the interface always reflects the true current situation regardless of page reloads or session interruptions. The design introduces two new domain entities and one dedicated service class to implement these decisions.
 
 **Domain model extensions:**
 
-- **`GoogleClassroomCalendar`**: links each `Classroom` in the system with a `googleCalendarId` from the user's Google account. When a user connects their Google account, the system automatically creates one Google Calendar per registered classroom, so that events from different classrooms appear in separate calendars in Google Calendar. This allows teaching staff to selectively subscribe only to the classrooms relevant to their schedule.
+- The link between each physical classroom and its counterpart Google Calendar needs to be stored explicitly, because the Google Calendar identifier is an external value assigned by Google and not derivable from anything in the local database. The entity that records this association (`GoogleClassroomCalendar`) is created automatically when an administrator connects their Google account, producing one Google Calendar per registered classroom. Teaching staff can then subscribe to only the classrooms relevant to their own timetable, rather than receiving a single undifferentiated stream of all events across all rooms.
 
-- **`CalendarSync`**: records the synchronisation state for each (user, academic calendar) pair. The `syncStatus` field (enumeration `IDLE / SYNCING / SUCCESS / ERROR / DELETING`) reflects the state of the last synchronisation process, and `currentOperation` provides a textual description of the current progress step that the web interface can display in real time. The `totalCalendars` and `processedCalendars` fields allow calculating a completion percentage. The `DELETING` state is set as soon as the user initiates a deletion, before the Google API calls complete, so that the UI shows the correct state even if the user reloads the page mid-deletion.
+- Tracking the state of a synchronisation — whether it is running, has completed, has failed, or is being cleaned up — requires a dedicated record that survives beyond the lifetime of a single HTTP request. This record (`CalendarSync`) carries a status field that the web interface reads to show the correct state at any moment, a human-readable description of the current step for display during long-running operations, and two counters that together express a completion percentage the administrator can watch in real time. The deletion state is written to this record as soon as the administrator confirms removal, before the Google API calls begin, so that the interface remains consistent even if the page is reloaded mid-operation.
 
 **Service class:**
 
-- **`GoogleCalendarService`** (`planner_service/src/services/google-calendar.service.ts`): encapsulates all communication with the Google Calendar API v3 — creation, update (upsert) and deletion of calendar events, as well as calendar-level create/delete operations. It also manages automatic `access_token` refresh using the `refresh_token` stored encrypted in the `User` entity: before each API call, `getValidAccessToken()` checks the token's expiry and transparently obtains a new access token from Google if necessary, without requiring user interaction.
+- All communication with the Google Calendar API — creating, updating and deleting calendar events, and creating and removing the calendars themselves — is handled by a single dedicated service component. This component also manages access token lifecycle: before issuing any API call, it checks whether the stored access token is still valid and requests a fresh one from Google when necessary, transparently and without requiring any action from the user.
 
 #### Synchronisation flow
 
-Synchronisation with Google Calendar is **exclusively manual** and restricted to users with the `ADMIN` role: the administrator synchronises each calendar with the "Sync now" button. When the administrator no longer wishes to keep a calendar synchronised, they delete it via the trash button, which opens a confirmation modal before executing the action. The delete button only appears if the calendar has been synchronised at least once (i.e. when `syncStatus` is not `IDLE` or `lastSyncAt` exists), since before the first synchronisation there is no data in Google Calendar to clean up.
+Synchronisation with Google Calendar is **exclusively manual** and restricted to administrator users. It is manual by design: triggering a sync automatically on every calendar change would issue one Google API call per modified event, and a full semester calendar with hundreds of expanded recurring occurrences would exhaust the API quota within seconds. The administrator instead synchronises each calendar explicitly with a dedicated button, at a moment they choose, keeping API consumption predictable and within limits. The synchronisation strategy is explained in detail in the following subsection. When an administrator no longer wishes to keep a calendar synchronised, they can remove it via a delete button that first opens a confirmation modal. The delete button only appears once the calendar has been synchronised at least once — before the first synchronisation there is no data in Google Calendar to clean up, so the option is irrelevant.
 
 #### Motivation: external dependency on classroom Google Calendars
 
-The per-classroom Google Calendar creation is not merely a convenience feature: it is a critical integration point within the EII ecosystem. A separate application used by the head of studies (jefatura de estudios) consumes these Google Calendars directly to drive its own functionality. Prior to TeachingPlanner, any modification to the `.txt` timetable files required a separate, manual update to the corresponding Google Calendar — a dual-maintenance workflow that was both time-consuming and prone to desynchronisation.
+The per-classroom Google Calendar creation is not merely a convenience feature: it is a critical integration point within the school's digital ecosystem. A separate application used by the head of studies consumes these Google Calendars directly to drive its own functionality. Before TeachingPlanner existed, managing the timetable meant maintaining two separate artefacts in parallel: the timetable files used within the department, and the Google Calendar events visible to staff and to that external application. Any change to the timetable — a room swap, a cancelled class, a rescheduled exam — had to be applied manually in both places. The two could drift apart whenever one update was forgotten or applied inconsistently. The Google Calendar integration eliminates that dual-maintenance burden: a single synchronisation action propagates the current timetable state to all relevant Google Calendars, making the two systems always consistent with each other.
 
 #### Synchronisation strategy: delete-and-recreate
 
-The synchronisation strategy implemented in `GoogleCalendarService` is a **full delete-and-recreate** rather than an incremental diff. On each "Sync now" operation, all existing events in the affected Google Calendars are deleted and the entire expanded event set is rewritten from the current state of the `planner_database`. This approach guarantees that after each synchronisation the Google Calendar state is 100% consistent with TeachingPlanner — no orphaned events or stale data can accumulate from prior sync runs.
+The synchronisation strategy is a **full delete-and-recreate** rather than an incremental diff. An incremental approach would require identifying, for each event currently in Google Calendar, whether it still exists in TeachingPlanner and whether its data has changed since the last sync — and then issuing one API call per insert, update or delete. Both requirements are problematic here: recurring events have no stored dates in the database, so there is no persistent previous version of the expanded calendar to compare against; and a full semester calendar with hundreds of expanded occurrences would exhaust the per-minute API quota almost immediately if synced event by event. The delete-and-recreate strategy avoids both problems: on each sync operation, all existing events in the affected Google Calendars are deleted and the entire expanded event set is rewritten from the current state of the scheduling database. The manual, on-demand trigger — always initiated explicitly by the administrator — keeps the total number of API calls predictable and well within quota limits, while guaranteeing that after each synchronisation the Google Calendar state is fully consistent with TeachingPlanner.
 
-The alternative — synchronising incrementally with each individual change — would generate one Google Calendar API call per event insert, edit or delete. For a full semester calendar with hundreds of expanded events, this would exhaust the 400 req/min effective quota almost immediately and is therefore not feasible from a quota-cost perspective. The manual on-demand synchronisation model (triggered explicitly by the administrator) balances consistency guarantees with API quota consumption.
-
-The endpoints available in `planner_service` for this flow are:
+The endpoints available in the scheduling service for this flow are:
 
 | Verb | Route | Description |
 |---|---|---|
@@ -960,13 +989,45 @@ sequenceDiagram
 
 #### Google Calendar API quota control
 
-The Google Calendar API imposes a limit of 600 requests per minute at the Google Cloud project level (shared among all system users). The service implements quota control that caps the effective sending rate at 400 requests per minute, leaving a safety headroom of 200 requests per minute (33% of the total quota) to absorb transient bursts and latency in the quota-tracking sliding window. When the counter reaches 400 within the current minute window, all further Google API calls are paused until the window resets, then automatically resumed.
+The Google Calendar API imposes a limit of 600 requests per minute at the Google Cloud project level (shared among all system users). The service implements quota control that caps the effective sending rate at 400 requests per minute, leaving a safety headroom of 200 requests per minute — one third of the total quota. That margin exists because Google's quota is enforced on a sliding time window whose exact state is not visible to the server: the internal counter may show 350 requests in the current minute while Google's window already counts 420, because recent requests are not reflected instantaneously in the quota ledger. Without headroom, the service could unknowingly approach the real limit and receive quota-exceeded errors that are difficult to recover from mid-synchronisation. The 33% buffer ensures the server stays well within the limit even accounting for that reporting lag. When the counter reaches 400 within the current minute window, all further Google API calls are paused until the window resets, then automatically resumed.
 
-The quota counter is **global to the service** — not per individual user — correctly reflecting how Google applies its limits. All operations that generate HTTP calls to Google go through `waitForRateLimit()`, including event creation and deletion, calendar creation and deletion, and event cleanup when deleting an individual sync. This ensures that the quota widget in the interface shows the actual accumulated usage of all operations.
+The quota counter is **global to the service** — not per individual user — correctly reflecting how Google applies its limits. Every operation that generates HTTP calls to Google passes through a rate-limiting gate before executing, including event creation and deletion, calendar creation and deletion, and the cleanup performed when deleting an individual sync. This ensures that the quota widget in the interface reflects the actual accumulated usage across all operations.
 
-When disconnecting the account, the system obtains a valid token via `getValidAccessToken()` — the same mechanism used during synchronisation — which automatically refreshes the `access_token` using the stored encrypted `refresh_token` if the former is close to expiry or has already expired. This guarantees that calendar cleanup on disconnection works correctly even if the user has not interacted with the system for several hours.
+When disconnecting the account, the system uses the same token validation mechanism as during synchronisation — automatically refreshing the access token from the stored encrypted refresh token if it is close to expiry or has already expired. This guarantees that calendar cleanup on disconnection works correctly even if the user has not interacted with the system for several hours.
 
-In case of error during synchronisation or deletion (unrecoverable token, exceeded quota, network error), the service updates `CalendarSync.syncStatus` to `ERROR` with the error message in `errorMessage`, allowing the administrator to diagnose the cause from the interface without needing to consult the server logs.
+In case of error during synchronisation or deletion — an unrecoverable token, an exceeded quota, or a network failure — the synchronisation record is updated to reflect the failure and the error description is stored alongside it. The administrator can read the cause directly from the interface without consulting server logs.
+
+---
+
+### 5.2.8 Event generation: on-demand expansion and the hours budget
+
+The scheduling service does not store a concrete list of dates for recurring events. What it stores is the *pattern*: the day of the week the class takes place and the type of recurrence it follows. The system remembers that there is a class every Tuesday, not that there is a class on the 14th of October. The actual dates are computed each time the calendar is consulted, from that pattern and the state of the academic calendar — but not all mathematically possible dates are generated. The number of dates that actually appear is governed by a hours budget assigned to each teaching group, whose rules are explained in the next paragraph.
+
+The hours budget is at the heart of the design. The academic plan of studies establishes how many teaching hours each group must receive during the semester — this is not a configurable preference but a fixed academic requirement that the timetable must honour. Each teaching group therefore carries a ceiling on the total hours of class it will receive, and this ceiling is the hard rule that governs how many recurring class dates actually materialise. Not all hours in the budget are equal: any one-off event already on the calendar (an extraordinary class, a replacement session, a previously confirmed appointment) consumes budget first, with no negotiation. Only the hours that remain after those one-off commitments are available for the recurring series to fill. The recurring classes are added to the calendar in chronological order, one by one, until those remaining hours run out; if the last occurrence would exceed the budget by a few minutes, its duration is trimmed to land exactly at the limit. The practical consequence is that changing the budget figure, or adding or cancelling a single one-off event, automatically changes the recurring schedule — with no need to touch the recurring event definition itself.
+
+When a group has two or more recurring events that fall on the same day of the week, they compete for the same teaching days. Without a mechanism to regulate that competition, one event could end up assigned to all the early weeks of the semester while the other fills in later — an outcome that would distort the perceived weight of each class over time. To prevent this, the system assigns teaching days using a round-robin rotation among all competing events for the same day of the week: the first available teaching day goes to the first event, the next to the second, and so on in a repeating cycle. This reflects the physical reality of university scheduling: a classroom or laboratory can only accommodate one group at a time. When several groups from the same subject share the same time slot on the same day of the week, the timetable has them rotate on alternating weeks so that no two groups occupy the same space simultaneously. The round-robin algorithm reproduces that rotation automatically.
+
+Knowing which events are active on a given date is also the foundation of conflict detection. Before a new event can be accepted — whether a one-off class, a room booking, or any other scheduled activity — the system must verify that it does not collide with something already on the calendar. For recurring events, this cannot be done with a simple database lookup, because recurring events have no stored dates. Whether a recurring event that runs "every Monday" actually appears on a particular Monday depends on whether that day is a teaching day, whether its recurrence pattern matches the character assigned to that day, whether it still falls within the remaining hours budget, and whether a one-off cancellation has already blocked it. The only way to get a reliable answer is to run the full generation pipeline for the entire calendar and examine the result. Using any other data source — querying the database directly, consulting a cached version of the schedule, or applying a simplified rule — would produce a result that might differ from what the user sees on screen. For the conflict check to be meaningful, it must reflect exactly the same reality as the calendar view. This is exactly what the conflict checker does: it produces the complete expanded schedule through the same generation function used to render the calendar, and then filters it down to the target date and time window.
+
+When the frontend displays the calendar, the backend sends the already-expanded list of occurrences — every event on every date, with groups, classrooms, start times and end times all resolved. The interface is a passive recipient of truth already computed: it displays what it receives and runs no recalculation of its own. Each occurrence of a recurring event carries a composite identifier that combines the recurring event's database identity with the specific date of that occurrence. This is necessary because the database only stores one record per recurring event definition — there is no row for "the Tuesday 14 October occurrence" as distinct from "the Tuesday 21 October occurrence." Without the date component, the frontend would have no way to tell one occurrence of the same recurring event apart from another. The composite identifier solves this: it turns a definition identifier into an instance identifier, giving the frontend a precise handle for each individual class date it needs to reference in operations like cancellation or replacement.
+
+---
+
+### 5.2.9 Calendar creation from text files
+
+The system supports creating a complete calendar structure from a set of plain-text files — classrooms, the academic calendar, subjects and groups, scheduled recurring classes, and one-off exceptions — which makes it possible to import an existing institutional timetable without entering each item manually. This file-based format is adopted because it is the format in which the department already generates and distributes timetable data: TeachingPlanner reads it directly, without requiring any intermediate conversion step, so the import fits naturally into the existing administrative workflow. These five files must be processed in a specific order, because each step builds on data that the previous step established.
+
+The five files and their roles are:
+
+- **Classrooms**: the first file to be processed. It defines the physical spaces available for teaching — their codes and locations. All subsequent files that assign classes to rooms depend on these records existing first.
+- **Academic calendar**: defines the semester structure — which days are teaching days and which are not. Each teaching day receives a character marking whether it belongs to an even or odd week of the semester. Even/odd week parity is the natural unit of alternation used in university timetabling — courses described as "class on even weeks" or "lab on odd weeks" are commonplace. Assigning this character automatically during import means the administrator does not have to label each day manually; the system derives it from the week number and applies it consistently. This character is then the link between the calendar and the recurring event system described in section 5.2.6: a recurring event that runs on even weeks will only materialise on days carrying the even-week character, and never on others.
+- **Subjects and groups**: creates the academic subjects and their associated teaching groups, along with the ceiling on how many groups of each type a subject may have. This ceiling is used to validate the files that follow.
+- **Recurring schedules**: defines the periodic events — which group meets, in which classroom, at which time, and how many hours the group has planned for the semester. This is also where the connection between the academic plan of studies and the system's event model is established: the planned hours figure declared here is the budget that governs how many recurring occurrences are generated for each group, as described in section 5.2.8.
+- **Exceptions**: introduces one-off events (extraordinary sessions, room changes, makeup classes) and cancellations of recurring occurrences. This file is processed last because it references events that must already exist.
+
+Before creating any group or recurring class entry from the schedules file, the system checks that every line referencing the same group declares the same planned hours figure. If two lines for the same group carry different values — a common occurrence when timetable files are produced by external tools — the entire group is discarded and none of its events are created. If the system chose one of the conflicting values arbitrarily, the resulting schedule would have a hours ceiling that no entry in the file explicitly declared — the timetable would appear correct but would have been calculated from a number that nobody intended. There would be no way to verify after the fact whether the generated semester was right or not. Discarding the group entirely is the only response that preserves traceability: either the group exists in the system with an unambiguous budget, derived directly from a consistent source file, or it does not exist at all.
+
+Cancellations in the exceptions file present a specific ordering problem. A cancellation is always a reference to a specific event — it says "suppress this occurrence of this recurring class" or "remove this one-off event" — and it can only be matched to its target if that target already exists when the cancellation is processed. This creates a problem when the same file contains both a new one-off event and a cancellation of that same event: if they were processed together in a single pass, the cancellation would be encountered before its target had been created and would be discarded with no warning — the event that was supposed to be suppressed would continue appearing in the calendar as if the cancellation line in the file had never existed. The import avoids this by applying the exceptions file in two passes when the import is set to replace existing data: it first creates all new one-off events, and only then processes the cancellations against the now-complete event set. This sequencing guarantees that every cancellation finds its target, regardless of the order in which entries appear in the file.
 
 ---
 
@@ -984,15 +1045,15 @@ The verification of TeachingPlanner is organised around three levels that comple
 | 1 | Integration tests | Backend — business logic with a real database | Jest 30 + Testcontainers (MariaDB 11) |
 | 2 | End-to-end tests (E2E) | Complete user flows through the web interface | Playwright 1.58 (Chromium) |
 
-The strategy deliberately excludes unit tests that replace the database with mocks. The reason is straightforward: the most critical behaviour in the system — uniqueness constraints, deletion cascades, referential integrity — only manifests when running against a real relational database. A mock cannot reproduce these guarantees, which means a test suite built on mocks would pass for code that fails in production. Integration tests running against a real database instance in a temporary container catch exactly the problems that matter. This is a deliberate design decision, not a gap in coverage.
+The strategy deliberately excludes unit tests that replace the database with mocks. The reason is straightforward: the most critical behaviour in the system — uniqueness constraints, deletion cascades, referential integrity — only manifests when running against a real relational database. A mock cannot reproduce these guarantees. A test suite built on mocks would pass for code that breaks in production. Running tests against a real database instance in an ephemeral container catches exactly the class of problems that matter here. This is a deliberate design decision, not a gap in coverage.
 
 ---
 
 ### 5.3.2 Level 0 — Static code analysis (SonarQube)
 
-SonarQube analyses the full TypeScript codebase of all four backend services and the frontend, looking for potential bugs, code smells, code duplication, and cyclomatic complexity violations. Test coverage — measured from the reports produced by the integration test runner — is also fed into the analysis. The scan is triggered manually after integration tests have run, and branch analysis compares the current branch against the main branch.
+Static analysis scans the full TypeScript codebase of all four backend services and the frontend, looking for potential bugs, code smells, code duplication, and cyclomatic complexity violations. Test coverage reports produced by the integration test runner are also fed into the analysis. The scan is triggered manually after integration tests have run, and branch analysis compares the current branch against the main branch.
 
-Not everything is included in the scope. The 34 UI component scaffolds provided by the Radix UI library are excluded: they are third-party code that the project does not maintain, so any issues they contain would not be actionable. Project-owned components that share the same directory — including the generic data table, the form drawer, the required-label wrapper, and a small number of custom input controls — are analysed, since these contain conditional logic where a defect would have real consequences. Build output directories and all test files are excluded as well.
+Not everything is included in the scope. The UI component scaffolds provided by the Radix UI library are excluded — they are third-party code that the project does not maintain, so any issues they contain would not be actionable. Project-owned components in the same directory — including the generic data table, the form drawer, the required-label wrapper, and a small number of custom input controls — are analysed, since these contain conditional logic where a defect would have real consequences. Build output directories and all test files are excluded as well.
 
 Before merging to the main branch, the following thresholds must be met: no new issues introduced, code duplication below 30%, test coverage above 70%, and cyclomatic complexity below 15 per function.
 
@@ -1000,25 +1061,25 @@ Before merging to the main branch, the following thresholds must be met: no new 
 
 ### 5.3.3 Level 1 — Integration tests (backend)
 
-The integration tests focus on the scheduling service, which is where the domain logic lives: write operations that touch multiple related entities, and the database constraints that enforce business rules. Each test suite runs against an ephemeral database container that is started before the suite and destroyed when it finishes, giving every suite a fully isolated environment. The schema is synchronised automatically with the application model at startup, so there is no need to maintain a separate test migration set.
+The integration tests focus on the scheduling service, which is where the domain logic lives: write operations that touch multiple related entities, and the database constraints that enforce business rules. Each test suite runs against an ephemeral database container started fresh before the suite and destroyed when it finishes, giving every suite a fully isolated environment. The schema is synchronised automatically with the application model at startup, so there is no need to maintain a separate test migration set.
 
 Five areas of behaviour are covered:
 
 - **Cascade deletion**: when a high-level entity — a degree programme, a calendar, a subject, or a classroom — is deleted, all entities that depend on it must be removed atomically. Entities that are not part of the deleted subtree must remain untouched.
-- **Conditional deletion**: classrooms that still have scheduled events cannot be deleted unless an explicit override is provided. The tests verify that the system rejects the operation without the override and accepts it when the override is present or the classroom has no events.
+- **Conditional deletion**: classrooms that still have scheduled events cannot be deleted unless an explicit override is provided. The tests verify that the system rejects the operation without the override and accepts it when the override is given or when the classroom has no events.
 - **Uniqueness constraints**: fields that must be unique — classroom code, subject acronym, degree name, user email — must be enforced at the database level, not only in application code.
-- **Field persistence**: entities such as groups, recurring events, and calendar days must store their domain-specific attributes (planned hours, recurrence character, day character) correctly after creation.
+- **Field persistence**: entities such as groups, recurring events, and calendar days must store their domain-specific attributes — planned hours, recurrence character, day character — correctly after creation.
 - **Authentication invariants**: passwords must be stored in hashed form; a valid login must produce an authentication token; an incorrect password must be rejected; duplicate email registration must fail.
 
-The 27 test cases that implement these verifications are listed in **§6.2.1 of Chapter 6**. Coverage reports are generated in standard LCOV format and consumed by SonarQube.
+The 27 test cases that implement these verifications are listed in **§6.2.1 of Chapter 6**. Coverage reports are generated in a standard format and fed into the static analysis tool to produce the overall coverage metrics.
 
-Two areas are intentionally left out of this level: HTTP routing and status codes (covered by the E2E tests), and Google Calendar synchronisation (which requires live external credentials).
+Two areas are intentionally left out of this level: HTTP routing and response codes, which are covered by the end-to-end tests; and Google Calendar synchronisation, which requires live external credentials that are not available in the test environment.
 
 ---
 
 ### 5.3.4 Level 2 — End-to-end tests (frontend)
 
-The E2E tests drive the application through the browser, from a user action on the interface through the full microservices stack to the database and back. The test runner used is **Playwright 1.58**, configured for Chromium. The frontend development server starts automatically before the suite runs, as configured in the test runner settings.
+The end-to-end tests drive the application through the browser, from a user action on the interface through the full service stack to the database and back, using a browser automation framework targeting Chromium. The frontend development server starts automatically before the suite runs, as configured in the test runner settings.
 
 Data isolation across tests is handled by a reset endpoint that wipes all planning domain data — classrooms, degrees, courses, calendars, subjects, groups, and events — before each suite starts. Every run therefore starts from a known empty state, regardless of what previous tests left behind. This endpoint is only active in development and test environments and does not exist in the production build. Making it available in the development environment is a deliberate trade-off: it lets developers run the full suite against locally started services without any environment reconfiguration. The risk of accidentally resetting local data is low, since development databases contain only synthetic data that can be rebuilt from seed scripts.
 

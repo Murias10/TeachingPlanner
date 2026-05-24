@@ -50,14 +50,14 @@ TeachingPlanner is a web application developed from scratch to replace the syste
 
 ### 3.1.4 Stakeholders
 
-| ID | Stakeholder | Role in the system | Main needs |
-|---|---|---|---|
-| STK-01 | Academic Affairs Office (EII) | Client and main user (administrator) | Eliminate manual file editing; automatic conflict detection; integrated request management; change traceability |
-| STK-02 | EII teaching staff | Secondary user (professor) | Consult their own schedule; submit change requests without using email; synchronise with personal Google Calendar |
-| STK-03 | Students and general public | Read-only user | Access published schedules without authentication, from any device |
-| STK-04 | Other applications in the EII ecosystem | Dependent external system | Continue receiving the five `.txt` files and Google Calendars in the expected format, without manual intervention |
-| STK-05 | IT Service (SUTIC) | Infrastructure owner | System deployable on the university's VM and maintainable with Docker |
-| STK-06 | Development team (TFG) | Developer | Clear requirements and achievable scope within the framework of the Final Degree Project |
+| ID | Stakeholder | Description |
+|---|---|---|
+| STK-01 | Academic Affairs Office (EII) | The head of studies of the EII is responsible for coordinating and managing the academic scheduling of the school. This tool will allow them to replace the current manual process of editing plain text files via SSH, providing a web interface with automatic conflict detection, an integrated change-request workflow and full traceability of modifications. |
+| STK-02 | EII teaching staff | Lecturers who teach subjects across the degrees and master's programmes offered at the school. They will use the tool to consult their own timetables and to submit schedule change requests, replacing the current email-based process and gaining visibility of the status of each request at all times. |
+| STK-03 | Students and general public | Students enrolled in the degrees and master's programmes at the school, as well as any member of the public interested in consulting the published timetables. They will access the schedules without needing to authenticate, from any device, including mobile. |
+| STK-04 | Other applications in the EII ecosystem | External applications that currently consume the five legacy `.txt` files and the Google Calendars published by the EII. These systems require the new tool to continue producing output in the expected format so that no changes are needed on their side. |
+| STK-05 | IT Service (SUTIC) | The university service responsible for managing the virtual machines and network infrastructure on which the system is deployed. They provision the production VM, manage access through the institutional VPN and carry out maintenance operations, all of which are outside the developer's direct control. |
+| STK-06 | Development team (TFG) | The student developer responsible for the analysis, design, construction and delivery of the system within the framework of the Final Degree Project. They assume all technical roles throughout the project. |
 
 ---
 

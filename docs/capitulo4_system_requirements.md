@@ -1047,210 +1047,25 @@ The complete data model is described in section §4.1.2 and in the detailed desi
 
 ### 4.1.2 Domain Data Model
 
-The system's data model is organised into four entity groups: academic structure, events, change requests and Google Calendar integration. All entities inherit from `AuditedEntity`, which automatically records the user and the date of creation and last modification.
-
-**Figure 4.7 — Class diagram: academic structure and events**
-
-```mermaid
-classDiagram
-    class AuditedEntity {
-        +createdAt: DateTime
-        +createdBy: String
-        +updatedAt: DateTime
-        +updatedBy: String
-    }
-    class Degree {
-        +id: Int
-        +name: String
-        +acronym: String
-    }
-    class Course {
-        +id: Int
-        +startYear: Int
-        +endYear: Int
-        +status: CourseState
-    }
-    class Calendar {
-        +id: Int
-        +semester: Int
-        +start: Date
-        +end: Date
-    }
-    class Day {
-        +id: Int
-        +date: Date
-        +dayCharacter: String
-    }
-    class Subject {
-        +id: Int
-        +name: String
-        +acronym: String
-        +siesCode: String
-        +semester: Int
-        +year: Int
-    }
-    class Group {
-        +id: Int
-        +number: Int
-        +type: GroupType
-        +language: Language
-        +planifiedHours: Decimal
-    }
-    class Classroom {
-        +id: Int
-        +code: String
-        +gisUrl: String
-    }
-    class PeriodicEvent {
-        +id: Int
-        +startTime: Time
-        +endTime: Time
-        +weekDay: WeekDay
-        +eventCharacter: String
-        +eventType: EventType
-    }
-    class PuntualEvent {
-        +id: Int
-        +startTime: Time
-        +endTime: Time
-        +eventType: EventType
-        +cancelled: Boolean
-        +periodicEventSourceId: Int
-        +replacementEventId: Int
-    }
-
-    AuditedEntity <|-- Degree
-    AuditedEntity <|-- Course
-    AuditedEntity <|-- Calendar
-    AuditedEntity <|-- Day
-    AuditedEntity <|-- Subject
-    AuditedEntity <|-- Group
-    AuditedEntity <|-- Classroom
-    AuditedEntity <|-- PeriodicEvent
-    AuditedEntity <|-- PuntualEvent
-
-    Degree "1" --> "N" Course
-    Course "1" --> "N" Calendar
-    Calendar "1" --> "N" Subject
-    Calendar "1" --> "N" PeriodicEvent
-    Subject "1" --> "N" Group
-    Calendar "1" --> "N" Day
-    Day "1" --> "N" PuntualEvent
-    PeriodicEvent "N" --> "M" Group : assigned to
-    PeriodicEvent "N" --> "M" Classroom : uses
-    PuntualEvent "N" --> "M" Group : assigned to
-    PuntualEvent "N" --> "M" Classroom : uses
-    PuntualEvent "0..1" --> "0..1" PuntualEvent : replaces
-    PuntualEvent "0..N" --> "0..1" PeriodicEvent : cancels occurrence of
-```
-
-**Figure 4.8 — Class diagram: change requests and Google Calendar integration**
-
-```mermaid
-classDiagram
-    class AuditedEntity
-    note for AuditedEntity "Attributes defined in Fig. 4.7:\ncreatedAt, createdBy, updatedAt, updatedBy"
-    class Calendar {
-        +id: Int
-        +semester: Int
-    }
-    class Classroom {
-        +id: Int
-        +code: String
-    }
-    class EventRequest {
-        +id: Int
-        +type: RequestType
-        +status: RequestStatus
-        +eventData: JSON
-        +originalEventId: Int
-        +comments: String
-        +reviewedBy: String
-        +reviewedAt: DateTime
-    }
-    class CalendarSync {
-        +id: Int
-        +userId: Int
-        +status: SyncStatus
-        +processed: Int
-        +total: Int
-        +errorMessage: String
-    }
-    note for CalendarSync "userId references the administrator\nin management_db (database external\nto the planning domain)"
-    class GoogleClassroomCalendar {
-        +id: Int
-        +googleCalendarId: String
-    }
-    class ApiQuotaCounter {
-        +key: String
-        +count: Int
-        +windowStart: DateTime
-    }
-
-    AuditedEntity <|-- EventRequest
-    AuditedEntity <|-- CalendarSync
-    AuditedEntity <|-- GoogleClassroomCalendar
-
-    Calendar "1" --> "N" EventRequest
-    Calendar "1" --> "N" CalendarSync
-    Classroom "1" --> "N" GoogleClassroomCalendar
-    note for ApiQuotaCounter "Global singleton (key: google_calendar).\nProject-level quota counter."
-```
-
-The complete class diagram with all attributes and DB constraints is in §5.2.3 (Detailed design). The entity structure by functional groups is summarised below:
-
-- **Academic structure**: `Degree` → `Course` → `Calendar` → `Day` / `Subject` → `Group` → `Classroom`
-- **Events**: `PeriodicEvent` (N:M with `Group` and `Classroom`) and `PuntualEvent` (N:M with `Group` and `Classroom`; linked to a specific `Day`)
-- **Change requests**: `EventRequest` (linked to the `Calendar`)
-- **Google Calendar integration**: `CalendarSync` (synchronisation status per user and calendar) and `GoogleClassroomCalendar` (mapping between `Classroom` and its Google Calendar ID)
-- **Quota control**: `ApiQuotaCounter` — global counter (not per user) of Google Calendar API quota consumption, reflecting that Google applies limits at the project level
-
-**Enumerations:**
-
-The *Technical value* column indicates the value stored in the database and used in the API. The *UI label* column indicates how it is presented to the user in the interface.
-
-| Enumeration | Technical value | UI label |
-|---|---|---|
-| `CourseState` | `PLANIFICADO` | Planned |
-| | `ACTIVO` | Active |
-| | `FINALIZADO` | Completed |
-| `GroupType` | `T` | Theory |
-| | `S` | Seminar |
-| | `L` | Laboratory Practice |
-| | `TG` | Group Tutoring |
-| `Language` | `ES` | Spanish |
-| | `EN` | English |
-| `EventType` | `Class` | Class |
-| | `Evaluation` | Evaluation |
-| | `Review` | Review |
-| | `Others` | Others |
-| | `Independent` | Independent |
-| `WeekDay` | `L` | Monday |
-| | `M` | Tuesday |
-| | `X` | Wednesday |
-| | `J` | Thursday |
-| | `V` | Friday |
-| `RequestType` | `CREATE` | Create |
-| | `EDIT` | Edit |
-| | `CANCEL` | Cancel |
-| | `REPLACE` | Replace |
-| `RequestStatus` | `PENDING` | Pending |
-| | `APPROVED` | Approved |
-| | `REJECTED` | Rejected |
-| `SyncStatus` | Values defined in §5.2.7 | — |
-
-**Key relationships:**
-
-- `PuntualEvent.replacementEventId` — reflexive relationship: points to the `PuntualEvent` that replaces this one (REPLACE flow of change requests).
-- `PuntualEvent.periodicEventSourceId` — reference to the `PeriodicEvent` from which this cancellation derives, allowing the cancellation of a specific occurrence without affecting the rest of the series.
-- `GoogleClassroomCalendar` — stores the mapping between each classroom and its Google Calendar ID, allowing the addition and removal of events in the correct calendar during synchronisation.
-- `ApiQuotaCounter` — global counter of Google Calendar API quota consumption (singleton with key `google_calendar`); it is not linked to any user because Google applies limits at the project level.
+The domain data model is described in full in **§5.2.3** (Detailed design), which includes the complete class diagram with all entity attributes, database constraints and the audit base class, together with the justification for each design decision. A brief overview of the data model is provided in §4.1.1 in the context of the system functions that motivated it.
 
 ---
 
 ### 4.1.3 User Interface
 
-This section describes the application's navigation structure and the main screens. The screenshots of the functional application are included in the project presentation.
+#### Technology selection
+
+The webapp module is built on React with Vite. Two categories of libraries were evaluated during the design phase:
+
+**UI component library.** Three options were assessed: Ant Design, Radix UI and shadcn/ui. Ant Design was discarded because its comprehensive pre-built component set introduces a large bundle (~500 KB) and its theming system (token overrides) limits deep visual customisation. shadcn/ui — which layers pre-styled components on top of Radix UI primitives — was evaluated as an intermediate option. Ultimately the Radix UI primitives were used directly, combined with Tailwind CSS, as this approach inherits full WAI-ARIA accessibility while keeping complete control over styles without any intermediate abstraction layer.
+
+**Calendar component.** FullCalendar and react-big-calendar were the main candidates. FullCalendar provides drag-and-drop out of the box but gates several features behind a paid licence (starting at $480/developer). react-big-calendar is fully MIT-licensed, follows React's component model natively and exposes sufficient customisation hooks (SASS variables, custom event renderers) to meet the project's visual requirements. It was therefore selected as the calendar component.
+
+#### UI prototype and user manual
+
+Prior to implementation, a complete UI prototype was produced in Excalidraw. The prototype functions as a navigation map: each frame represents one application route and the arrows between frames trace the user flows for both the *Student* (guest) and *Admin* roles. It covers all screens listed in Table 4.1 and served as the direct input for implementation decisions. The prototype is included in full in the project annexes (`prototipos/` folder, SVG format).
+
+The screens of the functional application, with annotated screenshots, are documented in **§[REFERENCIA CRUZADA — manual de uso]**.
 
 #### Navigation structure
 
@@ -1281,54 +1096,6 @@ The application has four public routes without a layout and the rest are organis
 \* «Partial» indicates that access is available to the guest user but limited to resources in the Active state (academic courses in the «Active» state).
 
 The sidebar includes a breadcrumb system that shows the current navigation path and allows jumping to any previous level with a click.
-
-#### Main screens
-
-The following descriptions correspond to the screens of the functional application. **Insert the corresponding screenshot at each indicated position.**
-
-**Figure 4.9 — Welcome screen** (`/`)
-
-*[Insert screenshot of the `/` route]* Central card with the application title and two buttons: *«Continue as guest»* and *«Log in»*.
-
-**Figure 4.10 — Login form** (`/login`)
-
-*[Insert screenshot of the `/login` route]* Email and password fields, *«Log in»* button and *«Have you forgotten your password?»* link.
-
-**Figure 4.11 — Password recovery form** (`/forgot-password`)
-
-*[Insert screenshot of step 1 of the OTP flow: email field]* Process in three sequential steps: (1) email input, (2) input of the 6-digit OTP code received by email, (3) setting of the new password with a real-time requirements indicator.
-
-**Figure 4.12 — Weekly calendar view** (`/home` or semester route)
-
-*[Insert screenshot of the weekly view with events loaded]* Calendar selector at the top; sidebar of filters (degree, subject, group type, group, classroom, language); five view buttons (Week, Work week, Day, Month, Agenda); temporal navigation (previous, today, next); events coloured by type in the time grid; side panel with details upon clicking on an event; the selected filters are automatically saved in the browser and restored between sessions.
-
-**Figure 4.13 — Conflict detection dialog**
-
-*[Insert screenshot of the conflict error dialog when creating an overlapping event]* Warning message indicating the name of the conflicting event, the affected resource (group or classroom) and the time slot.
-
-**Figure 4.14 — Event creation form**
-
-*[Insert screenshot of the recurring event creation form with day-of-week selector and recurrence pattern]* Fields for groups, classrooms (optional), start time, end time, day of the week, recurrence pattern and event type; real-time conflict indicator upon completing the schedule fields.
-
-**Figure 4.15 — Academic structure management view** (`/degrees/.../subjects`)
-
-*[Insert screenshot of the subject list of a semester]* Table with columns for name, acronym, semester and year; creation, editing and deletion buttons; filters by semester and year; access to the group list of each subject.
-
-**Figure 4.16 — Change requests panel — administrator view** (`/solicitudes`)
-
-*[Insert screenshot of the requests panel with at least one request in PENDING status]* Table with columns for status, requesting professor, request type and date; status filters; approve and reject buttons; prominent visual indicator for pending requests.
-
-**Figure 4.17 — New request form — professor view**
-
-*[Insert screenshot of the request form with the type selector expanded]* Type selector (`CREATE`, `EDIT`, `CANCEL`, `REPLACE`), source event selector, date, time, subject, group and classroom fields, comments field and real-time conflict indicator.
-
-**Figure 4.18 — Google Calendar synchronisation page** (`/calendar-sync`)
-
-*[Insert screenshot of the synchronisation page with at least one synchronised calendar]* Table with one row per active calendar, status columns (`IDLE`, `SYNCING`, `SUCCESS`, `ERROR`, `DELETING`), progress bar and API quota widget.
-
-**Figure 4.19 — Mobile device view**
-
-*[Insert screenshot of the calendar view on a mobile screen]* Sidebar collapsed into a hamburger menu; calendar view in agenda mode; hideable filter panel.
 
 #### Dialog and form conventions
 

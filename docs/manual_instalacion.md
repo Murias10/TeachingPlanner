@@ -1,5 +1,38 @@
 # 7.1 Installation Manual
 
+## 7.1.0 Accessing the Deployed Application
+
+TeachingPlanner is already deployed and running on the EII university infrastructure. No local installation is required to try the application. Access is restricted to the university's internal network, which can be reached from any device using the institutional VPN.
+
+**Step 1: Connect to the university VPN**
+
+Install GlobalProtect, the VPN client provided by the University of Oviedo, and connect to the portal `portalgp.uniovi.es` using your institutional credentials. Installation instructions and the client download are available on the [university VPN portal](https://unioviedo.sharepoint.com/sites/PortaldeSoftwareCorporativo/SitePages/Servicio-corporativo-de-Acceso-Remoto---VPN.aspx?web=1). Once the connection is established, your device will be part of the university's internal network and will be able to reach the application server.
+
+**Step 2: Open the application**
+
+With the VPN active, open any browser and navigate to:
+
+```
+https://planificador.ingenieriainformatica.uniovi.es
+```
+
+If the browser displays a security warning about the certificate, proceed to the site. The server uses a self-signed certificate because it operates on the university's internal network rather than on the public internet.
+
+**Step 3: Sign in**
+
+The following accounts are available for testing:
+
+| Role | Email | Password |
+|------|-------|----------|
+| Administrator | uo290009@uniovi.es | 123456 |
+| Administrator | jrpp@uniovi.es | 123456 |
+| Administrator | falvarez@uniovi.es | 123456 |
+| Professor | teacher@uniovi.es | 123456 |
+
+The Administrator accounts provide full access to all system features: creating and managing academic calendars, degree programmes, subjects, groups, and classrooms, administering user accounts, reviewing and approving change requests, and synchronising timetables with Google Calendar. The Professor account can consult the timetables for assigned groups and submit change requests to the head of studies.
+
+---
+
 ## 7.1.1 Introduction
 
 This manual is aimed at a technical audience with basic knowledge of the terminal, Docker, and Linux system administration. Its goal is to provide all the information needed to reproduce a TeachingPlanner installation from scratch, both in a local development environment and on a production server.

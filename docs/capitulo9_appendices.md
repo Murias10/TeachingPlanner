@@ -73,9 +73,9 @@ Risk monitoring was maintained throughout the project via a running task log tha
 
 ## 9.2 References
 
-### 9.2.1 References
+### 9.2.1 References and Bibliography
 
-The following sources are directly cited or referenced in the body of this document.
+The following list includes all sources cited directly in the text of this document as well as additional sources consulted during development that are relevant to its context. Sources [1] to [16] are cited in the text; sources [17] to [23] were consulted as background reference.
 
 > **[NOTA — Citas pendientes de insertar en el texto]**
 > Antes de entregar, busca cada referencia en el capítulo correspondiente y añade el número entre corchetes justo después de la primera mención. Usa el gestor de referencias de Word para vincularlas automáticamente.
@@ -143,9 +143,7 @@ The following sources are directly cited or referenced in the body of this docum
 
 [16] Testcontainers Contributors, "Testcontainers for Node.js Documentation," 2024. [Online]. Available: https://node.testcontainers.org
 
-### 9.2.2 Bibliography
-
-The following sources were consulted during the development of this project and are relevant to its context, even where not cited directly in the text.
+**Background sources (not cited directly in the text)**
 
 [17] M. Fowler, "Microservices," martinfowler.com, Mar. 2014. [Online]. Available: https://martinfowler.com/articles/microservices.html
 
@@ -167,6 +165,82 @@ The following sources were consulted during the development of this project and 
 
 ### 9.3.1 Content Description
 
-### 9.3.2 Recommended Directory Structure for Development
+In addition to the main TFG document, a compressed file is submitted to the university platform containing the source code and all supplementary materials associated with the project. The university platform has a file size limit of approximately 40 to 90 MB. Since Node.js projects include `node_modules` folders that can be several hundred megabytes, these are excluded from the archive. A `README.txt` file at the root of the archive explains the full structure and provides a link to the public GitHub repository at https://github.com/murias10/teachingplanner, where the complete project can also be downloaded.
+
+The archive is organised into directories by purpose, as described in Table 9.2.
+
+*Table 9.2: Structure of the submitted compressed file*
+
+| Directory | Contents |
+|-----------|----------|
+| `./` | Contains the `README.txt` file described below. |
+| `./TeachingPlanner` | Full project source code: all microservices, the webapp, Docker Compose configuration files for each deployment environment, and the root `package.json`. `node_modules` folders are excluded; run `npm install` in each service directory to restore dependencies. See Table 9.3 for the internal structure. |
+| `./documentacion` | This TFG document in PDF format. The installation manual and user manual are included as chapters within the document itself. |
+| `./contexto` | Background document provided by the EII at the start of the project (`Explicación archivos TXT planificador actual.pdf`), describing the legacy plain-text file format that TeachingPlanner replaces. |
+| `./planificacion` | Microsoft Project 2019 file (`planificacion_TFG.mpp`) with the full project schedule referenced in Chapter 2. |
+| `./prototipos` | Initial UI sketches from the design phase: `planificador_boceto.excalidraw` (editable) and `planificador_boceto.svg` (exported image). |
+
+The content of the `README.txt` file included at the root of the archive is the following:
+
+```
+========================================================
+  TeachingPlanner — TFG
+  Escuela de Ingeniería Informática, Universidad de Oviedo
+  Autor: Diego Murias Suárez
+========================================================
+
+Este fichero describe la estructura del fichero comprimido adjunto
+entregado junto a la memoria del Trabajo de Fin de Grado.
+
+ESTRUCTURA DE DIRECTORIOS
+--------------------------
+
+./                    README.txt (este fichero)
+
+./TeachingPlanner/    Código fuente completo del proyecto (microservicios
+                      gateway, auth, user y planner, aplicación web webapp,
+                      y ficheros Docker Compose para cada entorno).
+                      NOTA: las carpetas node_modules están excluidas.
+                      Ejecutar "npm install" en cada directorio de servicio
+                      y en webapp/ para restaurar las dependencias.
+
+./documentacion/      Memoria del TFG en PDF. Los manuales de instalación
+                      y de usuario forman parte de la propia memoria.
+
+./contexto/           Documento de contexto del sistema heredado de la EII.
+
+./planificacion/      Fichero Microsoft Project (planificacion_TFG.mpp).
+
+./prototipos/         Bocetos iniciales de la interfaz (Excalidraw y SVG).
+
+REPOSITORIO PÚBLICO
+--------------------
+https://github.com/murias10/teachingplanner
+
+ACCESO A LA APLICACIÓN
+------------------------
+La aplicación está desplegada y operativa. Consultar la sección 7.1.0
+del manual de instalación incluido en ./documentacion/ para instrucciones
+de acceso mediante la VPN de la universidad.
+```
+
+### 9.3.2 Development Directory Structure
+
+The table below describes the internal structure of the `./TeachingPlanner` directory. The layout follows directly from the microservices architecture of the system: one directory per service, one for the frontend application, two for the database schemas, and shared configuration at the root.
+
+*Table 9.3: Internal structure of the TeachingPlanner development directory*
+
+| Directory | Contents |
+|-----------|----------|
+| `./` | Root-level files: `package.json`, Docker Compose files for each environment (development, self-hosted, Azure, and SonarQube), environment variable templates (`.env.template` and `.env.sonarqube.template`), and the `.github/workflows/` directory containing the CI/CD pipeline definitions. Actual `.env` files with real credentials are excluded from the archive. |
+| `./gateway_service` | API gateway service. Routes all incoming requests to the appropriate backend service. Contains `src/` with routing and middleware logic. |
+| `./auth_service` | Authentication service. Handles login, registration, account activation, password recovery, and Google OAuth integration. Contains `src/` with controllers, services, entities, middleware, routes, and utilities, and `migrations/` with TypeORM database migration files. |
+| `./user_service` | User management service. Manages user accounts, roles, and bulk imports. Contains `src/` with controllers, services, entities, middleware, routes, and utilities, and `scripts/` for import tooling. |
+| `./planner_service` | Scheduling service, the core of the system. Manages all academic data: calendars, degree programmes, subjects, groups, classrooms, recurring and one-off events, change requests, and Google Calendar synchronisation. Integration tests are in `src/__tests__/integration/`. |
+| `./webapp` | React single-page application. Contains `src/` with components, pages, hooks, API services, contexts, internationalisation files, styles, and utilities. End-to-end tests are in `e2e/` and run with Playwright. |
+| `./management_database` | SQL schema file (`schema.sql`) for the management database, shared by the authentication and user services. |
+| `./planner_database` | SQL schema file (`schema.sql`) for the scheduling database, used exclusively by the planner service. |
+| `./certs` | TLS certificate (`cert.pem`) and private key (`key.pem`) used by the Caddy reverse proxy to serve the application over HTTPS. |
+| `./docs` | Project documentation in Markdown format, covering all chapters of this TFG report and supplementary technical notes. |
 
 ---

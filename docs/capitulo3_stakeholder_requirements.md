@@ -214,24 +214,26 @@ TeachingPlanner is a web application developed from scratch to replace the syste
 
 | ID | Attribute | Description |
 |---|---|---|
-| RNF-01 | Availability | The system shall be operational 24/7 with a minimum annual availability of 99.5%. |
-| RNF-02 | Performance | Routine operations (queries, entity creation) shall respond in less than 2 seconds under normal usage conditions. |
-| RNF-03 | Portability | The system shall be deployable on the university infrastructure through Docker containers, without dependencies on the underlying operating system. |
-| RNF-04 | Privacy | The system shall comply with the General Data Protection Regulation (GDPR) in the processing of users' personal data. |
-| RNF-05 | Usability | The interface shall be accessible for administrator and professor profiles without prior technical training. Mandatory fields shall be clearly indicated and errors shall be described in an understandable way. |
-| RNF-06 | Accessibility | The interface shall comply with the WCAG 2.1 level AA guidelines. |
-| RNF-07 | Internationalisation | The interface shall be available in Spanish and English. |
-| RNF-08 | Compatibility | The interface shall work correctly on the last two versions of Chrome, Firefox, Safari and Edge. |
-| RNF-09 | Adaptability | The interface shall adapt to mobile, tablet and desktop devices. |
-| RNF-10 | Security | All communications shall be encrypted via HTTPS. Passwords shall be stored encrypted and shall never be transmitted in plain text. |
-| RNF-11 | Scalability | The system shall support at least 200 concurrent users without perceptible degradation of performance. |
-| RNF-12 | Maintainability | The system shall have an automated test suite that validates the main functionalities before each deployment. |
+| NFR-01 | Availability | The system shall be operational 24/7 with a minimum annual availability of 99.5%. |
+| NFR-02 | Performance | Routine operations (queries, entity creation) shall respond in less than 2 seconds under normal usage conditions. |
+| NFR-03 | Portability | The system shall be deployable on the university infrastructure through Docker containers, without dependencies on the underlying operating system. |
+| NFR-04 | Privacy | The system shall comply with the General Data Protection Regulation (GDPR) in the processing of users' personal data. |
+| NFR-05 | Usability | The interface shall be accessible for administrator and professor profiles without prior technical training. Mandatory fields shall be clearly indicated and errors shall be described in an understandable way. |
+| NFR-06 | Accessibility | The interface shall comply with the WCAG 2.1 level AA guidelines. |
+| NFR-07 | Internationalisation | The interface shall be available in Spanish and English. |
+| NFR-08 | Compatibility | The interface shall work correctly on the last two versions of Chrome, Firefox, Safari and Edge. |
+| NFR-09 | Adaptability | The interface shall adapt to mobile, tablet and desktop devices. |
+| NFR-10 | Security | All communications shall be encrypted via HTTPS. Passwords shall be stored encrypted and shall never be transmitted in plain text. |
+| NFR-11 | Scalability | The system shall support at least 200 concurrent users without perceptible degradation of performance. |
+| NFR-12 | Maintainability | The system shall have an automated test suite that validates the main functionalities before each deployment. |
 
 > The detailed technical specification of each of these non-functional requirements — including specific values, tools and verification criteria — is provided in Chapter 4 (§4.2 Non-functional Requirements and §4.3 Test Plan).
 
 ---
 
 ## 3.3 Alternatives
+
+This section presents the main design alternatives evaluated before construction began. Each subsection describes the options considered and the rationale behind the chosen one. The decisions cover aspects that directly affect user interaction, functional scope, or data reliability. Other purely architectural decisions are analysed in Chapter 5 (Table 5.1).
 
 ### 3.3.1 Authentication system
 
@@ -298,3 +300,15 @@ It was evaluated which user roles could manage the synchronisation with Google C
 **Option B — Synchronisation restricted to the administrator role**: only administrators can manage the synchronisation of classroom calendars with Google.
 
 **Chosen option: Option B.** The Google Calendar API quota is consumed at the Google Cloud project level, not per individual user. If multiple professors could synchronise their own copies of the calendar, the quota consumption would be proportional to the number of active users, making the functionality unfeasible at scale. Centralising synchronisation in the administrator role allows strict control of quota consumption and guarantees that the Google Calendars consumed by another application in the EII ecosystem are always managed by authorised personnel.
+
+---
+
+### 3.3.6 Database engine
+
+The academic data model that the system must manage is inherently relational. Degrees contain courses, courses are divided into semesters, each semester has a calendar, calendars hold subjects and groups, and groups are linked to recurring and one-off events assigned to specific classrooms. These entities are connected by strict relationships that the system must enforce at all times: deleting a subject must automatically remove all its groups and their associated events; two classrooms cannot share the same code; and two events assigned to the same group and overlapping in time must be detected as a conflict. Failing to enforce any of these constraints would result in orphaned records, duplicated data, or undetected scheduling conflicts in the published timetable.
+
+**Option A — Relational database (MariaDB):** enforces referential integrity, cascade deletions and uniqueness constraints directly at the database engine level. The academic data model maps naturally to a relational schema, and the constraints described above are guaranteed automatically without any additional application code.
+
+**Option B — Document-oriented database (MongoDB):** offers flexible schemas that do not require defining the structure upfront, and supports horizontal scalability for large datasets. However, it does not enforce referential integrity or cascade deletions natively. All of the constraints described above would need to be implemented manually in the application code, and any oversight in that logic could allow inconsistent data to be stored without warning.
+
+**Chosen option: Option A.** The academic data model is fundamentally relational, and the integrity constraints it requires are critical for the correctness of the published timetable. A relational database guarantees these constraints at the engine level regardless of application bugs, while a document store would place that responsibility entirely on the application code. The additional schema flexibility of MongoDB provides no benefit for a domain whose structure is well defined and stable.

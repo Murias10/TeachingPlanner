@@ -86,13 +86,13 @@ The following list includes all sources cited directly in the text of this docum
 >
 > **Capítulo 4 — System Requirements**
 > - [4] OWASP ASVS: en la sección de seguridad, después de "OWASP Application Security Verification Standard (ASVS)".
-> - [7] GDPR: en los requisitos de privacidad (RNF-PRIV-01), después de "General Data Protection Regulation (GDPR)".
-> - [13] Docker: en RNF-PORT-01, después de "Docker and Docker Compose".
+> - [7] GDPR: en los requisitos de privacidad (NFR-PRIV-01), después de "General Data Protection Regulation (GDPR)".
+> - [13] Docker: en NFR-PORT-01, después de "Docker and Docker Compose".
 > - [15] GitHub Actions: en la descripción del pipeline de CI/CD, después de "GitHub Actions".
 > - [16] Testcontainers: en la tabla de niveles de prueba, después de "Jest + Testcontainers".
 > - [8] Node.js: en los requisitos de entorno, después de "Node.js >= 18.x".
 > - [14] SonarQube: en la sección 4.3.3, primera mención de SonarQube como herramienta.
-> - [19] JWT RFC: en RNF-SEG-08, al final de "Short-lived JWT tokens".
+> - [19] JWT RFC: en NFR-SEG-08, al final de "Short-lived JWT tokens".
 >
 > **Capítulo 5 — Design**
 > - [17] Microservices (Fowler): en la introducción de la arquitectura, en la primera frase que describe el patrón de microservicios.

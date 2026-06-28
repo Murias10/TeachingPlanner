@@ -14,19 +14,19 @@ Esta carpeta contiene la **Especificación de Requisitos de Software (SRS)** com
 
 ### 2. Requisitos Funcionales
 **[SRS_Requisitos_Funcionales.md](./SRS_Requisitos_Funcionales.md)** - 120 páginas aprox.
-- ✅ **RF-AUTH:** Autenticación y Gestión de Usuarios (6 requisitos)
-- ✅ **RF-USER:** Gestión de Usuarios (3 requisitos)
-- ✅ **RF-DEGREE:** Gestión de Titulaciones (4 requisitos)
-- ✅ **RF-SUBJECT:** Gestión de Asignaturas (4 requisitos)
-- ✅ **RF-GROUP:** Gestión de Grupos (4 requisitos)
-- ✅ **RF-CLASSROOM:** Gestión de Aulas (4 requisitos)
-- ✅ **RF-CAL:** Gestión de Calendarios Académicos (5 requisitos)
-- ✅ **RF-EVENT:** Gestión de Eventos (8 requisitos)
-- ✅ **RF-REQ:** Solicitudes de Cambio (6 requisitos)
-- ✅ **RF-VIEW:** Visualización Pública (2 requisitos)
-- ✅ **RF-SYNC:** Sincronización con Google Calendar (5 requisitos)
-- ✅ **RF-AUDIT:** Auditoría (3 requisitos)
-- ✅ **RF-EXPORT:** Exportación de Datos (1 requisito)
+- ✅ **FR-AUTH:** Autenticación y Gestión de Usuarios (6 requisitos)
+- ✅ **FR-USER:** Gestión de Usuarios (3 requisitos)
+- ✅ **FR-DEGREE:** Gestión de Titulaciones (4 requisitos)
+- ✅ **FR-SUBJECT:** Gestión de Asignaturas (4 requisitos)
+- ✅ **FR-GROUP:** Gestión de Grupos (4 requisitos)
+- ✅ **FR-CLASSROOM:** Gestión de Aulas (4 requisitos)
+- ✅ **FR-CAL:** Gestión de Calendarios Académicos (5 requisitos)
+- ✅ **FR-EVENT:** Gestión de Eventos (8 requisitos)
+- ✅ **FR-REQ:** Solicitudes de Cambio (6 requisitos)
+- ✅ **FR-VIEW:** Visualización Pública (2 requisitos)
+- ✅ **FR-SYNC:** Sincronización con Google Calendar (5 requisitos)
+- ✅ **FR-AUDIT:** Auditoría (3 requisitos)
+- ✅ **FR-EXPORT:** Exportación de Datos (1 requisito)
 
 **Total:** 60+ requisitos funcionales detallados con:
 - Descripción completa
@@ -38,16 +38,16 @@ Esta carpeta contiene la **Especificación de Requisitos de Software (SRS)** com
 
 ### 3. Requisitos No Funcionales
 **[SRS_Requisitos_NoFuncionales.md](./SRS_Requisitos_NoFuncionales.md)** - 80 páginas aprox.
-- ✅ **RNF-PERF:** Rendimiento (4 requisitos)
-- ✅ **RNF-SCALE:** Escalabilidad (3 requisitos)
-- ✅ **RNF-DISP:** Disponibilidad (4 requisitos)
-- ✅ **RNF-SEC:** Seguridad (6 requisitos)
-- ✅ **RNF-UI:** Usabilidad (4 requisitos)
-- ✅ **RNF-MAINT:** Mantenibilidad (5 requisitos)
-- ✅ **RNF-PORT:** Portabilidad (3 requisitos)
-- ✅ **RNF-INT:** Integración (3 requisitos)
-- ✅ **RNF-COMP:** Cumplimiento Normativo (3 requisitos)
-- ✅ **RNF-SUP:** Soporte y Documentación (3 requisitos)
+- ✅ **NFR-PERF:** Rendimiento (4 requisitos)
+- ✅ **NFR-SCALE:** Escalabilidad (3 requisitos)
+- ✅ **NFR-DISP:** Disponibilidad (4 requisitos)
+- ✅ **NFR-SEC:** Seguridad (6 requisitos)
+- ✅ **NFR-UI:** Usabilidad (4 requisitos)
+- ✅ **NFR-MAINT:** Mantenibilidad (5 requisitos)
+- ✅ **NFR-PORT:** Portabilidad (3 requisitos)
+- ✅ **NFR-INT:** Integración (3 requisitos)
+- ✅ **NFR-COMP:** Cumplimiento Normativo (3 requisitos)
+- ✅ **NFR-SUP:** Soporte y Documentación (3 requisitos)
 
 **Total:** 30+ requisitos no funcionales con métricas específicas
 
@@ -90,17 +90,17 @@ Esta carpeta contiene la **Especificación de Requisitos de Software (SRS)** com
 
 **Luego revisar:**
 - [Requisitos Funcionales](./SRS_Requisitos_Funcionales.md) - Todas las funcionalidades
-- [RF-CAL](./SRS_Requisitos_Funcionales.md#417-módulo-de-gestión-de-calendarios-rf-cal) - Gestión de calendarios
-- [RF-EVENT](./SRS_Requisitos_Funcionales.md#418-módulo-de-gestión-de-eventos-rf-event) - Gestión de eventos
-- [RF-REQ](./SRS_Requisitos_Funcionales.md#419-módulo-de-solicitudes-de-cambio-rf-req) - Solicitudes de cambio
+- [FR-CAL](./SRS_Requisitos_Funcionales.md#417-módulo-de-gestión-de-calendarios-rf-cal) - Gestión de calendarios
+- [FR-EVENT](./SRS_Requisitos_Funcionales.md#418-módulo-de-gestión-de-eventos-rf-event) - Gestión de eventos
+- [FR-REQ](./SRS_Requisitos_Funcionales.md#419-módulo-de-solicitudes-de-cambio-rf-req) - Solicitudes de cambio
 
 #### 👨‍🏫 Profesores (Usuarios Finales)
 **Empezar con:** [Características de Usuarios - Profesor](./SRS_TeachingPlanner.md#232-profesor-role_professor)
 
 **Luego revisar:**
-- [RF-VIEW](./SRS_Requisitos_Funcionales.md#4110-módulo-de-visualización-pública-rf-view) - Consulta de horarios
-- [RF-REQ](./SRS_Requisitos_Funcionales.md#419-módulo-de-solicitudes-de-cambio-rf-req) - Solicitar cambios
-- [RF-SYNC](./SRS_Requisitos_Funcionales.md#4111-módulo-de-sincronización-con-google-calendar-rf-sync) - Google Calendar
+- [FR-VIEW](./SRS_Requisitos_Funcionales.md#4110-módulo-de-visualización-pública-rf-view) - Consulta de horarios
+- [FR-REQ](./SRS_Requisitos_Funcionales.md#419-módulo-de-solicitudes-de-cambio-rf-req) - Solicitar cambios
+- [FR-SYNC](./SRS_Requisitos_Funcionales.md#4111-módulo-de-sincronización-con-google-calendar-rf-sync) - Google Calendar
 
 #### 👨‍💻 Equipo de Desarrollo
 **Empezar con:** [Arquitectura del Sistema](./SRS_TeachingPlanner.md#213-arquitectura-del-sistema)
@@ -115,9 +115,9 @@ Esta carpeta contiene la **Especificación de Requisitos de Software (SRS)** com
 **Empezar con:** [Restricciones Técnicas](./SRS_TeachingPlanner.md#242-restricciones-técnicas)
 
 **Luego revisar:**
-- [RNF-SCALE](./SRS_Requisitos_NoFuncionales.md#422-requisitos-de-escalabilidad-rnf-scale) - Escalabilidad
-- [RNF-DISP](./SRS_Requisitos_NoFuncionales.md#423-requisitos-de-disponibilidad-rnf-disp) - Disponibilidad y backups
-- [RNF-SEC](./SRS_Requisitos_NoFuncionales.md#424-requisitos-de-seguridad-rnf-sec) - Seguridad
+- [NFR-SCALE](./SRS_Requisitos_NoFuncionales.md#422-requisitos-de-escalabilidad-rnf-scale) - Escalabilidad
+- [NFR-DISP](./SRS_Requisitos_NoFuncionales.md#423-requisitos-de-disponibilidad-rnf-disp) - Disponibilidad y backups
+- [NFR-SEC](./SRS_Requisitos_NoFuncionales.md#424-requisitos-de-seguridad-rnf-sec) - Seguridad
 - [Diagrama de Despliegue](./SRS_Apendices.md#516-diagrama-de-despliegue)
 
 #### 🧪 Equipo de QA/Testing
@@ -125,7 +125,7 @@ Esta carpeta contiene la **Especificación de Requisitos de Software (SRS)** com
 
 **Luego revisar:**
 - [Criterios de Aceptación](./SRS_Requisitos_Funcionales.md) - En cada requisito funcional
-- [RNF-MAINT-03](./SRS_Requisitos_NoFuncionales.md#rnf-maint-03-testing) - Requisitos de testing
+- [NFR-MAINT-03](./SRS_Requisitos_NoFuncionales.md#rnf-maint-03-testing) - Requisitos de testing
 - [Verificación de Requisitos](./SRS_Apendices.md#54-resumen-de-verificación-de-requisitos)
 
 ## 📊 Estadísticas del SRS
@@ -159,26 +159,26 @@ Este SRS cumple con los siguientes estándares:
 ### Por Prioridad
 
 **Requisitos CRÍTICOS:**
-- RF-EVENT-07 - Detección automática de conflictos
-- RF-VIEW-01 - Vista pública de horarios
-- RF-CAL-01 - Crear calendario académico
-- RF-AUDIT-01 - Registro automático de acciones
-- RNF-SEC-01 a 06 - Seguridad completa
-- RNF-DISP-01 a 03 - Disponibilidad y backups
+- FR-EVENT-07 - Detección automática de conflictos
+- FR-VIEW-01 - Vista pública de horarios
+- FR-CAL-01 - Crear calendario académico
+- FR-AUDIT-01 - Registro automático de acciones
+- NFR-SEC-01 a 06 - Seguridad completa
+- NFR-DISP-01 a 03 - Disponibilidad y backups
 
 **Requisitos ALTOS:**
-- RF-AUTH-01 a 06 - Autenticación completa
-- RF-CAL-04 - Duplicar calendario
-- RF-REQ-01 a 06 - Solicitudes de cambio
-- RF-SYNC-01 a 05 - Google Calendar
+- FR-AUTH-01 a 06 - Autenticación completa
+- FR-CAL-04 - Duplicar calendario
+- FR-REQ-01 a 06 - Solicitudes de cambio
+- FR-SYNC-01 a 05 - Google Calendar
 
 ### Por Módulo
 
-- **Autenticación:** [RF-AUTH-01 a 06](./SRS_Requisitos_Funcionales.md#411-módulo-de-autenticación-y-gestión-de-usuarios-rf-auth)
-- **Calendarios:** [RF-CAL-01 a 05](./SRS_Requisitos_Funcionales.md#417-módulo-de-gestión-de-calendarios-rf-cal)
-- **Eventos:** [RF-EVENT-01 a 08](./SRS_Requisitos_Funcionales.md#418-módulo-de-gestión-de-eventos-rf-event)
-- **Solicitudes:** [RF-REQ-01 a 06](./SRS_Requisitos_Funcionales.md#419-módulo-de-solicitudes-de-cambio-rf-req)
-- **Seguridad:** [RNF-SEC-01 a 06](./SRS_Requisitos_NoFuncionales.md#424-requisitos-de-seguridad-rnf-sec)
+- **Autenticación:** [FR-AUTH-01 a 06](./SRS_Requisitos_Funcionales.md#411-módulo-de-autenticación-y-gestión-de-usuarios-rf-auth)
+- **Calendarios:** [FR-CAL-01 a 05](./SRS_Requisitos_Funcionales.md#417-módulo-de-gestión-de-calendarios-rf-cal)
+- **Eventos:** [FR-EVENT-01 a 08](./SRS_Requisitos_Funcionales.md#418-módulo-de-gestión-de-eventos-rf-event)
+- **Solicitudes:** [FR-REQ-01 a 06](./SRS_Requisitos_Funcionales.md#419-módulo-de-solicitudes-de-cambio-rf-req)
+- **Seguridad:** [NFR-SEC-01 a 06](./SRS_Requisitos_NoFuncionales.md#424-requisitos-de-seguridad-rnf-sec)
 
 ## 📝 Historial de Cambios
 

@@ -25,11 +25,11 @@ All roles were assumed by the same person throughout the project. The table belo
 | Initials | Role | Function in the TFG |
 |----------|------|---------------------|
 | PM | Project Manager | Planning, monitoring, meetings with supervisor |
-| ANS | Systems Analyst | Requirements analysis, system scope |
-| ARQ | Software Architect | Microservices architecture design |
-| CT | Technology Consultant | Technology decisions, stack, external APIs |
-| DS | Developer | Implementation of all microservices |
-| DG | Graphic Designer | Interface design, wireframes, and prototypes |
+| SA | Systems Analyst | Requirements analysis, system scope |
+| ARCH | Software Architect | Microservices architecture design |
+| TC | Technology Consultant | Technology decisions, stack, external APIs |
+| DEV | Developer | Implementation of all microservices |
+| GD | Graphic Designer | Interface design, wireframes, and prototypes |
 | T | Tester | Integration, acceptance, E2E, and security testing |
 | AS | Systems Administrator | Infrastructure configuration, containers, and continuous deployment |
 
@@ -83,7 +83,7 @@ Table 2.4 lists the nine iterations with their main deliverable and calendar per
 
 ### 2.1.3 Responsibility Matrices
 
-The matrices below map each task group to the roles involved in it. An X marks participation. Since all roles are performed by the same person, these matrices show the logical division of responsibility rather than the distribution of work between individuals.
+The matrices below map each task group to the roles involved in it. An X marks participation. The column headers use the role abbreviations defined in Table 2.1 (PM, SA, ARCH, TC, DEV, GD, T). Since all roles are performed by the same person, these matrices show the logical division of responsibility rather than the distribution of work between individuals.
 
 *Tables 2.5a–2.5f: Responsibility matrices by phase*
 
@@ -140,7 +140,7 @@ The matrices below map each task group to the roles involved in it. An X marks p
 
 ### 2.1.4 Stakeholder Identification
 
-A total of six stakeholders were identified for TeachingPlanner, ranging from the head of studies and the teaching staff to the university IT team and other applications in the EII ecosystem that depend on the outputs this system produces. Identifying them early helped align expectations and shape the solution around the people who actually depend on it. Their roles, interests and influence on the requirements are described in full in Section 3.1.4 of the Stakeholder Requirements chapter.
+A total of six stakeholders were identified for TeachingPlanner: the Head of Studies of the EII, the teaching staff, students and the general public, other applications in the EII ecosystem that depend on the system's outputs, the university IT service (SUTIC), and the development team. Identifying them early helped align expectations and shape the solution around the people who actually depend on it. Their roles, interests and influence on the requirements are described in full in Section 3.1.4 of the Stakeholder Requirements chapter.
 
 ### 2.1.5 OBS and PBS
 

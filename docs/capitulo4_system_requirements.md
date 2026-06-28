@@ -1055,11 +1055,25 @@ The domain data model is described in full in **§5.2.3** (Detailed design), whi
 
 #### Technology selection
 
-The webapp module is built on React with Vite. Two categories of libraries were evaluated during the design phase:
+The webapp module is built on React with Vite. Two technology decisions were made during the design phase: the UI component library and the calendar component.
 
-**UI component library.** Three options were assessed: Ant Design, Radix UI and shadcn/ui. Ant Design was discarded because its comprehensive pre-built component set introduces a large bundle (~500 KB) and its theming system (token overrides) limits deep visual customisation. shadcn/ui — which layers pre-styled components on top of Radix UI primitives — was evaluated as an intermediate option. Ultimately the Radix UI primitives were used directly, combined with Tailwind CSS, as this approach inherits full WAI-ARIA accessibility while keeping complete control over styles without any intermediate abstraction layer.
+##### UI component library
 
-**Calendar component.** FullCalendar and react-big-calendar were the main candidates. FullCalendar provides drag-and-drop out of the box but gates several features behind a paid licence (starting at $480/developer). react-big-calendar is fully MIT-licensed, follows React's component model natively and exposes sufficient customisation hooks (SASS variables, custom event renderers) to meet the project's visual requirements. It was therefore selected as the calendar component.
+**Option A — Ant Design:** provides a comprehensive set of pre-built components ready to use. However, it introduces a large bundle size (~500 KB) and its theming system based on token overrides limits deep visual customisation.
+
+**Option B — shadcn/ui:** layers pre-styled components on top of Radix UI primitives, offering an intermediate level of abstraction. Reduces initial setup time but still imposes a styling layer that constrains full control over the visual output.
+
+**Option C — Radix UI primitives with Tailwind CSS:** provides unstyled, fully WAI-ARIA accessible primitives that can be combined with Tailwind CSS utility classes for complete control over styles, without any intermediate abstraction layer.
+
+**Chosen option: Option C.** The combination of Radix UI and Tailwind CSS provides full accessibility out of the box while keeping complete control over the visual design. Neither Ant Design nor shadcn/ui offered a clear advantage that justified their constraints on customisation and bundle size.
+
+##### Calendar component
+
+**Option A — FullCalendar:** provides drag-and-drop and advanced features out of the box. However, several of these features are gated behind a paid licence starting at $480 per developer.
+
+**Option B — react-big-calendar:** fully MIT-licensed, follows React's component model natively and exposes sufficient customisation hooks through SASS variables and custom event renderers to meet the project's visual requirements.
+
+**Chosen option: Option B.** react-big-calendar covers all the project's requirements without introducing a commercial dependency. Its native React integration and open customisation model made it the better fit.
 
 #### UI prototype and user manual
 
@@ -1178,6 +1192,13 @@ The security requirements have been defined following the recommendations of the
 | NFR-USA-02 | Mandatory fields are visually marked with a consistent indicator (red asterisk `*` and `RequiredLabel` component, see §4.1.3). Error messages are specific and action-oriented |
 | NFR-USA-03 | The interface is **responsive**: adaptive design for mobile, tablet and desktop screens |
 | NFR-USA-04 | The interface shall be available in Spanish and English. The user shall be able to change the language from the sidebar at any time; the selection shall be persisted in the browser between sessions |
+| NFR-USA-05 | The interface shall support **light, dark and system theme modes**, with the user's preference persisted in the browser between sessions |
+| NFR-USA-06 | Editing and replacement dialogs shall display the **original data in read-only** alongside the editable fields, and replacement dialogs shall include a **live summary block** that updates in real time as the user modifies the proposed changes |
+| NFR-USA-07 | The calendar view shall allow **creating events by clicking and dragging** directly on the desired time slot, prefilling the date and time in the creation dialog |
+| NFR-USA-08 | The **filter panel shall apply cascade logic** between dependent categories: narrowing a higher-level filter automatically removes invalid options from lower-level filters, and options that would yield no results are shown as disabled |
+| NFR-USA-09 | The user's **filter selections shall be persisted** in the browser between sessions, so that returning to the application restores the previous filter configuration without manual reconfiguration |
+| NFR-USA-10 | **Destructive actions** (deletions, synchronisation removal) shall require an explicit confirmation dialog. **Long-running operations** (synchronisation, import) shall display real-time progress indicators without blocking navigation |
+| NFR-USA-11 | The **password creation interface** shall display a real-time strength indicator showing compliance with each requirement (uppercase, lowercase, number, special character, minimum length) as the user types |
 
 ### 4.2.6 Privacy
 

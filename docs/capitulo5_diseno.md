@@ -12,16 +12,43 @@ TeachingPlanner has been designed following a **microservices architecture with 
 - **Independent scalability**: the scheduling service is the most computationally demanding component — it generates complete calendars with recurring event expansion, handles export and Google Calendar synchronisation — and can scale autonomously without replicating the authentication services, which have comparatively low and uniform load.
 - **Continuous, low-risk deployment**: each microservice is containerised and published as an independent image; deploying a change to the authentication service does not require restarting the scheduling service, which reduces the operational risk window and shortens the mean time to recovery in case of failure.
 
-To justify the choice of specific technologies within this architectural style, Table 5.1 summarises the main decisions made and the alternatives that were evaluated before reaching them.
+The following subsections detail the four key technology decisions made within this architectural style, presenting the alternatives evaluated and the rationale behind each choice.
 
-**Table 5.1 — Architectural decisions (simplified ADR)**
+##### System architecture: microservices vs. monolith
 
-| Decision | Alternative considered | Reason for the choice |
-|---|---|---|
-| Microservices vs. monolith | Modular monolith (NestJS) | Fault isolation and independent scaling of the scheduling service; the monolith would have coupled the deployment cycles of authentication and scheduling |
-| Relational MariaDB vs. NoSQL | MongoDB | The academic data model (calendars, groups, subjects, events) has strong relationships with referential integrity and uniqueness constraints that naturally fit a relational schema |
-| Caddy vs. Nginx for TLS | Nginx with manual certbot | Caddy supports both automatic ACME-based TLS and manually provisioned certificates; in this deployment, the university-issued GEANT TLS certificate is supplied via GitHub Secrets and mounted at container startup, removing the need for in-container certificate management tooling |
-| React SPA (Vite) vs. Next.js SSR | Next.js with server-side rendering | All application routes require prior authentication; SSR provides no value for a fully private SPA, and Vite's build pipeline offers a significantly faster development feedback cycle with no server infrastructure overhead |
+**Option A — Modular monolith (NestJS):** all modules (authentication, user management, scheduling) run in a single application and share the same deployment cycle. Simpler initial setup but couples all domains together: a change in authentication requires redeploying the scheduling module, and a failure in any module can bring down the entire system.
+
+**Option B — Microservices with API Gateway:** each domain runs as an independent service with its own database and container. Services communicate through the gateway, which acts as the single entry point for all frontend requests. Each service can be deployed, scaled and restarted independently.
+
+**Chosen option: Option B.** Authentication and scheduling evolve at different rates and have different computational demands. The scheduling service generates complete calendars, handles export and synchronises with Google Calendar, making it significantly more resource-intensive. Isolating it allows independent scaling without replicating the authentication services. A failure in one service does not affect the others.
+
+##### Database engine: relational vs. document-oriented
+
+**Option A — Relational database (MariaDB):** enforces referential integrity, cascade deletions and uniqueness constraints at the engine level. The academic data model, with strong relationships between degrees, courses, semesters, calendars, subjects, groups and events, maps naturally to a relational schema.
+
+**Option B — Document-oriented database (MongoDB):** offers flexible schemas and horizontal scalability. However, the relationships and constraints that the academic domain requires would need to be reimplemented in the application code, since the engine does not enforce them natively.
+
+**Chosen option: Option A.** The academic data model is fundamentally relational. Integrity constraints such as cascade deletions and uniqueness checks are critical for the correctness of the published timetable and must be guaranteed at the database level, not delegated to application code.
+
+##### TLS termination: Caddy vs. Nginx
+
+TLS (Transport Layer Security) encrypts all traffic between the user's browser and the server, ensuring that sensitive data such as passwords and session tokens cannot be intercepted in transit. The system requires a reverse proxy to handle this encryption at the entry point.
+
+**Option A — Nginx with manual certificate management (certbot):** widely used and well documented. Requires configuring certificate renewal scripts and manual setup for each deployment environment.
+
+**Option B — Caddy:** supports both automatic certificate management via the ACME protocol and manually provisioned certificates. In this deployment, the university-issued GEANT TLS certificate is supplied via GitHub Secrets and mounted at container startup, removing the need for in-container certificate management tooling.
+
+**Chosen option: Option B.** Caddy handles the university's institutional certificate without requiring additional tooling or renewal scripts, simplifying the deployment configuration.
+
+##### Frontend rendering: React SPA (Vite) vs. Next.js SSR
+
+SSR (Server-Side Rendering) generates the HTML of each page on the server before sending it to the browser, improving the initial load time and search engine indexing.
+
+**Option A — React SPA with Vite:** the interface is loaded once as static files and all subsequent interactions happen through API calls without full page reloads. The frontend is compiled into static assets and served from its own container with no server-side runtime.
+
+**Option B — Next.js with server-side rendering:** generates pages on the server for each request. Provides benefits for public-facing pages that need search engine indexing and fast first-load times.
+
+**Chosen option: Option A.** All management routes in TeachingPlanner require prior authentication, so there is no public content for search engines to index. SSR provides no value in this context. Vite offers a significantly faster development feedback cycle and the static output requires no server infrastructure beyond a simple file server.
 
 The resulting component decomposition is described in detail in the following section.
 
@@ -97,7 +124,7 @@ graph TD
 The system is deployed using Docker containers orchestrated with Docker Compose. Three deployment profiles are maintained:
 
 - **Local development**: compiles all services from source with ports exposed on the host machine and hot-reload volumes for immediate feedback during development.
-- **Production on Azure VM**: pulls pre-built images from the container registry, limits public exposure to the gateway and the frontend, and keeps the remaining services on an isolated internal network.
+- **Production (two environments)**: pulls pre-built images from the container registry, limits public exposure to the gateway and the frontend, and keeps the remaining services on an isolated internal network. Two configurations are maintained: one for an Azure VM used during initial development, and one for the university's own server (EII), which is the current production environment accessible through the institutional VPN.
 - **Quality analysis**: starts a local SonarQube instance to run the static code analysis pipeline against the full codebase.
 
 **Figure 5.2 — Deployment diagram**
@@ -115,7 +142,7 @@ graph TB
         ci_deploy_self["Workflow: deploy_selfhosted.yml\ndispatch (manual) → tests → build → self-hosted deploy"]
     end
 
-    subgraph "Azure VM — Docker Engine"
+    subgraph "Production Server — Docker Engine"
         subgraph "Docker network: app_network"
             caddy["webapp (Caddy)\n:443 / :80\nautomatic HTTPS"]
             gw_node["gateway_service\n:8080 (public)"]
@@ -223,11 +250,11 @@ Figure 5.3 shows the user account lifecycle.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> INACTIVE : Created by admin (POST /api/user)
-    INACTIVE --> ACTIVE : Activation (POST /auth/activate)
-    ACTIVE --> PASSWORD_RESET_PENDING : Reset requested (POST /auth/forgot-password)
-    PASSWORD_RESET_PENDING --> ACTIVE : OTP verified + new password
-    ACTIVE --> [*] : Account deletion
+    [*] --> INACTIVE : Admin creates account
+    INACTIVE --> ACTIVE : Email activation
+    ACTIVE --> PASSWORD_RESET_PENDING : Reset requested
+    PASSWORD_RESET_PENDING --> ACTIVE : OTP verified
+    ACTIVE --> [*] : Account deleted
 ```
 
 #### Password hashing (bcrypt)

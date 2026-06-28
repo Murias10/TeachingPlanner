@@ -930,13 +930,19 @@ This phase begins once construction is complete. It covers integration, acceptan
 
 #### 2.1.6.2 Hours Summary by Phase
 
-The screenshot below shows the work hours per phase as reported by MS Project. Construction dominates the schedule, with the Planner Service alone accounting for roughly a third of the overall effort.
+The table below shows the estimated work hours per phase. Construction dominates the schedule, with the Planner Service alone accounting for roughly a third of the overall effort.
 
-> **[CAPTURA — Resumen de horas por fase]**
-> Vista Hoja de tareas o tabla Trabajo. Filtrar para mostrar solo las filas de resumen de primer nivel (IDs 1–8).
-> Columnas visibles: Nombre de tarea, Trabajo.
+*Table: Hours summary by phase*
 
-*Figure: Hours summary by phase (MS Project work report)*
+| Phase | Estimated hours | % of total |
+|-------|----------------|------------|
+| 1.1 Project management | 19 h | 5.2% |
+| 1.2 Documentation | 64 h | 17.5% |
+| 1.3 System analysis | 33 h | 9.0% |
+| 1.4 Design and architecture | 23.5 h | 6.4% |
+| 1.5 Construction | 193.75 h | 53.1% |
+| 1.6 Testing and debugging | 32 h | 8.8% |
+| **TOTAL** | **365.25 h** | **100%** |
 
 #### 2.1.6.3 Assigned Resources and Hours by Role
 
@@ -947,11 +953,11 @@ The table below shows the total estimated hours per role across the whole projec
 | Initials | Role | Estimated hours |
 |----------|------|----------------|
 | PM | Project Manager | 19 h |
-| ANS | Systems Analyst | 19 h |
-| ARQ | Software Architect | 14 h |
-| CT | Technology Consultant | 9 h |
-| DS | Developer | 269.25 h |
-| DG | Graphic Designer | 6 h |
+| SA | Systems Analyst | 19 h |
+| ARCH | Software Architect | 14 h |
+| TC | Technology Consultant | 9 h |
+| DEV | Developer | 269.25 h |
+| GD | Graphic Designer | 6 h |
 | T | Tester | 29 h |
 | **—** | **TOTAL** | **365.25 h** |
 

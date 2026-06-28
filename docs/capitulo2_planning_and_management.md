@@ -252,7 +252,7 @@ mindmapDiagram {
 ++++ P4.5.2 Academic Calendar Module
 ++++ P4.5.3 Event Management Module
 ++++ P4.5.4 Change Request Module
-++++ P4.5.5 Legacy Interoperability Module
+++++ P4.5.5 Data Interoperability Module
 ++++ P4.5.6 Google Calendar Integration Module
 ++++ P4.5.7 Audit Log Module
 +++ P4.6 Webapp (React SPA, 19 pages)

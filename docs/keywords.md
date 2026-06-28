@@ -24,6 +24,6 @@
 - Real-time conflict detection
 - Schedule change requests
 - Google Calendar synchronisation
-- Legacy system interoperability
+- Data interoperability
 - Role-based access control
 - Continuous integration and deployment

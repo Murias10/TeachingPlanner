@@ -28,7 +28,7 @@ rectangle "TeachingPlanner" {
   usecase "Schedule consultation\n(UR6)" as M6
   usecase "Change requests\n(UR7)" as M7
   usecase "Google Calendar\nsynchronisation (UR8)" as M8
-  usecase "Legacy\ninteroperability (UR9)" as M9
+  usecase "Data\ninteroperability (UR9)" as M9
   usecase "Auditing\n(UR10)" as M10
 }
 
@@ -938,7 +938,7 @@ Administrator-only module (see Figure 4.1). Requires the administrator to have a
 
 ---
 
-#### RF-EXPORT — Interoperability with the legacy system (→ UR9)
+#### RF-EXPORT — Data interoperability (→ UR9)
 
 ZIP export and import from `.txt` operations are exclusive to the Administrator. CSV exports are available to any authenticated or guest user from the calendar view.
 
@@ -952,7 +952,7 @@ skinparam packageStyle rectangle
 actor "Administrator" as Admin
 actor "User\n(any role)" as Any
 
-rectangle "Interoperability with the legacy system" {
+rectangle "Data interoperability" {
   usecase "Export calendar\nas ZIP (legacy format)" as CU20
   usecase "Import calendar\nfrom .txt files" as CU21
   usecase "Import exceptions\nover existing calendar" as CU21b

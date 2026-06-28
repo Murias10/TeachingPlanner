@@ -44,8 +44,9 @@ TeachingPlanner is a web application developed from scratch to replace the syste
 - **Automatically detect scheduling conflicts** before confirming any assignment or change, preventing erroneous overlaps from being saved.
 - Incorporate an **integrated change request system** that replaces the email-based workflow, with visibility of the status for both the professor and the administrator at all times.
 - **Automatically synchronise with Google Calendar**, generating an independent calendar per classroom so that other applications in the EII ecosystem can consume always-up-to-date data without manual intervention.
-- **Maintain compatibility with the legacy system**, allowing the import and export of the five `.txt` files to facilitate initial migration and coexistence with other tools that depend on this format.
+- **Maintain compatibility with external systems**, allowing the import and export of the five `.txt` files to facilitate initial migration and coexistence with other tools that depend on this format.
 - Preserve the **public schedule consultation without authentication**, equivalent to the functionality of the existing viewer, and add CSV export compatible with Google Calendar for students' use.
+- Present the academic schedule in an **interactive calendar view** with multiple time periods, including full week, work week, day and month, replacing the list and table format of the legacy viewer with a clearer and more intuitive representation of the timetable.
 - Offer a **responsive** interface that works correctly on mobile devices and is **fully internationalised** in Spanish and English.
 
 ### 3.1.4 Stakeholders
@@ -191,7 +192,7 @@ TeachingPlanner is a web application developed from scratch to replace the syste
 
 ---
 
-**UR9 — Interoperability with the legacy system**
+**UR9 — Data interoperability**
 
 **UR9.1.** The system shall allow the administrator to export a complete academic calendar in the format of the legacy system (a ZIP file containing five `.txt` files).
 

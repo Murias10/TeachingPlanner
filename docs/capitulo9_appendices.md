@@ -165,7 +165,7 @@ The following list includes all sources cited directly in the text of this docum
 
 ### 9.3.1 Content Description
 
-In addition to the main TFG document, a compressed file is submitted to the university platform containing the source code and all supplementary materials associated with the project. The university platform has a file size limit of approximately 40 to 90 MB. Since Node.js projects include `node_modules` folders that can be several hundred megabytes, these are excluded from the archive. A `README.txt` file at the root of the archive explains the full structure and provides a link to the public GitHub repository at https://github.com/murias10/teachingplanner, where the complete project can also be downloaded.
+In addition to the main TFG document, a compressed file is submitted to the university platform containing the source code and all supplementary materials associated with the project. The university platform has a file size limit of approximately 40 to 90 MB. Since Node.js projects include `node_modules` folders that can be several hundred megabytes, these are excluded from the archive. A `README.txt` file at the root of the archive explains the full structure and provides a link to the public GitHub repository at https://github.com/murias10/teachingplanner, where the complete project -- including its full git history -- can also be cloned or downloaded.
 
 The archive is organised into directories by purpose, as described in Table 9.2.
 
@@ -174,19 +174,21 @@ The archive is organised into directories by purpose, as described in Table 9.2.
 | Directory | Contents |
 |-----------|----------|
 | `./` | Contains the `README.txt` file described below. |
-| `./TeachingPlanner` | Full project source code: all microservices, the webapp, Docker Compose configuration files for each deployment environment, and the root `package.json`. `node_modules` folders are excluded; run `npm install` in each service directory to restore dependencies. See Table 9.3 for the internal structure. |
-| `./documentacion` | This TFG document in PDF format. The installation manual and user manual are included as chapters within the document itself. |
-| `./contexto` | Background document provided by the EII at the start of the project (`Explicación archivos TXT planificador actual.pdf`), describing the legacy plain-text file format that TeachingPlanner replaces. |
-| `./planificacion` | Microsoft Project 2019 file (`planificacion_TFG.mpp`) with the full project schedule referenced in Chapter 2. |
-| `./prototipos` | Initial UI sketches from the design phase: `planificador_boceto.excalidraw` (editable) and `planificador_boceto.svg` (exported image). |
+| `./TeachingPlanner` | Full project source code: the four backend microservices (`gateway_service`, `auth_service`, `user_service`, `planner_service`), the frontend application (`webapp`), Docker Compose configuration files for each deployment environment (development, self-hosted, Azure, and SonarQube), environment variable templates (`.env.template` and `.env.sonarqube.template`), CI/CD workflow definitions (`.github/workflows/`), and the root `package.json`. The `node_modules` folders are excluded; run `npm install` in each service directory and in `webapp/` to restore dependencies. See Table 9.3 for the internal structure. |
+| `./documentacion` | This TFG document in PDF format. The installation manual (Chapter 7, Section 7.1) and the user manual (Chapter 7, Section 7.2) are included as chapters within the document itself; no separate manual files are provided. |
+| `./contexto` | Background document provided by the EII at the start of the project (`Explicacion archivos TXT planificador actual.pdf`), describing the legacy plain-text file format that TeachingPlanner maintains compatibility with. |
+| `./planificacion` | Microsoft Project 2019 file (`planificacion_TFG.mpp`) containing the full project schedule referenced in Chapter 2 (WBS, Gantt chart, resource assignments). |
+| `./prototipos` | Initial UI sketches produced during the design phase: `planificador_boceto.excalidraw` (editable source) and `planificador_boceto.svg` (exported image). These prototypes are referenced in Section 4.1.3.2. |
+
+Note on installation and runtime dependencies: the system runs entirely inside Docker containers. The installation procedure, all required third-party software, version numbers, environment configuration and step-by-step deployment instructions for each of the three supported environments (local development, public VM, private-network VM) are documented in the installation manual in Chapter 7, Section 7.1. No separate `./instalacion` or `./explotacion` directories are included because all configuration files (Docker Compose, `.env` templates, TLS certificates) are already part of the `./TeachingPlanner` source tree.
 
 The content of the `README.txt` file included at the root of the archive is the following:
 
 ```
 ========================================================
-  TeachingPlanner — TFG
-  Escuela de Ingeniería Informática, Universidad de Oviedo
-  Autor: Diego Murias Suárez
+  TeachingPlanner -- TFG
+  Escuela de Ingenieria Informatica, Universidad de Oviedo
+  Autor: Diego Murias Suarez
 ========================================================
 
 Este fichero describe la estructura del fichero comprimido adjunto
@@ -197,14 +199,14 @@ ESTRUCTURA DE DIRECTORIOS
 
 ./                    README.txt (este fichero)
 
-./TeachingPlanner/    Código fuente completo del proyecto (microservicios
-                      gateway, auth, user y planner, aplicación web webapp,
+./TeachingPlanner/    Codigo fuente completo del proyecto (microservicios
+                      gateway, auth, user y planner, aplicacion web webapp,
                       y ficheros Docker Compose para cada entorno).
-                      NOTA: las carpetas node_modules están excluidas.
+                      NOTA: las carpetas node_modules estan excluidas.
                       Ejecutar "npm install" en cada directorio de servicio
                       y en webapp/ para restaurar las dependencias.
 
-./documentacion/      Memoria del TFG en PDF. Los manuales de instalación
+./documentacion/      Memoria del TFG en PDF. Los manuales de instalacion
                       y de usuario forman parte de la propia memoria.
 
 ./contexto/           Documento de contexto del sistema heredado de la EII.
@@ -213,34 +215,34 @@ ESTRUCTURA DE DIRECTORIOS
 
 ./prototipos/         Bocetos iniciales de la interfaz (Excalidraw y SVG).
 
-REPOSITORIO PÚBLICO
+REPOSITORIO PUBLICO
 --------------------
 https://github.com/murias10/teachingplanner
 
-ACCESO A LA APLICACIÓN
+ACCESO A LA APLICACION
 ------------------------
-La aplicación está desplegada y operativa. Consultar la sección 7.1.0
-del manual de instalación incluido en ./documentacion/ para instrucciones
+La aplicacion esta desplegada y operativa. Consultar la seccion 7.1
+del manual de instalacion incluido en ./documentacion/ para instrucciones
 de acceso mediante la VPN de la universidad.
 ```
 
 ### 9.3.2 Development Directory Structure
 
-The table below describes the internal structure of the `./TeachingPlanner` directory. The layout follows directly from the microservices architecture of the system: one directory per service, one for the frontend application, two for the database schemas, and shared configuration at the root.
+The table below describes the internal structure of the `./TeachingPlanner` directory. The layout follows directly from the microservices architecture of the system: one directory per service, one for the frontend application, two for the database schemas, and shared configuration and CI/CD definitions at the root. In contrast to a traditional Java project (where directories such as `./build`, `./dist`, `./lib` or `./classes` separate compilation artefacts from source), a Node.js project resolves dependencies at install time (`node_modules/`) and produces distribution bundles inside each service's own directory, so the structure groups code by bounded context rather than by artefact type.
 
 *Table 9.3: Internal structure of the TeachingPlanner development directory*
 
 | Directory | Contents |
 |-----------|----------|
-| `./` | Root-level files: `package.json`, Docker Compose files for each environment (development, self-hosted, Azure, and SonarQube), environment variable templates (`.env.template` and `.env.sonarqube.template`), and the `.github/workflows/` directory containing the CI/CD pipeline definitions. Actual `.env` files with real credentials are excluded from the archive. |
-| `./gateway_service` | API gateway service. Routes all incoming requests to the appropriate backend service. Contains `src/` with routing and middleware logic. |
-| `./auth_service` | Authentication service. Handles login, registration, account activation, password recovery, and Google OAuth integration. Contains `src/` with controllers, services, entities, middleware, routes, and utilities, and `migrations/` with TypeORM database migration files. |
-| `./user_service` | User management service. Manages user accounts, roles, and bulk imports. Contains `src/` with controllers, services, entities, middleware, routes, and utilities, and `scripts/` for import tooling. |
-| `./planner_service` | Scheduling service, the core of the system. Manages all academic data: calendars, degree programmes, subjects, groups, classrooms, recurring and one-off events, change requests, and Google Calendar synchronisation. Integration tests are in `src/__tests__/integration/`. |
-| `./webapp` | React single-page application. Contains `src/` with components, pages, hooks, API services, contexts, internationalisation files, styles, and utilities. End-to-end tests are in `e2e/` and run with Playwright. |
-| `./management_database` | SQL schema file (`schema.sql`) for the management database, shared by the authentication and user services. |
-| `./planner_database` | SQL schema file (`schema.sql`) for the scheduling database, used exclusively by the planner service. |
-| `./certs` | TLS certificate (`cert.pem`) and private key (`key.pem`) used by the Caddy reverse proxy to serve the application over HTTPS. |
+| `./` | Root-level configuration: `package.json` (workspace scripts), Docker Compose files for each environment (`docker-compose.dev.yml`, `docker-compose.selfhosted.yml`, `docker-compose.azure.yml`, `docker-compose.sonarqube.yml`), environment variable templates (`.env.template`, `.env.sonarqube.template`), SonarQube project configuration (`sonar-project.properties`), and the `.github/workflows/` directory containing the two CI/CD pipeline definitions (`deploy_azure.yml`, `deploy_selfhosted.yml`). Actual `.env` files with real credentials are excluded from the archive. |
+| `./gateway_service` | API gateway service. Single entry point for all frontend requests; routes them to the appropriate internal service. Contains `src/` with routing logic (`controllers/`, `routes/`) and utility modules (`config/`, `utils/`). |
+| `./auth_service` | Authentication service. Handles login, registration, account activation via email, password recovery with OTP, and Google OAuth 2.0 integration. Contains `src/` with `controllers/`, `services/`, `entities/`, `middleware/`, `routes/`, `schemas/`, `scripts/`, and `utils/`. |
+| `./user_service` | User management service. Manages user accounts, roles, and bulk import from Excel files. Contains `src/` with `controllers/`, `service/`, `entities/`, `middleware/`, `routes/`, `schemas/`, and `utils/`. |
+| `./planner_service` | Scheduling service -- the core of the system. Manages calendars, degree programmes, academic years, subjects, groups, classrooms, recurring and one-off events, change requests, Google Calendar synchronisation, and data interoperability (TXT/CSV/ZIP import and export). Contains `src/` with `controllers/`, `services/`, `entities/`, `middleware/`, `routes/`, `constants/`, `types/`, and `utils/`. Integration tests are in `src/__tests__/integration/`. |
+| `./webapp` | React single-page application (frontend). Contains `src/` with `components/`, `pages/`, `hooks/`, `services/` (API clients), `contexts/`, `i18n/` (internationalisation), `styles/`, `constants/`, `config/`, `lib/`, `types/`, and `utils/`. End-to-end tests are in `e2e/` and run with Playwright. |
+| `./management_database` | SQL schema file (`schema.sql`) and container image definition (`Dockerfile`) for the management database, shared by `auth_service` and `user_service`. |
+| `./planner_database` | SQL schema file (`schema.sql`) and container image definition (`Dockerfile`) for the scheduling database, used exclusively by `planner_service`. |
+| `./certs` | TLS certificate (`cert.pem`) and private key (`key.pem`) used by the Caddy reverse proxy to serve the application over HTTPS with the institutional GEANT certificate. |
 | `./docs` | Project documentation in Markdown format, covering all chapters of this TFG report and supplementary technical notes. |
 
 ---

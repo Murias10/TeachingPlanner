@@ -8,6 +8,8 @@
 
 The system functions are specified through a **hierarchical list of functional requirements (FR)** complemented with **use case diagrams** that offer a graphical view of actors and modules. Each functional module (FR-AUTH, FR-USER, etc.) corresponds directly to a group of user requirements (UR1–UR10) from Chapter 3 and transforms those requirements into a detailed technical specification of the system's behaviour: specific validation conditions, exact status values, mandatory fields and automatic system behaviours.
 
+The general use case diagram below provides an overview of the system's functional scope. Three actors interact with TeachingPlanner. The Administrator has access to all ten functional modules and is responsible for managing the academic structure, calendars, events, users and synchronisation. The Professor can authenticate, consult schedules, submit change requests and export calendar data. The Guest user can consult published schedules and export them without needing an account. The Auditing module operates automatically in the background, recording all modifications without requiring direct interaction from any actor. Each module in the diagram maps to a group of user requirements from Chapter 3, and is expanded into detailed functional requirements in the subsections that follow.
+
 **Figure 4.1 — General use case diagram**
 
 ```plantuml

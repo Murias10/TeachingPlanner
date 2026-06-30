@@ -4,26 +4,26 @@
 
 ## Palabras Clave
 
-- Gestión de horarios académicos
 - Arquitectura de microservicios
-- Eventos periódicos y calendarios académicos
-- Detección de conflictos en tiempo real
-- Solicitudes de cambio de horario
-- Sincronización con Google Calendar
-- Interoperabilidad con sistemas heredados
 - Control de acceso basado en roles
+- Detección de conflictos en tiempo real
+- Eventos periódicos y calendarios académicos
+- Gestión de horarios académicos
 - Integración y despliegue continuos
+- Interoperabilidad con sistemas heredados
+- Sincronización con Google Calendar
+- Solicitudes de cambio de horario
 
 ---
 
 ## Keywords
 
 - Academic schedule management
+- Continuous integration and deployment
+- Data interoperability
+- Google Calendar synchronisation
 - Microservices architecture
 - Periodic events and academic calendars
 - Real-time conflict detection
-- Schedule change requests
-- Google Calendar synchronisation
-- Data interoperability
 - Role-based access control
-- Continuous integration and deployment
+- Schedule change requests

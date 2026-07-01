@@ -1081,6 +1081,8 @@ The webapp module is built on React with Vite. Two technology decisions were mad
 
 Prior to implementation, a complete UI prototype was produced in Excalidraw. The prototype functions as a navigation map: each frame represents one application route and the arrows between frames trace the user flows for both the *Student* (guest) and *Admin* roles. It covers all screens listed in Table 4.1 and served as the direct input for implementation decisions. The prototype is included in full in the project annexes (`prototipos/` folder, SVG format).
 
+> 📷 **Figure X.** Overview of the UI prototype produced in Excalidraw, showing the full navigation map across all application routes for both the Student and Admin roles.
+
 The screens of the functional application, with annotated screenshots, are documented in **§[REFERENCIA CRUZADA — manual de uso]**.
 
 #### Navigation structure

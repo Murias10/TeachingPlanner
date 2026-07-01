@@ -1,6 +1,6 @@
 # Chapter 9: APPENDICES (APÉNDICES)
 
-This chapter contains supplementary material that supports the main body of the document. Section 9.1 presents the full Risk Management Plan referenced in Chapter 2. Section 9.2 lists the references cited throughout the document. Section 9.3 describes the structure and contents of the deliverable annexed to this project.
+This chapter contains supplementary material that supports the main body of the document. Section 9.1 presents the full Risk Management Plan referenced in Chapter 2. Section 9.2 lists the references cited throughout the document. Section 9.3 describes the structure and contents of the deliverable annexed to this project. Section 9.4 discloses the use of artificial intelligence tools during the development of the software and the writing of this document.
 
 ## 9.1 Risk Management Plan
 
@@ -244,5 +244,31 @@ The table below describes the internal structure of the `./TeachingPlanner` dire
 | `./planner_database` | SQL schema file (`schema.sql`) and container image definition (`Dockerfile`) for the scheduling database, used exclusively by `planner_service`. |
 | `./certs` | TLS certificate (`cert.pem`) and private key (`key.pem`) used by the Caddy reverse proxy to serve the application over HTTPS with the institutional GEANT certificate. |
 | `./docs` | Project documentation in Markdown format, covering all chapters of this TFG report and supplementary technical notes. |
+
+---
+
+## 9.4 Use of Artificial Intelligence Tools
+
+This section discloses the artificial intelligence tools used during the development of TeachingPlanner and the writing of this document, together with the nature and scope of their use. Full responsibility for the entire content of the software and of this document is assumed, including any part produced with the assistance of these tools: every output was reviewed, validated, and corrected where necessary before being accepted into the project.
+
+### 9.4.1 Tools Used
+
+Two AI-assisted tools were used throughout the project. The first is Claude Code, a coding assistant developed by Anthropic and integrated into the IDE, used in its free tier during software development. The second is an AI-assisted writing extension for Microsoft Word, used during the preparation of this document.
+
+No AI tool was given access to the production environment, the institutional infrastructure, or any system containing personal or sensitive data. All AI-assisted activity took place locally, against the development repository and the document draft.
+
+### 9.4.2 Use in Software Development
+
+Claude Code was used within the IDE as a coding assistant. Its use was limited to the following types of tasks: generating boilerplate code consistent with patterns already established in the codebase; locating the root cause of defects from error messages, logs, or unexpected behaviour; reviewing and adjusting existing code for clarity and consistency once functionality was already working; drafting automated tests for functionality that had already been designed; and searching across the codebase during impact analysis before making a change.
+
+All architectural decisions, the data model, the API design, the choice of technologies, and the overall system design described in Chapter 5 were made independently. AI assistance was used at the implementation level, not at the design level. Every suggestion was reviewed and tested before being integrated, and the resulting code was verified to be correct and fit for purpose.
+
+### 9.4.3 Use in Document Preparation
+
+The AI-assisted writing extension for Microsoft Word was used to support language-level tasks during the preparation of this document: rephrasing sentences for clarity, improving consistency of terminology across chapters, and reviewing grammar and style in both Spanish and English. The structure, technical content, decisions, and conclusions presented throughout this document reflect the work carried out during the project. AI assistance did not extend to the generation of technical content or analysis.
+
+### 9.4.4 Declaration of Responsibility
+
+The use of AI-assisted tools does not affect the academic integrity of this work. All code and written content included in this project and in this document has been reviewed, understood, and validated. Responsibility for the correctness and originality of the work presented is assumed in full, in line with the authorship declaration included in this document.
 
 ---

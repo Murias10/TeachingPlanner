@@ -58,8 +58,11 @@ De todo lo que se identificó como mejorable, este proyecto da respuesta a seis 
 4. **Sincronización automática con Google Calendar** — un calendario por aula
 5. **Compatibilidad total con el formato de ficheros heredado** — para no romper el ecosistema existente
 6. **Consulta pública sin autenticación** — conservando lo que ya ofrecía el sistema anterior
+7. **Vista de calendario interactiva** — semana completa, semana laboral, día y mes, sustituyendo el listado/tabla del visualizador heredado
 
-> La aplicación no extiende el visualizador heredado: es un sistema nuevo construido desde cero.
+El sistema anterior no era solo problemas: su modelo de datos reflejaba necesidades académicas reales, y varios puntos de partida se conservan — el modelo de recurrencia (semanal, par/impar, código personalizado), el presupuesto de horas lectivas por grupo, los enlaces de cada aula al GIS de la universidad y de cada asignatura al SIES, y el catálogo bilingüe ES/EN.
+
+> La aplicación no extiende el visualizador heredado: es un sistema nuevo construido desde cero. Pero no parte de cero en su modelo de dominio — conserva lo que ya funcionaba y corrige lo que fallaba.
 
 ---
 
@@ -153,6 +156,10 @@ Next.js con renderizado en servidor aporta principalmente dos cosas: mejor posic
 
 Una sincronización incremental identificaría qué eventos han cambiado y actualizaría solo esos. El problema: los eventos periódicos no tienen fechas almacenadas — habría que expandir el calendario completo y comparar ocurrencia por ocurrencia con lo que hay en Google. Con cientos de eventos en un semestre, eso agotaría la cuota de la API en segundos. La sincronización completa — borrar todo y recrear desde cero — consume el mismo número de llamadas pero de forma predecible y controlada.
 
+**4. TLS: Caddy en lugar de Nginx**
+
+El certificado TLS de la universidad (GEANT) llega ya emitido, no hay que gestionar su renovación automática. Nginx exigiría scripts de certbot para eso; Caddy acepta certificados provisionados manualmente sin herramientas adicionales dentro del contenedor. Menos piezas que mantener para el mismo resultado.
+
 ---
 
 ## Diapositiva 10 — Calidad: cómo se verifica que funciona
@@ -174,6 +181,8 @@ La razón: la lógica más crítica del sistema — restricciones de unicidad, e
 | Despliegue | VM universitaria (runner propio) o Azure (SSH) |
 
 El pipeline se activa de forma **manual y deliberada** — no en cada push. La persona que despliega elige qué etapas ejecutar.
+
+La interfaz cuida también los detalles: tema claro/oscuro/sistema persistido, filtros en cascada que recuerdan la última selección, confirmación explícita antes de cualquier acción destructiva y progreso en tiempo real en operaciones largas como la sincronización o la importación.
 
 La aplicación está **desplegada en una VM de la Universidad de Oviedo** y se presentó formalmente al personal de la EII como candidata para sustituir el sistema actual.
 

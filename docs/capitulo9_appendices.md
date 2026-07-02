@@ -165,7 +165,7 @@ The following list includes all sources cited directly in the text of this docum
 
 ### 9.3.1 Content Description
 
-In addition to the main TFG document, a compressed file is submitted to the university platform containing the source code and all supplementary materials associated with the project. The university platform has a file size limit of approximately 40 to 90 MB. Since Node.js projects include `node_modules` folders that can be several hundred megabytes, these are excluded from the archive. A `README.txt` file at the root of the archive explains the full structure and provides a link to the public GitHub repository at https://github.com/murias10/teachingplanner, where the complete project -- including its full git history -- can also be cloned or downloaded.
+In addition to the main TFG document, a compressed file is submitted to the university platform containing all supplementary materials associated with the project. The source code is not included in the archive because the complete project, including its full git history, is publicly available at https://github.com/murias10/teachingplanner. A `README.txt` file at the root of the archive documents this and provides the repository URL for reference.
 
 The archive is organised into directories by purpose, as described in Table 9.2.
 
@@ -174,61 +174,59 @@ The archive is organised into directories by purpose, as described in Table 9.2.
 | Directory | Contents |
 |-----------|----------|
 | `./` | Contains the `README.txt` file described below. |
-| `./TeachingPlanner` | Full project source code: the four backend microservices (`gateway_service`, `auth_service`, `user_service`, `planner_service`), the frontend application (`webapp`), Docker Compose configuration files for each deployment environment (development, self-hosted, Azure, and SonarQube), environment variable templates (`.env.template` and `.env.sonarqube.template`), CI/CD workflow definitions (`.github/workflows/`), and the root `package.json`. The `node_modules` folders are excluded; run `npm install` in each service directory and in `webapp/` to restore dependencies. See Table 9.3 for the internal structure. |
-| `./documentacion` | This TFG document in PDF format. The installation manual (Chapter 7, Section 7.1) and the user manual (Chapter 7, Section 7.2) are included as chapters within the document itself; no separate manual files are provided. |
-| `./contexto` | Background document provided by the EII at the start of the project (`Explicacion archivos TXT planificador actual.pdf`), describing the legacy plain-text file format that TeachingPlanner maintains compatibility with. |
-| `./planificacion` | Microsoft Project 2019 file (`planificacion_TFG.mpp`) containing the full project schedule referenced in Chapter 2 (WBS, Gantt chart, resource assignments). |
-| `./prototipos` | Initial UI sketches produced during the design phase: `planificador_boceto.excalidraw` (editable source) and `planificador_boceto.svg` (exported image). These prototypes are referenced in Section 4.1.3.2. |
-
-Note on installation and runtime dependencies: the system runs entirely inside Docker containers. The installation procedure, all required third-party software, version numbers, environment configuration and step-by-step deployment instructions for each of the three supported environments (local development, public VM, private-network VM) are documented in the installation manual in Chapter 7, Section 7.1. No separate `./instalacion` or `./explotacion` directories are included because all configuration files (Docker Compose, `.env` templates, TLS certificates) are already part of the `./TeachingPlanner` source tree.
+| `./documentation` | This TFG document in PDF format. The installation manual (Chapter 7, Section 7.1) and the user manual (Chapter 7, Section 7.2) are included as chapters within the document itself; no separate manual files are provided. |
+| `./context` | Background document provided by the EII at the start of the project (`Explicacion archivos TXT planificador actual.pdf`), describing the legacy plain-text file format that TeachingPlanner maintains compatibility with. |
+| `./planning` | Microsoft Project 2019 file (`planificacion_TFG.mpp`) containing the full project schedule referenced in Chapter 2 (WBS, Gantt chart, resource assignments). |
+| `./prototypes` | Initial UI sketches produced during the design phase: `planificador_boceto.excalidraw` (editable source) and `planificador_boceto.svg` (exported image). These prototypes are referenced in Section 4.1.3.2. |
 
 The content of the `README.txt` file included at the root of the archive is the following:
 
 ```
 ========================================================
   TeachingPlanner -- TFG
-  Escuela de Ingenieria Informatica, Universidad de Oviedo
-  Autor: Diego Murias Suarez
+  School of Computer Engineering, University of Oviedo
+  Author: Diego Murias Suarez
 ========================================================
 
-Este fichero describe la estructura del fichero comprimido adjunto
-entregado junto a la memoria del Trabajo de Fin de Grado.
+This file describes the structure of the compressed archive submitted
+alongside the Final Degree Project report.
 
-ESTRUCTURA DE DIRECTORIOS
---------------------------
+The source code is not included in this archive due to the file size
+restrictions of the university submission platform. The complete project,
+including its full git history, is publicly available at:
 
-./                    README.txt (este fichero)
+  https://github.com/murias10/teachingplanner
 
-./TeachingPlanner/    Codigo fuente completo del proyecto (microservicios
-                      gateway, auth, user y planner, aplicacion web webapp,
-                      y ficheros Docker Compose para cada entorno).
-                      NOTA: las carpetas node_modules estan excluidas.
-                      Ejecutar "npm install" en cada directorio de servicio
-                      y en webapp/ para restaurar las dependencias.
-
-./documentacion/      Memoria del TFG en PDF. Los manuales de instalacion
-                      y de usuario forman parte de la propia memoria.
-
-./contexto/           Documento de contexto del sistema heredado de la EII.
-
-./planificacion/      Fichero Microsoft Project (planificacion_TFG.mpp).
-
-./prototipos/         Bocetos iniciales de la interfaz (Excalidraw y SVG).
-
-REPOSITORIO PUBLICO
+DIRECTORY STRUCTURE
 --------------------
-https://github.com/murias10/teachingplanner
 
-ACCESO A LA APLICACION
-------------------------
-La aplicacion esta desplegada y operativa. Consultar la seccion 7.1
-del manual de instalacion incluido en ./documentacion/ para instrucciones
-de acceso mediante la VPN de la universidad.
+./                    README.txt (this file)
+
+./documentation/      TFG report in PDF format. The installation manual
+                      and user manual are included as chapters within
+                      the report itself; no separate files are provided.
+
+./context/            Background document provided by the EII describing
+                      the legacy plain-text file format (Explicacion
+                      archivos TXT planificador actual.pdf).
+
+./planning/           Microsoft Project 2019 file (planificacion_TFG.mpp)
+                      with the full project schedule (WBS, Gantt, resources).
+
+./prototypes/         Initial UI sketches produced in Excalidraw:
+                      planificador_boceto.excalidraw (editable source)
+                      and planificador_boceto.svg (exported image).
+
+APPLICATION ACCESS
+-------------------
+The application is deployed and operational. See Section 7.1 of the
+installation manual included in ./documentation/ for access instructions
+via the university VPN.
 ```
 
 ### 9.3.2 Development Directory Structure
 
-The table below describes the internal structure of the `./TeachingPlanner` directory. The layout follows directly from the microservices architecture of the system: one directory per service, one for the frontend application, two for the database schemas, and shared configuration and CI/CD definitions at the root. In contrast to a traditional Java project (where directories such as `./build`, `./dist`, `./lib` or `./classes` separate compilation artefacts from source), a Node.js project resolves dependencies at install time (`node_modules/`) and produces distribution bundles inside each service's own directory, so the structure groups code by bounded context rather than by artefact type.
+The source code is hosted in the public GitHub repository at https://github.com/murias10/teachingplanner and is not included in the submitted archive. The table below describes the internal structure of the repository root for reference. The layout follows directly from the microservices architecture of the system: one directory per service, one for the frontend application, two for the database schemas, and shared configuration and CI/CD definitions at the root.
 
 *Table 9.3: Internal structure of the TeachingPlanner development directory*
 

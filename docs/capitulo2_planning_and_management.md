@@ -188,7 +188,7 @@ This phase produces the architectural decisions (including ADRs), behavioural di
 
 #### 2.1.6.5 Construction phase: Services
 
-The construction phase is the largest in the project. Five services are built in sequence. This diagram shows the Gateway, Auth, and User services. The Planner Service and the Webapp are expanded in the diagrams that follow.
+The construction phase is the largest in the project. Four backend microservices and the frontend application are built in sequence. This diagram shows the Gateway, Auth, and User services. The Planner Service and the Webapp are expanded in the diagrams that follow.
 
 > 📷 **Figure 16.** WBS (part 1) - Gateway, Auth, and User services.
 
@@ -256,7 +256,7 @@ This phase covers the microservices architecture (including ADRs), use case mode
 
 ##### 2.1.6.9.5 Phase 1.5: Construction
 
-The construction phase builds all five services in sequence: Gateway, Auth, User, Planner, and Webapp. It is the longest phase, with 193.75 hours of estimated work spread across six months.
+The construction phase builds four backend microservices and the frontend application in sequence: Gateway, Auth, User, Planner, and Webapp. It is the longest phase, with 193.75 hours of estimated work spread across six months.
 
 > 📷 **Figure 32.** Task table — phase 1.5 Construction: Gateway Service (IDs 81–91).
 
@@ -312,7 +312,7 @@ The table below shows the estimated work hours per phase. Construction dominates
 
 #### 2.1.6.11 Assigned Resources and Hours by Role
 
-The table below shows the total estimated hours per role across the whole project. The Developer accounts for the vast majority, which directly reflects the implementation-heavy nature of building five independent microservices.
+The table below shows the total estimated hours per role across the whole project. The Developer accounts for the vast majority, which directly reflects the implementation-heavy nature of building four backend microservices and a React frontend application.
 
 | Initials | Role | Estimated hours |
 |----------|------|----------------|
@@ -486,7 +486,7 @@ Table 15 consolidates direct and indirect costs into a single summary.
 
 #### 2.1.8.2 Client-Facing Budget
 
-The client-facing budget is built on the full internal cost, including both direct and indirect costs, with a 30% commercial markup applied to each line. The construction phase accounts for 51% of the total direct cost, which reflects the implementation-heavy nature of a five-service microservices architecture.
+The client-facing budget is built on the full internal cost, including both direct and indirect costs, with a 30% commercial markup applied to each line. The construction phase accounts for 51% of the total direct cost, which reflects the implementation-heavy nature of an architecture based on four backend microservices and a React frontend application.
 
 | Phase | Hours | Internal cost (€) |
 |-------|-------|---------|
@@ -605,7 +605,7 @@ In retrospect, the risk register proved accurate: the two highest-priority risks
 
 ### 2.3.3 Final Cost Budget
 
-The project closed within the planned scope and hours, so the final cost matches the initial estimate exactly. The interim Azure deployment (incident I3) was covered by the Azure for Students credit already included in the indirect costs estimate, so no additional expenditure arose.
+The project closed within the planned scope and hours. The market cost column reflects the estimated economic value of the work performed, calculated at standard market rates for each role. The actual cost column reflects the real out-of-pocket expenditure: as a final-year project carried out by a single student, all labour was performed without remuneration and all infrastructure was covered by academic licences and student credits, resulting in zero direct monetary cost. The interim Azure deployment (incident I3) was covered by the Azure for Students credit already included in the indirect costs estimate, so no additional expenditure arose.
 
 | Role | Hours | Rate (€/h) | Market cost (€) | Actual cost (€) |
 |------|-------|-----------|----------------|----------------|

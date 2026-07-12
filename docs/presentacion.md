@@ -1,214 +1,256 @@
 # Presentación — TeachingPlanner
 
-> **Duración objetivo:** ~10 minutos de exposición oral
-> **Formato total:** presentación (10 min) + vídeo demo (10 min) + preguntas
+> **Duración objetivo:** ~12-13 minutos de exposición oral (margen hasta 15 min si hace falta respirar entre bloques)
+> **Formato total:** presentación (~13 min) + vídeo demo (~12 min) + preguntas
 >
 > **Guía de tiempo por sección:**
-> - Motivación (diapositivas 2–3): ~1 min 45 s
-> - Objetivos (diapositiva 4): ~1 min
-> - Solución técnica (diapositivas 5–10): ~6 min 30 s
-> - Conclusiones (diapositiva 11): ~1 min 30 s
+> - Portada (diapositiva 1): ~10 s
+> - Motivación (diapositivas 2–3): ~1 min 15 s
+> - Objetivos (diapositiva 4): ~50 s
+> - Solución técnica — arquitectura y decisiones (diapositivas 5–7, 10): ~3 min 20 s
+> - Solución técnica — problemas encontrados y cómo se resolvieron (diapositivas 8–9): ~1 min 55 s
+> - Calidad y despliegue (diapositiva 11): ~55 s
+> - Conclusiones y trabajo futuro (diapositiva 12): ~65 s
+> - Cierre / paso a demo (diapositiva 13): ~5 s
+>
+> **Estructura alineada con las indicaciones del tutor:** motivación sin tecnicismos (2–3) → objetivos sin tecnicismos (4) → bloque largo de arquitectura, problemas *verdaderamente importantes* encontrados y decisiones ante alternativas (5–11, es la parte central y más extensa) → conclusiones y trabajo futuro (12) → anuncio de la demo (13). Los problemas encontrados están narrados con la misma estructura siempre: síntoma/situación → causa → alternativas valoradas → decisión tomada.
+>
+> **Cómo usar este documento:** cada diapositiva tiene dos bloques.
+> - **Contenido** → lo que aparece en pantalla (para generar el diseño en Canva). Bullets cortos o tabla; nada de párrafos.
+> - **Guion** → lo que se dice en voz alta mientras esa diapositiva está proyectada. No se lee literalmente, es apoyo para practicar.
 
 ---
 
 ## Diapositiva 1 — Portada
 
-**TeachingPlanner**
-*Sistema web de gestión de horarios académicos para la EII*
+### Contenido
+- **TeachingPlanner**
+- Sistema web de gestión de horarios académicos para la EII
+- Diego Murias · Escuela de Ingeniería Informática · Universidad de Oviedo
+- Trabajo de Fin de Grado — Curso 2025-2026
 
-Diego Murias · Escuela de Ingeniería Informática · Universidad de Oviedo
-Trabajo de Fin de Grado — Curso 2025-2026
+### Guion
+> "Buenos días. Voy a presentar TeachingPlanner, un sistema web de gestión de horarios académicos desarrollado para la Escuela de Ingeniería Informática de la Universidad de Oviedo, como Trabajo de Fin de Grado."
+
+*(~10 s)*
 
 ---
 
 ## Diapositiva 2 — El problema: así se gestionaban los horarios
 
-> *Antes de ver qué hace este sistema, hay que entender qué había antes.*
+### Contenido
+- El sistema actual de la EII tiene dos piezas:
+  - Un **visualizador público** de solo lectura, sin panel de administración
+  - Cinco **ficheros de texto plano** editados a mano en el servidor
+- Sin interfaz para personal administrativo ni docentes
 
-La EII gestionaba sus horarios con **dos piezas**:
+### Guion
+> "Antes de ver qué hace este sistema, hay que entender qué había antes. La EII gestionaba sus horarios con dos piezas: un visualizador público de solo lectura, sin ningún panel de administración, y cinco ficheros de texto plano que se editaban directamente en el servidor de la escuela. Para cualquier cambio en el horario había que acceder a ese servidor y editar los ficheros a mano con un editor de texto. No existía ninguna interfaz para el personal administrativo ni para los docentes."
 
-1. Un **visualizador público** de solo lectura — sin ningún panel de administración
-2. Cinco **ficheros de texto plano** que se editaban directamente en el servidor de la escuela
-
-Para cualquier cambio en el horario había que acceder al servidor de la escuela y editar esos ficheros a mano con un editor de texto. No existía ninguna interfaz para el personal administrativo ni para los docentes.
+*(~30 s)*
 
 ---
 
 ## Diapositiva 3 — Las consecuencias del día a día
 
-El sistema funcionaba... hasta que dejaba de funcionar. Y cuando fallaba, no avisaba.
+### Contenido
+- **Sin validación de formato ni de conflictos** — un error de sintaxis se guarda sin avisar; un aula puede reservarse dos veces a la misma hora sin que el sistema lo detecte
+- **El mecanismo de código de letra es frágil** — la periodicidad de los grupos no semanales depende de que el mismo código coincida exactamente en dos ficheros distintos; una mayúscula de más o un espacio hace que el grupo desaparezca del horario publicado sin ningún error visible
+- **Solicitudes por correo** — hilos interminables, sin trazabilidad
+- **Doble mantenimiento** — replicar cambios a mano en Google Calendar
+- **Sin móvil** — el visualizador no funciona en teléfono ni tablet
 
-- **Errores silenciosos:** una letra incorrecta en el formato del fichero hacía desaparecer un grupo del horario sin ningún aviso
-- **Sin detección de conflictos:** un aula podía quedar reservada dos veces a la misma hora sin que nadie lo supiera
-- **Solicitudes por correo:** docente → correo a jefatura → comprobación manual → respuesta → contraoferta → … hilos interminables sin trazabilidad
-- **Doble mantenimiento:** cada cambio en los ficheros había que replicarlo también en Google Calendar a mano
-- **Sin móvil:** el visualizador no funcionaba en teléfonos ni tablets
+> Todo apuntaba en la misma dirección: hacía falta una **plataforma web centralizada**, con una interfaz real para administrar el horario y validaciones automáticas — no más ficheros de texto editados a mano
 
-Todos son problemas de proceso diario. El sistema no fallaba de forma dramática — fallaba de forma silenciosa y costosa en tiempo.
+### Guion
+> "El sistema funcionaba... hasta que dejaba de funcionar. Y cuando fallaba, no avisaba. Si se introducía un error de sintaxis al editar un fichero, el sistema no lo detectaba ni avisaba: el dato erróneo se guardaba silenciosamente. Tampoco se comprobaba si un cambio generaba solapamientos: un aula podía quedar asignada dos veces a la misma hora sin ningún aviso. Había además un problema más sutil y específico: la periodicidad de los grupos no semanales dependía de un código de letra que tenía que coincidir exactamente entre dos ficheros distintos, calendario.txt y horarios.txt. Una diferencia de mayúscula o un espacio de más rompía esa coincidencia, y el grupo desaparecía del horario publicado sin producir ningún error visible — quien no supiera que ese mecanismo existía no tenía forma de saber por qué faltaba una clase. Las solicitudes de cambio se gestionaban por correo — docente escribe a jefatura, comprobación manual, respuesta, contraoferta — hilos interminables sin trazabilidad. Cada cambio en los ficheros había que replicarlo también a mano en Google Calendar. Y el visualizador no funcionaba en móviles ni tablets. Todos son problemas de proceso diario: el sistema no fallaba de forma dramática, fallaba de forma silenciosa y costosa en tiempo. Y todos apuntaban en la misma dirección: hacía falta sustituir la edición manual de ficheros por una plataforma web centralizada, con una interfaz real para administrar el horario y validaciones automáticas que hoy no existían. Esa es la dirección de mejora que aborda este trabajo."
+
+*(~55 s)*
 
 ---
 
 ## Diapositiva 4 — Qué abarca este TFG
 
-De todo lo que se identificó como mejorable, este proyecto da respuesta a seis objetivos concretos:
+### Contenido
+1. Interfaz web de administración
+2. Detección de conflictos en tiempo real
+3. Sistema de solicitudes integrado (sustituye el correo)
+4. Sincronización automática con Google Calendar
+5. Compatibilidad total con el formato de ficheros heredado
+6. Consulta pública sin autenticación
+7. Vista de calendario interactiva (semana, día, mes, agenda)
 
-1. **Interfaz web de administración** — que cualquier persona pueda gestionar el horario sin acceder al servidor
-2. **Detección de conflictos en tiempo real** — antes de guardar cualquier cambio
-3. **Sistema de solicitudes integrado** — que reemplaza el flujo por correo electrónico
-4. **Sincronización automática con Google Calendar** — un calendario por aula
-5. **Compatibilidad total con el formato de ficheros heredado** — para no romper el ecosistema existente
-6. **Consulta pública sin autenticación** — conservando lo que ya ofrecía el sistema anterior
-7. **Vista de calendario interactiva** — semana completa, semana laboral, día y mes, sustituyendo el listado/tabla del visualizador heredado
+> Sistema nuevo desde cero, pero conserva el modelo de dominio que ya funcionaba
 
-El sistema anterior no era solo problemas: su modelo de datos reflejaba necesidades académicas reales, y varios puntos de partida se conservan — el modelo de recurrencia (semanal, par/impar, código personalizado), el presupuesto de horas lectivas por grupo, los enlaces de cada aula al GIS de la universidad y de cada asignatura al SIES, y el catálogo bilingüe ES/EN.
+### Guion
+> "De todo lo que se identificó como mejorable, este proyecto da respuesta a siete objetivos concretos: una interfaz web de administración para que cualquier persona gestione el horario sin acceder al servidor; detección de conflictos en tiempo real antes de guardar cualquier cambio; un sistema de solicitudes integrado que reemplaza el flujo por correo; sincronización automática con Google Calendar, un calendario por aula; compatibilidad total con el formato de ficheros heredado para no romper el ecosistema existente; consulta pública sin autenticación, conservando lo que ya ofrecía el sistema anterior; y una vista de calendario interactiva completa. El sistema anterior no era solo problemas: su modelo de datos reflejaba necesidades académicas reales, y varios puntos de partida se conservan — el modelo de recurrencia, el presupuesto de horas lectivas por grupo, los enlaces al GIS y al SIES, y el catálogo bilingüe. La aplicación no extiende el visualizador heredado: es un sistema nuevo construido desde cero. Pero no parte de cero en su modelo de dominio."
 
-> La aplicación no extiende el visualizador heredado: es un sistema nuevo construido desde cero. Pero no parte de cero en su modelo de dominio — conserva lo que ya funcionaba y corrige lo que fallaba.
+*(~50 s)*
 
 ---
 
 ## Diapositiva 5 — Arquitectura: la primera decisión de diseño
 
-La primera decisión fue: ¿un único sistema integrado (monolito) o servicios independientes (microservicios)?
+### Contenido
+**¿Monolito o microservicios?** → Se optó por microservicios con API Gateway
 
-**Se optó por microservicios con API Gateway** por tres razones concretas, no por tendencia tecnológica:
+| Razón | Detalle |
+|-------|---------|
+| Ritmos de evolución distintos | Auth y planificación cambian por separado, sin riesgo cruzado |
+| Coste computacional distinto | Planificación escala sola (calendarios, exportación, sync) |
+| Despliegue de bajo riesgo | Actualizar un servicio no reinicia los demás |
 
-- **Autenticación y planificación evolucionan a ritmos distintos.** Un cambio en el sistema de contraseñas no debe poder romper el calendario, y viceversa. Con un monolito, ambos módulos comparten el ciclo de despliegue y ese riesgo existe siempre.
-- **El servicio de planificación es computacionalmente más costoso.** Genera calendarios completos, maneja la exportación y sincroniza con Google Calendar. Puede escalar de forma independiente sin replicar los servicios de autenticación.
-- **Despliegue de bajo riesgo.** Actualizar el servicio de usuarios no requiere reiniciar el servicio de planificación. Si algo falla, solo el servicio afectado se detiene — el resto sigue funcionando.
+- 3 servicios backend + 1 gateway: auth, usuarios, planificación, gateway
+- 2 bases de datos: una compartida por auth+usuarios, otra exclusiva de planificación
+- Docker Compose (dev / VM universitaria / Azure)
 
-El resultado: cuatro servicios independientes (autenticación, usuarios, planificación, gateway), cada uno con su propia base de datos, comunicándose internamente y exponiendo un único punto de entrada al exterior.
+### Guion
+> "La primera decisión fue: ¿un único sistema integrado o servicios independientes? Se optó por microservicios con API Gateway, por tres razones concretas, no por tendencia tecnológica. Primero, autenticación y planificación evolucionan a ritmos distintos: un cambio en el sistema de contraseñas no debe poder romper el calendario, y con un monolito ambos módulos comparten ciclo de despliegue. Segundo, el servicio de planificación es computacionalmente más costoso — genera calendarios completos, exporta, sincroniza con Google Calendar — y puede escalar de forma independiente. Tercero, despliegue de bajo riesgo: actualizar el servicio de usuarios no requiere reiniciar el de planificación, y si algo falla, solo el servicio afectado se detiene. El resultado son siete componentes desplegables: el frontend, el gateway, tres servicios backend — autenticación, usuarios y planificación — y dos bases de datos relacionales. Autenticación y usuarios comparten una misma base de datos, porque ambos dominios están fuertemente relacionados entre sí; planificación tiene la suya propia y exclusiva, separada precisamente porque es el dominio que más se aísla del resto. Todo corre en Docker Compose, con configuraciones para desarrollo, VM universitaria y Azure."
 
-Todo el entorno corre en **Docker Compose**, con configuraciones diferenciadas para desarrollo, VM universitaria y Azure.
+*(~55 s)*
 
 ---
 
 ## Diapositiva 6 — El modelo de datos: una restricción institucional
 
-Para representar los eventos del horario había dos caminos posibles:
+### Contenido
+**El camino no tomado:** modelo de eventos concretos encadenados (como Google Calendar) — cada clase como registro con fecha exacta
 
-| Opción | Cómo funciona | Analogía |
-|--------|---------------|----------|
-| **Modelo de fechas concretas** (como Google Calendar) | Cada clase se guarda con su fecha exacta: "clase el martes 14 de octubre". Consultar = leer registros. | Agenda de citas |
-| **Modelo de patrones de recurrencia** (sistema heredado) | Cada clase se define por su día de la semana y un tipo de periodicidad. Las fechas se calculan en el momento de consultar. | Regla de calendario |
+**El camino elegido:** patrones de recurrencia para eventos periódicos — día de la semana + carácter de periodicidad; sin fecha almacenada (los eventos puntuales sí guardan fecha exacta, como cualquier cita concreta)
 
-**Se eligió el segundo.** La razón es una restricción institucional concreta: existe en la EII otra aplicación, usada por jefatura de estudios, que se alimenta directamente de los mismos cinco ficheros de texto. Si TeachingPlanner no pudiera generar esos ficheros con exactamente el mismo formato, esa aplicación quedaría desconectada desde el primer día.
+- **Razón:** otras aplicaciones de la EII (asignación de horarios al alumnado, jefatura de estudios) consumen los mismos ficheros de texto plano — hay que poder regenerarlos exactamente igual
+- **Coste asumido conscientemente:** calcular fechas al vuelo en cada consulta es la operación más costosa del sistema
 
-Con el modelo de fechas concretas, reconstruir esos ficheros exigiría una transformación inversa compleja con riesgo de pérdida de información. Con el modelo de patrones, la exportación es una transcripción directa.
+### Guion
+> "Para representar los eventos del horario, la opción más natural habría sido copiar el modelo que usa Google Calendar y la práctica totalidad de aplicaciones de calendario: eventos concretos, cada clase como un registro independiente con su fecha exacta, encadenados como ocurrencias de una serie. Esa opción se descartó deliberadamente. El sistema heredado de la EII, y el resto de aplicaciones de su ecosistema — incluida la que asigna horarios individuales al alumnado — no funcionan así: describen una clase recurrente por su día de la semana, un carácter de periodicidad, y las horas totales planificadas para el grupo, no por una lista explícita de fechas. Para que TeachingPlanner pudiera importar y exportar esos mismos ficheros de texto sin romper el resto del ecosistema, el modelo de dominio tenía que respetar esa misma estructura: los eventos periódicos no almacenan fechas, los grupos llevan un presupuesto de horas, y los días lectivos llevan caracteres que dirigen la expansión. Con el modelo de eventos concretos, generar esos ficheros de exportación habría exigido una transformación inversa compleja, con riesgo real de pérdida de información. Con el modelo de patrones, la exportación es una transcripción directa y la importación una reconstrucción fiel. El coste que se asume conscientemente: generar la vista de calendario exige expandir los patrones de recurrencia en tiempo real cada vez que se consulta, en lugar de simplemente leer fechas ya guardadas. Es la operación más costosa del sistema, y la que generó el problema técnico más importante del proyecto, que veremos en un momento."
 
-**El coste de esta decisión:** mostrar el calendario requiere calcular en el momento qué fechas corresponden a cada evento recurrente. Esa es la operación más costosa del sistema, y la que generó el problema técnico más importante del proyecto.
+*(~65 s)*
 
 ---
 
 ## Diapositiva 7 — El motor de planificación: cómo funciona
 
-El sistema no almacena las fechas concretas de las clases. Lo que almacena es la **regla**: "esta clase ocurre todos los martes". Las fechas se calculan cada vez que se consulta el calendario.
+### Contenido
+Los eventos **periódicos** no guardan fecha — guardan la **regla**. (Los eventos **puntuales** sí tienen fecha exacta, como una cita concreta). Tres mecanismos rigen la expansión de los periódicos:
 
-Ese cálculo sigue tres reglas:
+1. **Tipo de recurrencia** — Normal / Par / Impar / Personalizado
+2. **Presupuesto de horas** — los puntuales se incluyen siempre y consumen presupuesto primero, sin importar su fecha; los periódicos solo rellenan las horas que quedan libres
+3. **Rotación entre grupos (algoritmo round-robin)** — mismo día/hora → reparto equitativo de sesiones entre grupos, ninguno acumula más que otro antes de agotar su presupuesto
 
-**1. Qué días lectivos aplican a cada evento**
+### Guion
+> "El sistema distingue dos tipos de eventos. Los eventos puntuales sí tienen una fecha concreta guardada, como cualquier cita en un calendario normal. Pero los eventos periódicos no almacenan ninguna fecha: almacenan la regla, 'esta clase ocurre todos los martes', y las fechas concretas se calculan cada vez que se consulta el calendario. Esa expansión sigue tres mecanismos. Primero, el tipo de recurrencia: normal aparece todas las semanas lectivas, par y impar solo en esas semanas, y personalizado solo en los días marcados con un código específico. Segundo, el presupuesto de horas: cada grupo tiene horas lectivas planificadas para el semestre. Los eventos puntuales de ese grupo se incluyen siempre, sin ninguna condición — no compiten por orden de fecha con nada. Sus horas se restan primero del presupuesto total, y solo con lo que queda libre se van generando eventos periódicos, hasta agotarlo. Esto significa que si un puntual ya consume todo el presupuesto, ese grupo no tendrá ningún evento periódico ese semestre, aunque cronológicamente algún periódico caería antes que el puntual: el puntual no gana por ir primero en el tiempo, gana porque siempre tiene prioridad absoluta sobre el presupuesto. Tercero, la rotación entre grupos: cuando varios grupos comparten el mismo día y franja horaria — por ejemplo, dos grupos de laboratorio que solo caben de uno en uno en la misma aula el mismo martes a las nueve — el sistema aplica un algoritmo round-robin, el mismo principio que reparte turnos por rondas: la primera semana le toca al grupo A, la segunda al grupo B, la tercera otra vez al A, y así sucesivamente, en vez de agotar primero todas las sesiones de un grupo y luego las del otro. El resultado es que, al final del semestre, ningún grupo ha recibido más clases que otro — reproduce automáticamente la alternancia que en el sistema antiguo había que calcular y cuadrar a mano."
 
-Cada evento periódico tiene un tipo de recurrencia:
-- *Normal* — aparece todas las semanas lectivas del semestre
-- *Par* — solo en semanas pares
-- *Impar* — solo en semanas impares
-- *Personalizado* — solo en los días lectivos marcados con un código específico durante la importación
-
-**2. El presupuesto de horas**
-
-Cada grupo tiene un número de horas lectivas planificadas para el semestre. El sistema asigna clases en orden cronológico hasta agotar ese presupuesto. Si hay clases extraordinarias ya confirmadas en el calendario, esas consumen presupuesto primero — y las clases periódicas se ajustan automáticamente.
-
-**3. Rotación entre grupos del mismo horario**
-
-Si varios grupos comparten el mismo día de la semana y franja horaria, el sistema los rota: el primer día va al primer grupo, el segundo al segundo, y así sucesivamente. Reproduce automáticamente la alternancia que se hace en la realidad cuando un aula no puede albergar dos grupos simultáneamente.
+*(~50 s)*
 
 ---
 
 ## Diapositiva 8 — El problema más difícil que se encontró
 
-Durante las pruebas del sistema apareció un error en la detección de conflictos para las **clases semanales ordinarias** — el tipo de evento más común en cualquier horario.
+### Contenido
+**Síntoma:** conflictos de aula en clases semanales normales no se detectaban
 
-**El síntoma:** al reservar un aula para una clase puntual, el sistema no detectaba el conflicto con las clases semanales que ya ocupaban ese aula. Los conflictos pasaban desapercibidos en silencio, exactamente como en el sistema antiguo que se quería sustituir.
-
-**La causa:** el mecanismo de detección consultaba directamente la base de datos para saber qué eventos periódicos caen en un día concreto. Pero para los eventos de tipo *Normal*, esa información no está guardada directamente — se calcula a partir del calendario lectivo. La consulta siempre devolvía vacío y el detector nunca encontraba conflictos.
-
-**Las dos opciones para arreglarlo:**
+**Causa:** el detector consultaba la BD directamente, pero los eventos "Normal" no tienen fechas guardadas — se calculan a partir del calendario lectivo
 
 | Opción | Ventaja | Inconveniente |
-|--------|---------|---------------|
-| Reimplementar la lógica de expansión dentro del detector de conflictos | Más rápido computacionalmente | Duplica lógica compleja; dos implementaciones del mismo cálculo pueden divergir con el tiempo |
-| Reutilizar el generador de calendario completo como fuente de verdad | Sin duplicación; correcto por construcción | Más costoso: genera el calendario entero y luego filtra |
+|--------|---------|----------------|
+| Reimplementar la expansión en el detector | Más rápido | Duplica lógica, riesgo de divergencia |
+| **Reutilizar el generador de calendario** (elegida) | Sin duplicación, correcto por construcción | Más costoso computacionalmente |
 
-**Se eligió la segunda.** El sistema ya tenía un generador de calendario probado y correcto. Mantener dos implementaciones del mismo cálculo en paralelo era un riesgo real de que divergieran. El coste computacional adicional es aceptable para la escala de uso de la EII.
+> Nota para la defensa: la causa y la solución final están documentadas en la memoria (capítulo 2, incidente I6); la comparación de las dos alternativas es razonamiento técnico propio a partir del código, no una cita literal — tenlo presente por si preguntan de dónde sale exactamente esa tabla.
 
----
+### Guion
+> "Durante las pruebas apareció un error en la detección de conflictos para las clases semanales ordinarias, el tipo de evento más común en cualquier horario. El síntoma: al reservar un aula para una clase puntual, el sistema no detectaba el conflicto con las clases semanales que ya ocupaban esa aula. Los conflictos pasaban desapercibidos, exactamente como en el sistema antiguo que se quería sustituir. La causa: el mecanismo de detección consultaba directamente la base de datos para saber qué eventos periódicos caen en un día concreto, pero para los eventos de tipo Normal esa información no está guardada — se calcula a partir del calendario lectivo. La consulta siempre devolvía vacío. Había dos opciones: reimplementar la lógica de expansión dentro del propio detector, más rápido pero duplicando lógica compleja con riesgo de que las dos implementaciones divergieran; o reutilizar el generador de calendario completo como fuente de verdad, sin duplicación y correcto por construcción, aunque más costoso computacionalmente. Se eligió la segunda: el generador ya estaba probado y correcto, y mantener dos implementaciones en paralelo era un riesgo real. El coste computacional adicional es aceptable para la escala de uso de la EII."
 
-## Diapositiva 9 — Tres decisiones técnicas con consecuencias reales
-
-**1. Base de datos: relacional (MariaDB) en lugar de documental (MongoDB)**
-
-El modelo académico — titulaciones, cursos, asignaturas, grupos, aulas, eventos — tiene relaciones fuertes y restricciones de unicidad: si se borra una asignatura, todos sus grupos desaparecen; no se pueden crear dos aulas con el mismo código. Una base de datos documental no aplica estas garantías automáticamente — habría que reimplementarlas en el código de la aplicación, con riesgo de inconsistencias. Una base de datos relacional las aplica a nivel de motor, sin código adicional.
-
-**2. Frontend: React como aplicación de una sola página (Vite) en lugar de Next.js con renderizado en servidor**
-
-Next.js con renderizado en servidor aporta principalmente dos cosas: mejor posicionamiento en buscadores y carga inicial más rápida para usuarios no autenticados. TeachingPlanner no necesita ninguna de las dos: todas las páginas requieren autenticación previa — no hay nada que indexar ni páginas que mostrar sin sesión. React con Vite tiene un ciclo de desarrollo significativamente más rápido y sin infraestructura de servidor adicional.
-
-**3. Sincronización con Google Calendar: completa en lugar de incremental**
-
-Una sincronización incremental identificaría qué eventos han cambiado y actualizaría solo esos. El problema: los eventos periódicos no tienen fechas almacenadas — habría que expandir el calendario completo y comparar ocurrencia por ocurrencia con lo que hay en Google. Con cientos de eventos en un semestre, eso agotaría la cuota de la API en segundos. La sincronización completa — borrar todo y recrear desde cero — consume el mismo número de llamadas pero de forma predecible y controlada.
-
-**4. TLS: Caddy en lugar de Nginx**
-
-El certificado TLS de la universidad (GEANT) llega ya emitido, no hay que gestionar su renovación automática. Nginx exigiría scripts de certbot para eso; Caddy acepta certificados provisionados manualmente sin herramientas adicionales dentro del contenedor. Menos piezas que mantener para el mismo resultado.
+*(~60 s)*
 
 ---
 
-## Diapositiva 10 — Calidad: cómo se verifica que funciona
+## Diapositiva 9 — Segundo problema real: la cuota de la API de Google Calendar
 
-**La decisión de testing más importante: no usar simulaciones**
+### Contenido
+**Diseño original:** sincronización incremental (propagar cada cambio al momento)
 
-Para los tests del núcleo del sistema se tomó una decisión deliberada: **no usar bases de datos simuladas (mocks)**, sino una base de datos real en un contenedor efímero que se crea antes de cada suite de tests y se destruye al terminar.
+**Problema:** la cuota de Google Calendar es **compartida a nivel de proyecto**, no por usuario — 600 peticiones/min
 
-La razón: la lógica más crítica del sistema — restricciones de unicidad, eliminaciones en cascada, integridad referencial — solo se manifiesta con una base de datos real. Un mock no reproduce esas garantías. Una suite construida sobre mocks pasaría los tests para código que falla en producción. Los 27 casos de integración prueban exactamente esa capa.
+- Cientos de eventos por semestre → agotaría la cuota en horas
+- Detectado y resuelto en fase de análisis/diseño, antes de implementar la integración
 
-**El pipeline CI/CD: calidad integrada en el proceso**
+**Decisión:** sincronización completa "borrar y recrear" bajo demanda manual, con límite propio de 400 req/min (margen de seguridad del 33%)
 
-| Etapa | Qué verifica |
-|-------|-------------|
-| Análisis estático (SonarQube) | Code smells, deuda técnica, cobertura > 70% |
-| Tests de integración (base de datos real) | 27 casos: restricciones, cascadas, unicidad, autenticación |
-| Tests E2E (Playwright, navegador real) | 42 flujos completos de usuario en Chromium |
-| Build y publicación | Imagen Docker lista para desplegar |
-| Despliegue | VM universitaria (runner propio) o Azure (SSH) |
+### Guion
+> "El segundo problema técnico real no fue un bug, sino una limitación externa que obligó a rediseñar. El plan inicial era una sincronización incremental: cada cambio en el calendario se propaga a Google Calendar en el momento en que ocurre. El problema es que la cuota de la API de Google Calendar es compartida a nivel de todo el proyecto de Google Cloud, no por usuario, con un límite de seiscientas peticiones por minuto. Con cientos de creaciones, modificaciones y cancelaciones de eventos en un semestre, ese modelo agotaría la cuota disponible en pocas horas. Esto se detectó durante el análisis y diseño de la integración con Google Calendar, al comparar las dos alternativas antes de implementar ninguna, así que se pudo resolver sobre el papel sin necesidad de reescribir código ya construido. La decisión fue cambiar a una sincronización completa: borrar y recrear todos los eventos bajo demanda manual del administrador, con un limitador propio de cuatrocientas peticiones por minuto — un margen de seguridad del treinta y tres por ciento, porque el contador interno del servidor puede desincronizarse temporalmente del contador real de Google. Esto también llevó a restringir la sincronización solo a administradores, para controlar quién puede consumir esa cuota compartida."
 
-El pipeline se activa de forma **manual y deliberada** — no en cada push. La persona que despliega elige qué etapas ejecutar.
-
-La interfaz cuida también los detalles: tema claro/oscuro/sistema persistido, filtros en cascada que recuerdan la última selección, confirmación explícita antes de cualquier acción destructiva y progreso en tiempo real en operaciones largas como la sincronización o la importación.
-
-La aplicación está **desplegada en una VM de la Universidad de Oviedo** y se presentó formalmente al personal de la EII como candidata para sustituir el sistema actual.
+*(~55 s)*
 
 ---
 
-## Diapositiva 11 — Conclusiones y trabajo futuro
+## Diapositiva 10 — Tres decisiones técnicas más
 
+### Contenido
+| Decisión | Elegido | En vez de | Por qué |
+|----------|---------|-----------|---------|
+| Base de datos | MariaDB (relacional) | MongoDB | Relaciones e integridad fuertes en el dominio académico |
+| Frontend | React + Vite (SPA) | Next.js SSR | Ninguna página necesita indexación SEO — toda la gestión requiere login |
+| TLS | Caddy | Nginx | Certificado GEANT ya emitido, sin necesidad de certbot |
+
+### Guion
+> "Tres decisiones técnicas más, con consecuencias reales. Base de datos relacional, MariaDB, en lugar de documental: el modelo académico tiene relaciones fuertes y restricciones de unicidad — si se borra una asignatura, desaparecen sus grupos; no puede haber dos aulas con el mismo código — y una base de datos relacional aplica esas garantías a nivel de motor, sin código adicional. Frontend en React con Vite como aplicación de una sola página, en lugar de Next.js con renderizado en servidor: esa tecnología aporta mejor posicionamiento en buscadores y carga inicial más rápida para contenido público indexable. Aquí sí existe una vista pública sin necesidad de iniciar sesión — la consulta de horarios — pero no es contenido que interese indexar en buscadores, y todas las páginas de gestión requieren login de todas formas. Por eso el renderizado en servidor no aporta nada relevante, y React con Vite tiene un ciclo de desarrollo mucho más rápido. Y TLS con Caddy en lugar de Nginx: el certificado de la universidad llega ya emitido, y Caddy lo acepta sin necesidad de scripts de certbot."
+
+*(~40 s)*
+
+---
+
+## Diapositiva 11 — Calidad: cómo se verifica que funciona
+
+### Contenido
+**Sin mocks en tests del núcleo** — base de datos real en contenedor efímero
+
+| Etapa CI/CD | Qué verifica |
+|-------------|---------------|
+| SonarQube | Code smells; umbral obligatorio de cobertura > 70% para fusionar a main |
+| Integración (BD real) | 27 casos diseñados — 7 implementados hasta la fecha (restricciones, cascadas, unicidad) |
+| E2E (Playwright) | 57 casos diseñados — 42 implementados en navegador real |
+| Build + despliegue | VM universitaria o Azure |
+
+- Desplegado en producción (VM Universidad de Oviedo) y presentado a la EII
+
+### Guion
+> "La decisión de testing más importante: no usar simulaciones. Para los tests del núcleo se tomó una decisión deliberada de no usar bases de datos mockeadas, sino una base de datos real en un contenedor efímero que se crea antes de cada suite y se destruye al terminar. La razón: la lógica más crítica del sistema — restricciones de unicidad, eliminaciones en cascada, integridad referencial — solo se manifiesta con una base de datos real; un mock no reproduce esas garantías, y una suite construida sobre mocks pasaría tests para código que falla en producción. El pipeline de CI/CD integra análisis estático con SonarQube, que exige más de un setenta por ciento de cobertura antes de poder fusionar a la rama principal. La suite de integración está diseñada para veintisiete casos sobre base de datos real, de los cuales siete están implementados hasta la fecha; la suite end-to-end está diseñada para cincuenta y siete flujos completos en Playwright sobre navegador real, de los cuales cuarenta y dos están implementados. El resto queda como trabajo de testing pendiente, no como carencia oculta. Y build y despliegue a la VM universitaria o a Azure. El pipeline se activa de forma manual y deliberada, no en cada push. La aplicación está desplegada en una VM de la Universidad de Oviedo y se presentó formalmente al personal de la EII como candidata para sustituir el sistema actual."
+
+*(~55 s)*
+
+---
+
+## Diapositiva 12 — Conclusiones y trabajo futuro
+
+### Contenido
 **Conclusiones**
+- Sistema desplegado, funcional y presentado formalmente a la EII
+- Los problemas de partida (edición manual, errores silenciosos, correo) están resueltos
+- Todas las decisiones técnicas respondieron a restricciones reales, no fueron arbitrarias
+- El dominio académico resultó más complejo de lo estimado — el motor de planificación completo llevó más tiempo del previsto, absorbido con el colchón de contingencia sin recortar alcance
 
-- El objetivo principal está cumplido: la EII tiene un sistema desplegado, funcional y presentado formalmente como sustituto del actual
-- Los problemas de partida — edición manual en el servidor, errores silenciosos, solicitudes por correo — están resueltos
-- Todas las decisiones técnicas tuvieron restricciones reales: la compatibilidad con el ecosistema de ficheros, la cuota de la API de Google, la disponibilidad del portal universitario de Azure. Ninguna fue arbitraria.
-- El trabajo demuestra que una arquitectura de microservicios con CI/CD y despliegue real en producción es abordable dentro de un TFG si las decisiones se toman con criterio desde el principio
+**Trabajo futuro**
+- Autenticación Microsoft (cuentas institucionales `uoXXXXXX@uniovi.es`)
+- Interfaz de auditoría
+- Undo/redo en el calendario
+- Notificaciones en tiempo real (WebSockets)
+- WAF y rate limiting
 
-**Trabajo futuro — qué está listo para crecer**
+### Guion
+> "Para concluir: el objetivo principal está cumplido — la EII tiene un sistema desplegado, funcional y presentado formalmente como sustituto del actual. Los problemas de partida (edición manual en el servidor, errores silenciosos, solicitudes por correo) están resueltos. Todas las decisiones técnicas tuvieron restricciones reales detrás — la compatibilidad con el ecosistema de ficheros, la cuota de la API de Google, la disponibilidad del portal universitario de Azure — ninguna fue arbitraria. Una lección honesta del proyecto: el dominio académico resultó más complejo de lo estimado inicialmente. El motor de planificación — el sistema de caracteres de recurrencia, el presupuesto de horas, la detección de conflictos — llevó bastante más tiempo de implementación del que se había previsto en la planificación. Se absorbió reajustando el orden del backlog y con el colchón de contingencia de dos semanas, sin recortar ninguna funcionalidad ni retrasar la entrega. El trabajo demuestra que una arquitectura de microservicios con CI/CD y despliegue real en producción es abordable dentro de un TFG si las decisiones se toman con criterio desde el principio, y si la planificación deja margen para la complejidad real del dominio. Como trabajo futuro queda: autenticación con cuentas de Microsoft de la universidad, que requería un registro institucional fuera del alcance del TFG; una interfaz de auditoría, ya que los campos de trazabilidad están en la base de datos pero falta la UI; undo/redo en el calendario; notificaciones en tiempo real por WebSockets cuando se aprueba o rechaza una solicitud; y WAF con rate limiting antes de cualquier despliegue más amplio."
 
-- **Autenticación Microsoft** — usar las cuentas `@uniovi.es` en lugar de credenciales propias *(requería registro en el portal Azure universitario: decisión institucional fuera del alcance del TFG)*
-- **Interfaz de auditoría** — los campos de trazabilidad ya están en la base de datos; falta la UI de consulta
-- **Undo/redo en el calendario** — la lógica de eventos periódicos lo hace complejo, pero la estructura está preparada
-- **Notificaciones en tiempo real** — WebSockets cuando se aprueba o rechaza una solicitud
-- **WAF y rate limiting** — antes de cualquier despliegue más amplio que el entorno universitario actual
+*(~65 s)*
 
 ---
 
-## Diapositiva 12 — Demostración
+## Diapositiva 13 — Demostración
 
-> *A continuación se proyecta el vídeo de demostración de la aplicación.*
+### Contenido
+- A continuación, vídeo de demostración de la aplicación
+- *(~10 minutos)*
 
-*(~10 minutos)*
+### Guion
+> "A continuación se proyecta el vídeo de demostración de la aplicación."
+
+*(~5 s)*
